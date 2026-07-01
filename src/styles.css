@@ -714,3 +714,54 @@ p {
     grid-column: span 2;
   }
 }
+
+/* Generic box hover effect */
+.panel:hover,
+.kpi-card:hover,
+.chart-card:hover,
+.report-card:hover,
+.advisory-card:hover,
+.analytics-kpis article:hover,
+.quiz-selector:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.12);
+  transition: all 200ms ease;
+}
+
+/* Buttons hover enhancement */
+.theme-toggle:hover,
+.theme-toggle-inline:hover,
+.section-nav button:hover,
+.control-group.actions button:hover,
+.community-form button:hover,
+.report-head button:hover,
+.quiz-actions button:hover,
+.quiz-result button:hover,
+.back-btn:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.08);
+  box-shadow: 0 8px 16px rgba(15, 23, 42, 0.18);
+  transition: all 180ms ease;
+}
+
+/* Quiz option hover */
+.quiz-option:hover {
+  border-color: var(--sky);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 14px rgba(56, 189, 248, 0.15);
+  transition: all 180ms ease;
+}
+
+/* Section nav active buttons already exist; enhance hover */
+.section-nav button:hover:not(.active) {
+  border-color: var(--sky);
+  color: var(--sky);
+}
+
+/* Cards inside quiz selector */
+.quiz-card:hover {
+  border-color: var(--sky);
+  box-shadow: 0 6px 18px rgba(34, 211, 238, 0.25);
+  transform: translateY(-4px) scale(1.01);
+  transition: all 200ms ease;
+}
