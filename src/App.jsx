@@ -278,15 +278,28 @@ export default function App() {
     }
   };
 
-  if (loading || !current || !analytics) {
-    return (
-      <main className="app-shell loading-state">
-        <SectionNav activeSection={activeSection} onSectionChange={setActiveSection} theme={theme} onToggleTheme={toggleTheme} />
-        <h1>Preparing live pollution intelligence...</h1>
-      </main>
-    );
-  }
+if (loading || !current || !analytics) {
+  return (
+    <main className="app-shell loading-state">
+      <SectionNav
+        activeSection={activeSection}
+        onSectionChange={setActiveSection}
+        theme={theme}
+        onToggleTheme={toggleTheme}
+      />
 
+      <div className="loading-container">
+        <div className="loading-spinner"></div>
+
+        <h1>Preparing Live Pollution Intelligence...</h1>
+
+        <p>
+          Fetching the latest air quality data and analytics...
+        </p>
+      </div>
+    </main>
+  );
+}
   return (
     <main className="app-shell">
       <Hero cityName={position.cityName} />
