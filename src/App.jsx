@@ -28,9 +28,9 @@ const AUTO_REFRESH_SECONDS = 180;
 
 function Hero({ cityName }) {
   return (
-    <header className="hero">
+    <header className="hero flex *:flex-col items-center justify-center text-center">
       <div className="hero-overlay" />
-      <div className="hero-content">
+      <div className="hero-content ">
         <p className="eyebrow">Pollution Control Hub</p>
         <h1>Monitor. Understand. Act.</h1>
         <p>
@@ -281,7 +281,7 @@ export default function App() {
     return (
       <main className="app-shell loading-state">
         <SectionNav activeSection={activeSection} onSectionChange={setActiveSection} theme={theme} onToggleTheme={toggleTheme} />
-        <h1>Preparing live pollution intelligence...</h1>
+        <h1 className="loading-title text-3xl">Preparing live pollution intelligence...</h1>
       </main>
     );
   }
