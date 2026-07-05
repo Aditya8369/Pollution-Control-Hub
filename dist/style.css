@@ -1,0 +1,100 @@
+
+*{
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+/* Body */
+body{
+    font-family: Arial, sans-serif;
+    background-color: #f4fff4;
+    color: #333;
+    line-height: 1.6;
+}
+
+/* Header */
+header{
+    background: #2e8b57;
+    color: white;
+    text-align: center;
+    padding: 30px;
+}
+
+header h1{
+    font-size: 36px;
+}
+
+header p{
+    font-size: 18px;
+    margin-top: 10px;
+}
+
+/* Navigation */
+nav{
+    background: #1f6f43;
+    text-align: center;
+    padding: 15px;
+}
+
+nav a{
+    color: white;
+    text-decoration: none;
+    margin: 0 15px;
+    font-weight: bold;
+}
+
+nav a:hover{
+    color: yellow;
+}
+
+/* Sections */
+section{
+    background: white;
+    width: 80%;
+    margin: 20px auto;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.2);
+}
+
+section h2{
+    color: #2e8b57;
+    margin-bottom: 10px;
+}
+
+ul, ol{
+    margin-left: 20px;
+}
+
+/* Form */
+form input,
+form textarea{
+    width: 100%;
+    padding: 10px;
+    margin-top: 5px;
+    margin-bottom: 15px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+}
+
+form input[type="submit"]{
+    background: #2e8b57;
+    color: white;
+    border: none;
+    cursor: pointer;
+    font-size: 16px;
+}
+
+form input[type="submit"]:hover{
+    background: #1f6f43;
+}
+
+/* Footer */
+footer{
+    background: #2e8b57;
+    color: white;
+    text-align: center;
+    padding: 15px;
+    margin-top: 20px;
+}
