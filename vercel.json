@@ -1,6 +1,0 @@
-
-{
-  "framework": "vite",
-  "buildCommand": "npm run build",
-  "ignoreCommand": "git diff HEAD^ HEAD --quiet ./"
-}

@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { SAFE_LIMITS } from '../constants/cities';
 
 function buildWarnings(current) {
@@ -13,14 +13,24 @@ function buildWarnings(current) {
 export default function AlertsPanel({ cityName, current, confidenceScore , exposureEstimate}) {
 
   const warnings = useMemo(() => buildWarnings(current), [current]);
+  const lastNotified = useRef('');
 
   useEffect(() => {
-    if (!warnings.length || !('Notification' in window)) return;
+    if (!('Notification' in window)) return;
+
+    if (!warnings.length) {
+      lastNotified.current = '';
+      return;
+    }
+
+    const signature = `${cityName}:${warnings.join('|')}`;
+    if (lastNotified.current === signature) return;
 
     const sendNotification = () => {
       new Notification('Pollution Alert', {
         body: `${cityName}: AQI ${current.us_aqi}. ${warnings[0]}`
       });
+      lastNotified.current = signature;
     };
 
     if (Notification.permission === 'granted') {
