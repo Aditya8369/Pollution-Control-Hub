@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
-
 const STORAGE_KEY = 'pollution-community-reports';
-const VOTE_THRESHOLD = 5; 
+const VOTES_STORAGE_KEY = 'pollution-community-votes';
+
+const VOTE_THRESHOLD = 5;
+
 const X_DAYS = 7;
 const MAX_IMAGE_SIZE_BYTES = 500 * 1024; // 500 KB
 const STORAGE_WARN_THRESHOLD = 5 * 1024 * 1024; // 5 MB warning
