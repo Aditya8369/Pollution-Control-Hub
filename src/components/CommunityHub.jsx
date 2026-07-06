@@ -54,9 +54,9 @@ export default function CommunityHub() {
   const [votedIds, setVotedIds] = useState(() => readVotedIds());
   const [filter, setFilter] = useState('All');
   const [form, setForm] = useState({
-    title: '',
-    description: '',
-    image: ''
+    title: "",
+    description: "",
+    image: "",
   });
   const [fileInputKey, setFileInputKey] = useState(Date.now());
   const [uploadError, setUploadError] = useState('');
@@ -103,7 +103,11 @@ export default function CommunityHub() {
   }, [reports]);
 
   useEffect(() => {
-    localStorage.setItem(VOTES_STORAGE_KEY, JSON.stringify([...votedIds]));
+    try {
+      localStorage.setItem(VOTES_STORAGE_KEY, JSON.stringify([...votedIds]));
+    } catch (e) {
+      console.error('Failed to persist community votes to localStorage:', e);
+    }
   }, [votedIds]);
 
   const onSubmit = (event) => {
@@ -117,13 +121,13 @@ export default function CommunityHub() {
       image: form.image,
       votes: 0,
       createdAt: new Date().toISOString(),
-      status:"Pending",
+      status: "Pending",
       verifiedAt: "",
-      moderationNotes:"",
+      moderationNotes: "",
     };
 
     setReports((prev) => [newReport, ...prev]);
-    setForm({ title: '', description: '', image: '' });
+    setForm({ title: "", description: "", image: "" });
     setFileInputKey(Date.now());
   };
 
@@ -167,33 +171,37 @@ export default function CommunityHub() {
         const nextVotes = report.votes + 1;
         const createdDate = new Date(report.createdAt);
         const ageInDays = (new Date() - createdDate) / (1000 * 60 * 60 * 24);
-        
+
         let updatedStatus = report.status;
         let verifiedAtTimestamp = report.verifiedAt;
         let notes = report.moderationNotes;
 
-        if (nextVotes >= VOTE_THRESHOLD && ageInDays <= X_DAYS && report.status === "Pending") {
+        if (
+          nextVotes >= VOTE_THRESHOLD &&
+          ageInDays <= X_DAYS &&
+          report.status === "Pending"
+        ) {
           updatedStatus = "Verified (community)";
           verifiedAtTimestamp = new Date().toISOString();
           notes = "Automatically verified via community consensus upvotes.";
         }
 
-        return { 
-          ...report, 
-          votes: nextVotes, 
+        return {
+          ...report,
+          votes: nextVotes,
           status: updatedStatus,
           verifiedAt: verifiedAtTimestamp,
-          moderationNotes: notes
+          moderationNotes: notes,
         };
-      })
+      }),
     );
 
     setVotedIds((prev) => new Set(prev).add(id));
   };
 
   const filteredReports = reports.filter((report) => {
-    if (filter === 'All') return true;
-    if (filter === 'Verified') return report.status.startsWith('Verified');
+    if (filter === "All") return true;
+    if (filter === "Verified") return report.status.startsWith("Verified");
     return report.status === filter;
   });
 
@@ -209,34 +217,57 @@ export default function CommunityHub() {
           type="text"
           value={form.title}
           placeholder="Issue title (e.g., Garbage burning)"
-          onChange={(event) => setForm((prev) => ({ ...prev, title: event.target.value }))}
+          onChange={(event) =>
+            setForm((prev) => ({ ...prev, title: event.target.value }))
+          }
         />
         <textarea
           value={form.description}
           placeholder="Describe location and issue details"
-          onChange={(event) => setForm((prev) => ({ ...prev, description: event.target.value }))}
+          onChange={(event) =>
+            setForm((prev) => ({ ...prev, description: event.target.value }))
+          }
         />
         <input key={fileInputKey} type="file" accept="image/jpeg,image/png,image/webp" onChange={uploadImage} />
         {uploadError && <p className="upload-error">{uploadError}</p>}
         <button type="submit">Submit Report</button>
       </form>
 
-      <div className="filter-tabs" style={{ display: 'flex', gap: '8px', margin: '15px 0' }}>
-        {['All', 'Pending', 'Verified', 'Addressed'].map((statusOption) => (
-          <button
-            key={statusOption}
-            type="button"
-            onClick={() => setFilter(statusOption)}
-            style={{
-              padding: '6px 12px',
-              cursor: 'pointer',
-              fontWeight: filter === statusOption ? 'bold' : 'normal'
-            }}
-          >
-            {statusOption}
-          </button>
-        ))}
-      </div>
+   <div
+  className="filter-tabs"
+  style={{
+    display: "flex",
+    gap: "12px",
+    margin: "20px 0",
+    flexWrap: "wrap",
+  }}
+>
+  {["All", "Pending", "Verified", "Addressed"].map((statusOption) => (
+    <button
+      key={statusOption}
+      type="button"
+      onClick={() => setFilter(statusOption)}
+      style={{
+        padding: "8px 15px",
+        borderRadius: "10px",
+        border: filter === statusOption ? "2px solid #0077b6" : "2px solid #dcdcdc",
+        backgroundColor:
+          filter === statusOption ? "#0077b6" : "#ffffff",
+        color: filter === statusOption ? "#ffffff" : "#333333",
+        cursor: "pointer",
+        fontWeight: filter === statusOption ? "600" : "500",
+        fontSize: "15px",
+        transition: "all 0.3s ease",
+        boxShadow:
+          filter === statusOption
+            ? "0 4px 12px rgba(0,119,182,0.3)"
+            : "0 2px 6px rgba(0,0,0,0.08)",
+      }}
+    >
+      {statusOption}
+    </button>
+  ))}
+</div>
 
       <div className="report-feed">
         {filteredReports.length === 0 ? (
@@ -245,11 +276,9 @@ export default function CommunityHub() {
           filteredReports.map((report) => (
             <article className="report-card" key={report.id}>
               <div className="report-head">
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div className="report-title-container">
                   <h3>{report.title}</h3>
-                  <span className="status-badge" style={{ fontSize: '0.8rem', padding: '2px 6px', border: '1px solid #ccc', borderRadius: '4px' }}>
-                    {report.status}
-                  </span>
+                  <span className="status-badge">{report.status}</span>
                 </div>
                 <button onClick={() => vote(report.id)} type="button" disabled={votedIds.has(report.id)}>
                   {votedIds.has(report.id) ? 'Voted' : 'Upvote'} ({report.votes})
@@ -258,12 +287,23 @@ export default function CommunityHub() {
               <p>{report.description}</p>
               {report.image && <img src={report.image} alt={report.title} />}
 
-              <div className="timeline-workflow" style={{ marginTop: '12px', fontSize: '0.8rem', color: '#666' }}>
+              <div className="timeline-workflow">
                 <span>Created</span>
-                <span style={{ color: report.status.startsWith('Verified') || report.status === 'Addressed' ? '#000' : '#ccc' }}>
+                <span
+                  className={
+                    report.status.startsWith("Verified") ||
+                    report.status === "Addressed"
+                      ? "active"
+                      : "inactive"
+                  }
+                >
                   {" → "}Community verified
                 </span>
-                <span style={{ color: report.status === 'Addressed' ? '#000' : '#ccc' }}>
+                <span
+                  className={
+                    report.status === "Addressed" ? "active" : "inactive"
+                  }
+                >
                   {" → "}Addressed
                 </span>
               </div>
