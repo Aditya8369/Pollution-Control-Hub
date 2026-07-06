@@ -42,10 +42,10 @@ function isValidCoord(lat, lon) {
   );
 }
 
-async function fetchGridPointAqi(lat, lon) {
+async function fetchGridPointAqi(lat, lon, signal) {
   if (!isValidCoord(lat, lon)) return null;
   const url = `${BASE_URL}?latitude=${lat}&longitude=${lon}&hourly=us_aqi&timezone=auto&forecast_days=1`;
-  const response = await fetch(url);
+  const response = await fetch(url, { signal });
   if (!response.ok) return null;
   const data = await response.json();
   const times = data.hourly?.time || [];
@@ -53,7 +53,7 @@ async function fetchGridPointAqi(lat, lon) {
   return Math.round(data.hourly?.us_aqi?.[idx] ?? 0);
 }
 
-export async function fetchLocalGrid(lat, lon, topN = 6) {
+export async function fetchLocalGrid(lat, lon, topN = 6, signal) {
   const cacheKey = `${lat.toFixed(1)},${lon.toFixed(1)}`;
   const cached = gridCache.get(cacheKey);
   if (cached && Date.now() - cached.ts < CACHE_TTL_MS) return cached.points;
@@ -68,7 +68,7 @@ export async function fetchLocalGrid(lat, lon, topN = 6) {
     gridOffsets.map(async ({ dx, dy }, i) => {
       const gLat = parseFloat((lat + dy * GRID_STEP).toFixed(4));
       const gLon = parseFloat((lon + dx * GRID_STEP).toFixed(4));
-      const aqi = await fetchGridPointAqi(gLat, gLon);
+      const aqi = await fetchGridPointAqi(gLat, gLon, signal);
       return {
         id: `grid-${i}`,
         lat: gLat,
@@ -105,7 +105,7 @@ function computeConfidence(hourly, times) {
   return { confidenceScore, dataCompleteness };
 }
 
-export async function fetchAirQualityByCoords(lat, lon) {
+export async function fetchAirQualityByCoords(lat, lon, signal) {
 
   if (!isValidCoord(lat, lon)) throw new Error('Invalid coordinates provided.');
 
@@ -119,7 +119,7 @@ export async function fetchAirQualityByCoords(lat, lon) {
 
   const url = `${BASE_URL}?latitude=${lat}&longitude=${lon}&hourly=pm2_5,pm10,carbon_monoxide,nitrogen_dioxide,ozone,us_aqi&timezone=auto&start_date=${startDate}&end_date=${endDate}`;
 
-  const response = await fetch(url);
+  const response = await fetch(url, { signal });
 
   if (!response.ok) {
     throw new Error('Failed to fetch live AQI data.');
@@ -151,7 +151,7 @@ export async function fetchAirQualityByCoords(lat, lon) {
     us_aqi: Math.round(hourly.us_aqi?.[startIndex + i] ?? 0)
   }));
 
-  const nearbyPoints = await fetchLocalGrid(lat, lon);
+  const nearbyPoints = await fetchLocalGrid(lat, lon, 6, signal);
   const { confidenceScore, dataCompleteness } = computeConfidence(hourly, times);
 
   return {
@@ -163,11 +163,11 @@ export async function fetchAirQualityByCoords(lat, lon) {
   };
 }
 
-export async function fetchCityComparisons() {
+export async function fetchCityComparisons(signal) {
   const cityData = await Promise.all(
     CITY_COORDINATES.map(async (city) => {
       try {
-        const result = await fetchAirQualityByCoords(city.lat, city.lon);
+        const result = await fetchAirQualityByCoords(city.lat, city.lon, signal);
         return {
           city: city.name,
           aqi: result.current.us_aqi,
@@ -175,6 +175,7 @@ export async function fetchCityComparisons() {
           pm10: result.current.pm10
         };
       } catch (error) {
+        if (error.name === 'AbortError') throw error;
         return {
           city: city.name,
           aqi: 85,

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import AlertsPanel from './components/AlertsPanel';
 import AnalyticsInsights from './components/AnalyticsInsights';
 import CommunityHub from './components/CommunityHub';
@@ -86,12 +86,16 @@ function AppControls({
 function SectionNav({ activeSection, onSectionChange, theme, onToggleTheme }) {
   const sections = [
     { id: 'home', label: 'Home' },
-    { id: 'quiz', label: 'Quiz' }
+    { id: 'quiz', label: 'Quiz' },
+    { id: 'community', label: 'Community' }
   ];
   const isDark = theme === 'dark';
 
   return (
-    <nav className="section-nav" aria-label="Main sections">
+    <nav 
+      className="section-nav" 
+      aria-label="Main sections"
+    >
       <div className="nav-sections">
         {sections.map((section) => (
           <button
@@ -103,10 +107,47 @@ function SectionNav({ activeSection, onSectionChange, theme, onToggleTheme }) {
             {section.label}
           </button>
         ))}
+
+        <div className="nav-divider"></div>
+
+        <button
+          type="button"
+          className={`theme-toggle-inline ${theme === "dark" ? "dark" : ""}`}
+          onClick={onToggleTheme}
+          aria-label="Toggle Theme"
+        >
+          <span className="toggle-thumb">
+            {theme === "dark" ? (
+              <svg
+                viewBox="0 0 24 24"
+                className="moon-icon"
+              >
+                <path
+                  d="M20 15.5A8.5 8.5 0 1 1 12.5 4a7 7 0 0 0 7.5 11.5z"
+                  fill="currentColor"
+                />
+              </svg>
+            ) : (
+              <svg
+                viewBox="0 0 24 24"
+                className="sun-icon"
+              >
+                <circle cx="12" cy="12" r="5" fill="currentColor" />
+                <g stroke="currentColor" strokeWidth="2">
+                  <line x1="12" y1="1" x2="12" y2="4" />
+                  <line x1="12" y1="20" x2="12" y2="23" />
+                  <line x1="1" y1="12" x2="4" y2="12" />
+                  <line x1="20" y1="12" x2="23" y2="12" />
+                  <line x1="4" y1="4" x2="6" y2="6" />
+                  <line x1="18" y1="18" x2="20" y2="20" />
+                  <line x1="18" y1="6" x2="20" y2="4" />
+                  <line x1="4" y1="20" x2="6" y2="18" />
+                </g>
+              </svg>
+            )}
+          </span>
+        </button>
       </div>
-      <button type="button" className="theme-toggle-inline" onClick={onToggleTheme} aria-label="Toggle dark and light theme">
-        {isDark ? 'Light' : 'Dark'}
-      </button>
     </nav>
   );
 }
@@ -129,6 +170,7 @@ export default function App() {
   const [locationNotice, setLocationNotice] = useState('');
   const [theme, setTheme] = useState('light');
   const [timeRange, setTimeRange] = useState(24);
+  const refreshControllerRef = useRef(null);
 
   useEffect(() => {
     const savedTheme = localStorage.getItem(THEME_STORAGE_KEY);
@@ -188,22 +230,19 @@ export default function App() {
   }, [selectedCity]);
 
   useEffect(() => {
-    let ignore = false;
+    const controller = new AbortController();
+    const { signal } = controller;
 
     const load = async (silent = false) => {
       try {
-        if (!silent) {
-          setLoading(true);
-        }
-        if (silent) {
-          setIsRefreshing(true);
-        }
+        if (!silent) setLoading(true);
+        if (silent) setIsRefreshing(true);
+
         const [aqi, cities] = await Promise.all([
-          fetchAirQualityByCoords(position.lat, position.lon),
-          fetchCityComparisons()
+          fetchAirQualityByCoords(position.lat, position.lon, signal),
+          fetchCityComparisons(signal)
         ]);
 
-        if (ignore) return;
         setCurrent(aqi.current);
         setTrend(aqi.trend);
         setNearbyPoints(aqi.nearbyPoints);
@@ -214,14 +253,11 @@ export default function App() {
         setRefreshCountdown(AUTO_REFRESH_SECONDS);
         setError('');
       } catch (loadError) {
-        if (!ignore) {
-          setError(loadError.message || 'Unable to load live AQI data.');
-        }
+        if (loadError.name === 'AbortError') return;
+        setError(loadError.message || 'Unable to load live AQI data.');
       } finally {
-        if (!ignore) {
-          setLoading(false);
-          setIsRefreshing(false);
-        }
+        setLoading(false);
+        setIsRefreshing(false);
       }
     };
 
@@ -236,7 +272,8 @@ export default function App() {
     }, 1000);
 
     return () => {
-      ignore = true;
+      controller.abort();
+      if (refreshControllerRef.current) refreshControllerRef.current.abort();
       clearInterval(refreshTimer);
       clearInterval(countdownTimer);
     };
@@ -256,11 +293,16 @@ export default function App() {
   const refreshNow = async () => {
     if (isRefreshing) return;
 
+    if (refreshControllerRef.current) refreshControllerRef.current.abort();
+    const controller = new AbortController();
+    refreshControllerRef.current = controller;
+    const { signal } = controller;
+
     try {
       setIsRefreshing(true);
       const [aqi, cities] = await Promise.all([
-        fetchAirQualityByCoords(position.lat, position.lon),
-        fetchCityComparisons()
+        fetchAirQualityByCoords(position.lat, position.lon, signal),
+        fetchCityComparisons(signal)
       ]);
       setCurrent(aqi.current);
       setTrend(aqi.trend);
@@ -271,9 +313,12 @@ export default function App() {
       setLastUpdated(new Date().toISOString());
       setRefreshCountdown(AUTO_REFRESH_SECONDS);
     } catch (loadError) {
+      if (loadError.name === 'AbortError') return;
       setError(loadError.message || 'Unable to refresh live AQI data.');
     } finally {
-      setIsRefreshing(false);
+      if (refreshControllerRef.current === controller) {
+        setIsRefreshing(false);
+      }
     }
   };
 
@@ -288,8 +333,10 @@ export default function App() {
 
   return (
     <main className="app-shell">
-      <Hero cityName={position.cityName} />
+      {/* 1. Structural fix: Renders the navigation element at the very top */}
       <SectionNav activeSection={activeSection} onSectionChange={setActiveSection} theme={theme} onToggleTheme={toggleTheme} />
+      
+      <Hero cityName={position.cityName} />
 
       {activeSection === 'home' && (
         <AppControls
@@ -333,6 +380,9 @@ export default function App() {
           <SolutionsAwareness />
           <AnalyticsInsights analytics={analytics} trend={trend} timeRange={timeRange} />
           <ScenarioSimulator current={current} />
+        </div>
+      ) : activeSection === 'community' ? (
+        <div className="content-grid community-layout">
           <CommunityHub />
         </div>
       ) : (
