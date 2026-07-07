@@ -9,6 +9,8 @@ import LocationMap from './components/LocationMap';
 import QuizSection from './components/QuizSection';
 import SolutionsAwareness from './components/SolutionsAwareness';
 import ScenarioSimulator from './components/ScenarioSimulator';
+import HistoricalAnalysis from './components/HistoricalAnalysis';
+import LocationSearch from './components/LocationSearch';
 import { CITY_COORDINATES } from './constants/cities';
 import {
   estimateWeeklyMonthlyAverages,
@@ -52,18 +54,20 @@ function AppControls({
 }) {
   return (
     <section className="app-controls" aria-label="Live controls">
-      <div className="control-group">
+      <div className="control-group" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'nowrap' }}>
         <label htmlFor="city-selector">Track city:</label>
-        <select
-          id="city-selector"
-          value={selectedCity}
-          onChange={(event) => onCityChange(event.target.value)}
+        <LocationSearch 
+          initialCityName={selectedCity === 'auto' ? 'auto' : selectedCity} 
+          onLocationSelected={onCityChange} 
+        />
+        <button 
+          type="button" 
+          className="btn-secondary text-sm" 
+          style={{ padding: '0.4rem 0.8rem', whiteSpace: 'nowrap', flexShrink: 0 }}
+          onClick={() => onCityChange('auto')}
         >
-          <option value="auto">Auto detect location</option>
-          {CITY_COORDINATES.map((city) => (
-            <option key={city.name} value={city.name}>{city.name}</option>
-          ))}
-        </select>
+          Auto Detect
+        </button>
       </div>
 
       <div className="control-group status">
@@ -87,7 +91,8 @@ function SectionNav({ activeSection, onSectionChange, theme, onToggleTheme }) {
   const sections = [
     { id: 'home', label: 'Home' },
     { id: 'quiz', label: 'Quiz' },
-    { id: 'community', label: 'Community' }
+    { id: 'community', label: 'Community' },
+    { id: 'history', label: 'History' }
   ];
   const isDark = theme === 'dark';
 
@@ -189,45 +194,48 @@ export default function App() {
   }, [theme]);
 
   useEffect(() => {
-    if (selectedCity !== 'auto') {
-      setLocationNotice('');
-      const city = CITY_COORDINATES.find((item) => item.name === selectedCity);
-      if (city) {
-        setPosition({
-          lat: city.lat,
-          lon: city.lon,
-          cityName: city.name
-        });
-      }
-      return;
-    }
-
-    if (!navigator.geolocation) {
-      setLocationNotice(
-        "Your browser can't detect location, so we're showing Delhi. Pick a city from the dropdown if that's not right."
-      );
-      setPosition(DEFAULT_POSITION);
-      return;
-    }
-
-    navigator.geolocation.getCurrentPosition(
-      (coords) => {
-        setLocationNotice('');
-        setPosition({
-          lat: Number(coords.coords.latitude.toFixed(4)),
-          lon: Number(coords.coords.longitude.toFixed(4)),
-          cityName: 'Your Current Location'
-        });
-      },
-      () => {
+    if (selectedCity === 'auto') {
+      if (!navigator.geolocation) {
         setLocationNotice(
-          "Couldn't detect your location — showing Delhi for now. Pick a city manually from the dropdown if you need different data."
+          "Your browser can't detect location, so we're showing Delhi."
         );
         setPosition(DEFAULT_POSITION);
-      },
-      { timeout: 8000 }
-    );
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(
+        (coords) => {
+          setLocationNotice('');
+          setPosition({
+            lat: Number(coords.coords.latitude.toFixed(4)),
+            lon: Number(coords.coords.longitude.toFixed(4)),
+            cityName: 'Your Current Location'
+          });
+        },
+        () => {
+          setLocationNotice(
+            "Couldn't detect your location — showing Delhi for now."
+          );
+          setPosition(DEFAULT_POSITION);
+        },
+        { timeout: 8000 }
+      );
+    }
   }, [selectedCity]);
+
+  const handleLocationSelected = (location) => {
+    if (location === 'auto') {
+      setSelectedCity('auto');
+    } else {
+      setSelectedCity(location.name);
+      setPosition({
+        lat: location.lat,
+        lon: location.lon,
+        cityName: location.name
+      });
+      setLocationNotice('');
+    }
+  };
 
   useEffect(() => {
     const controller = new AbortController();
@@ -365,7 +373,7 @@ if (loading || !current || !analytics) {
       {activeSection === 'home' && (
         <AppControls
           selectedCity={selectedCity}
-          onCityChange={setSelectedCity}
+          onCityChange={handleLocationSelected}
           onRefresh={refreshNow}
           isRefreshing={isRefreshing}
           refreshCountdown={refreshCountdown}
@@ -408,6 +416,10 @@ if (loading || !current || !analytics) {
       ) : activeSection === 'community' ? (
         <div className="content-grid community-layout">
           <CommunityHub />
+        </div>
+      ) : activeSection === 'history' ? (
+        <div className="content-grid history-layout">
+          <HistoricalAnalysis position={position} />
         </div>
       ) : (
         <div className="content-grid quiz-layout">

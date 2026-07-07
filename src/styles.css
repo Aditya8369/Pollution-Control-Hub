@@ -182,7 +182,8 @@ a {
 .hero {
   position: relative;
   isolation: isolate;
-  margin: var(--sp-5) var(--sp-4) var(--sp-6);
+  width: min(1180px, 94vw);
+  margin: var(--sp-3) auto var(--sp-4);
   border-radius: var(--r-lg);
   overflow: hidden;
   background: linear-gradient(120deg, #0284c7 10%, #00ffea 90%);
@@ -216,7 +217,7 @@ a {
 
 .hero-content {
   position: relative;
-  padding: var(--sp-8) var(--sp-6);
+  padding: var(--sp-5) var(--sp-6);
   max-width: 780px;
   animation: rise-in 700ms var(--ease) both;
 }
@@ -235,7 +236,7 @@ a {
 }
 
 .hero h1 {
-  font-size: clamp(2.1rem, 4.5vw, 3.4rem);
+  font-size: clamp(1.8rem, 3.5vw, 2.8rem);
   line-height: 1.08;
   margin-bottom: var(--sp-3);
 }
@@ -398,6 +399,8 @@ a {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
   gap: var(--sp-3);
+  position: relative;
+  z-index: 20;
 }
 
 .control-group {
@@ -409,6 +412,9 @@ a {
   align-items: center;
   gap: var(--sp-3);
   box-shadow: var(--shadow-sm);
+  overflow: visible;
+  position: relative;
+  z-index: 10;
   transition:
     box-shadow 200ms var(--ease),
     transform 200ms var(--ease);
@@ -992,6 +998,80 @@ a {
   object-fit: cover;
   border-radius: var(--r-sm);
   margin-top: var(--sp-3);
+}
+/* ============================================================
+   Community Hub — Empty State
+   ============================================================ */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: var(--sp-2);
+  padding: var(--sp-7) var(--sp-4);
+  background: var(--card);
+  border: 1px dashed var(--line);
+  border-radius: var(--r-lg);
+  animation: rise-in 400ms var(--ease) both;
+}
+
+.empty-state__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  margin-bottom: var(--sp-2);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--brand) 12%, transparent);
+  color: var(--brand);
+}
+
+.empty-state__icon svg {
+  width: 32px;
+  height: 32px;
+}
+
+.empty-state__title {
+  font-family: "Fraunces", serif;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.empty-state__message {
+  color: var(--muted);
+  font-size: 0.92rem;
+  max-width: 320px;
+  line-height: 1.5;
+}
+
+.empty-state__cta {
+  margin-top: var(--sp-3);
+  border: none;
+  border-radius: var(--r-sm);
+  background: linear-gradient(120deg, var(--brand), var(--sky));
+  color: white;
+  padding: 0.65rem 1.3rem;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    transform 180ms var(--ease),
+    filter 180ms var(--ease);
+}
+
+.empty-state__cta:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.08);
+  box-shadow: var(--shadow-md);
+}
+
+.empty-filter-message {
+  text-align: center;
+  color: var(--muted);
+  padding: var(--sp-6) var(--sp-4);
+  font-size: 0.92rem;
 }
 
 .timeline-workflow {
@@ -2073,8 +2153,15 @@ a {
     grid-template-columns: 1.4fr 1fr;
     gap: var(--sp-5);
   }
-<<<<<<< HEAD
+  .right-column {
+    text-align: right;
+  }
+
+  .footer-brand {
+    text-align: left;
+  }
 }
+
 .loading-container {
   display: flex;
   flex-direction: column;
@@ -2110,12 +2197,3 @@ a {
     transform: rotate(360deg);
   }
 }
-=======
-  .right-column {
-    text-align: right;
-  }
-  .footer-brand {
-    text-align: left;
-  }
-}
->>>>>>> upstream/main

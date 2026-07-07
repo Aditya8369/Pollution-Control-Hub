@@ -212,7 +212,7 @@ export default function CommunityHub() {
         <p>Report local pollution issues with evidence and crowd voting</p>
       </div>
 
-      <form className="community-form" onSubmit={onSubmit}>
+      <form className="community-form" id="report-form" onSubmit={onSubmit}>
         <input
           type="text"
           value={form.title}
@@ -270,8 +270,33 @@ export default function CommunityHub() {
 </div>
 
       <div className="report-feed">
-        {filteredReports.length === 0 ? (
-          <p>No reports yet. Be the first to raise an issue.</p>
+        {reports.length === 0 ? (
+          <div className="empty-state">
+            <div className="empty-state__icon" aria-hidden="true">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <path d="M12 9v4m0 4h.01M4.93 4.93a10 10 0 1 0 14.14 14.14A10 10 0 0 0 4.93 4.93Z" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </div>
+            <p className="empty-state__title">No reports yet</p>
+            <p className="empty-state__message">
+              Be the first to flag a pollution issue in your area.
+            </p>
+            <button
+              type="button"
+              className="empty-state__cta"
+              onClick={() =>
+                document
+                  .getElementById("report-form")
+                  ?.scrollIntoView({ behavior: "smooth", block: "center" })
+              }
+            >
+              Submit a report
+            </button>
+          </div>
+        ) : filteredReports.length === 0 ? (
+          <p className="empty-filter-message">
+            No reports match the "{filter}" filter.
+          </p>
         ) : (
           filteredReports.map((report) => (
             <article className="report-card" key={report.id}>
