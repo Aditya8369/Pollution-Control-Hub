@@ -1,4 +1,4 @@
-name: Welcome New Issues
+name: Welcome New Issue
 
 on:
   issues:
@@ -7,32 +7,33 @@ on:
 
 permissions:
   issues: write
+  contents: read
 
 jobs:
-  welcome:
+  welcome-issue:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Welcome new issue
+      - name: Welcome issue creator
         uses: actions/github-script@v7
         with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
             await github.rest.issues.createComment({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              issue_number: context.issue.number,
-              body: [
-                "👋 Thank you for opening this issue!",
-                "",
-                "Thank you for contributing to Pollution Control Hub.",
-                "",
-                "Our maintainers will review your issue as soon as possible.",
-                "",
-                "Please make sure your issue includes:",
-                "- A clear description",
-                "- Steps to reproduce (if applicable)",
-                "- Screenshots or logs (if relevant)",
-                "",
-                "We appreciate your contribution! 🌱"
-              ].join("\n")
+              issue_number: context.payload.issue.number,
+              body: `👋 Thank you @${context.payload.issue.user.login} for opening this issue!
+
+              We appreciate you taking the time to report or suggest an improvement for **Pollution Control Hub**.
+
+              Our maintainers will review your issue as soon as possible.
+
+              Meanwhile, please ensure:
+              - 📌 The issue clearly describes the problem or feature request.
+              - 📝 Steps to reproduce (if it's a bug) are included.
+              - 📷 Screenshots or logs are attached when applicable.
+              - 🔍 The issue is not a duplicate of an existing one.
+
+              Thank you for contributing to the project! 🚀`
             });
