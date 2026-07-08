@@ -330,7 +330,6 @@ export default function App() {
     }
   };
 
-<<<<<<< HEAD
 if (loading || !current || !analytics) {
   return (
     <main className="app-shell loading-state">
@@ -340,16 +339,6 @@ if (loading || !current || !analytics) {
         theme={theme}
         onToggleTheme={toggleTheme}
       />
-=======
-  if (loading || !current) {
-    return (
-      <main className="app-shell loading-state">
-        <SectionNav activeSection={activeSection} onSectionChange={setActiveSection} theme={theme} onToggleTheme={toggleTheme} />
-        <h1 className="loading-title text-3xl">Preparing live pollution intelligence...</h1>
-      </main>
-    );
-  }
->>>>>>> upstream/main
 
       <div className="loading-container">
         <div className="loading-spinner"></div>
