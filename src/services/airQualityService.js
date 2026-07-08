@@ -19,6 +19,16 @@ export function getAQIBand(value) {
   return { label: 'Hazardous', color: '#7f1d1d' };
 }
 
+export function getPollutantColor(value, limit) {
+  const ratio = value / limit;
+  if (ratio <= 0.5) return '#1f9d55'; // Good (well within)
+  if (ratio <= 1.0) return '#f59e0b'; // Moderate (approaching limit)
+  if (ratio <= 1.5) return '#f97316'; // Unhealthy (Sensitive)
+  if (ratio <= 2.0) return '#ef4444'; // Unhealthy
+  if (ratio <= 3.0) return '#b91c1c'; // Very Unhealthy
+  return '#7f1d1d'; // Hazardous
+}
+
 const GRID_STEP = 0.09; // ~10 km spacing
 const DIRECTION_LABELS = {
   '-1,1': 'North-West zone',
