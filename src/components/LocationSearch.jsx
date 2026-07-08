@@ -46,10 +46,14 @@ export default function LocationSearch({ onLocationSelected, initialCityName }) 
   }, []);
 
   const saveRecentSearch = (location) => {
-    const newRecent = [location, ...recentSearches.filter(s => s.id !== location.id)].slice(0, MAX_RECENT_SEARCHES);
-    setRecentSearches(newRecent);
+  const newRecent = [location, ...recentSearches.filter(s => s.id !== location.id)].slice(0, MAX_RECENT_SEARCHES);
+  setRecentSearches(newRecent);
+  try {
     localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(newRecent));
-  };
+  } catch (e) {
+    console.error('Failed to save recent searches', e);
+  }
+};
 
   const handleSelect = (location) => {
     setQuery(location.name); // Just show the city name in input
