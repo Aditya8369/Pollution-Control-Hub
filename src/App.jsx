@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useSWR } from './hooks/useSWR';
 import AlertsPanel from './components/AlertsPanel';
 import AnalyticsInsights from './components/AnalyticsInsights';
 import CommunityHub from './components/CommunityHub';
@@ -164,22 +165,44 @@ export default function App() {
   const [activeSection, setActiveSection] = useState('home');
   const [selectedCity, setSelectedCity] = useState('auto');
   const [position, setPosition] = useState(DEFAULT_POSITION);
-  const [current, setCurrent] = useState(null);
-  const [trend, setTrend] = useState([]);
-  const [nearbyPoints, setNearbyPoints] = useState([]);
-  const [cityComparisons, setCityComparisons] = useState([]);
-  const [windData, setWindData] = useState(null);
-  const [confidenceScore, setConfidenceScore] = useState('High');
-  const [dataCompleteness, setDataCompleteness] = useState(100);
-  const [loading, setLoading] = useState(true);
-  const [isRefreshing, setIsRefreshing] = useState(false);
+  const aqiKey = position.lat && position.lon ? `aqi_${position.lat}_${position.lon}` : null;
+  const { data: aqiData, error: aqiError, isValidating: isAqiValidating, mutate: mutateAqi } = useSWR(
+    aqiKey, 
+    () => fetchAirQualityByCoords(position.lat, position.lon)
+  );
+
+  const cityKey = 'city_comparisons';
+  const { data: cityComparisons, error: citiesError, isValidating: isCitiesValidating, mutate: mutateCities } = useSWR(
+    cityKey,
+    () => fetchCityComparisons()
+  );
+
+  const windKey = position.lat && position.lon ? `wind_${position.lat}_${position.lon}` : null;
+  const { data: windData, error: windError, isValidating: isWindValidating, mutate: mutateWind } = useSWR(
+    windKey,
+    () => fetchWindData(position.lat, position.lon)
+  );
+
+  const current = aqiData?.current;
+  const trend = aqiData?.trend || [];
+  const nearbyPoints = aqiData?.nearbyPoints || [];
+  const confidenceScore = aqiData?.confidenceScore || 'High';
+  const dataCompleteness = aqiData?.dataCompleteness || 100;
+
+  const loading = (!aqiData && isAqiValidating) || (!cityComparisons && isCitiesValidating);
+  const isRefreshing = (isAqiValidating || isCitiesValidating || isWindValidating) && !!aqiData;
+  const error = (aqiError || citiesError || windError)?.message || '';
+
   const [lastUpdated, setLastUpdated] = useState('');
   const [refreshCountdown, setRefreshCountdown] = useState(AUTO_REFRESH_SECONDS);
-  const [error, setError] = useState('');
   const [locationNotice, setLocationNotice] = useState('');
   const [theme, setTheme] = useState('light');
   const [timeRange, setTimeRange] = useState(24);
-  const refreshControllerRef = useRef(null);
+
+  // Update lastUpdated when data changes
+  useEffect(() => {
+    if (aqiData) setLastUpdated(new Date().toISOString());
+  }, [aqiData]);
 
   useEffect(() => {
     const savedTheme = localStorage.getItem(THEME_STORAGE_KEY);
@@ -242,43 +265,11 @@ export default function App() {
   };
 
   useEffect(() => {
-    const controller = new AbortController();
-    const { signal } = controller;
-
-    const load = async (silent = false) => {
-      try {
-        if (!silent) setLoading(true);
-        if (silent) setIsRefreshing(true);
-
-        const [aqi, cities, wind] = await Promise.all([
-          fetchAirQualityByCoords(position.lat, position.lon, signal),
-          fetchCityComparisons(signal),
-          fetchWindData(position.lat, position.lon, signal)
-        ]);
-
-        setCurrent(aqi.current);
-        setTrend(aqi.trend);
-        setNearbyPoints(aqi.nearbyPoints);
-        setConfidenceScore(aqi.confidenceScore);
-        setDataCompleteness(aqi.dataCompleteness);
-        setCityComparisons(cities);
-        setWindData(wind);
-        setLastUpdated(new Date().toISOString());
-        setRefreshCountdown(AUTO_REFRESH_SECONDS);
-        setError('');
-      } catch (loadError) {
-        if (loadError.name === 'AbortError') return;
-        setError(loadError.message || 'Unable to load live AQI data.');
-      } finally {
-        setLoading(false);
-        setIsRefreshing(false);
-      }
-    };
-
-    load();
-
     const refreshTimer = setInterval(() => {
-      load(true);
+      mutateAqi();
+      mutateCities();
+      mutateWind();
+      setRefreshCountdown(AUTO_REFRESH_SECONDS);
     }, AUTO_REFRESH_SECONDS * 1000);
 
     const countdownTimer = setInterval(() => {
@@ -286,12 +277,10 @@ export default function App() {
     }, 1000);
 
     return () => {
-      controller.abort();
-      if (refreshControllerRef.current) refreshControllerRef.current.abort();
       clearInterval(refreshTimer);
       clearInterval(countdownTimer);
     };
-  }, [position.lat, position.lon]);
+  }, [mutateAqi, mutateCities, mutateWind]);
 
   const analytics = useMemo(() => estimateWeeklyMonthlyAverages(trend), [trend]);
   const exposureEstimate = useMemo(
@@ -306,36 +295,10 @@ export default function App() {
 
   const refreshNow = async () => {
     if (isRefreshing) return;
-
-    if (refreshControllerRef.current) refreshControllerRef.current.abort();
-    const controller = new AbortController();
-    refreshControllerRef.current = controller;
-    const { signal } = controller;
-
-    try {
-      setIsRefreshing(true);
-      const [aqi, cities, wind] = await Promise.all([
-        fetchAirQualityByCoords(position.lat, position.lon, signal),
-        fetchCityComparisons(signal),
-        fetchWindData(position.lat, position.lon, signal)
-      ]);
-      setCurrent(aqi.current);
-      setTrend(aqi.trend);
-      setNearbyPoints(aqi.nearbyPoints);
-      setConfidenceScore(aqi.confidenceScore);
-      setDataCompleteness(aqi.dataCompleteness);
-      setCityComparisons(cities);
-      setWindData(wind);
-      setLastUpdated(new Date().toISOString());
-      setRefreshCountdown(AUTO_REFRESH_SECONDS);
-    } catch (loadError) {
-      if (loadError.name === 'AbortError') return;
-      setError(loadError.message || 'Unable to refresh live AQI data.');
-    } finally {
-      if (refreshControllerRef.current === controller) {
-        setIsRefreshing(false);
-      }
-    }
+    mutateAqi();
+    mutateCities();
+    mutateWind();
+    setRefreshCountdown(AUTO_REFRESH_SECONDS);
   };
 
   if (loading || !current) {
