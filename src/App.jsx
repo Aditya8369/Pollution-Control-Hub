@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import AlertsPanel from './components/AlertsPanel';
 import AnalyticsInsights from './components/AnalyticsInsights';
 import CommunityHub from './components/CommunityHub';
@@ -10,12 +10,15 @@ import QuizSection from './components/QuizSection';
 import SolutionsAwareness from './components/SolutionsAwareness';
 import ScenarioSimulator from './components/ScenarioSimulator';
 import AqiMissionGame from './components/AqiMissionGame';
+import HistoricalAnalysis from './components/HistoricalAnalysis';
+import LocationSearch from './components/LocationSearch';
 import { CITY_COORDINATES } from './constants/cities';
 import {
   estimateWeeklyMonthlyAverages,
   fetchAirQualityByCoords,
   fetchCityComparisons,
-  estimateExposureTime
+  estimateExposureTime,
+  fetchWindData
 } from './services/airQualityService';
 
 const DEFAULT_POSITION = {
@@ -29,9 +32,9 @@ const AUTO_REFRESH_SECONDS = 180;
 
 function Hero({ cityName }) {
   return (
-    <header className="hero">
+    <header className="hero flex *:flex-col items-center justify-center text-center">
       <div className="hero-overlay" />
-      <div className="hero-content">
+      <div className="hero-content ">
         <p className="eyebrow">Pollution Control Hub</p>
         <h1>Monitor. Understand. Act.</h1>
         <p>
@@ -53,18 +56,20 @@ function AppControls({
 }) {
   return (
     <section className="app-controls" aria-label="Live controls">
-      <div className="control-group">
+      <div className="control-group" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'nowrap' }}>
         <label htmlFor="city-selector">Track city:</label>
-        <select
-          id="city-selector"
-          value={selectedCity}
-          onChange={(event) => onCityChange(event.target.value)}
+        <LocationSearch 
+          initialCityName={selectedCity === 'auto' ? 'auto' : selectedCity} 
+          onLocationSelected={onCityChange} 
+        />
+        <button 
+          type="button" 
+          className="btn-secondary text-sm" 
+          style={{ padding: '0.4rem 0.8rem', whiteSpace: 'nowrap', flexShrink: 0 }}
+          onClick={() => onCityChange('auto')}
         >
-          <option value="auto">Auto detect location</option>
-          {CITY_COORDINATES.map((city) => (
-            <option key={city.name} value={city.name}>{city.name}</option>
-          ))}
-        </select>
+          Auto Detect
+        </button>
       </div>
 
       <div className="control-group status">
@@ -88,12 +93,17 @@ function SectionNav({ activeSection, onSectionChange, theme, onToggleTheme }) {
   const sections = [
     { id: 'home', label: 'Home' },
     { id: 'quiz', label: 'Quiz' },
-    { id: 'game', label: 'Game' }
+    { id: 'game', label: 'Game' },
+    { id: 'community', label: 'Community' },
+    { id: 'history', label: 'History' }
   ];
   const isDark = theme === 'dark';
 
   return (
-    <nav className="section-nav" aria-label="Main sections">
+    <nav 
+      className="section-nav" 
+      aria-label="Main sections"
+    >
       <div className="nav-sections">
         {sections.map((section) => (
           <button
@@ -105,44 +115,47 @@ function SectionNav({ activeSection, onSectionChange, theme, onToggleTheme }) {
             {section.label}
           </button>
         ))}
+
+        <div className="nav-divider"></div>
+
+        <button
+          type="button"
+          className={`theme-toggle-inline ${theme === "dark" ? "dark" : ""}`}
+          onClick={onToggleTheme}
+          aria-label="Toggle Theme"
+        >
+          <span className="toggle-thumb">
+            {theme === "dark" ? (
+              <svg
+                viewBox="0 0 24 24"
+                className="moon-icon"
+              >
+                <path
+                  d="M20 15.5A8.5 8.5 0 1 1 12.5 4a7 7 0 0 0 7.5 11.5z"
+                  fill="currentColor"
+                />
+              </svg>
+            ) : (
+              <svg
+                viewBox="0 0 24 24"
+                className="sun-icon"
+              >
+                <circle cx="12" cy="12" r="5" fill="currentColor" />
+                <g stroke="currentColor" strokeWidth="2">
+                  <line x1="12" y1="1" x2="12" y2="4" />
+                  <line x1="12" y1="20" x2="12" y2="23" />
+                  <line x1="1" y1="12" x2="4" y2="12" />
+                  <line x1="20" y1="12" x2="23" y2="12" />
+                  <line x1="4" y1="4" x2="6" y2="6" />
+                  <line x1="18" y1="18" x2="20" y2="20" />
+                  <line x1="18" y1="6" x2="20" y2="4" />
+                  <line x1="4" y1="20" x2="6" y2="18" />
+                </g>
+              </svg>
+            )}
+          </span>
+        </button>
       </div>
-      <button
-        type="button"
-        className={`theme-toggle-inline ${theme === "dark" ? "dark" : ""}`}
-        onClick={onToggleTheme}
-        aria-label="Toggle Theme"
-      >
-        <span className="toggle-thumb">
-          {theme === "dark" ? (
-            <svg
-              viewBox="0 0 24 24"
-              className="moon-icon"
-            >
-              <path
-                d="M20 15.5A8.5 8.5 0 1 1 12.5 4a7 7 0 0 0 7.5 11.5z"
-                fill="currentColor"
-              />
-            </svg>
-          ) : (
-            <svg
-              viewBox="0 0 24 24"
-              className="sun-icon"
-            >
-              <circle cx="12" cy="12" r="5" fill="currentColor" />
-              <g stroke="currentColor" strokeWidth="2">
-                <line x1="12" y1="1" x2="12" y2="4" />
-                <line x1="12" y1="20" x2="12" y2="23" />
-                <line x1="1" y1="12" x2="4" y2="12" />
-                <line x1="20" y1="12" x2="23" y2="12" />
-                <line x1="4" y1="4" x2="6" y2="6" />
-                <line x1="18" y1="18" x2="20" y2="20" />
-                <line x1="18" y1="6" x2="20" y2="4" />
-                <line x1="4" y1="20" x2="6" y2="18" />
-              </g>
-            </svg>
-          )}
-        </span>
-      </button>
     </nav>
   );
 }
@@ -155,6 +168,7 @@ export default function App() {
   const [trend, setTrend] = useState([]);
   const [nearbyPoints, setNearbyPoints] = useState([]);
   const [cityComparisons, setCityComparisons] = useState([]);
+  const [windData, setWindData] = useState(null);
   const [confidenceScore, setConfidenceScore] = useState('High');
   const [dataCompleteness, setDataCompleteness] = useState(100);
   const [loading, setLoading] = useState(true);
@@ -165,6 +179,7 @@ export default function App() {
   const [locationNotice, setLocationNotice] = useState('');
   const [theme, setTheme] = useState('light');
   const [timeRange, setTimeRange] = useState(24);
+  const refreshControllerRef = useRef(null);
 
   useEffect(() => {
     const savedTheme = localStorage.getItem(THEME_STORAGE_KEY);
@@ -183,81 +198,80 @@ export default function App() {
   }, [theme]);
 
   useEffect(() => {
-    if (selectedCity !== 'auto') {
-      setLocationNotice('');
-      const city = CITY_COORDINATES.find((item) => item.name === selectedCity);
-      if (city) {
-        setPosition({
-          lat: city.lat,
-          lon: city.lon,
-          cityName: city.name
-        });
-      }
-      return;
-    }
-
-    if (!navigator.geolocation) {
-      setLocationNotice(
-        "Your browser can't detect location, so we're showing Delhi. Pick a city from the dropdown if that's not right."
-      );
-      setPosition(DEFAULT_POSITION);
-      return;
-    }
-
-    navigator.geolocation.getCurrentPosition(
-      (coords) => {
-        setLocationNotice('');
-        setPosition({
-          lat: Number(coords.coords.latitude.toFixed(4)),
-          lon: Number(coords.coords.longitude.toFixed(4)),
-          cityName: 'Your Current Location'
-        });
-      },
-      () => {
+    if (selectedCity === 'auto') {
+      if (!navigator.geolocation) {
         setLocationNotice(
-          "Couldn't detect your location — showing Delhi for now. Pick a city manually from the dropdown if you need different data."
+          "Your browser can't detect location, so we're showing Delhi."
         );
         setPosition(DEFAULT_POSITION);
-      },
-      { timeout: 8000 }
-    );
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(
+        (coords) => {
+          setLocationNotice('');
+          setPosition({
+            lat: Number(coords.coords.latitude.toFixed(4)),
+            lon: Number(coords.coords.longitude.toFixed(4)),
+            cityName: 'Your Current Location'
+          });
+        },
+        () => {
+          setLocationNotice(
+            "Couldn't detect your location — showing Delhi for now."
+          );
+          setPosition(DEFAULT_POSITION);
+        },
+        { timeout: 8000 }
+      );
+    }
   }, [selectedCity]);
 
+  const handleLocationSelected = (location) => {
+    if (location === 'auto') {
+      setSelectedCity('auto');
+    } else {
+      setSelectedCity(location.name);
+      setPosition({
+        lat: location.lat,
+        lon: location.lon,
+        cityName: location.name
+      });
+      setLocationNotice('');
+    }
+  };
+
   useEffect(() => {
-    let ignore = false;
+    const controller = new AbortController();
+    const { signal } = controller;
 
     const load = async (silent = false) => {
       try {
-        if (!silent) {
-          setLoading(true);
-        }
-        if (silent) {
-          setIsRefreshing(true);
-        }
-        const [aqi, cities] = await Promise.all([
-          fetchAirQualityByCoords(position.lat, position.lon),
-          fetchCityComparisons()
+        if (!silent) setLoading(true);
+        if (silent) setIsRefreshing(true);
+
+        const [aqi, cities, wind] = await Promise.all([
+          fetchAirQualityByCoords(position.lat, position.lon, signal),
+          fetchCityComparisons(signal),
+          fetchWindData(position.lat, position.lon, signal)
         ]);
 
-        if (ignore) return;
         setCurrent(aqi.current);
         setTrend(aqi.trend);
         setNearbyPoints(aqi.nearbyPoints);
         setConfidenceScore(aqi.confidenceScore);
         setDataCompleteness(aqi.dataCompleteness);
         setCityComparisons(cities);
+        setWindData(wind);
         setLastUpdated(new Date().toISOString());
         setRefreshCountdown(AUTO_REFRESH_SECONDS);
         setError('');
       } catch (loadError) {
-        if (!ignore) {
-          setError(loadError.message || 'Unable to load live AQI data.');
-        }
+        if (loadError.name === 'AbortError') return;
+        setError(loadError.message || 'Unable to load live AQI data.');
       } finally {
-        if (!ignore) {
-          setLoading(false);
-          setIsRefreshing(false);
-        }
+        setLoading(false);
+        setIsRefreshing(false);
       }
     };
 
@@ -272,7 +286,8 @@ export default function App() {
     }, 1000);
 
     return () => {
-      ignore = true;
+      controller.abort();
+      if (refreshControllerRef.current) refreshControllerRef.current.abort();
       clearInterval(refreshTimer);
       clearInterval(countdownTimer);
     };
@@ -292,11 +307,17 @@ export default function App() {
   const refreshNow = async () => {
     if (isRefreshing) return;
 
+    if (refreshControllerRef.current) refreshControllerRef.current.abort();
+    const controller = new AbortController();
+    refreshControllerRef.current = controller;
+    const { signal } = controller;
+
     try {
       setIsRefreshing(true);
-      const [aqi, cities] = await Promise.all([
-        fetchAirQualityByCoords(position.lat, position.lon),
-        fetchCityComparisons()
+      const [aqi, cities, wind] = await Promise.all([
+        fetchAirQualityByCoords(position.lat, position.lon, signal),
+        fetchCityComparisons(signal),
+        fetchWindData(position.lat, position.lon, signal)
       ]);
       setCurrent(aqi.current);
       setTrend(aqi.trend);
@@ -304,12 +325,16 @@ export default function App() {
       setConfidenceScore(aqi.confidenceScore);
       setDataCompleteness(aqi.dataCompleteness);
       setCityComparisons(cities);
+      setWindData(wind);
       setLastUpdated(new Date().toISOString());
       setRefreshCountdown(AUTO_REFRESH_SECONDS);
     } catch (loadError) {
+      if (loadError.name === 'AbortError') return;
       setError(loadError.message || 'Unable to refresh live AQI data.');
     } finally {
-      setIsRefreshing(false);
+      if (refreshControllerRef.current === controller) {
+        setIsRefreshing(false);
+      }
     }
   };
 
@@ -317,20 +342,22 @@ export default function App() {
     return (
       <main className="app-shell loading-state">
         <SectionNav activeSection={activeSection} onSectionChange={setActiveSection} theme={theme} onToggleTheme={toggleTheme} />
-        <h1>Preparing live pollution intelligence...</h1>
+        <h1 className="loading-title text-3xl">Preparing live pollution intelligence...</h1>
       </main>
     );
   }
 
   return (
     <main className="app-shell">
-      <Hero cityName={position.cityName} />
+      {/* 1. Structural fix: Renders the navigation element at the very top */}
       <SectionNav activeSection={activeSection} onSectionChange={setActiveSection} theme={theme} onToggleTheme={toggleTheme} />
+      
+      <Hero cityName={position.cityName} />
 
       {activeSection === 'home' && (
         <AppControls
           selectedCity={selectedCity}
-          onCityChange={setSelectedCity}
+          onCityChange={handleLocationSelected}
           onRefresh={refreshNow}
           isRefreshing={isRefreshing}
           refreshCountdown={refreshCountdown}
@@ -363,13 +390,24 @@ export default function App() {
             confidenceScore={confidenceScore}
             dataCompleteness={dataCompleteness}
           />
-          <LocationMap center={position} nearbyPoints={nearbyPoints} confidenceScore={confidenceScore} />
+          <LocationMap center={position} nearbyPoints={nearbyPoints} confidenceScore={confidenceScore} windData={windData} />
           <AlertsPanel cityName={position.cityName} current={current} confidenceScore={confidenceScore} dataCompleteness={dataCompleteness} exposureEstimate={exposureEstimate} />
           <HealthAdvisory />
           <SolutionsAwareness />
           <AnalyticsInsights analytics={analytics} trend={trend} timeRange={timeRange} />
           <ScenarioSimulator current={current} />
+        </div>
+      )}
+
+      {activeSection === 'community' && (
+        <div className="content-grid community-layout">
           <CommunityHub />
+        </div>
+      )}
+
+      {activeSection === 'history' && (
+        <div className="content-grid history-layout">
+          <HistoricalAnalysis position={position} />
         </div>
       )}
 
