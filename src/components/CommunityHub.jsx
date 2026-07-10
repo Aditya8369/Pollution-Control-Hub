@@ -198,6 +198,17 @@ export default function CommunityHub() {
     setVotedIds((prev) => new Set(prev).add(id));
   };
 
+  const markAddressed = (id) => {
+    setReports((prev) =>
+      prev.map((report) => {
+        if (report.id !== id) return report;
+        if (!report.status.startsWith("Verified")) return report;
+
+        return { ...report, status: "Addressed" };
+      })
+    );
+  };
+
   const filteredReports = reports.filter((report) => {
     if (filter === "All") return true;
     if (filter === "Verified") return report.status.startsWith("Verified");
@@ -232,36 +243,13 @@ export default function CommunityHub() {
         <button type="submit">Submit Report</button>
       </form>
 
-   <div
-  className="filter-tabs"
-  style={{
-    display: "flex",
-    gap: "12px",
-    margin: "20px 0",
-    flexWrap: "wrap",
-  }}
->
+   <div className="filter-tabs">
   {["All", "Pending", "Verified", "Addressed"].map((statusOption) => (
     <button
       key={statusOption}
       type="button"
       onClick={() => setFilter(statusOption)}
-      style={{
-        padding: "8px 15px",
-        borderRadius: "10px",
-        border: filter === statusOption ? "2px solid #0077b6" : "2px solid #dcdcdc",
-        backgroundColor:
-          filter === statusOption ? "#0077b6" : "#ffffff",
-        color: filter === statusOption ? "#ffffff" : "#333333",
-        cursor: "pointer",
-        fontWeight: filter === statusOption ? "600" : "500",
-        fontSize: "15px",
-        transition: "all 0.3s ease",
-        boxShadow:
-          filter === statusOption
-            ? "0 4px 12px rgba(0,119,182,0.3)"
-            : "0 2px 6px rgba(0,0,0,0.08)",
-      }}
+      className={filter === statusOption ? "active" : ""}
     >
       {statusOption}
     </button>
@@ -304,9 +292,16 @@ export default function CommunityHub() {
                   <h3>{report.title}</h3>
                   <span className="status-badge">{report.status}</span>
                 </div>
-                <button onClick={() => vote(report.id)} type="button" disabled={votedIds.has(report.id)}>
-                  {votedIds.has(report.id) ? 'Voted' : 'Upvote'} ({report.votes})
-                </button>
+                <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                  {report.status.startsWith("Verified") && (
+                    <button type="button" onClick={() => markAddressed(report.id)}>
+                      Mark addressed
+                    </button>
+                  )}
+                  <button onClick={() => vote(report.id)} type="button" disabled={votedIds.has(report.id)}>
+                    {votedIds.has(report.id) ? 'Voted' : 'Upvote'} ({report.votes})
+                  </button>
+                </div>
               </div>
               <p>{report.description}</p>
               {report.image && <img src={report.image} alt={report.title} />}

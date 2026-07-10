@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
+import { useSWR } from './hooks/useSWR';
 import AlertsPanel from './components/AlertsPanel';
 import AnalyticsInsights from './components/AnalyticsInsights';
 import CommunityHub from './components/CommunityHub';
@@ -9,14 +10,18 @@ import LocationMap from './components/LocationMap';
 import QuizSection from './components/QuizSection';
 import SolutionsAwareness from './components/SolutionsAwareness';
 import ScenarioSimulator from './components/ScenarioSimulator';
+import AqiMissionGame from './components/AqiMissionGame';
 import HistoricalAnalysis from './components/HistoricalAnalysis';
 import LocationSearch from './components/LocationSearch';
+import SkeletonDashboard from './components/SkeletonDashboard';
 import { CITY_COORDINATES } from './constants/cities';
+import HotspotScoutGame from "./components/HotspotScoutGame";
 import {
   estimateWeeklyMonthlyAverages,
   fetchAirQualityByCoords,
   fetchCityComparisons,
-  estimateExposureTime
+  estimateExposureTime,
+  fetchWindData
 } from './services/airQualityService';
 
 const DEFAULT_POSITION = {
@@ -91,6 +96,7 @@ function SectionNav({ activeSection, onSectionChange, theme, onToggleTheme }) {
   const sections = [
     { id: 'home', label: 'Home' },
     { id: 'quiz', label: 'Quiz' },
+    { id: 'game', label: 'Game' },
     { id: 'community', label: 'Community' },
     { id: 'history', label: 'History' }
   ];
@@ -161,21 +167,44 @@ export default function App() {
   const [activeSection, setActiveSection] = useState('home');
   const [selectedCity, setSelectedCity] = useState('auto');
   const [position, setPosition] = useState(DEFAULT_POSITION);
-  const [current, setCurrent] = useState(null);
-  const [trend, setTrend] = useState([]);
-  const [nearbyPoints, setNearbyPoints] = useState([]);
-  const [cityComparisons, setCityComparisons] = useState([]);
-  const [confidenceScore, setConfidenceScore] = useState('High');
-  const [dataCompleteness, setDataCompleteness] = useState(100);
-  const [loading, setLoading] = useState(true);
-  const [isRefreshing, setIsRefreshing] = useState(false);
+  const aqiKey = position.lat && position.lon ? `aqi_${position.lat}_${position.lon}` : null;
+  const { data: aqiData, error: aqiError, isValidating: isAqiValidating, mutate: mutateAqi } = useSWR(
+    aqiKey, 
+    () => fetchAirQualityByCoords(position.lat, position.lon)
+  );
+
+  const cityKey = 'city_comparisons';
+  const { data: cityComparisons, error: citiesError, isValidating: isCitiesValidating, mutate: mutateCities } = useSWR(
+    cityKey,
+    () => fetchCityComparisons()
+  );
+
+  const windKey = position.lat && position.lon ? `wind_${position.lat}_${position.lon}` : null;
+  const { data: windData, error: windError, isValidating: isWindValidating, mutate: mutateWind } = useSWR(
+    windKey,
+    () => fetchWindData(position.lat, position.lon)
+  );
+
+  const current = aqiData?.current;
+  const trend = aqiData?.trend || [];
+  const nearbyPoints = aqiData?.nearbyPoints || [];
+  const confidenceScore = aqiData?.confidenceScore || 'High';
+  const dataCompleteness = aqiData?.dataCompleteness || 100;
+
+  const loading = (!aqiData && isAqiValidating) || (!cityComparisons && isCitiesValidating);
+  const isRefreshing = (isAqiValidating || isCitiesValidating || isWindValidating) && !!aqiData;
+  const error = (aqiError || citiesError || windError)?.message || '';
+
   const [lastUpdated, setLastUpdated] = useState('');
   const [refreshCountdown, setRefreshCountdown] = useState(AUTO_REFRESH_SECONDS);
-  const [error, setError] = useState('');
   const [locationNotice, setLocationNotice] = useState('');
   const [theme, setTheme] = useState('light');
   const [timeRange, setTimeRange] = useState(24);
-  const refreshControllerRef = useRef(null);
+
+  // Update lastUpdated when data changes
+  useEffect(() => {
+    if (aqiData) setLastUpdated(new Date().toISOString());
+  }, [aqiData]);
 
   useEffect(() => {
     const savedTheme = localStorage.getItem(THEME_STORAGE_KEY);
@@ -238,41 +267,13 @@ export default function App() {
   };
 
   useEffect(() => {
-    const controller = new AbortController();
-    const { signal } = controller;
-
-    const load = async (silent = false) => {
-      try {
-        if (!silent) setLoading(true);
-        if (silent) setIsRefreshing(true);
-
-        const [aqi, cities] = await Promise.all([
-          fetchAirQualityByCoords(position.lat, position.lon, signal),
-          fetchCityComparisons(signal)
-        ]);
-
-        setCurrent(aqi.current);
-        setTrend(aqi.trend);
-        setNearbyPoints(aqi.nearbyPoints);
-        setConfidenceScore(aqi.confidenceScore);
-        setDataCompleteness(aqi.dataCompleteness);
-        setCityComparisons(cities);
-        setLastUpdated(new Date().toISOString());
-        setRefreshCountdown(AUTO_REFRESH_SECONDS);
-        setError('');
-      } catch (loadError) {
-        if (loadError.name === 'AbortError') return;
-        setError(loadError.message || 'Unable to load live AQI data.');
-      } finally {
-        setLoading(false);
-        setIsRefreshing(false);
-      }
-    };
-
-    load();
-
     const refreshTimer = setInterval(() => {
-      load(true);
+      if (navigator.onLine) {
+        mutateAqi();
+        mutateCities();
+        mutateWind();
+        setRefreshCountdown(AUTO_REFRESH_SECONDS);
+      }
     }, AUTO_REFRESH_SECONDS * 1000);
 
     const countdownTimer = setInterval(() => {
@@ -280,12 +281,10 @@ export default function App() {
     }, 1000);
 
     return () => {
-      controller.abort();
-      if (refreshControllerRef.current) refreshControllerRef.current.abort();
       clearInterval(refreshTimer);
       clearInterval(countdownTimer);
     };
-  }, [position.lat, position.lon]);
+  }, [mutateAqi, mutateCities, mutateWind]);
 
   const analytics = useMemo(() => estimateWeeklyMonthlyAverages(trend), [trend]);
   const exposureEstimate = useMemo(
@@ -298,43 +297,34 @@ export default function App() {
     setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
   };
 
-  const refreshNow = async () => {
+  const refreshNow = useCallback(async () => {
     if (isRefreshing) return;
+    mutateAqi();
+    mutateCities();
+    mutateWind();
+    setRefreshCountdown(AUTO_REFRESH_SECONDS);
+  }, [isRefreshing, mutateAqi, mutateCities, mutateWind]);
 
-    if (refreshControllerRef.current) refreshControllerRef.current.abort();
-    const controller = new AbortController();
-    refreshControllerRef.current = controller;
-    const { signal } = controller;
+  useEffect(() => {
+  const handleOnline = () => refreshNow();
 
-    try {
-      setIsRefreshing(true);
-      const [aqi, cities] = await Promise.all([
-        fetchAirQualityByCoords(position.lat, position.lon, signal),
-        fetchCityComparisons(signal)
-      ]);
-      setCurrent(aqi.current);
-      setTrend(aqi.trend);
-      setNearbyPoints(aqi.nearbyPoints);
-      setConfidenceScore(aqi.confidenceScore);
-      setDataCompleteness(aqi.dataCompleteness);
-      setCityComparisons(cities);
-      setLastUpdated(new Date().toISOString());
-      setRefreshCountdown(AUTO_REFRESH_SECONDS);
-    } catch (loadError) {
-      if (loadError.name === 'AbortError') return;
-      setError(loadError.message || 'Unable to refresh live AQI data.');
-    } finally {
-      if (refreshControllerRef.current === controller) {
-        setIsRefreshing(false);
-      }
-    }
+  window.addEventListener("online", handleOnline);
+
+  return () => {
+    window.removeEventListener("online", handleOnline);
   };
+}, []);
 
-  if (loading || !current) {
+  if (loading && !error) {
     return (
-      <main className="app-shell loading-state">
+      <main className="app-shell">
         <SectionNav activeSection={activeSection} onSectionChange={setActiveSection} theme={theme} onToggleTheme={toggleTheme} />
-        <h1 className="loading-title text-3xl">Preparing live pollution intelligence...</h1>
+        <Hero cityName={position.cityName} />
+        {activeSection === 'home' && (
+          <div className="content-grid" style={{ marginTop: 'var(--sp-4)' }}>
+            <SkeletonDashboard />
+          </div>
+        )}
       </main>
     );
   }
@@ -366,9 +356,9 @@ export default function App() {
         </div>
       )}
 
-      {error && <p className="error-banner">{error}</p>}
+          {error && <p className="error-banner">{error}</p>}
 
-      {activeSection === 'home' ? (
+      {activeSection === 'home' && current && (
         <div className="content-grid">
           <Dashboard
             cityName={position.cityName}
@@ -382,26 +372,60 @@ export default function App() {
             confidenceScore={confidenceScore}
             dataCompleteness={dataCompleteness}
           />
-          <LocationMap center={position} nearbyPoints={nearbyPoints} confidenceScore={confidenceScore} />
-          <AlertsPanel cityName={position.cityName} current={current} confidenceScore={confidenceScore} dataCompleteness={dataCompleteness} exposureEstimate={exposureEstimate} />
+
+          <LocationMap
+            center={position}
+            nearbyPoints={nearbyPoints}
+            confidenceScore={confidenceScore}
+            windData={windData}
+          />
+
+          <AlertsPanel
+            cityName={position.cityName}
+            current={current}
+            confidenceScore={confidenceScore}
+            dataCompleteness={dataCompleteness}
+            exposureEstimate={exposureEstimate}
+          />
+
           <HealthAdvisory />
+
           <SolutionsAwareness />
-          <AnalyticsInsights analytics={analytics} trend={trend} timeRange={timeRange} />
+
+          <AnalyticsInsights
+            analytics={analytics}
+            trend={trend}
+            timeRange={timeRange}
+          />
+
           <ScenarioSimulator current={current} />
         </div>
-      ) : activeSection === 'community' ? (
+      )}
+
+      {activeSection === 'community' && (
         <div className="content-grid community-layout">
           <CommunityHub />
         </div>
-      ) : activeSection === 'history' ? (
+      )}
+
+      {activeSection === 'history' && (
         <div className="content-grid history-layout">
           <HistoricalAnalysis position={position} />
         </div>
-      ) : (
+      )}
+
+      {activeSection === 'quiz' && (
         <div className="content-grid quiz-layout">
           <QuizSection />
         </div>
       )}
+
+      {activeSection === 'game' && (
+  <div className="content-grid game-layout">
+    <AqiMissionGame current={current} />
+    <HotspotScoutGame nearbyPoints={nearbyPoints} />
+  </div>
+)}
 
       <Footer />
     </main>
