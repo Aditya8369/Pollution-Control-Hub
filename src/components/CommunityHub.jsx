@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState } from "react";
 
-const STORAGE_KEY = 'pollution-community-reports';
-const VOTE_THRESHOLD = 5; 
+const STORAGE_KEY = "pollution-community-reports";
+const VOTES_STORAGE_KEY = "pollution-community-voted-ids";
+const VOTE_THRESHOLD = 5;
 const X_DAYS = 7;
 const MAX_IMAGE_SIZE_BYTES = 500 * 1024; // 500 KB
 const STORAGE_WARN_THRESHOLD = 5 * 1024 * 1024; // 5 MB warning
@@ -52,12 +53,14 @@ export default function CommunityHub() {
   const [votedIds, setVotedIds] = useState(() => readVotedIds());
   const [filter, setFilter] = useState('All');
   const [form, setForm] = useState({
-    title: '',
-    description: '',
-    image: ''
+    title: "",
+    description: "",
+    image: "",
   });
   const [fileInputKey, setFileInputKey] = useState(Date.now());
   const [uploadError, setUploadError] = useState('');
+  const [selectedFileName, setSelectedFileName] = useState("No file chosen");
+  const [previewImage, setPreviewImage] = useState("");
 
   useEffect(() => {
     try {
@@ -101,7 +104,11 @@ export default function CommunityHub() {
   }, [reports]);
 
   useEffect(() => {
-    localStorage.setItem(VOTES_STORAGE_KEY, JSON.stringify([...votedIds]));
+    try {
+      localStorage.setItem(VOTES_STORAGE_KEY, JSON.stringify([...votedIds]));
+    } catch (e) {
+      console.error('Failed to persist community votes to localStorage:', e);
+    }
   }, [votedIds]);
 
   const onSubmit = (event) => {
@@ -115,20 +122,28 @@ export default function CommunityHub() {
       image: form.image,
       votes: 0,
       createdAt: new Date().toISOString(),
-      status:"Pending",
+      status: "Pending",
       verifiedAt: "",
-      moderationNotes:"",
+      moderationNotes: "",
     };
 
     setReports((prev) => [newReport, ...prev]);
-    setForm({ title: '', description: '', image: '' });
+    setForm({
+      title: "",
+      description: "",
+      image: "",
+    });
+
+    setSelectedFileName("No file chosen");
+    setPreviewImage("");
     setFileInputKey(Date.now());
   };
 
   const uploadImage = async (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
-
+    setSelectedFileName(file.name);
+    setPreviewImage(URL.createObjectURL(file));
     setUploadError('');
 
     if (file.size > MAX_IMAGE_SIZE_BYTES) {
@@ -136,6 +151,7 @@ export default function CommunityHub() {
         `Image too large (${(file.size / 1024 / 1024).toFixed(1)} MB). Maximum is 500 KB.`
       );
       event.target.value = '';
+      setSelectedFileName("No file chosen");
       setFileInputKey(Date.now());
       return;
     }
@@ -165,33 +181,48 @@ export default function CommunityHub() {
         const nextVotes = report.votes + 1;
         const createdDate = new Date(report.createdAt);
         const ageInDays = (new Date() - createdDate) / (1000 * 60 * 60 * 24);
-        
+
         let updatedStatus = report.status;
         let verifiedAtTimestamp = report.verifiedAt;
         let notes = report.moderationNotes;
 
-        if (nextVotes >= VOTE_THRESHOLD && ageInDays <= X_DAYS && report.status === "Pending") {
+        if (
+          nextVotes >= VOTE_THRESHOLD &&
+          ageInDays <= X_DAYS &&
+          report.status === "Pending"
+        ) {
           updatedStatus = "Verified (community)";
           verifiedAtTimestamp = new Date().toISOString();
           notes = "Automatically verified via community consensus upvotes.";
         }
 
-        return { 
-          ...report, 
-          votes: nextVotes, 
+        return {
+          ...report,
+          votes: nextVotes,
           status: updatedStatus,
           verifiedAt: verifiedAtTimestamp,
-          moderationNotes: notes
+          moderationNotes: notes,
         };
-      })
+      }),
     );
 
     setVotedIds((prev) => new Set(prev).add(id));
   };
 
+  const markAddressed = (id) => {
+    setReports((prev) =>
+      prev.map((report) => {
+        if (report.id !== id) return report;
+        if (!report.status.startsWith("Verified")) return report;
+
+        return { ...report, status: "Addressed" };
+      })
+    );
+  };
+
   const filteredReports = reports.filter((report) => {
-    if (filter === 'All') return true;
-    if (filter === 'Verified') return report.status.startsWith('Verified');
+    if (filter === "All") return true;
+    if (filter === "Verified") return report.status.startsWith("Verified");
     return report.status === filter;
   });
 
@@ -202,34 +233,69 @@ export default function CommunityHub() {
         <p>Report local pollution issues with evidence and crowd voting</p>
       </div>
 
-      <form className="community-form" onSubmit={onSubmit}>
+      <form className="community-form" id="report-form" onSubmit={onSubmit}>
         <input
           type="text"
           value={form.title}
           placeholder="Issue title (e.g., Garbage burning)"
-          onChange={(event) => setForm((prev) => ({ ...prev, title: event.target.value }))}
+          onChange={(event) =>
+            setForm((prev) => ({ ...prev, title: event.target.value }))
+          }
         />
         <textarea
           value={form.description}
           placeholder="Describe location and issue details"
-          onChange={(event) => setForm((prev) => ({ ...prev, description: event.target.value }))}
+          onChange={(event) =>
+            setForm((prev) => ({ ...prev, description: event.target.value }))
+          }
         />
-        <input key={fileInputKey} type="file" accept="image/jpeg,image/png,image/webp" onChange={uploadImage} />
-        {uploadError && <p className="upload-error">{uploadError}</p>}
+        <div className="file-upload-container">
+          <label
+            htmlFor="community-file-upload"
+            className="file-upload-button"
+          >
+            📤 Choose File
+          </label>
+
+          <input
+            id="community-file-upload"
+            key={fileInputKey}
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            onChange={uploadImage}
+            className="file-input-hidden"
+          />
+
+          <div className="selected-file-container">
+            {previewImage && (
+              <img
+                src={previewImage}
+                alt="Selected evidence"
+                className="image-preview"
+              />
+            )}
+
+            <span className="selected-file-name">
+              {selectedFileName}
+            </span>
+          </div>
+        </div>
+
+        {uploadError && (
+          <p className="upload-error">
+            {uploadError}
+          </p>
+        )}
         <button type="submit">Submit Report</button>
       </form>
 
-      <div className="filter-tabs" style={{ display: 'flex', gap: '8px', margin: '15px 0' }}>
-        {['All', 'Pending', 'Verified', 'Addressed'].map((statusOption) => (
+      <div className="filter-tabs">
+        {["All", "Pending", "Verified", "Addressed"].map((statusOption) => (
           <button
             key={statusOption}
             type="button"
             onClick={() => setFilter(statusOption)}
-            style={{
-              padding: '6px 12px',
-              cursor: 'pointer',
-              fontWeight: filter === statusOption ? 'bold' : 'normal'
-            }}
+            className={filter === statusOption ? "active" : ""}
           >
             {statusOption}
           </button>
@@ -237,31 +303,72 @@ export default function CommunityHub() {
       </div>
 
       <div className="report-feed">
-        {filteredReports.length === 0 ? (
-          <p>No reports yet. Be the first to raise an issue.</p>
+        {reports.length === 0 ? (
+          <div className="empty-state">
+            <div className="empty-state__icon" aria-hidden="true">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
+                <path d="M12 9v4m0 4h.01M4.93 4.93a10 10 0 1 0 14.14 14.14A10 10 0 0 0 4.93 4.93Z" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </div>
+            <p className="empty-state__title">No reports yet</p>
+            <p className="empty-state__message">
+              Be the first to flag a pollution issue in your area.
+            </p>
+            <button
+              type="button"
+              className="empty-state__cta"
+              onClick={() =>
+                document
+                  .getElementById("report-form")
+                  ?.scrollIntoView({ behavior: "smooth", block: "center" })
+              }
+            >
+              Submit a report
+            </button>
+          </div>
+        ) : filteredReports.length === 0 ? (
+          <p className="empty-filter-message">
+            No reports match the "{filter}" filter.
+          </p>
         ) : (
           filteredReports.map((report) => (
             <article className="report-card" key={report.id}>
               <div className="report-head">
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div className="report-title-container">
                   <h3>{report.title}</h3>
-                  <span className="status-badge" style={{ fontSize: '0.8rem', padding: '2px 6px', border: '1px solid #ccc', borderRadius: '4px' }}>
-                    {report.status}
-                  </span>
+                  <span className="status-badge">{report.status}</span>
                 </div>
-                <button onClick={() => vote(report.id)} type="button" disabled={votedIds.has(report.id)}>
-                  {votedIds.has(report.id) ? 'Voted' : 'Upvote'} ({report.votes})
-                </button>
+                <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+                  {report.status.startsWith("Verified") && (
+                    <button type="button" onClick={() => markAddressed(report.id)}>
+                      Mark addressed
+                    </button>
+                  )}
+                  <button onClick={() => vote(report.id)} type="button" disabled={votedIds.has(report.id)}>
+                    {votedIds.has(report.id) ? 'Voted' : 'Upvote'} ({report.votes})
+                  </button>
+                </div>
               </div>
               <p>{report.description}</p>
               {report.image && <img src={report.image} alt={report.title} />}
 
-              <div className="timeline-workflow" style={{ marginTop: '12px', fontSize: '0.8rem', color: '#666' }}>
+              <div className="timeline-workflow">
                 <span>Created</span>
-                <span style={{ color: report.status.startsWith('Verified') || report.status === 'Addressed' ? '#000' : '#ccc' }}>
+                <span
+                  className={
+                    report.status.startsWith("Verified") ||
+                      report.status === "Addressed"
+                      ? "active"
+                      : "inactive"
+                  }
+                >
                   {" → "}Community verified
                 </span>
-                <span style={{ color: report.status === 'Addressed' ? '#000' : '#ccc' }}>
+                <span
+                  className={
+                    report.status === "Addressed" ? "active" : "inactive"
+                  }
+                >
                   {" → "}Addressed
                 </span>
               </div>

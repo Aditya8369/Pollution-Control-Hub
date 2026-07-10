@@ -7,12 +7,45 @@ import {
   Tooltip,
   ResponsiveContainer,
   BarChart,
-  Bar
+  Bar,
+  PieChart,
+  Pie,
+  Cell
 } from 'recharts';
-import { getAQIBand } from '../services/airQualityService';
+import { getAQIBand, getPollutantColor } from '../services/airQualityService';
 
 function shortTimeLabel(isoTime) {
   return new Date(isoTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
+
+function CustomTooltip({ active, payload }) {
+  if (active && payload && payload.length) {
+    const data = payload[0].payload;
+    return (
+      <div className="custom-tooltip" style={{
+        backgroundColor: 'var(--card)',
+        padding: '1rem',
+        border: '1px solid var(--line)',
+        borderRadius: '0.5rem',
+        boxShadow: '0 10px 25px rgba(0,0,0,0.2)',
+        maxWidth: '250px',
+        zIndex: 1000,
+        position: 'relative'
+      }}>
+        <h4 style={{ margin: '0 0 0.5rem 0', color: data.color, fontSize: '1.25rem', fontWeight: 'bold' }}>{data.name}</h4>
+        <p style={{ margin: '0 0 0.25rem 0', color: 'var(--ink)' }}>
+          <strong>Current:</strong> {data.value} µg/m³
+        </p>
+        <p style={{ margin: '0 0 0.75rem 0', color: 'var(--ink)' }}>
+          <strong>WHO Limit:</strong> {data.limit} µg/m³
+        </p>
+        <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--muted)', lineHeight: '1.4' }}>
+          {data.impact}
+        </p>
+      </div>
+    );
+  }
+  return null;
 }
 
 export default function Dashboard({
@@ -27,11 +60,22 @@ export default function Dashboard({
   confidenceScore,
   dataCompleteness
 }) {
+  if (!current) {
+    return null;
+  }
   const aqiBand = getAQIBand(current.us_aqi);
   const chartData = trend.slice(-timeRange).map((item) => ({
     ...item,
     label: shortTimeLabel(item.time)
   }));
+
+  const pollutants = [
+    { name: 'PM2.5', value: current.pm2_5, limit: 15, impact: 'Fine particles can penetrate lungs and enter the bloodstream.', color: getPollutantColor(current.pm2_5, 15) },
+    { name: 'PM10', value: current.pm10, limit: 45, impact: 'Coarse particles can irritate airways and cause coughing.', color: getPollutantColor(current.pm10, 45) },
+    { name: 'NO2', value: current.nitrogen_dioxide, limit: 25, impact: 'May irritate airways and aggravate respiratory diseases.', color: getPollutantColor(current.nitrogen_dioxide, 25) },
+    { name: 'O3', value: current.ozone, limit: 100, impact: 'Can trigger asthma and reduce lung function.', color: getPollutantColor(current.ozone, 100) },
+    { name: 'CO', value: current.carbon_monoxide, limit: 4000, impact: 'High levels reduce oxygen delivery to the body.', color: getPollutantColor(current.carbon_monoxide, 4000) }
+  ].map(p => ({ ...p, ratio: Math.max(10, (p.value / p.limit) * 100) })); // Minimum ratio of 10 for visibility
 
   return (
     <section className="panel dashboard">
@@ -57,8 +101,8 @@ export default function Dashboard({
         </div>
       </div>
 
-      <div className="kpi-grid">
-        <article className="kpi-card aqi">
+      <div className="kpi-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))' }}>
+        <article className="kpi-card aqi" style={{ gridColumn: 'span 1' }}>
           <h3>US AQI</h3>
           <div className="kpi-value" style={{ color: aqiBand.color }}>{current.us_aqi}</div>
           <p>{aqiBand.label}</p>
@@ -66,10 +110,36 @@ export default function Dashboard({
             {confidenceScore} ({dataCompleteness}% data)
           </span>
         </article>
-        <article className="kpi-card"><h3>PM2.5</h3><div className="kpi-value">{current.pm2_5}</div><p>ug/m3</p></article>
-        <article className="kpi-card"><h3>PM10</h3><div className="kpi-value">{current.pm10}</div><p>ug/m3</p></article>
-        <article className="kpi-card"><h3>CO</h3><div className="kpi-value">{current.carbon_monoxide}</div><p>ug/m3</p></article>
-        <article className="kpi-card"><h3>NO2</h3><div className="kpi-value">{current.nitrogen_dioxide}</div><p>ug/m3</p></article>
+
+        <article className="kpi-card chart-card" style={{ gridColumn: 'span 2', display: 'flex', flexDirection: 'column' }}>
+          <h3>Pollutant Health Speedometer</h3>
+          <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>
+            Relative magnitude vs. WHO guidelines. Larger segments indicate higher severity.
+          </p>
+          <div style={{ flex: 1, minHeight: '200px' }} role="img" aria-label="Pollutant health speedometer donut chart showing real-time values vs WHO guidelines">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={pollutants}
+                  dataKey="ratio"
+                  nameKey="name"
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={60}
+                  outerRadius={90}
+                  paddingAngle={5}
+                  label={({ name }) => name}
+                  labelLine={false}
+                >
+                  {pollutants.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))}
+                </Pie>
+                <Tooltip content={<CustomTooltip />} />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+        </article>
       </div>
 
       <div className="chart-grid">
@@ -77,9 +147,9 @@ export default function Dashboard({
           <h3>AQI Trend ({timeRange}h)</h3>
           <ResponsiveContainer width="100%" height={280}>
             <LineChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#d7e6e1" />
-              <XAxis dataKey="label" minTickGap={28} />
-              <YAxis />
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--line)" />
+              <XAxis dataKey="label" minTickGap={28} tick={{ fill: 'var(--muted)' }} />
+              <YAxis tick={{ fill: 'var(--muted)' }} />
               <Tooltip />
               <Line type="monotone" dataKey="us_aqi" stroke="#0d9488" strokeWidth={3} dot={false} />
             </LineChart>
@@ -90,9 +160,9 @@ export default function Dashboard({
           <h3>City-Wise AQI Comparison</h3>
           <ResponsiveContainer width="100%" height={280}>
             <BarChart data={cityComparisons} layout="vertical" margin={{ left: 30 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#d7e6e1" />
-              <XAxis type="number" />
-              <YAxis type="category" dataKey="city" width={90} />
+              <CartesianGrid strokeDasharray="3 3" stroke="var(--line)" />
+              <XAxis type="number" tick={{ fill: 'var(--muted)' }} />
+              <YAxis type="category" dataKey="city" width={90} tick={{ fill: 'var(--muted)' }} />
               <Tooltip />
               <Bar dataKey="aqi" fill="#f97316" radius={[0, 12, 12, 0]} />
             </BarChart>

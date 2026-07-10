@@ -2,20 +2,26 @@ const actions = [
   'Carpool and choose public transport whenever possible.',
   'Avoid open waste burning; report illegal burning events.',
   'Switch to clean cooking and low-emission fuel options.',
-  'Support urban tree plantation and green mobility drives.'
+  'Support urban tree plantation and green mobility drives.',
+  'Segregate household waste into biodegradable and recyclable categories.',
+  'Use energy-efficient appliances and LED lighting.'
 ];
 
 const policies = [
   'National Clean Air Programme (NCAP)',
   'Bharat Stage VI (BS6) Emission Standards',
   'FAME India Scheme for electric mobility',
-  'City-level Clean Construction and Dust Control Rules'
+  'City-level Clean Construction and Dust Control Rules',
+  'Perform, Achieve and Trade (PAT) Scheme for industrial enerygy efficiency',
+  'Renewable Energy Developement Programs'
 ];
 
 const blogs = [
   'How AQI Impacts Daily Lifestyle Decisions',
   'Top 10 Home Changes to Reduce Pollution Exposure',
-  'Why Community Reporting Improves Air Governance'
+  'Why Community Reporting Improves Air Governance',
+  'Understanding Indoor Air Pollution',
+  'Role of Citizen Science in monitoring air quality'
 ];
 
 export default function SolutionsAwareness() {
