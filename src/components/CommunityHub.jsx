@@ -59,6 +59,8 @@ export default function CommunityHub() {
   });
   const [fileInputKey, setFileInputKey] = useState(Date.now());
   const [uploadError, setUploadError] = useState('');
+  const [selectedFileName, setSelectedFileName] = useState("No file chosen");
+  const [previewImage, setPreviewImage] = useState("");
 
   useEffect(() => {
     try {
@@ -126,14 +128,22 @@ export default function CommunityHub() {
     };
 
     setReports((prev) => [newReport, ...prev]);
-    setForm({ title: "", description: "", image: "" });
+    setForm({
+      title: "",
+      description: "",
+      image: "",
+    });
+
+    setSelectedFileName("No file chosen");
+    setPreviewImage("");
     setFileInputKey(Date.now());
   };
 
   const uploadImage = async (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
-
+    setSelectedFileName(file.name);
+    setPreviewImage(URL.createObjectURL(file));
     setUploadError('');
 
     if (file.size > MAX_IMAGE_SIZE_BYTES) {
@@ -141,6 +151,7 @@ export default function CommunityHub() {
         `Image too large (${(file.size / 1024 / 1024).toFixed(1)} MB). Maximum is 500 KB.`
       );
       event.target.value = '';
+      setSelectedFileName("No file chosen");
       setFileInputKey(Date.now());
       return;
     }
@@ -238,23 +249,58 @@ export default function CommunityHub() {
             setForm((prev) => ({ ...prev, description: event.target.value }))
           }
         />
-        <input key={fileInputKey} type="file" accept="image/jpeg,image/png,image/webp" onChange={uploadImage} />
-        {uploadError && <p className="upload-error">{uploadError}</p>}
+        <div className="file-upload-container">
+          <label
+            htmlFor="community-file-upload"
+            className="file-upload-button"
+          >
+            📤 Choose File
+          </label>
+
+          <input
+            id="community-file-upload"
+            key={fileInputKey}
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            onChange={uploadImage}
+            className="file-input-hidden"
+          />
+
+          <div className="selected-file-container">
+            {previewImage && (
+              <img
+                src={previewImage}
+                alt="Selected evidence"
+                className="image-preview"
+              />
+            )}
+
+            <span className="selected-file-name">
+              {selectedFileName}
+            </span>
+          </div>
+        </div>
+
+        {uploadError && (
+          <p className="upload-error">
+            {uploadError}
+          </p>
+        )}
         <button type="submit">Submit Report</button>
       </form>
 
-   <div className="filter-tabs">
-  {["All", "Pending", "Verified", "Addressed"].map((statusOption) => (
-    <button
-      key={statusOption}
-      type="button"
-      onClick={() => setFilter(statusOption)}
-      className={filter === statusOption ? "active" : ""}
-    >
-      {statusOption}
-    </button>
-  ))}
-</div>
+      <div className="filter-tabs">
+        {["All", "Pending", "Verified", "Addressed"].map((statusOption) => (
+          <button
+            key={statusOption}
+            type="button"
+            onClick={() => setFilter(statusOption)}
+            className={filter === statusOption ? "active" : ""}
+          >
+            {statusOption}
+          </button>
+        ))}
+      </div>
 
       <div className="report-feed">
         {reports.length === 0 ? (
@@ -311,7 +357,7 @@ export default function CommunityHub() {
                 <span
                   className={
                     report.status.startsWith("Verified") ||
-                    report.status === "Addressed"
+                      report.status === "Addressed"
                       ? "active"
                       : "inactive"
                   }

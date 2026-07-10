@@ -1264,6 +1264,111 @@ a {
   color: #fcd34d;
 }
 
+/* ==========================================
+   File Upload Section
+========================================== */
+
+.selected-file-container {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.image-preview {
+  width: 80px;
+    height: 80px;
+
+    object-fit: cover;
+
+    border-radius: 8px;
+
+    border: 2px solid #dbeafe;
+
+    box-shadow: 0 2px 8px rgba(0,0,0,.1);
+
+    flex-shrink: 0;
+}
+
+.file-upload-container {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin: 8px 0 12px;
+}
+
+.file-input-hidden {
+  display: none;
+}
+
+/* Upload Button */
+.file-upload-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 12px 20px;
+  min-height: 48px;
+
+  border-radius: 10px;
+
+  background: white;
+    color: #0891b2;
+    border: 2px solid #0891b2;
+}
+
+.file-upload-button:hover {
+    background: #0891b2;
+    color: white;
+}
+
+/* Active Click */
+.file-upload-button:active {
+  transform: scale(0.98);
+}
+
+/* Keyboard Focus */
+.file-upload-button:focus-visible {
+  outline: 3px solid rgba(14, 165, 233, 0.35);
+  outline-offset: 3px;
+}
+
+/* Selected File Name */
+.selected-file-name {
+    color: #6b7280;
+    font-size: 14px;
+    font-weight: 500;
+    word-break: break-word;
+}
+
+/* Upload Error */
+.upload-error {
+  color: #dc2626;
+  font-size: 14px;
+  margin-top: 6px;
+}
+
+/* Mobile */
+@media (max-width: 640px) {
+  .file-upload-container {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .file-upload-button {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .selected-file-name {
+    max-width: 100%;
+    word-break: break-word;
+    white-space: normal;
+  }
+}
+
+
+
 /* ============================================================
    Quiz
    ============================================================ */
