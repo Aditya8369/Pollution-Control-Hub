@@ -1,3 +1,4 @@
+import CarbonFootprintCalculator from "./components/CarbonFootprintCalculator";
 import { useEffect, useMemo, useRef, useState } from 'react';
 import AlertsPanel from './components/AlertsPanel';
 import AnalyticsInsights from './components/AnalyticsInsights';
@@ -85,9 +86,10 @@ function AppControls({
 
 function SectionNav({ activeSection, onSectionChange, theme, onToggleTheme }) {
   const sections = [
-    { id: 'home', label: 'Home' },
-    { id: 'quiz', label: 'Quiz' }
-  ];
+  { id: 'home', label: 'Home' },
+  { id: 'carbon', label: 'Carbon Footprint' },
+  { id: 'quiz', label: 'Quiz' }
+];
   const isDark = theme === 'dark';
 
   return (
@@ -333,7 +335,9 @@ export default function App() {
       {/* 1. Structural fix: Renders the navigation element at the very top */}
       <SectionNav activeSection={activeSection} onSectionChange={setActiveSection} theme={theme} onToggleTheme={toggleTheme} />
       
-      <Hero cityName={position.cityName} />
+      {activeSection !== "carbon" && (
+  <Hero cityName={position.cityName} />
+)}
 
       {activeSection === 'home' && (
         <AppControls
@@ -346,7 +350,9 @@ export default function App() {
         />
       )}
 
-      {locationNotice && selectedCity === 'auto' && (
+      {activeSection !== "carbon" &&
+  locationNotice &&
+  selectedCity === "auto" && (
         <div className="location-notice" role="status">
           <p>{locationNotice}</p>
           <button type="button" onClick={() => setLocationNotice('')}>
@@ -355,9 +361,9 @@ export default function App() {
         </div>
       )}
 
-      {error && <p className="error-banner">{error}</p>}
-
-      {activeSection === 'home' ? (
+      {activeSection !== "carbon" &&
+  error && <p className="error-banner">{error}</p>}
+       {activeSection === 'home' ? (
         <div className="content-grid">
           <Dashboard
             cityName={position.cityName}
@@ -370,20 +376,26 @@ export default function App() {
             isRefreshing={isRefreshing}
             confidenceScore={confidenceScore}
             dataCompleteness={dataCompleteness}
-          />
+            />
+          
           <LocationMap center={position} nearbyPoints={nearbyPoints} confidenceScore={confidenceScore} />
           <AlertsPanel cityName={position.cityName} current={current} confidenceScore={confidenceScore} dataCompleteness={dataCompleteness} exposureEstimate={exposureEstimate} />
           <HealthAdvisory />
           <SolutionsAwareness />
+         
           <AnalyticsInsights analytics={analytics} trend={trend} timeRange={timeRange} />
           <ScenarioSimulator current={current} />
           <CommunityHub />
         </div>
+        ) : activeSection === "carbon" ? (
+
+       <CarbonFootprintCalculator />
       ) : (
         <div className="content-grid quiz-layout">
           <QuizSection />
         </div>
       )}
+
 
       <Footer />
     </main>
