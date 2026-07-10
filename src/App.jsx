@@ -370,7 +370,7 @@ export default function App() {
 
       {activeSection !== "carbon" &&
   error && <p className="error-banner">{error}</p>}
-       {activeSection === 'home' ? (
+       {activeSection === 'home' && (
         <div className="content-grid">
           <Dashboard
             cityName={position.cityName}
@@ -417,13 +417,14 @@ export default function App() {
       )}
 
       {activeSection === 'community' && (
-        <div className="content-grid community-layout">
-          <CommunityHub />
-        </div>
-        ) : activeSection === "carbon" ? (
+  <div className="content-grid community-layout">
+    <CommunityHub />
+  </div>
+)}
 
-       <CarbonFootprintCalculator />
-      )}
+{activeSection === "carbon" && (
+  <CarbonFootprintCalculator />
+)}
 
       {activeSection === 'history' && (
         <div className="content-grid history-layout">
