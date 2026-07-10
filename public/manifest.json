@@ -1,0 +1,21 @@
+{
+  "name": "Pollution Control Hub",
+  "short_name": "Pollution Hub",
+  "description": "Monitor, understand, and take action on real-time pollution metrics.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#00a0a0",
+  "icons": [
+    {
+      "src": "/pwa-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/pwa-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
