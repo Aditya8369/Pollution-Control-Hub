@@ -3167,6 +3167,43 @@ a {
   margin-top: -0.2rem;
 }
 
+   Hotspot Scout Game
+=========================== */
+
+ .hotspot-game {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  padding: var(--sp-5);
+  box-shadow: var(--shadow-sm);
+}
+
+.hotspot-options {
+  display: grid;
+  gap: 12px;
+  margin-top: 16px;
+} 
+
+.hotspot-option {
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  background: var(--panel);
+  transition: 0.2s ease;
+}
+
+.hotspot-option:hover {
+  border-color: var(--brand);
+  transform: translateY(-2px);
+}
+
+.score-board {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  font-weight: 600;
+}
 .game-table {
   width: 100%;
   border-collapse: collapse;

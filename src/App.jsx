@@ -15,6 +15,7 @@ import HistoricalAnalysis from './components/HistoricalAnalysis';
 import LocationSearch from './components/LocationSearch';
 import SkeletonDashboard from './components/SkeletonDashboard';
 import { CITY_COORDINATES } from './constants/cities';
+import HotspotScoutGame from "./components/HotspotScoutGame";
 import {
   estimateWeeklyMonthlyAverages,
   fetchAirQualityByCoords,
@@ -420,10 +421,11 @@ export default function App() {
       )}
 
       {activeSection === 'game' && (
-        <div className="content-grid game-layout">
-          <AqiMissionGame current={current} />
-        </div>
-      )}
+  <div className="content-grid game-layout">
+    <AqiMissionGame current={current} />
+    <HotspotScoutGame nearbyPoints={nearbyPoints} />
+  </div>
+)}
 
       <Footer />
     </main>
