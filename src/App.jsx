@@ -342,7 +342,10 @@ export default function App() {
     return (
       <main className="app-shell loading-state">
         <SectionNav activeSection={activeSection} onSectionChange={setActiveSection} theme={theme} onToggleTheme={toggleTheme} />
+        <div className="loading-spinner" aria-hidden="true"></div>
         <h1 className="loading-title text-3xl">Preparing live pollution intelligence...</h1>
+
+  
       </main>
     );
   }
