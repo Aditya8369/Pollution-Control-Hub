@@ -142,6 +142,17 @@ export default function CommunityHub() {
   const uploadImage = async (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
+
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      setUploadError('Invalid file format. Please select a JPEG, PNG, or WebP image.');
+      event.target.value = '';
+      setSelectedFileName("No file chosen");
+      setPreviewImage("");
+      setFileInputKey(Date.now());
+      return;
+    }
+
     setSelectedFileName(file.name);
     setPreviewImage(URL.createObjectURL(file));
     setUploadError('');
@@ -152,6 +163,7 @@ export default function CommunityHub() {
       );
       event.target.value = '';
       setSelectedFileName("No file chosen");
+      setPreviewImage("");
       setFileInputKey(Date.now());
       return;
     }
