@@ -444,13 +444,44 @@ color:white;
   gap: 0.75rem;
 }
 
+.kpi-grid .aqi {
+  grid-column: span 1;
+}
+
+.kpi-grid .chart-card {
+  grid-column: span 2;
+}
+
+@media (max-width: 640px) {
+  .kpi-grid {
+    grid-template-columns: 1fr;
+  }
+  .kpi-grid .aqi,
+  .kpi-grid .chart-card {
+    grid-column: span 1;
+  }
+}
 .kpi-card {
   background: var(--card);
   border-radius: 14px;
   border: 1px solid var(--line);
-  padding: 0.75rem;
+  padding: var(--sp-4) var(--sp-4) var(--sp-5);
+  box-shadow: var(--shadow-sm);
+  transition:
+    transform 220ms var(--ease),
+    box-shadow 220ms var(--ease);
+  min-width: 0;
 }
 
+.kpi-card h3 {
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  font-family: "Space Grotesk", sans-serif;
+  font-weight: 700;
+  margin-bottom: var(--sp-2);
+}
 .kpi-card.aqi {
   border-left: 5px solid var(--brand);
 }
@@ -470,8 +501,14 @@ color:white;
 .chart-card {
   background: var(--card);
   border: 1px solid var(--line);
-  border-radius: 14px;
-  padding: 0.8rem;
+  border-radius: var(--r-md);
+  padding: var(--sp-4) var(--sp-4) var(--sp-2);
+  box-shadow: var(--shadow-sm);
+  animation: rise-in 600ms var(--ease) both;
+  transition:
+    transform 220ms var(--ease),
+    box-shadow 220ms var(--ease);
+  min-width: 0;
 }
 
 .map-wrap {
