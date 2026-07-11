@@ -1,3 +1,4 @@
+import SunSafetyWidget from "./components/SunSafetyWidget";
 import { useEffect, useMemo, useRef, useState } from 'react';
 import AlertsPanel from './components/AlertsPanel';
 import AnalyticsInsights from './components/AnalyticsInsights';
@@ -334,10 +335,21 @@ export default function App() {
   return (
     <main className="app-shell">
       {/* 1. Structural fix: Renders the navigation element at the very top */}
-      <SectionNav activeSection={activeSection} onSectionChange={setActiveSection} theme={theme} onToggleTheme={toggleTheme} />
       
-      <Hero cityName={position.cityName} />
+   <SectionNav 
+         activeSection={activeSection} 
+         onSectionChange={setActiveSection} 
+         theme={theme} 
+         onToggleTheme={toggleTheme} 
+   />
 
+<SunSafetyWidget
+    lat={position.lat}
+    lon={position.lon}
+    city={position.cityName}
+/>
+
+<Hero cityName={position.cityName} />
       {activeSection === 'home' && (
         <AppControls
           selectedCity={selectedCity}
