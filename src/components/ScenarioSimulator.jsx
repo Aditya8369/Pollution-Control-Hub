@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Car, Factory, TreePine, Zap, Globe, FlaskConical, CloudFog, TrafficCone, Sun, AlertTriangle } from 'lucide-react';
 import { CITY_COORDINATES } from '../constants/cities';
 import { fetchAirQualityByCoords, getAQIBand, estimateAQI } from '../services/airQualityService';
 
@@ -7,7 +8,7 @@ import { fetchAirQualityByCoords, getAQIBand, estimateAQI } from '../services/ai
 const PRESETS = [
   {
     id: 'traffic',
-    icon: '🚗',
+    icon: Car,
     label: 'Traffic Control',
     description: 'Odd-even driving, EV mandates',
     pm25: 10,
@@ -16,7 +17,7 @@ const PRESETS = [
   },
   {
     id: 'industrial',
-    icon: '🏭',
+    icon: Factory,
     label: 'Industrial Limits',
     description: 'Stricter stack emission caps',
     pm25: 25,
@@ -25,7 +26,7 @@ const PRESETS = [
   },
   {
     id: 'green',
-    icon: '🌳',
+    icon: TreePine,
     label: 'Green Cover',
     description: 'Urban forestry & park expansion',
     pm25: 10,
@@ -34,7 +35,7 @@ const PRESETS = [
   },
   {
     id: 'clean-fuel',
-    icon: '⚡',
+    icon: Zap,
     label: 'Clean Fuel Switch',
     description: 'Replace petrol/diesel with CNG/EV',
     pm25: 20,
@@ -43,7 +44,7 @@ const PRESETS = [
   },
   {
     id: 'combined',
-    icon: '🌐',
+    icon: Globe,
     label: 'Combined Policy',
     description: 'All interventions together',
     pm25: 50,
@@ -189,7 +190,7 @@ export default function ScenarioSimulator({ current }) {
     <section className="panel scenario-simulator" aria-labelledby="sim-heading">
       {/* ── Header ── */}
       <div className="panel-head">
-        <h2 id="sim-heading">🧪 Scenario Simulator</h2>
+        <h2 id="sim-heading"><FlaskConical className="inline-icon" size={22} aria-hidden="true" /> Scenario Simulator</h2>
         <p>
           Adjust sliders or pick a preset to see how interventions could improve AQI across cities.
         </p>
@@ -205,7 +206,7 @@ export default function ScenarioSimulator({ current }) {
             onClick={() => applyPreset(preset)}
             aria-pressed={activePreset === preset.id}
           >
-            <span className="sim-preset-icon">{preset.icon}</span>
+            <span className="sim-preset-icon"><preset.icon size={26} aria-hidden="true" /></span>
             <span className="sim-preset-label">{preset.label}</span>
             <span className="sim-preset-desc">{preset.description}</span>
             <span className="sim-preset-tags">
@@ -222,7 +223,7 @@ export default function ScenarioSimulator({ current }) {
         <SliderGroup
           id="slider-pm25"
           label="Reduce PM2.5"
-          emoji="🌫️"
+          icon={CloudFog}
           value={pm25Reduction}
           onChange={(v) => { setActivePreset(null); setPm25Reduction(v); }}
           current={current.pm2_5}
@@ -231,7 +232,7 @@ export default function ScenarioSimulator({ current }) {
         <SliderGroup
           id="slider-no2"
           label="Reduce NO₂"
-          emoji="🚦"
+          icon={TrafficCone}
           value={no2Reduction}
           onChange={(v) => { setActivePreset(null); setNo2Reduction(v); }}
           current={current.nitrogen_dioxide}
@@ -240,7 +241,7 @@ export default function ScenarioSimulator({ current }) {
         <SliderGroup
           id="slider-o3"
           label="Reduce Ozone"
-          emoji="☀️"
+          icon={Sun}
           value={o3Reduction}
           onChange={(v) => { setActivePreset(null); setO3Reduction(v); }}
           current={current.ozone}
@@ -318,7 +319,7 @@ export default function ScenarioSimulator({ current }) {
             if (cityErrorSet.has(cityName)) {
               return (
                 <div key={cityName} className="sim-city-result-card sim-error-card">
-                  <span>⚠️ Could not fetch {cityName} data.</span>
+                  <span><AlertTriangle className="inline-icon" size={16} aria-hidden="true" /> Could not fetch {cityName} data.</span>
                 </div>
               );
             }
@@ -390,12 +391,12 @@ export default function ScenarioSimulator({ current }) {
 
 /* ─── Sub-components ──────────────────────────────────────────────────────── */
 
-function SliderGroup({ id, label, emoji, value, onChange, current, unit }) {
+function SliderGroup({ id, label, icon: Icon, value, onChange, current, unit }) {
   const reduced = Math.round(current * (1 - value / 100));
   return (
     <div className="sim-slider-group">
       <label htmlFor={id}>
-        <span className="sim-slider-emoji" aria-hidden="true">{emoji}</span>
+        <span className="sim-slider-emoji" aria-hidden="true"><Icon size={18} /></span>
         {label}
         <span className="sim-slider-value">{value}%</span>
       </label>

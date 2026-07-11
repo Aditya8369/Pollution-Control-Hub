@@ -59,6 +59,8 @@ export default function CommunityHub() {
   });
   const [fileInputKey, setFileInputKey] = useState(Date.now());
   const [uploadError, setUploadError] = useState('');
+  const [selectedFileName, setSelectedFileName] = useState("No file chosen");
+  const [previewImage, setPreviewImage] = useState("");
 
   useEffect(() => {
     try {
@@ -126,7 +128,14 @@ export default function CommunityHub() {
     };
 
     setReports((prev) => [newReport, ...prev]);
-    setForm({ title: "", description: "", image: "" });
+    setForm({
+      title: "",
+      description: "",
+      image: "",
+    });
+
+    setSelectedFileName("No file chosen");
+    setPreviewImage("");
     setFileInputKey(Date.now());
   };
 
@@ -134,6 +143,18 @@ export default function CommunityHub() {
     const file = event.target.files?.[0];
     if (!file) return;
 
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      setUploadError('Invalid file format. Please select a JPEG, PNG, or WebP image.');
+      event.target.value = '';
+      setSelectedFileName("No file chosen");
+      setPreviewImage("");
+      setFileInputKey(Date.now());
+      return;
+    }
+
+    setSelectedFileName(file.name);
+    setPreviewImage(URL.createObjectURL(file));
     setUploadError('');
 
     if (file.size > MAX_IMAGE_SIZE_BYTES) {
@@ -141,6 +162,8 @@ export default function CommunityHub() {
         `Image too large (${(file.size / 1024 / 1024).toFixed(1)} MB). Maximum is 500 KB.`
       );
       event.target.value = '';
+      setSelectedFileName("No file chosen");
+      setPreviewImage("");
       setFileInputKey(Date.now());
       return;
     }
@@ -238,46 +261,58 @@ export default function CommunityHub() {
             setForm((prev) => ({ ...prev, description: event.target.value }))
           }
         />
-        <input key={fileInputKey} type="file" accept="image/jpeg,image/png,image/webp" onChange={uploadImage} />
-        {uploadError && <p className="upload-error">{uploadError}</p>}
+        <div className="file-upload-container">
+          <label
+            htmlFor="community-file-upload"
+            className="file-upload-button"
+          >
+            📤 Choose File
+          </label>
+
+          <input
+            id="community-file-upload"
+            key={fileInputKey}
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            onChange={uploadImage}
+            className="file-input-hidden"
+          />
+
+          <div className="selected-file-container">
+            {previewImage && (
+              <img
+                src={previewImage}
+                alt="Selected evidence"
+                className="image-preview"
+              />
+            )}
+
+            <span className="selected-file-name">
+              {selectedFileName}
+            </span>
+          </div>
+        </div>
+
+        {uploadError && (
+          <p className="upload-error">
+            {uploadError}
+          </p>
+        )}
         <button type="submit">Submit Report</button>
       </form>
 
-   <div
-  className="filter-tabs"
-  style={{
-    display: "flex",
-    gap: "12px",
-    margin: "20px 0",
-    flexWrap: "wrap",
-  }}
->
-  {["All", "Pending", "Verified", "Addressed"].map((statusOption) => (
-    <button
-      key={statusOption}
-      type="button"
-      onClick={() => setFilter(statusOption)}
-      style={{
-        padding: "8px 15px",
-        borderRadius: "10px",
-        border: filter === statusOption ? "2px solid #0077b6" : "2px solid #dcdcdc",
-        backgroundColor:
-          filter === statusOption ? "#0077b6" : "#ffffff",
-        color: filter === statusOption ? "#ffffff" : "#333333",
-        cursor: "pointer",
-        fontWeight: filter === statusOption ? "600" : "500",
-        fontSize: "15px",
-        transition: "all 0.3s ease",
-        boxShadow:
-          filter === statusOption
-            ? "0 4px 12px rgba(0,119,182,0.3)"
-            : "0 2px 6px rgba(0,0,0,0.08)",
-      }}
-    >
-      {statusOption}
-    </button>
-  ))}
-</div>
+      <div className="filter-tabs">
+        {["All", "Pending", "Verified", "Addressed"].map((statusOption) => (
+          <button
+            key={statusOption}
+            type="button"
+            onClick={() => setFilter(statusOption)}
+            className={filter === statusOption ? "active" : ""}
+          >
+            {statusOption}
+          </button>
+        ))}
+      </div>
 
       <div className="report-feed">
         {reports.length === 0 ? (
@@ -334,7 +369,7 @@ export default function CommunityHub() {
                 <span
                   className={
                     report.status.startsWith("Verified") ||
-                    report.status === "Addressed"
+                      report.status === "Addressed"
                       ? "active"
                       : "inactive"
                   }

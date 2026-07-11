@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
+import { useSWR } from './hooks/useSWR';
 import AlertsPanel from './components/AlertsPanel';
 import AnalyticsInsights from './components/AnalyticsInsights';
 import CommunityHub from './components/CommunityHub';
@@ -12,7 +13,9 @@ import ScenarioSimulator from './components/ScenarioSimulator';
 import AqiMissionGame from './components/AqiMissionGame';
 import HistoricalAnalysis from './components/HistoricalAnalysis';
 import LocationSearch from './components/LocationSearch';
+import SkeletonDashboard from './components/SkeletonDashboard';
 import { CITY_COORDINATES } from './constants/cities';
+import HotspotScoutGame from "./components/HotspotScoutGame";
 import {
   estimateWeeklyMonthlyAverages,
   fetchAirQualityByCoords,
@@ -164,22 +167,44 @@ export default function App() {
   const [activeSection, setActiveSection] = useState('home');
   const [selectedCity, setSelectedCity] = useState('auto');
   const [position, setPosition] = useState(DEFAULT_POSITION);
-  const [current, setCurrent] = useState(null);
-  const [trend, setTrend] = useState([]);
-  const [nearbyPoints, setNearbyPoints] = useState([]);
-  const [cityComparisons, setCityComparisons] = useState([]);
-  const [windData, setWindData] = useState(null);
-  const [confidenceScore, setConfidenceScore] = useState('High');
-  const [dataCompleteness, setDataCompleteness] = useState(100);
-  const [loading, setLoading] = useState(true);
-  const [isRefreshing, setIsRefreshing] = useState(false);
+  const aqiKey = position.lat && position.lon ? `aqi_${position.lat}_${position.lon}` : null;
+  const { data: aqiData, error: aqiError, isValidating: isAqiValidating, mutate: mutateAqi } = useSWR(
+    aqiKey, 
+    () => fetchAirQualityByCoords(position.lat, position.lon)
+  );
+
+  const cityKey = 'city_comparisons';
+  const { data: cityComparisons, error: citiesError, isValidating: isCitiesValidating, mutate: mutateCities } = useSWR(
+    cityKey,
+    () => fetchCityComparisons()
+  );
+
+  const windKey = position.lat && position.lon ? `wind_${position.lat}_${position.lon}` : null;
+  const { data: windData, error: windError, isValidating: isWindValidating, mutate: mutateWind } = useSWR(
+    windKey,
+    () => fetchWindData(position.lat, position.lon)
+  );
+
+  const current = aqiData?.current;
+  const trend = aqiData?.trend || [];
+  const nearbyPoints = aqiData?.nearbyPoints || [];
+  const confidenceScore = aqiData?.confidenceScore || 'High';
+  const dataCompleteness = aqiData?.dataCompleteness || 100;
+
+  const loading = (!aqiData && isAqiValidating) || (!cityComparisons && isCitiesValidating);
+  const isRefreshing = (isAqiValidating || isCitiesValidating || isWindValidating) && !!aqiData;
+  const error = (aqiError || citiesError || windError)?.message || '';
+
   const [lastUpdated, setLastUpdated] = useState('');
   const [refreshCountdown, setRefreshCountdown] = useState(AUTO_REFRESH_SECONDS);
-  const [error, setError] = useState('');
   const [locationNotice, setLocationNotice] = useState('');
   const [theme, setTheme] = useState('light');
   const [timeRange, setTimeRange] = useState(24);
-  const refreshControllerRef = useRef(null);
+
+  // Update lastUpdated when data changes
+  useEffect(() => {
+    if (aqiData) setLastUpdated(new Date().toISOString());
+  }, [aqiData]);
 
   useEffect(() => {
     const savedTheme = localStorage.getItem(THEME_STORAGE_KEY);
@@ -242,52 +267,13 @@ export default function App() {
   };
 
   useEffect(() => {
-    const controller = new AbortController();
-    const { signal } = controller;
-
-    const load = async (silent = false) => {
-       if (!navigator.onLine) {
-       setCurrent(null);
-       setError("You're offline. Please reconnect to view air quality data.");
-       setLoading(false);
-      setIsRefreshing(false);
-      return;
-  }
-      try {
-        if (!silent) setLoading(true);
-        if (silent) setIsRefreshing(true);
-
-        const [aqi, cities, wind] = await Promise.all([
-          fetchAirQualityByCoords(position.lat, position.lon, signal),
-          fetchCityComparisons(signal),
-          fetchWindData(position.lat, position.lon, signal)
-        ]);
-
-        setCurrent(aqi.current);
-        setTrend(aqi.trend);
-        setNearbyPoints(aqi.nearbyPoints);
-        setConfidenceScore(aqi.confidenceScore);
-        setDataCompleteness(aqi.dataCompleteness);
-        setCityComparisons(cities);
-        setWindData(wind);
-        setLastUpdated(new Date().toISOString());
-        setRefreshCountdown(AUTO_REFRESH_SECONDS);
-        setError('');
-      } catch (loadError) {
-        if (loadError.name === 'AbortError') return;
-        setError(loadError.message || 'Unable to load live AQI data.');
-      } finally {
-        setLoading(false);
-        setIsRefreshing(false);
-      }
-    };
-
-    load();
-
     const refreshTimer = setInterval(() => {
       if (navigator.onLine) {
-        load(true);
-    }
+        mutateAqi();
+        mutateCities();
+        mutateWind();
+        setRefreshCountdown(AUTO_REFRESH_SECONDS);
+      }
     }, AUTO_REFRESH_SECONDS * 1000);
 
     const countdownTimer = setInterval(() => {
@@ -295,12 +281,10 @@ export default function App() {
     }, 1000);
 
     return () => {
-      controller.abort();
-      if (refreshControllerRef.current) refreshControllerRef.current.abort();
       clearInterval(refreshTimer);
       clearInterval(countdownTimer);
     };
-  }, [position.lat, position.lon]);
+  }, [mutateAqi, mutateCities, mutateWind]);
 
   const analytics = useMemo(() => estimateWeeklyMonthlyAverages(trend), [trend]);
   const exposureEstimate = useMemo(
@@ -313,46 +297,13 @@ export default function App() {
     setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
   };
 
-  const refreshNow = async () => {
+  const refreshNow = useCallback(async () => {
     if (isRefreshing) return;
-
-    if (!navigator.onLine) {
-  setCurrent(null);
-  setError("You're offline. Please reconnect to view air quality data.");
-  return;
-}
-
-    if (refreshControllerRef.current) refreshControllerRef.current.abort();
-    const controller = new AbortController();
-    refreshControllerRef.current = controller;
-    const { signal } = controller;
-
-    try {
-      setIsRefreshing(true);
-      const [aqi, cities, wind] = await Promise.all([
-        fetchAirQualityByCoords(position.lat, position.lon, signal),
-        fetchCityComparisons(signal),
-        fetchWindData(position.lat, position.lon, signal)
-      ]);
-      setCurrent(aqi.current);
-      setTrend(aqi.trend);
-      setNearbyPoints(aqi.nearbyPoints);
-      setConfidenceScore(aqi.confidenceScore);
-      setDataCompleteness(aqi.dataCompleteness);
-      setCityComparisons(cities);
-      setWindData(wind);
-      setLastUpdated(new Date().toISOString());
-      setRefreshCountdown(AUTO_REFRESH_SECONDS);
-      setError('');
-    } catch (loadError) {
-      if (loadError.name === 'AbortError') return;
-      setError(loadError.message || 'Unable to refresh live AQI data.');
-    } finally {
-      if (refreshControllerRef.current === controller) {
-        setIsRefreshing(false);
-      }
-    }
-  };
+    mutateAqi();
+    mutateCities();
+    mutateWind();
+    setRefreshCountdown(AUTO_REFRESH_SECONDS);
+  }, [isRefreshing, mutateAqi, mutateCities, mutateWind]);
 
   useEffect(() => {
   const handleOnline = () => refreshNow();
@@ -366,9 +317,20 @@ export default function App() {
 
   if (loading && !error) {
     return (
-      <main className="app-shell loading-state">
+      <main className="app-shell">
         <SectionNav activeSection={activeSection} onSectionChange={setActiveSection} theme={theme} onToggleTheme={toggleTheme} />
-        <h1 className="loading-title text-3xl">Preparing live pollution intelligence...</h1>
+
+        <div className="loading-spinner" aria-hidden="true"></div>
+        <h1 className="loading-title text-3xl">
+          Preparing live pollution intelligence...
+        </h1>
+
+        <Hero cityName={position.cityName} />
+        {activeSection === 'home' && (
+          <div className="content-grid" style={{ marginTop: 'var(--sp-4)' }}>
+            <SkeletonDashboard />
+          </div>
+        )}
       </main>
     );
   }
@@ -465,10 +427,11 @@ export default function App() {
       )}
 
       {activeSection === 'game' && (
-        <div className="content-grid game-layout">
-          <AqiMissionGame current={current} />
-        </div>
-      )}
+  <div className="content-grid game-layout">
+    <AqiMissionGame current={current} />
+    <HotspotScoutGame nearbyPoints={nearbyPoints} />
+  </div>
+)}
 
       <Footer />
     </main>

@@ -1,3 +1,5 @@
+import { Sprout } from 'lucide-react';
+
 function Footer() {
   const year = new Date().getFullYear();
 
@@ -61,7 +63,7 @@ function Footer() {
 
         <div className="footer-bottom">
           <p>© {year} Pollution Control Hub.</p>
-          <p>From awareness to action — one city at a time. 🌱</p>
+          <p>From awareness to action — one city at a time. <Sprout className="inline-icon" size={16} aria-hidden="true" /></p>
         </div>
       </div>
     </footer>

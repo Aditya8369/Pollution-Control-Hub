@@ -1,4 +1,5 @@
 import { CITY_COORDINATES } from '../constants/cities';
+import { cacheStore } from '../utils/cacheStore';
 
 const BASE_URL = 'https://air-quality-api.open-meteo.com/v1/air-quality';
 
@@ -115,7 +116,7 @@ function computeConfidence(hourly, times) {
   return { confidenceScore, dataCompleteness };
 }
 
-export async function fetchAirQualityByCoords(lat, lon, signal) {
+export async function fetchAirQualityByCoords(lat, lon, signal, skipGrid = false) {
 
   if (!navigator.onLine) { console.log("OFFLINE CHECK HIT");
     throw new Error("You're offline. Please reconnect to view air quality data." );}
@@ -163,7 +164,7 @@ export async function fetchAirQualityByCoords(lat, lon, signal) {
     us_aqi: Math.round(hourly.us_aqi?.[startIndex + i] ?? 0)
   }));
 
-  const nearbyPoints = await fetchLocalGrid(lat, lon, 6, signal);
+  const nearbyPoints = skipGrid ? [] : await fetchLocalGrid(lat, lon, 6, signal);
   const { confidenceScore, dataCompleteness } = computeConfidence(hourly, times);
 
   return {
@@ -196,7 +197,9 @@ export async function fetchCityComparisons(signal) {
   const cityData = await Promise.all(
     CITY_COORDINATES.map(async (city) => {
       try {
-        const result = await fetchAirQualityByCoords(city.lat, city.lon, signal);
+        const key = `aqi_lite_${city.lat}_${city.lon}`;
+        const result = await cacheStore.deduplicate(key, () => fetchAirQualityByCoords(city.lat, city.lon, signal, true));
+        
         return {
           city: city.name,
           aqi: result.current.us_aqi,

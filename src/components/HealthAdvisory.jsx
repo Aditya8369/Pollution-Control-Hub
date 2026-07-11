@@ -163,7 +163,7 @@ export default function HealthAdvisory() {
       <h3 className="section-subtitle">Organ-Specific Impacts</h3>
      <div className="advisory-grid">
         {sections.map((section) => (
-          <article key={section.id} className="advisory-card">
+          <article key={section.title} className="advisory-card">
             <div className={`icon-container ${section.variant}`}>{section.icon}</div>
             <div className="advisory-card-top">
               <h3>{section.title}</h3>

@@ -23,24 +23,24 @@ function CustomTooltip({ active, payload }) {
   if (active && payload && payload.length) {
     const data = payload[0].payload;
     return (
-      <div className="custom-tooltip" style={{ 
-        backgroundColor: 'var(--bg-card, #ffffff)', 
-        padding: '1rem', 
-        border: '1px solid var(--border-color, #e2e8f0)', 
-        borderRadius: '0.5rem', 
-        boxShadow: '0 10px 25px rgba(0,0,0,0.2)', 
+      <div className="custom-tooltip" style={{
+        backgroundColor: 'var(--card)',
+        padding: '1rem',
+        border: '1px solid var(--line)',
+        borderRadius: '0.5rem',
+        boxShadow: '0 10px 25px rgba(0,0,0,0.2)',
         maxWidth: '250px',
         zIndex: 1000,
         position: 'relative'
       }}>
         <h4 style={{ margin: '0 0 0.5rem 0', color: data.color, fontSize: '1.25rem', fontWeight: 'bold' }}>{data.name}</h4>
-        <p style={{ margin: '0 0 0.25rem 0', color: 'var(--text-primary, #0f172a)' }}>
+        <p style={{ margin: '0 0 0.25rem 0', color: 'var(--ink)' }}>
           <strong>Current:</strong> {data.value} µg/m³
         </p>
-        <p style={{ margin: '0 0 0.75rem 0', color: 'var(--text-primary, #0f172a)' }}>
+        <p style={{ margin: '0 0 0.75rem 0', color: 'var(--ink)' }}>
           <strong>WHO Limit:</strong> {data.limit} µg/m³
         </p>
-        <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-secondary, #475569)', lineHeight: '1.4' }}>
+        <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--muted)', lineHeight: '1.4' }}>
           {data.impact}
         </p>
       </div>

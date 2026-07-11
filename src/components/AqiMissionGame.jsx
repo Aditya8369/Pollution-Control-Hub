@@ -1,4 +1,22 @@
 import { useEffect, useState } from 'react';
+import {
+  Gamepad2,
+  Target,
+  Footprints,
+  Timer,
+  Building2,
+  Map,
+  Rocket,
+  Lightbulb,
+  Check,
+  X,
+  AlertTriangle,
+  BarChart3,
+  PartyPopper,
+  CloudFog,
+  RotateCcw,
+  ClipboardList
+} from 'lucide-react';
 import { ACTIONS, MISSIONS } from './aqiGameData';
 import { estimateAQI, getAQIBand } from '../services/airQualityService';
 
@@ -168,7 +186,7 @@ export default function AqiMissionGame({ current }) {
   return (
     <section className="panel game-section" aria-labelledby="game-heading">
       <div className="panel-head">
-        <h2 id="game-heading">🎮 AQI Mission Control</h2>
+        <h2 id="game-heading"><Gamepad2 className="inline-icon" size={22} aria-hidden="true" /> AQI Mission Control</h2>
         <p>Take charge as City Commissioner. Deploy clean-air policies within steps and time limits to beat the smog!</p>
       </div>
 
@@ -178,30 +196,33 @@ export default function AqiMissionGame({ current }) {
           <div className="intro-card-primary">
             <h3>Choose Your Mission</h3>
             <div className="mission-grid">
-              {MISSIONS.map((mission) => (
-                <button
-                  key={mission.id}
-                  type="button"
-                  className={`mission-select-card ${selectedMission.id === mission.id ? 'active' : ''}`}
-                  onClick={() => setSelectedMission(mission)}
-                >
-                  <span className="mission-icon-lg">{mission.icon}</span>
-                  <div className="mission-select-info">
-                    <div className="mission-title-row">
-                      <span className="mission-name">{mission.name}</span>
-                      <span className={`difficulty-badge ${mission.difficulty.toLowerCase()}`}>
-                        {mission.difficulty}
-                      </span>
+              {MISSIONS.map((mission) => {
+                const MissionIcon = mission.icon;
+                return (
+                  <button
+                    key={mission.id}
+                    type="button"
+                    className={`mission-select-card ${selectedMission.id === mission.id ? 'active' : ''}`}
+                    onClick={() => setSelectedMission(mission)}
+                  >
+                    <span className="mission-icon-lg"><MissionIcon size={36} aria-hidden="true" /></span>
+                    <div className="mission-select-info">
+                      <div className="mission-title-row">
+                        <span className="mission-name">{mission.name}</span>
+                        <span className={`difficulty-badge ${mission.difficulty.toLowerCase()}`}>
+                          {mission.difficulty}
+                        </span>
+                      </div>
+                      <p className="mission-desc">{mission.description}</p>
+                      <div className="mission-meta-row">
+                        <span><Target className="inline-icon" size={14} aria-hidden="true" /> Target: <strong>−{mission.targetImprovement}% AQI</strong></span>
+                        <span><Footprints className="inline-icon" size={14} aria-hidden="true" /> Limit: <strong>{mission.allowedSteps} Policies</strong></span>
+                        <span><Timer className="inline-icon" size={14} aria-hidden="true" /> Time: <strong>{mission.timerDuration}s</strong></span>
+                      </div>
                     </div>
-                    <p className="mission-desc">{mission.description}</p>
-                    <div className="mission-meta-row">
-                      <span>🎯 Target: <strong>−{mission.targetImprovement}% AQI</strong></span>
-                      <span>👣 Limit: <strong>{mission.allowedSteps} Policies</strong></span>
-                      <span>⏱️ Time: <strong>{mission.timerDuration}s</strong></span>
-                    </div>
-                  </div>
-                </button>
-              ))}
+                  </button>
+                );
+              })}
             </div>
 
             <div className="mode-toggle-section">
@@ -212,7 +233,7 @@ export default function AqiMissionGame({ current }) {
                   className={`mode-btn ${playMode === 'simulated' ? 'active' : ''}`}
                   onClick={() => setPlayMode('simulated')}
                 >
-                  🏢 Simulated Preset Data
+                  <Building2 className="inline-icon" size={16} aria-hidden="true" /> Simulated Preset Data
                 </button>
                 <button
                   type="button"
@@ -220,7 +241,7 @@ export default function AqiMissionGame({ current }) {
                   onClick={() => setPlayMode('live')}
                   disabled={!current}
                 >
-                  🗺️ Live City Data ({current?.us_aqi ? `AQI ${current.us_aqi}` : 'Offline'})
+                  <Map className="inline-icon" size={16} aria-hidden="true" /> Live City Data ({current?.us_aqi ? `AQI ${current.us_aqi}` : 'Offline'})
                 </button>
               </div>
               <p className="mode-description-hint">
@@ -231,7 +252,7 @@ export default function AqiMissionGame({ current }) {
             </div>
 
             <button type="button" className="btn-primary start-mission-btn" onClick={handleStartMission}>
-              🚀 Launch Mission
+              <Rocket className="inline-icon" size={18} aria-hidden="true" /> Launch Mission
             </button>
           </div>
 
@@ -253,7 +274,7 @@ export default function AqiMissionGame({ current }) {
                 </li>
               </ol>
               <div className="fun-tip-box">
-                💡 <em>Tip: Pay attention to which pollutants are highest. Choose policies that target those specific pollutants!</em>
+                <Lightbulb className="inline-icon" size={16} aria-hidden="true" /> <em>Tip: Pay attention to which pollutants are highest. Choose policies that target those specific pollutants!</em>
               </div>
             </div>
           </div>
@@ -268,26 +289,26 @@ export default function AqiMissionGame({ current }) {
             <div className="hud-metric timer-box">
               <span className="hud-label">Time Remaining</span>
               <span className={`hud-val countdown ${timeLeft <= 10 ? 'critical' : ''}`}>
-                ⏱️ {timeLeft}s
+                <Timer className="inline-icon" size={16} aria-hidden="true" /> {timeLeft}s
               </span>
             </div>
 
             <div className="hud-metric steps-box">
               <span className="hud-label">Policies Allowed</span>
               <span className="hud-val">
-                👣 {stepsRemaining} / {selectedMission.allowedSteps} left
+                <Footprints className="inline-icon" size={16} aria-hidden="true" /> {stepsRemaining} / {selectedMission.allowedSteps} left
               </span>
             </div>
 
             <div className="hud-metric target-box">
               <span className="hud-label">Target Improvement</span>
-              <span className="hud-val">🎯 −{selectedMission.targetImprovement}%</span>
+              <span className="hud-val"><Target className="inline-icon" size={16} aria-hidden="true" /> −{selectedMission.targetImprovement}%</span>
             </div>
 
             <div className="hud-metric status-box">
               <span className="hud-label">Current Reduction</span>
               <span className={`hud-val ${isTargetAchieved ? 'success-text' : 'danger-text'}`}>
-                {currentSimResults.improvement}% {isTargetAchieved ? '✓' : '✗'}
+                {currentSimResults.improvement}% {isTargetAchieved ? <Check className="inline-icon" size={16} aria-hidden="true" /> : <X className="inline-icon" size={16} aria-hidden="true" />}
               </span>
             </div>
           </div>
@@ -308,7 +329,7 @@ export default function AqiMissionGame({ current }) {
           {/* Warnings about scaling */}
           {playMode === 'live' && isScaled && (
             <div className="game-notice-banner">
-              ⚠️ Live city air is clean today. Simulated winter smog inversion active (Pollutants scaled up {scaleFactor}x).
+              <AlertTriangle className="inline-icon" size={16} aria-hidden="true" /> Live city air is clean today. Simulated winter smog inversion active (Pollutants scaled up {scaleFactor}x).
             </div>
           )}
 
@@ -321,6 +342,7 @@ export default function AqiMissionGame({ current }) {
                 {ACTIONS.map((action) => {
                   const isDeployed = deployedActions.includes(action.id);
                   const isDisabled = !isDeployed && stepsRemaining === 0;
+                  const PolicyIcon = action.icon;
 
                   return (
                     <button
@@ -331,7 +353,7 @@ export default function AqiMissionGame({ current }) {
                       onClick={() => handleToggleAction(action.id)}
                     >
                       <div className="policy-header">
-                        <span className="policy-icon">{action.icon}</span>
+                        <span className="policy-icon"><PolicyIcon size={22} aria-hidden="true" /></span>
                         <span className="policy-name">{action.name}</span>
                       </div>
                       <p className="policy-desc">{action.description}</p>
@@ -451,7 +473,7 @@ export default function AqiMissionGame({ current }) {
                   className="btn-success submit-plan-btn"
                   onClick={() => evaluateMission(false)}
                 >
-                  📊 Finalize Policy Plan
+                  <BarChart3 className="inline-icon" size={16} aria-hidden="true" /> Finalize Policy Plan
                 </button>
                 <button
                   type="button"
@@ -470,7 +492,11 @@ export default function AqiMissionGame({ current }) {
       {gameState === 'completed' && finalStats && (
         <div className="game-completed-layout">
           <div className={`results-banner ${finalStats.success ? 'success' : 'failure'}`}>
-            <span className="results-emoji">{finalStats.success ? '🎉' : '🌫️'}</span>
+            <span className="results-emoji">
+              {finalStats.success
+                ? <PartyPopper size={56} aria-hidden="true" />
+                : <CloudFog size={56} aria-hidden="true" />}
+            </span>
             <h2>{finalStats.success ? 'Mission Accomplished!' : 'Mission Failed'}</h2>
             <p className="results-subheading">
               {finalStats.success
@@ -517,9 +543,10 @@ export default function AqiMissionGame({ current }) {
                 {finalStats.deployedActions.map((actionId) => {
                   const action = ACTIONS.find((a) => a.id === actionId);
                   if (!action) return null;
+                  const PolicyIcon = action.icon;
                   return (
                     <div key={actionId} className="deployed-policy-item">
-                      <span className="policy-item-icon">{action.icon}</span>
+                      <span className="policy-item-icon"><PolicyIcon size={28} aria-hidden="true" /></span>
                       <div className="policy-item-info">
                         <h4>{action.name}</h4>
                         <p>{action.description}</p>
@@ -545,10 +572,10 @@ export default function AqiMissionGame({ current }) {
 
           <div className="results-actions">
             <button type="button" className="btn-primary" onClick={handleStartMission}>
-              🔄 Try Again
+              <RotateCcw className="inline-icon" size={16} aria-hidden="true" /> Try Again
             </button>
             <button type="button" className="btn-secondary" onClick={() => setGameState('idle')}>
-              📋 Choose Another Mission
+              <ClipboardList className="inline-icon" size={16} aria-hidden="true" /> Choose Another Mission
             </button>
           </div>
         </div>

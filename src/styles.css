@@ -62,6 +62,13 @@
   box-sizing: border-box;
 }
 
+.inline-icon {
+  display: inline-block;
+  vertical-align: -0.15em;
+  margin-right: 0.35em;
+  flex-shrink: 0;
+}
+
 html {
   scroll-behavior: smooth;
 }
@@ -181,6 +188,20 @@ a {
   min-height: 70vh;
   gap: var(--sp-4);
 }
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 4px solid rgba(0, 0, 0, 0.1);
+  border-top-color: var(--brand);
+  animation: spin 0.8s linear infinite;
+  margin: 0 auto 1rem;
+}
+
+:root[data-theme="dark"] .loading-spinner {
+  border-color: rgba(255, 255, 255, 0.1);
+  border-top-color: var(--brand);
+}
 
 /* ============================================================
    Hero
@@ -238,6 +259,7 @@ a {
   padding: 0.3rem 0.75rem;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.16);
+  -webkit-backdrop-filter: blur(6px);
   backdrop-filter: blur(6px);
 }
 
@@ -269,8 +291,8 @@ a {
   padding: var(--sp-3) max(var(--sp-4), calc((100vw - 1180px) / 2));
   margin: 0 0 var(--sp-5);
   background: color-mix(in srgb, var(--panel) 86%, transparent);
-  backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
   box-shadow: 0 1px 0 var(--line);
 }
 
@@ -637,6 +659,23 @@ a {
   gap: var(--sp-4);
 }
 
+.kpi-grid .aqi {
+  grid-column: span 1;
+}
+
+.kpi-grid .chart-card {
+  grid-column: span 2;
+}
+
+@media (max-width: 640px) {
+  .kpi-grid {
+    grid-template-columns: 1fr;
+  }
+  .kpi-grid .aqi,
+  .kpi-grid .chart-card {
+    grid-column: span 1;
+  }
+}
 .kpi-card {
   background: var(--card);
   border-radius: var(--r-md);
@@ -646,6 +685,7 @@ a {
   transition:
     transform 220ms var(--ease),
     box-shadow 220ms var(--ease);
+  min-width: 0;
 }
 
 .kpi-card h3 {
@@ -688,9 +728,11 @@ a {
   border-radius: var(--r-md);
   padding: var(--sp-4) var(--sp-4) var(--sp-2);
   box-shadow: var(--shadow-sm);
+  animation: rise-in 600ms var(--ease) both;
   transition:
     transform 220ms var(--ease),
     box-shadow 220ms var(--ease);
+  min-width: 0;
 }
 
 .chart-card h3 {
@@ -973,15 +1015,43 @@ a {
     filter 180ms var(--ease);
   justify-self: start;
 }
+.filter-tabs {
+  display: flex;
+  gap: 12px;
+  margin: 20px 0;
+  flex-wrap: wrap;
+}
 .filter-tabs button {
-  border: none;
-  background: transparent;
-  color: var(--muted);
+  border: 2px solid var(--line);
+  background: var(--card);
+  color: var(--ink);
   font: inherit;
-  font-weight: 600;
-  padding: 0.4rem 0.9rem;
+  font-weight: 500;
+  font-size: 15px;
+  padding: 8px 15px;
+  border-radius: 10px;
   cursor: pointer;
-  transition: all 180ms var(--ease);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  transition:
+    transform 260ms cubic-bezier(0.4, 0, 0.2, 1),
+    border-color 260ms cubic-bezier(0.4, 0, 0.2, 1),
+    background 260ms cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 260ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.filter-tabs button:hover {
+  transform: translateY(-2px);
+  border-color: var(--brand);
+}
+.filter-tabs button:active {
+  transform: scale(0.96);
+  transition-duration: 100ms;
+}
+.filter-tabs button.active {
+  border-color: var(--brand);
+  background: var(--brand);
+  color: white;
+  font-weight: 600;
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--brand) 30%, transparent);
 }
 .report-feed {
   display: grid;
@@ -994,10 +1064,16 @@ a {
   border-radius: var(--r-md);
   padding: var(--sp-4);
   box-shadow: var(--shadow-sm);
+  animation: rise-in 500ms var(--ease) both;
   transition:
     transform 220ms var(--ease),
     box-shadow 220ms var(--ease);
 }
+.report-card:nth-of-type(2) { animation-delay: 60ms; }
+.report-card:nth-of-type(3) { animation-delay: 120ms; }
+.report-card:nth-of-type(4) { animation-delay: 180ms; }
+.report-card:nth-of-type(5) { animation-delay: 240ms; }
+.report-card:nth-of-type(n+6) { animation-delay: 300ms; }
 
 .report-head {
   display: flex;
@@ -1225,6 +1301,111 @@ a {
   border-color: #d97706;
   color: #fcd34d;
 }
+
+/* ==========================================
+   File Upload Section
+========================================== */
+
+.selected-file-container {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.image-preview {
+  width: 80px;
+    height: 80px;
+
+    object-fit: cover;
+
+    border-radius: 8px;
+
+    border: 2px solid #dbeafe;
+
+    box-shadow: 0 2px 8px rgba(0,0,0,.1);
+
+    flex-shrink: 0;
+}
+
+.file-upload-container {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin: 8px 0 12px;
+}
+
+.file-input-hidden {
+  display: none;
+}
+
+/* Upload Button */
+.file-upload-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 12px 20px;
+  min-height: 48px;
+
+  border-radius: 10px;
+
+  background: white;
+    color: #0891b2;
+    border: 2px solid #0891b2;
+}
+
+.file-upload-button:hover {
+    background: #0891b2;
+    color: white;
+}
+
+/* Active Click */
+.file-upload-button:active {
+  transform: scale(0.98);
+}
+
+/* Keyboard Focus */
+.file-upload-button:focus-visible {
+  outline: 3px solid rgba(14, 165, 233, 0.35);
+  outline-offset: 3px;
+}
+
+/* Selected File Name */
+.selected-file-name {
+    color: #6b7280;
+    font-size: 14px;
+    font-weight: 500;
+    word-break: break-word;
+}
+
+/* Upload Error */
+.upload-error {
+  color: #dc2626;
+  font-size: 14px;
+  margin-top: 6px;
+}
+
+/* Mobile */
+@media (max-width: 640px) {
+  .file-upload-container {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .file-upload-button {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .selected-file-name {
+    max-width: 100%;
+    word-break: break-word;
+    white-space: normal;
+  }
+}
+
+
 
 /* ============================================================
    Quiz
@@ -1570,8 +1751,7 @@ a {
 }
 
 .sim-preset-icon {
-  font-size: 1.6rem;
-  line-height: 1;
+  display: flex;
   margin-bottom: var(--sp-1);
 }
 .sim-preset-label {
@@ -1617,7 +1797,7 @@ a {
 }
 
 .sim-slider-emoji {
-  font-size: 1rem;
+  display: inline-flex;
 }
 .sim-slider-value {
   margin-left: auto;
@@ -2718,10 +2898,11 @@ a {
 }
 
 .mission-icon-lg {
-  font-size: 2.2rem;
   display: flex;
   align-items: center;
   justify-content: center;
+  color: var(--brand);
+  flex-shrink: 0;
 }
 
 .mission-select-info {
@@ -3091,7 +3272,8 @@ a {
 }
 
 .policy-icon {
-  font-size: 1.4rem;
+  display: flex;
+  color: var(--brand);
 }
 
 .policy-name {
@@ -3195,6 +3377,43 @@ a {
   margin-top: -0.2rem;
 }
 
+   Hotspot Scout Game
+=========================== */
+
+ .hotspot-game {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  padding: var(--sp-5);
+  box-shadow: var(--shadow-sm);
+}
+
+.hotspot-options {
+  display: grid;
+  gap: 12px;
+  margin-top: 16px;
+} 
+
+.hotspot-option {
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  background: var(--panel);
+  transition: 0.2s ease;
+}
+
+.hotspot-option:hover {
+  border-color: var(--brand);
+  transform: translateY(-2px);
+}
+
+.score-board {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  font-weight: 600;
+}
 .game-table {
   width: 100%;
   border-collapse: collapse;
@@ -3292,8 +3511,7 @@ a {
 }
 
 .results-emoji {
-  font-size: 3.5rem;
-  line-height: 1;
+  display: flex;
 }
 
 .results-banner h2 {
@@ -3381,7 +3599,9 @@ a {
 }
 
 .policy-item-icon {
-  font-size: 1.8rem;
+  display: flex;
+  color: var(--brand);
+  flex-shrink: 0;
 }
 
 .policy-item-info {
