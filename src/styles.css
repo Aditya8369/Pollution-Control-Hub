@@ -654,6 +654,23 @@ a {
   gap: var(--sp-4);
 }
 
+.kpi-grid .aqi {
+  grid-column: span 1;
+}
+
+.kpi-grid .chart-card {
+  grid-column: span 2;
+}
+
+@media (max-width: 640px) {
+  .kpi-grid {
+    grid-template-columns: 1fr;
+  }
+  .kpi-grid .aqi,
+  .kpi-grid .chart-card {
+    grid-column: span 1;
+  }
+}
 .kpi-card {
   background: var(--card);
   border-radius: var(--r-md);

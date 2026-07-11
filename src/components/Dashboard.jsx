@@ -101,8 +101,8 @@ export default function Dashboard({
         </div>
       </div>
 
-      <div className="kpi-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))' }}>
-        <article className="kpi-card aqi" style={{ gridColumn: 'span 1' }}>
+      <div className="kpi-grid">
+        <article className="kpi-card aqi">
           <h3>US AQI</h3>
           <div className="kpi-value" style={{ color: aqiBand.color }}>{current.us_aqi}</div>
           <p>{aqiBand.label}</p>
@@ -111,7 +111,7 @@ export default function Dashboard({
           </span>
         </article>
 
-        <article className="kpi-card chart-card" style={{ gridColumn: 'span 2', display: 'flex', flexDirection: 'column' }}>
+        <article className="kpi-card chart-card" style={{ display: 'flex', flexDirection: 'column' }}>
           <h3>Pollutant Health Speedometer</h3>
           <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>
             Relative magnitude vs. WHO guidelines. Larger segments indicate higher severity.
