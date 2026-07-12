@@ -1,5 +1,6 @@
 import { CITY_COORDINATES } from '../constants/cities';
 import { cacheStore } from '../utils/cacheStore';
+import ApiWorker from '../workers/apiWorker?worker';
 
 const BASE_URL = 'https://air-quality-api.open-meteo.com/v1/air-quality';
 
@@ -132,13 +133,32 @@ export async function fetchAirQualityByCoords(lat, lon, signal, skipGrid = false
 
   const url = `${BASE_URL}?latitude=${lat}&longitude=${lon}&hourly=pm2_5,pm10,carbon_monoxide,nitrogen_dioxide,ozone,us_aqi&timezone=auto&start_date=${startDate}&end_date=${endDate}`;
 
-  const response = await fetch(url, { signal });
-
-  if (!response.ok) {
-    throw new Error('Failed to fetch live AQI data.');
-  }
-
-  const data = await response.json();
+  const data = await new Promise((resolve, reject) => {
+    const worker = new ApiWorker();
+    
+    worker.onmessage = (e) => {
+      if (e.data.success) {
+        resolve(e.data.data);
+      } else {
+        reject(new Error(e.data.error || 'Failed to fetch live AQI data.'));
+      }
+      worker.terminate();
+    };
+    
+    worker.onerror = (err) => {
+      reject(err);
+      worker.terminate();
+    };
+    
+    if (signal) {
+      signal.addEventListener('abort', () => {
+        worker.terminate();
+        reject(new DOMException('Aborted', 'AbortError'));
+      });
+    }
+    
+    worker.postMessage({ url });
+  });
   const hourly = data.hourly || {};
   const times = hourly.time || [];
   const idx = getCurrentHourIndex(times);
