@@ -164,9 +164,12 @@ function SectionNav({ activeSection, onSectionChange, theme, onToggleTheme }) {
 }
 
 export default function App() {
-  const [activeSection, setActiveSection] = useState('home');
-  const [selectedCity, setSelectedCity] = useState('auto');
-  const [position, setPosition] = useState(DEFAULT_POSITION);
+  const [activeSection, setActiveSection] = useState(() => localStorage.getItem('activeSection') || 'home');
+  const [selectedCity, setSelectedCity] = useState(() => localStorage.getItem('selectedCity') || 'auto');
+  const [position, setPosition] = useState(() => {
+    const saved = localStorage.getItem('position');
+    return saved ? JSON.parse(saved) : DEFAULT_POSITION;
+  });
   const aqiKey = position.lat && position.lon ? `aqi_${position.lat}_${position.lon}` : null;
   const { data: aqiData, error: aqiError, isValidating: isAqiValidating, mutate: mutateAqi } = useSWR(
     aqiKey, 
@@ -199,7 +202,26 @@ export default function App() {
   const [refreshCountdown, setRefreshCountdown] = useState(AUTO_REFRESH_SECONDS);
   const [locationNotice, setLocationNotice] = useState('');
   const [theme, setTheme] = useState('light');
-  const [timeRange, setTimeRange] = useState(24);
+  const [timeRange, setTimeRange] = useState(() => {
+    const saved = localStorage.getItem('timeRange');
+    return saved ? Number(saved) : 24;
+  });
+
+  useEffect(() => {
+    localStorage.setItem('activeSection', activeSection);
+  }, [activeSection]);
+
+  useEffect(() => {
+    localStorage.setItem('selectedCity', selectedCity);
+  }, [selectedCity]);
+
+  useEffect(() => {
+    localStorage.setItem('position', JSON.stringify(position));
+  }, [position]);
+
+  useEffect(() => {
+    localStorage.setItem('timeRange', timeRange.toString());
+  }, [timeRange]);
 
   // Update lastUpdated when data changes
   useEffect(() => {
@@ -315,6 +337,7 @@ export default function App() {
   };
 }, []);
 
+<<<<<<< HEAD
 if (loading && !error) {
   return (
     <main className="app-shell loading-state">
@@ -324,6 +347,27 @@ if (loading && !error) {
         theme={theme}
         onToggleTheme={toggleTheme}
       />
+=======
+  if (loading && !error) {
+    return (
+      <main className="app-shell">
+        <SectionNav activeSection={activeSection} onSectionChange={setActiveSection} theme={theme} onToggleTheme={toggleTheme} />
+
+        <div className="loading-spinner" aria-hidden="true"></div>
+        <h1 className="loading-title text-3xl">
+          Preparing live pollution intelligence...
+        </h1>
+
+        <Hero cityName={position.cityName} />
+        {activeSection === 'home' && (
+          <div className="content-grid" style={{ marginTop: 'var(--sp-4)' }}>
+            <SkeletonDashboard />
+          </div>
+        )}
+      </main>
+    );
+  }
+>>>>>>> upstream/main
 
       <Hero cityName={position.cityName} />
 

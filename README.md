@@ -157,6 +157,36 @@ npm run preview   # Preview the production build
 ```
 
 ---
+---
+
+## 🧪 Testing
+
+This project uses **Vitest** and **React Testing Library** for automated component testing.
+
+### Run all tests
+
+```bash
+npm run test
+```
+
+### Run tests in watch mode
+
+```bash
+npm run test:watch
+```
+
+### Writing Tests
+
+- Place test files alongside the component using the `.test.jsx` naming convention.
+- Example:
+
+```text
+src/components/
+├── Footer.jsx
+└── Footer.test.jsx
+```
+
+Run `npm run test` before opening a pull request to ensure all tests pass.
 
 ## ⚙️ Environment Variables
 
