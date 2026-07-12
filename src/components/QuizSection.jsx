@@ -336,14 +336,16 @@ export default function QuizSection() {
   const isLastQuestion = index === total - 1;
   const progress = useMemo(() => ((index + 1) / total) * 100, [index, total]);
 
-  const submitAnswer = () => {
-    if (!selected || submitted) return;
+  const submitAnswer = (selectedOption) => {
+    if (submitted) return;
+
+    setSelected(selectedOption);
     setSubmitted(true);
-    if (selected === current.answer) {
+
+    if (selectedOption === current.answer) {
       setScore((prev) => prev + 1);
     }
   };
-
   const goNext = () => {
     if (!submitted) return;
     if (isLastQuestion) {
@@ -418,7 +420,8 @@ export default function QuizSection() {
               key={option}
               type="button"
               className={`quiz-option ${selectedClass} ${resultClass}`.trim()}
-              onClick={() => setSelected(option)}
+              onClick={() => submitAnswer(option)}
+
               disabled={submitted}
             >
               {option}
@@ -434,7 +437,6 @@ export default function QuizSection() {
       )}
 
       <div className="quiz-actions">
-        <button type="button" onClick={submitAnswer} disabled={!selected || submitted}>Submit</button>
         <button type="button" onClick={goNext} disabled={!submitted}>
           {isLastQuestion ? 'Finish Quiz' : 'Next Question'}
         </button>

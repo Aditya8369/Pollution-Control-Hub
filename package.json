@@ -6,20 +6,22 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview",
-    "dev:backend": "cd backend && npm run dev",
-    "dev:all": "concurrently \"npm run dev\" \"npm run dev:backend\""
+    "preview": "vite preview"
   },
   "dependencies": {
+    "@tailwindcss/postcss": "^4.3.2",
+    "@tailwindcss/vite": "^4.3.2",
     "leaflet": "^1.9.4",
+    "lucide-react": "^1.24.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "react-icons": "^5.7.0",
     "react-leaflet": "^4.2.1",
-    "recharts": "^2.12.7"
+    "recharts": "^2.12.7",
+    "tailwindcss": "^4.3.2"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.3.1",
-    "concurrently": "^10.0.3",
     "vite": "^5.4.8"
   }
 }

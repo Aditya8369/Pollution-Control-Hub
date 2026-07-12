@@ -7,7 +7,7 @@ export default function AnalyticsInsights({ analytics, trend, timeRange }) {
   }));
 
   return (
-    <section className="panel">
+    <section className="panel w-[1180px]">
       <div className="panel-head">
         <h2>Data Analytics & Insights</h2>
         <p>Weekly/monthly outlook and simple trend-based AQI prediction</p>
@@ -23,9 +23,9 @@ export default function AnalyticsInsights({ analytics, trend, timeRange }) {
         <h3>Short-Term AQI Pattern ({timeRange}h)</h3>
         <ResponsiveContainer width="100%" height={240}>
           <AreaChart data={dynamicSeries}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#d7e6e1" />
-            <XAxis dataKey="hour" />
-            <YAxis />
+            <CartesianGrid strokeDasharray="3 3" stroke="var(--line)" />
+            <XAxis dataKey="hour" tick={{ fill: 'var(--muted)' }} />
+            <YAxis tick={{ fill: 'var(--muted)' }} />
             <Tooltip />
             <Area type="monotone" dataKey="aqi" stroke="#0284c7" fill="#7dd3fc" fillOpacity={0.6} />
           </AreaChart>
