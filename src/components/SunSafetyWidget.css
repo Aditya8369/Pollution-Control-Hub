@@ -1,0 +1,606 @@
+.sun-widget {
+  width: min(850px, 90%);
+  margin: 25px auto;
+  padding: 25px;
+
+  border-radius: 24px;
+
+  background: rgba(255, 255, 255, 0.12);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+
+  border: 1px solid rgba(255,255,255,0.25);
+
+  box-shadow: 
+    0 10px 35px rgba(0,0,0,0.15);
+
+  animation: floatCard 4s ease-in-out infinite;
+
+  cursor: pointer;
+  transition: .3s ease;
+}
+
+
+.sun-widget:hover {
+  transform: translateY(-8px) scale(1.02);
+}
+
+
+@keyframes floatCard {
+
+  0%,100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-8px);
+  }
+
+}
+
+
+.sun-header {
+
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+
+}
+
+
+.title {
+
+  display:flex;
+  gap:15px;
+  align-items:center;
+
+}
+
+
+.sun-icon {
+
+  font-size:35px;
+
+}
+
+
+.sun-header h3 {
+
+  margin:0;
+  font-size:22px;
+
+}
+
+
+.sun-header p {
+
+  margin:5px 0;
+  opacity:.7;
+
+}
+/* Header styling */
+
+.live-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  padding: 6px 14px;
+
+  border-radius: 20px;
+
+  background: rgba(34, 211, 238, 0.15);
+
+  color: #22d3ee;
+
+  font-size: 13px;
+  font-weight: 600;
+}
+
+
+.live-dot {
+
+  width: 8px;
+  height: 8px;
+
+  border-radius: 50%;
+
+  background: #22c55e;
+
+  animation: livePulse 1.8s infinite;
+
+}
+
+
+@keyframes livePulse {
+
+  0% {
+    box-shadow: 0 0 0 0 rgba(34,197,94,.7);
+  }
+
+  70% {
+    box-shadow: 0 0 0 10px rgba(34,197,94,0);
+  }
+
+  100% {
+    box-shadow: 0 0 0 0 rgba(34,197,94,0);
+  }
+
+}
+
+
+
+/* Stats section */
+
+.sun-stats {
+
+  display: grid;
+
+  grid-template-columns: repeat(3,1fr);
+
+  gap: 15px;
+
+  margin-top: 20px;
+
+}
+
+
+
+.stat-card {
+
+  display:flex;
+
+  align-items:center;
+
+  gap:12px;
+
+  padding:18px;
+
+  border-radius:18px;
+
+
+  background: rgba(255,255,255,0.08);
+
+  border:1px solid rgba(255,255,255,0.15);
+
+  transition:.3s ease;
+
+}
+
+
+
+.stat-card:hover {
+
+  transform: translateY(-5px);
+
+  background: rgba(255,255,255,0.15);
+
+}
+
+
+
+.stat-card span {
+
+  font-size:30px;
+
+}
+
+
+
+.stat-card h4 {
+
+  margin:0;
+
+  font-size:22px;
+
+}
+
+
+
+.stat-card p {
+
+  margin:5px 0 0;
+
+  opacity:.7;
+
+  font-size:14px;
+
+}
+/* Footer Button */
+
+.widget-footer {
+
+  display:flex;
+
+  justify-content:center;
+
+  margin-top:10px;
+
+}
+
+
+.widget-footer button {
+
+  padding:12px 28px;
+
+  border:none;
+
+  border-radius:30px;
+
+  cursor:pointer;
+
+  font-size:15px;
+
+  font-weight:600;
+
+
+  color:white;
+
+  background:linear-gradient(
+    135deg,
+    #22d3ee,
+    #3b82f6
+  );
+
+
+  box-shadow:
+    0 8px 25px rgba(34,211,238,0.35);
+
+
+  transition:.35s ease;
+
+}
+
+
+
+.widget-footer button:hover {
+
+  transform:translateY(-3px) scale(1.05);
+
+  box-shadow:
+    0 12px 35px rgba(34,211,238,0.55);
+
+}
+
+
+
+/* Sun icon animation */
+
+.sun-icon {
+
+  display:inline-block;
+
+  animation:sunGlow 3s infinite ease-in-out;
+
+}
+
+
+@keyframes sunGlow {
+
+  0%,100% {
+
+    transform:rotate(0deg) scale(1);
+
+  }
+
+
+  50% {
+
+    transform:rotate(10deg) scale(1.15);
+
+  }
+
+}
+
+
+
+/* Danger status */
+
+.stat-card:nth-child(3) h4 {
+
+  color:#ef4444;
+
+}
+
+
+
+/* UV highlight */
+
+.stat-card:nth-child(2) h4 {
+
+  color:#facc15;
+
+}
+
+
+
+/* Temperature highlight */
+
+.stat-card:nth-child(1) h4 {
+
+  color:#22d3ee;
+
+}
+
+
+
+/* Mobile Responsive */
+
+@media(max-width:768px){
+
+
+  .sun-widget {
+
+    width:88%;
+
+    padding:18px;
+    cursor:pointer;
+
+  }
+
+
+  .sun-header {
+
+    flex-direction:column;
+
+    align-items:flex-start;
+
+    gap:12px;
+
+  }
+
+
+
+  .sun-stats {
+
+    grid-template-columns:1fr;
+
+  }
+
+
+  .stat-card {
+
+    padding:15px;
+
+  }
+
+
+  .widget-footer button {
+
+    width:100%;
+
+  }
+
+}
+/* Health Advice Modal */
+
+.health-modal-overlay {
+
+  position:absolute;
+
+  top:0;
+  left:0;
+
+  width:100%;
+  height:100%;
+
+  background:rgba(0,0,0,0.35);
+
+  display:flex;
+
+  justify-content:center;
+
+  align-items:center;
+
+  z-index:100;
+
+  border-radius:24px;
+
+}
+
+
+.health-modal {
+
+  width:min(620px,90%);
+
+  max-height:90%;
+
+  overflow-y:auto;
+
+  background:#ffffff;
+
+  color:#0f172a;
+
+  padding:30px;
+
+  border-radius:28px;
+
+  box-shadow:
+  0 25px 70px rgba(0,0,0,.35);
+
+  animation:slideDown .35s ease;
+
+}
+
+@keyframes modalPop {
+
+  from {
+
+    opacity:0;
+
+    transform:scale(.85) translateY(30px);
+
+  }
+
+
+  to {
+
+    opacity:1;
+
+    transform:scale(1) translateY(0);
+
+  }
+
+}
+@keyframes slideDown {
+
+from{
+ opacity:0;
+ transform:translateY(-40px);
+}
+
+to{
+ opacity:1;
+ transform:translateY(0);
+}
+
+}
+
+
+.close-modal {
+
+  float:right;
+
+  border:none;
+
+  background:none;
+
+  font-size:22px;
+
+  cursor:pointer;
+
+}
+
+
+
+.modal-header {
+
+  display:flex;
+
+  gap:15px;
+
+  align-items:center;
+
+}
+
+
+.modal-header span {
+
+  font-size:40px;
+
+}
+
+
+
+.health-details {
+
+  display:grid;
+
+  grid-template-columns:repeat(3,1fr);
+
+  gap:12px;
+
+  margin:25px 0;
+
+}
+
+
+
+.health-details div {
+
+  padding:18px;
+
+  border-radius:18px;
+
+  background:#f8fafc;
+
+  border:1px solid #e2e8f0;
+
+  text-align:center;
+
+}
+
+
+.health-details strong {
+
+  display:block;
+
+  margin-top:8px;
+
+  font-size:14px;
+
+}
+
+
+.health-details p {
+
+  font-size:20px;
+
+  font-weight:700;
+
+  color:#0f172a;
+
+}
+
+
+
+.tips-box {
+
+  padding:20px;
+
+  border-radius:20px;
+
+  background:#ecfeff;
+
+  border-left:5px solid #06b6d4;
+
+}
+
+
+.tips-box h3 {
+
+  margin-top:0;
+
+  color:#0f172a;
+
+}
+
+
+.tips-box li {
+
+  color:#334155;
+
+  line-height:1.6;
+
+}
+@media(max-width:600px){
+
+  .health-details{
+
+    grid-template-columns:1fr;
+
+  }
+
+}
+
+.modal-header h2 {
+
+  margin:0;
+
+  font-size:24px;
+
+  color:#0f172a;
+
+}
+
+
+.modal-header p {
+
+  margin-top:6px;
+
+  color:#64748b;
+
+}
+.sun-widget-wrapper{
+ position:relative;
+}
