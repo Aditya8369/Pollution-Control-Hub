@@ -354,3 +354,15 @@ export function estimateAQI(pm25, pm10, no2, o3, co) {
   return Math.max(...scores);
 }
 
+export function estimateAQI(pm25, pm10, no2, ozone, co) {
+  // Simple approximation using the worst pollutant.
+  return Math.round(
+    Math.max(
+      pm25 * 2,
+      pm10,
+      no2,
+      ozone,
+      co / 10
+    )
+  );
+}
