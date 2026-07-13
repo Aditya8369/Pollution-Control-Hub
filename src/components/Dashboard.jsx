@@ -260,7 +260,7 @@ return (
         </p>
 
         <div
-          style={{ flex: 1, minHeight: "200px" }}
+          style={{ flex: 1, minHeight: "180px" }}
           role="img"
           aria-label="Pollutant health speedometer donut chart showing real-time values vs WHO guidelines"
         >
@@ -272,8 +272,8 @@ return (
                 nameKey="name"
                 cx="50%"
                 cy="50%"
-                innerRadius={60}
-                outerRadius={90}
+                innerRadius={50}
+                outerRadius={75}
                 paddingAngle={5}
                 label={({ name }) => name}
                 labelLine={false}
