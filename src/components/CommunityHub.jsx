@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { logger } from '../utils/logger';
 
 const STORAGE_KEY = "pollution-community-reports";
 const VOTES_STORAGE_KEY = "pollution-community-voted-ids";
@@ -68,16 +69,15 @@ export default function CommunityHub() {
       const estimatedSize = new Blob([serialized]).size;
 
       if (estimatedSize > STORAGE_WARN_THRESHOLD) {
-        console.warn(
-          `Community reports using ${(estimatedSize / 1024 / 1024).toFixed(1)} MB of localStorage`
-        );
+        logger.warn('localStorage usage high', {
+          usageMB: (estimatedSize / 1024 / 1024).toFixed(1)
+        });
       }
 
       localStorage.setItem(STORAGE_KEY, serialized);
     } catch (e) {
       if (e.name === 'QuotaExceededError' || e.code === 22) {
-        console.error('localStorage quota exceeded. Pruning oldest reports...');
-        // Remove oldest/lowest-vote reports until write succeeds
+        logger.error('localStorage quota exceeded, pruning oldest reports');
         const sorted = [...reports].sort((a, b) => {
           if (a.votes !== b.votes) return a.votes - b.votes;
           return new Date(a.createdAt) - new Date(b.createdAt);
@@ -90,12 +90,12 @@ export default function CommunityHub() {
             setReports(pruned);
             break;
           } catch {
-            pruned.shift(); // remove lowest-value report
+            pruned.shift();
           }
         }
 
         if (pruned.length === 0) {
-          console.error('All community reports pruned — localStorage quota still exceeded.');
+          logger.error('All community reports pruned, localStorage quota still exceeded');
         }
       } else {
         throw e;
@@ -107,7 +107,7 @@ export default function CommunityHub() {
     try {
       localStorage.setItem(VOTES_STORAGE_KEY, JSON.stringify([...votedIds]));
     } catch (e) {
-      console.error('Failed to persist community votes to localStorage:', e);
+      logger.error('Failed to persist votes to localStorage', { error: e?.message });
     }
   }, [votedIds]);
 

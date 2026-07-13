@@ -166,9 +166,45 @@ function SectionNav({ activeSection, onSectionChange, theme, onToggleTheme }) {
 }
 
 export default function App() {
-  const [activeSection, setActiveSection] = useState('home');
-  const [selectedCity, setSelectedCity] = useState('auto');
-  const [position, setPosition] = useState(DEFAULT_POSITION);
+  const [activeSection, setActiveSection] = useState(() => localStorage.getItem('activeSection') || 'home');
+
+  // --- Helper: read city info from the URL hash (e.g. #city=Mumbai&lat=19.07&lon=72.87) ---
+  function getCityFromHash() {
+    const params = new URLSearchParams(window.location.hash.slice(1));
+    const name = params.get('city');
+    const lat  = parseFloat(params.get('lat'));
+    const lon  = parseFloat(params.get('lon'));
+    // Only use hash values if all three are present and valid
+    if (name && !isNaN(lat) && !isNaN(lon)) {
+      return { name, lat, lon };
+    }
+    return null;
+  }
+
+  // --- Helper: write city info into the URL hash so Back/Forward works ---
+  function setCityInHash(name, lat, lon) {
+    const params = new URLSearchParams();
+    params.set('city', name);
+    params.set('lat', lat);
+    params.set('lon', lon);
+    // pushState so browser Back button can restore the previous city
+    window.history.pushState(null, '', '#' + params.toString());
+  }
+
+  // On first load: prefer URL hash → then localStorage → then 'auto'
+  const [selectedCity, setSelectedCity] = useState(() => {
+    const fromHash = getCityFromHash();
+    if (fromHash) return fromHash.name;
+    return localStorage.getItem('selectedCity') || 'auto';
+  });
+
+  // On first load: prefer URL hash → then localStorage → then DEFAULT_POSITION
+  const [position, setPosition] = useState(() => {
+    const fromHash = getCityFromHash();
+    if (fromHash) return { lat: fromHash.lat, lon: fromHash.lon, cityName: fromHash.name };
+    const saved = localStorage.getItem('position');
+    return saved ? JSON.parse(saved) : DEFAULT_POSITION;
+  });
   const aqiKey = position.lat && position.lon ? `aqi_${position.lat}_${position.lon}` : null;
   const { data: aqiData, error: aqiError, isValidating: isAqiValidating, mutate: mutateAqi } = useSWR(
     aqiKey, 
@@ -201,7 +237,26 @@ export default function App() {
   const [refreshCountdown, setRefreshCountdown] = useState(AUTO_REFRESH_SECONDS);
   const [locationNotice, setLocationNotice] = useState('');
   const [theme, setTheme] = useState('light');
-  const [timeRange, setTimeRange] = useState(24);
+  const [timeRange, setTimeRange] = useState(() => {
+    const saved = localStorage.getItem('timeRange');
+    return saved ? Number(saved) : 24;
+  });
+
+  useEffect(() => {
+    localStorage.setItem('activeSection', activeSection);
+  }, [activeSection]);
+
+  useEffect(() => {
+    localStorage.setItem('selectedCity', selectedCity);
+  }, [selectedCity]);
+
+  useEffect(() => {
+    localStorage.setItem('position', JSON.stringify(position));
+  }, [position]);
+
+  useEffect(() => {
+    localStorage.setItem('timeRange', timeRange.toString());
+  }, [timeRange]);
 
   // Update lastUpdated when data changes
   useEffect(() => {
@@ -254,9 +309,12 @@ export default function App() {
     }
   }, [selectedCity]);
 
+  // When user picks a city manually, update state + localStorage + URL hash
   const handleLocationSelected = (location) => {
     if (location === 'auto') {
       setSelectedCity('auto');
+      // Clear the hash so auto-detect takes over
+      window.history.pushState(null, '', window.location.pathname);
     } else {
       setSelectedCity(location.name);
       setPosition({
@@ -264,9 +322,28 @@ export default function App() {
         lon: location.lon,
         cityName: location.name
       });
+      // Write into URL so browser Back button can restore this selection
+      setCityInHash(location.name, location.lat, location.lon);
       setLocationNotice('');
     }
   };
+
+  // Listen for browser Back/Forward (popstate) and restore the city from the URL hash
+  useEffect(() => {
+    function handlePopState() {
+      const fromHash = getCityFromHash();
+      if (fromHash) {
+        // Restore the city that was in the URL before Back was pressed
+        setSelectedCity(fromHash.name);
+        setPosition({ lat: fromHash.lat, lon: fromHash.lon, cityName: fromHash.name });
+      } else {
+        // No hash → fall back to auto-detect
+        setSelectedCity('auto');
+      }
+    }
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
 
   useEffect(() => {
     const refreshTimer = setInterval(() => {
