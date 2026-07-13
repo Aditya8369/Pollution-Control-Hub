@@ -553,7 +553,7 @@ a {
   margin-top: var(--sp-2);
   font-size: 0.94rem;
 }
-.icon-container{
+.icon-container {
   width: 40px;
   height: 40px;
   border-radius: var(--r-sm);
@@ -564,19 +564,29 @@ a {
   border: 1px solid var(--line);
 }
 
-.icon-container.lungs{ background: var(--accent-fill); color: var(--accent); border-color: var(--accent); }
-.icon-container.heart{ background: var(--danger-fill); color: var(--danger); border-color: var(--danger); }
-<<<<<<< HEAD
-.icon-container.skin{ background: var(--sky-fill); color: var(--sky); border-color: var(--sky); }
-.icon-container.moderate{ background: var(--sev-mod-fill); color: var(--sev-mod-line); border-color: var(--sev-mod-line); }
-=======
+.icon-container.lungs {
+  background: var(--accent-fill);
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.icon-container.heart {
+  background: var(--danger-fill);
+  color: var(--danger);
+  border-color: var(--danger);
+}
+
 .icon-container.skin {
   background: var(--sky-fill);
   color: var(--sky);
   border-color: var(--sky);
 }
->>>>>>> upstream/main
 
+.icon-container.moderate {
+  background: var(--sev-mod-fill);
+  color: var(--sev-mod-line);
+  border-color: var(--sev-mod-line);
+}
 /* ============================================================
    Exposure card
    ============================================================ */
@@ -894,8 +904,8 @@ a {
 
 /* ============================================================
    Advisory / three-col / analytics
-   ============================================================ */
-/* yeh hamesha rahe, bahar hi */
+   ============================================================ 
+ yeh hamesha rahe, bahar hi */
 .advisory-grid,
 .three-col,
 .analytics-kpis {

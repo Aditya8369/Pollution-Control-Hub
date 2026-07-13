@@ -335,9 +335,8 @@ export default function App() {
   return () => {
     window.removeEventListener("online", handleOnline);
   };
-}, []);
+}, [refreshNow]);
 
-<<<<<<< HEAD
 if (loading && !error) {
   return (
     <main className="app-shell loading-state">
@@ -347,40 +346,21 @@ if (loading && !error) {
         theme={theme}
         onToggleTheme={toggleTheme}
       />
-=======
-  if (loading && !error) {
-    return (
-      <main className="app-shell">
-        <SectionNav activeSection={activeSection} onSectionChange={setActiveSection} theme={theme} onToggleTheme={toggleTheme} />
-
-        <div className="loading-spinner" aria-hidden="true"></div>
-        <h1 className="loading-title text-3xl">
-          Preparing live pollution intelligence...
-        </h1>
-
-        <Hero cityName={position.cityName} />
-        {activeSection === 'home' && (
-          <div className="content-grid" style={{ marginTop: 'var(--sp-4)' }}>
-            <SkeletonDashboard />
-          </div>
-        )}
-      </main>
-    );
-  }
->>>>>>> upstream/main
 
       <Hero cityName={position.cityName} />
 
-      {activeSection === 'home' && (
-        <div className="content-grid" style={{ marginTop: 'var(--sp-4)' }}>
+      {activeSection === "home" && (
+        <div className="content-grid" style={{ marginTop: "var(--sp-4)" }}>
           <SkeletonDashboard />
         </div>
       )}
 
       <div className="loading-container">
-        <div className="loading-spinner"></div>
+        <div className="loading-spinner" aria-hidden="true"></div>
 
-        <h1>Preparing Live Pollution Intelligence...</h1>
+        <h1 className="loading-title">
+          Preparing Live Pollution Intelligence...
+        </h1>
 
         <p>
           Fetching the latest air quality data and analytics...
