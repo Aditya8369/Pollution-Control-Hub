@@ -176,18 +176,22 @@ return (
         onClick={exportReportAsPDF}
         disabled={isExporting}
         data-html2canvas-ignore="true"
+        aria-label={isExporting ? 'Generating PDF, please wait' : 'Export dashboard report as PDF'}
       >
         {isExporting ? "Generating PDF..." : "Export Report as PDF"}
       </button>
 
       <div className="dashboard-tools">
-        <div className="range-switch">
+        {/* role="group" + aria-label makes this a named group for keyboard and screen reader users */}
+        <div className="range-switch" role="group" aria-label="Select time range">
           {[6, 12, 24].map((range) => (
             <button
               key={range}
               type="button"
               className={timeRange === range ? "active" : ""}
               onClick={() => onTimeRangeChange(range)}
+              aria-label={`Show last ${range} hours`}
+              aria-pressed={timeRange === range}
             >
               {range}h
             </button>
@@ -256,7 +260,7 @@ return (
         </p>
 
         <div
-          style={{ flex: 1, minHeight: "200px" }}
+          style={{ flex: 1, minHeight: "180px" }}
           role="img"
           aria-label="Pollutant health speedometer donut chart showing real-time values vs WHO guidelines"
         >
@@ -268,8 +272,8 @@ return (
                 nameKey="name"
                 cx="50%"
                 cy="50%"
-                innerRadius={60}
-                outerRadius={90}
+                innerRadius={50}
+                outerRadius={75}
                 paddingAngle={5}
                 label={({ name }) => name}
                 labelLine={false}
