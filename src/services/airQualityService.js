@@ -1,5 +1,7 @@
 import { CITY_COORDINATES } from '../constants/cities';
 import { aqiCache } from '../lib/cache';
+import { cacheStore } from '../utils/cacheStore';
+import ApiWorker from '../workers/apiWorker?worker';
 
 const BASE_URL = 'https://air-quality-api.open-meteo.com/v1/air-quality';
 
@@ -18,6 +20,16 @@ export function getAQIBand(value) {
   if (value <= 200) return { label: 'Unhealthy', color: '#ef4444' };
   if (value <= 300) return { label: 'Very Unhealthy', color: '#b91c1c' };
   return { label: 'Hazardous', color: '#7f1d1d' };
+}
+
+export function getPollutantColor(value, limit) {
+  const ratio = value / limit;
+  if (ratio <= 0.5) return '#1f9d55'; // Good (well within)
+  if (ratio <= 1.0) return '#f59e0b'; // Moderate (approaching limit)
+  if (ratio <= 1.5) return '#f97316'; // Unhealthy (Sensitive)
+  if (ratio <= 2.0) return '#ef4444'; // Unhealthy
+  if (ratio <= 3.0) return '#b91c1c'; // Very Unhealthy
+  return '#7f1d1d'; // Hazardous
 }
 
 const GRID_STEP = 0.09; // ~10 km spacing
@@ -105,8 +117,10 @@ function computeConfidence(hourly, times) {
   return { confidenceScore, dataCompleteness };
 }
 
-export async function fetchAirQualityByCoords(lat, lon, signal) {
+export async function fetchAirQualityByCoords(lat, lon, signal, skipGrid = false) {
 
+  if (!navigator.onLine) { console.log("OFFLINE CHECK HIT");
+    throw new Error("You're offline. Please reconnect to view air quality data." );}
   if (!isValidCoord(lat, lon)) throw new Error('Invalid coordinates provided.');
 
   const cacheKey = `coords-${lat.toFixed(4)},${lon.toFixed(4)}`;
@@ -123,13 +137,32 @@ export async function fetchAirQualityByCoords(lat, lon, signal) {
 
   const url = `${BASE_URL}?latitude=${lat}&longitude=${lon}&hourly=pm2_5,pm10,carbon_monoxide,nitrogen_dioxide,ozone,us_aqi&timezone=auto&start_date=${startDate}&end_date=${endDate}`;
 
-  const response = await fetch(url, { signal });
-
-  if (!response.ok) {
-    throw new Error('Failed to fetch live AQI data.');
-  }
-
-  const data = await response.json();
+  const data = await new Promise((resolve, reject) => {
+    const worker = new ApiWorker();
+    
+    worker.onmessage = (e) => {
+      if (e.data.success) {
+        resolve(e.data.data);
+      } else {
+        reject(new Error(e.data.error || 'Failed to fetch live AQI data.'));
+      }
+      worker.terminate();
+    };
+    
+    worker.onerror = (err) => {
+      reject(err);
+      worker.terminate();
+    };
+    
+    if (signal) {
+      signal.addEventListener('abort', () => {
+        worker.terminate();
+        reject(new DOMException('Aborted', 'AbortError'));
+      });
+    }
+    
+    worker.postMessage({ url });
+  });
   const hourly = data.hourly || {};
   const times = hourly.time || [];
   const idx = getCurrentHourIndex(times);
@@ -155,7 +188,7 @@ export async function fetchAirQualityByCoords(lat, lon, signal) {
     us_aqi: Math.round(hourly.us_aqi?.[startIndex + i] ?? 0)
   }));
 
-  const nearbyPoints = await fetchLocalGrid(lat, lon, 6, signal);
+  const nearbyPoints = skipGrid ? [] : await fetchLocalGrid(lat, lon, 6, signal);
   const { confidenceScore, dataCompleteness } = computeConfidence(hourly, times);
 
   const result = {
@@ -170,11 +203,30 @@ export async function fetchAirQualityByCoords(lat, lon, signal) {
   return result;
 }
 
+export async function fetchWindData(lat, lon, signal) {
+  if (!isValidCoord(lat, lon)) return null;
+  const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=wind_speed_10m,wind_direction_10m`;
+  try {
+    const response = await fetch(url, { signal });
+    if (!response.ok) return null;
+    const data = await response.json();
+    return {
+      speed: data.current.wind_speed_10m,
+      direction: data.current.wind_direction_10m
+    };
+  } catch (err) {
+    if (err.name === 'AbortError') throw err;
+    return null;
+  }
+}
+
 export async function fetchCityComparisons(signal) {
   const cityData = await Promise.all(
     CITY_COORDINATES.map(async (city) => {
       try {
-        const result = await fetchAirQualityByCoords(city.lat, city.lon, signal);
+        const key = `aqi_lite_${city.lat}_${city.lon}`;
+        const result = await cacheStore.deduplicate(key, () => fetchAirQualityByCoords(city.lat, city.lon, signal, true));
+        
         return {
           city: city.name,
           aqi: result.current.us_aqi,
@@ -260,3 +312,72 @@ export function estimateExposureTime(trend, currentAQI, threshold = 120) {
   };
 
 }
+
+/* ─── AQI sub-index breakpoints (US EPA standard) ─────────────────────────── */
+
+export function subAqi(concentration, breakpoints) {
+  for (const bp of breakpoints) {
+    if (concentration >= bp.cLow && concentration <= bp.cHigh) {
+      return Math.round(
+        ((bp.iHigh - bp.iLow) / (bp.cHigh - bp.cLow)) * (concentration - bp.cLow) + bp.iLow
+      );
+    }
+  }
+  return concentration > breakpoints[breakpoints.length - 1].cHigh ? 500 : 0;
+}
+
+export const BP_PM25 = [
+  { cLow: 0, cHigh: 12.0, iLow: 0, iHigh: 50 },
+  { cLow: 12.1, cHigh: 35.4, iLow: 51, iHigh: 100 },
+  { cLow: 35.5, cHigh: 55.4, iLow: 101, iHigh: 150 },
+  { cLow: 55.5, cHigh: 150.4, iLow: 151, iHigh: 200 },
+  { cLow: 150.5, cHigh: 250.4, iLow: 201, iHigh: 300 },
+  { cLow: 250.5, cHigh: 500.4, iLow: 301, iHigh: 500 },
+];
+
+export const BP_PM10 = [
+  { cLow: 0, cHigh: 54, iLow: 0, iHigh: 50 },
+  { cLow: 55, cHigh: 154, iLow: 51, iHigh: 100 },
+  { cLow: 155, cHigh: 254, iLow: 101, iHigh: 150 },
+  { cLow: 255, cHigh: 354, iLow: 151, iHigh: 200 },
+  { cLow: 355, cHigh: 424, iLow: 201, iHigh: 300 },
+  { cLow: 425, cHigh: 604, iLow: 301, iHigh: 500 },
+];
+
+export const BP_NO2 = [
+  { cLow: 0, cHigh: 100, iLow: 0, iHigh: 50 },
+  { cLow: 102, cHigh: 188, iLow: 51, iHigh: 100 },
+  { cLow: 190, cHigh: 677, iLow: 101, iHigh: 150 },
+  { cLow: 679, cHigh: 1220, iLow: 151, iHigh: 200 },
+  { cLow: 1222, cHigh: 2348, iLow: 201, iHigh: 300 },
+  { cLow: 2350, cHigh: 3852, iLow: 301, iHigh: 500 },
+];
+
+export const BP_O3 = [
+  { cLow: 0, cHigh: 116, iLow: 0, iHigh: 50 },
+  { cLow: 118, cHigh: 147, iLow: 51, iHigh: 100 },
+  { cLow: 149, cHigh: 186, iLow: 101, iHigh: 150 },
+  { cLow: 188, cHigh: 225, iLow: 151, iHigh: 200 },
+  { cLow: 227, cHigh: 733, iLow: 201, iHigh: 300 },
+];
+
+export const BP_CO = [
+  { cLow: 0, cHigh: 4700, iLow: 0, iHigh: 50 },
+  { cLow: 4701, cHigh: 9800, iLow: 51, iHigh: 100 },
+  { cLow: 9801, cHigh: 14700, iLow: 101, iHigh: 150 },
+  { cLow: 14701, cHigh: 19600, iLow: 151, iHigh: 200 },
+  { cLow: 19601, cHigh: 34300, iLow: 201, iHigh: 300 },
+  { cLow: 34301, cHigh: 51500, iLow: 301, iHigh: 500 },
+];
+
+export function estimateAQI(pm25, pm10, no2, o3, co) {
+  const scores = [
+    subAqi(pm25, BP_PM25),
+    subAqi(pm10, BP_PM10),
+    subAqi(no2, BP_NO2),
+    subAqi(o3, BP_O3),
+    subAqi(co, BP_CO),
+  ];
+  return Math.max(...scores);
+}
+
