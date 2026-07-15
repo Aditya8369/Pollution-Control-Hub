@@ -74,22 +74,28 @@ export default function CalendarHeatmap({ data }) {
         </div>
       </div>
 
-  <div className="calendar-legend mt-4 w-fit ml-auto">
-  <div className="text-xs font-semibold mb-2">AQI Legend</div>
 
-  <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-xs">
-    {AQI_LEGEND_BANDS.map((band) => (
-      <div key={band.label} className="flex items-center gap-1">
-        <div
-          className="w-3 h-3 rounded-sm"
-          style={{ backgroundColor: band.color }}
-          aria-hidden="true"
-        ></div>
-        <span>{band.label}</span>
+      <div className="calendar-legend">
+        <div className="calendar-legend-title">
+          AQI Legend
+        </div>
+
+        <div className="calendar-legend-grid">
+          {AQI_LEGEND_BANDS.map((band) => (
+            <div
+              key={band.label}
+              className="calendar-legend-item"
+            >
+              <div
+                className="calendar-legend-color"
+                style={{ backgroundColor: band.color }}
+              />
+
+              <span>{band.label}</span>
+            </div>
+          ))}
+        </div>
       </div>
-    ))}
-  </div>
-  </div>
-</div>
+    </div>
   );
 }
