@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useState, useCallback } from 'react';
+import { useSWR } from './hooks/useSWR';
 import AlertsPanel from './components/AlertsPanel';
 import AnalyticsInsights from './components/AnalyticsInsights';
 import CommunityHub from './components/CommunityHub';
@@ -9,14 +10,18 @@ import LocationMap from './components/LocationMap';
 import QuizSection from './components/QuizSection';
 import SolutionsAwareness from './components/SolutionsAwareness';
 import ScenarioSimulator from './components/ScenarioSimulator';
+import AqiMissionGame from './components/AqiMissionGame';
 import HistoricalAnalysis from './components/HistoricalAnalysis';
 import LocationSearch from './components/LocationSearch';
+import SkeletonDashboard from './components/SkeletonDashboard';
 import { CITY_COORDINATES } from './constants/cities';
+import HotspotScoutGame from "./components/HotspotScoutGame";
 import {
   estimateWeeklyMonthlyAverages,
   fetchAirQualityByCoords,
   fetchCityComparisons,
-  estimateExposureTime
+  estimateExposureTime,
+  fetchWindData
 } from './services/airQualityService';
 
 const DEFAULT_POSITION = {
@@ -56,13 +61,13 @@ function AppControls({
     <section className="app-controls" aria-label="Live controls">
       <div className="control-group" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'nowrap' }}>
         <label htmlFor="city-selector">Track city:</label>
-        <LocationSearch 
-          initialCityName={selectedCity === 'auto' ? 'auto' : selectedCity} 
-          onLocationSelected={onCityChange} 
+        <LocationSearch
+          initialCityName={selectedCity === 'auto' ? 'auto' : selectedCity}
+          onLocationSelected={onCityChange}
         />
-        <button 
-          type="button" 
-          className="btn-secondary text-sm" 
+        <button
+          type="button"
+          className="btn-secondary text-sm"
           style={{ padding: '0.4rem 0.8rem', whiteSpace: 'nowrap', flexShrink: 0 }}
           onClick={() => onCityChange('auto')}
         >
@@ -91,14 +96,15 @@ function SectionNav({ activeSection, onSectionChange, theme, onToggleTheme }) {
   const sections = [
     { id: 'home', label: 'Home' },
     { id: 'quiz', label: 'Quiz' },
+    { id: 'game', label: 'Game' },
     { id: 'community', label: 'Community' },
     { id: 'history', label: 'History' }
   ];
   const isDark = theme === 'dark';
 
   return (
-    <nav 
-      className="section-nav" 
+    <nav
+      className="section-nav"
       aria-label="Main sections"
     >
       <div className="nav-sections">
@@ -158,24 +164,102 @@ function SectionNav({ activeSection, onSectionChange, theme, onToggleTheme }) {
 }
 
 export default function App() {
-  const [activeSection, setActiveSection] = useState('home');
-  const [selectedCity, setSelectedCity] = useState('auto');
-  const [position, setPosition] = useState(DEFAULT_POSITION);
-  const [current, setCurrent] = useState(null);
-  const [trend, setTrend] = useState([]);
-  const [nearbyPoints, setNearbyPoints] = useState([]);
-  const [cityComparisons, setCityComparisons] = useState([]);
-  const [confidenceScore, setConfidenceScore] = useState('High');
-  const [dataCompleteness, setDataCompleteness] = useState(100);
-  const [loading, setLoading] = useState(true);
-  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [activeSection, setActiveSection] = useState(() => localStorage.getItem('activeSection') || 'home');
+
+  // --- Helper: read city info from the URL hash (e.g. #city=Mumbai&lat=19.07&lon=72.87) ---
+  function getCityFromHash() {
+    const params = new URLSearchParams(window.location.hash.slice(1));
+    const name = params.get('city');
+    const lat = parseFloat(params.get('lat'));
+    const lon = parseFloat(params.get('lon'));
+    // Only use hash values if all three are present and valid
+    if (name && !isNaN(lat) && !isNaN(lon)) {
+      return { name, lat, lon };
+    }
+    return null;
+  }
+
+  // --- Helper: write city info into the URL hash so Back/Forward works ---
+  function setCityInHash(name, lat, lon) {
+    const params = new URLSearchParams();
+    params.set('city', name);
+    params.set('lat', lat);
+    params.set('lon', lon);
+    // pushState so browser Back button can restore the previous city
+    window.history.pushState(null, '', '#' + params.toString());
+  }
+
+  // On first load: prefer URL hash → then localStorage → then 'auto'
+  const [selectedCity, setSelectedCity] = useState(() => {
+    const fromHash = getCityFromHash();
+    if (fromHash) return fromHash.name;
+    return localStorage.getItem('selectedCity') || 'auto';
+  });
+
+  // On first load: prefer URL hash → then localStorage → then DEFAULT_POSITION
+  const [position, setPosition] = useState(() => {
+    const fromHash = getCityFromHash();
+    if (fromHash) return { lat: fromHash.lat, lon: fromHash.lon, cityName: fromHash.name };
+    const saved = localStorage.getItem('position');
+    return saved ? JSON.parse(saved) : DEFAULT_POSITION;
+  });
+  const aqiKey = position.lat && position.lon ? `aqi_${position.lat}_${position.lon}` : null;
+  const { data: aqiData, error: aqiError, isValidating: isAqiValidating, mutate: mutateAqi } = useSWR(
+    aqiKey,
+    () => fetchAirQualityByCoords(position.lat, position.lon)
+  );
+
+  const cityKey = 'city_comparisons';
+  const { data: cityComparisons, error: citiesError, isValidating: isCitiesValidating, mutate: mutateCities } = useSWR(
+    cityKey,
+    () => fetchCityComparisons()
+  );
+
+  const windKey = position.lat && position.lon ? `wind_${position.lat}_${position.lon}` : null;
+  const { data: windData, error: windError, isValidating: isWindValidating, mutate: mutateWind } = useSWR(
+    windKey,
+    () => fetchWindData(position.lat, position.lon)
+  );
+
+  const current = aqiData?.current;
+  const trend = aqiData?.trend || [];
+  const nearbyPoints = aqiData?.nearbyPoints || [];
+  const confidenceScore = aqiData?.confidenceScore || 'High';
+  const dataCompleteness = aqiData?.dataCompleteness || 100;
+
+  const loading = (!aqiData && isAqiValidating) || (!cityComparisons && isCitiesValidating);
+  const isRefreshing = (isAqiValidating || isCitiesValidating || isWindValidating) && !!aqiData;
+  const error = (aqiError || citiesError || windError)?.message || '';
+
   const [lastUpdated, setLastUpdated] = useState('');
   const [refreshCountdown, setRefreshCountdown] = useState(AUTO_REFRESH_SECONDS);
-  const [error, setError] = useState('');
   const [locationNotice, setLocationNotice] = useState('');
   const [theme, setTheme] = useState('light');
-  const [timeRange, setTimeRange] = useState(24);
-  const refreshControllerRef = useRef(null);
+  const [timeRange, setTimeRange] = useState(() => {
+    const saved = localStorage.getItem('timeRange');
+    return saved ? Number(saved) : 24;
+  });
+
+  useEffect(() => {
+    localStorage.setItem('activeSection', activeSection);
+  }, [activeSection]);
+
+  useEffect(() => {
+    localStorage.setItem('selectedCity', selectedCity);
+  }, [selectedCity]);
+
+  useEffect(() => {
+    localStorage.setItem('position', JSON.stringify(position));
+  }, [position]);
+
+  useEffect(() => {
+    localStorage.setItem('timeRange', timeRange.toString());
+  }, [timeRange]);
+
+  // Update lastUpdated when data changes
+  useEffect(() => {
+    if (aqiData) setLastUpdated(new Date().toISOString());
+  }, [aqiData]);
 
   useEffect(() => {
     const savedTheme = localStorage.getItem(THEME_STORAGE_KEY);
@@ -223,9 +307,12 @@ export default function App() {
     }
   }, [selectedCity]);
 
+  // When user picks a city manually, update state + localStorage + URL hash
   const handleLocationSelected = (location) => {
     if (location === 'auto') {
       setSelectedCity('auto');
+      // Clear the hash so auto-detect takes over
+      window.history.pushState(null, '', window.location.pathname);
     } else {
       setSelectedCity(location.name);
       setPosition({
@@ -233,46 +320,37 @@ export default function App() {
         lon: location.lon,
         cityName: location.name
       });
+      // Write into URL so browser Back button can restore this selection
+      setCityInHash(location.name, location.lat, location.lon);
       setLocationNotice('');
     }
   };
 
+  // Listen for browser Back/Forward (popstate) and restore the city from the URL hash
   useEffect(() => {
-    const controller = new AbortController();
-    const { signal } = controller;
-
-    const load = async (silent = false) => {
-      try {
-        if (!silent) setLoading(true);
-        if (silent) setIsRefreshing(true);
-
-        const [aqi, cities] = await Promise.all([
-          fetchAirQualityByCoords(position.lat, position.lon, signal),
-          fetchCityComparisons(signal)
-        ]);
-
-        setCurrent(aqi.current);
-        setTrend(aqi.trend);
-        setNearbyPoints(aqi.nearbyPoints);
-        setConfidenceScore(aqi.confidenceScore);
-        setDataCompleteness(aqi.dataCompleteness);
-        setCityComparisons(cities);
-        setLastUpdated(new Date().toISOString());
-        setRefreshCountdown(AUTO_REFRESH_SECONDS);
-        setError('');
-      } catch (loadError) {
-        if (loadError.name === 'AbortError') return;
-        setError(loadError.message || 'Unable to load live AQI data.');
-      } finally {
-        setLoading(false);
-        setIsRefreshing(false);
+    function handlePopState() {
+      const fromHash = getCityFromHash();
+      if (fromHash) {
+        // Restore the city that was in the URL before Back was pressed
+        setSelectedCity(fromHash.name);
+        setPosition({ lat: fromHash.lat, lon: fromHash.lon, cityName: fromHash.name });
+      } else {
+        // No hash → fall back to auto-detect
+        setSelectedCity('auto');
       }
-    };
+    }
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
 
-    load();
-
+  useEffect(() => {
     const refreshTimer = setInterval(() => {
-      load(true);
+      if (navigator.onLine) {
+        mutateAqi();
+        mutateCities();
+        mutateWind();
+        setRefreshCountdown(AUTO_REFRESH_SECONDS);
+      }
     }, AUTO_REFRESH_SECONDS * 1000);
 
     const countdownTimer = setInterval(() => {
@@ -280,16 +358,14 @@ export default function App() {
     }, 1000);
 
     return () => {
-      controller.abort();
-      if (refreshControllerRef.current) refreshControllerRef.current.abort();
       clearInterval(refreshTimer);
       clearInterval(countdownTimer);
     };
-  }, [position.lat, position.lon]);
+  }, [mutateAqi, mutateCities, mutateWind]);
 
   const analytics = useMemo(() => estimateWeeklyMonthlyAverages(trend), [trend]);
   const exposureEstimate = useMemo(
-    () => estimateExposureTime(trend, current?.us_aqi), 
+    () => estimateExposureTime(trend, current?.us_aqi),
     [trend, current]
   );
 
@@ -298,53 +374,46 @@ export default function App() {
     setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
   };
 
-  const refreshNow = async () => {
+  const refreshNow = useCallback(async () => {
     if (isRefreshing) return;
+    mutateAqi();
+    mutateCities();
+    mutateWind();
+    setRefreshCountdown(AUTO_REFRESH_SECONDS);
+  }, [isRefreshing, mutateAqi, mutateCities, mutateWind]);
 
-    if (refreshControllerRef.current) refreshControllerRef.current.abort();
-    const controller = new AbortController();
-    refreshControllerRef.current = controller;
-    const { signal } = controller;
+  useEffect(() => {
+    const handleOnline = () => refreshNow();
 
-    try {
-      setIsRefreshing(true);
-      const [aqi, cities] = await Promise.all([
-        fetchAirQualityByCoords(position.lat, position.lon, signal),
-        fetchCityComparisons(signal)
-      ]);
-      setCurrent(aqi.current);
-      setTrend(aqi.trend);
-      setNearbyPoints(aqi.nearbyPoints);
-      setConfidenceScore(aqi.confidenceScore);
-      setDataCompleteness(aqi.dataCompleteness);
-      setCityComparisons(cities);
-      setLastUpdated(new Date().toISOString());
-      setRefreshCountdown(AUTO_REFRESH_SECONDS);
-    } catch (loadError) {
-      if (loadError.name === 'AbortError') return;
-      setError(loadError.message || 'Unable to refresh live AQI data.');
-    } finally {
-      if (refreshControllerRef.current === controller) {
-        setIsRefreshing(false);
-      }
-    }
-  };
+    window.addEventListener("online", handleOnline);
 
-  if (loading || !current) {
-    return (
-      <main className="app-shell loading-state">
-        <SectionNav activeSection={activeSection} onSectionChange={setActiveSection} theme={theme} onToggleTheme={toggleTheme} />
-        <h1 className="loading-title text-3xl">Preparing live pollution intelligence...</h1>
-      </main>
-    );
-  }
+    return () => {
+      window.removeEventListener("online", handleOnline);
+    };
+  }, []);
 
   return (
     <main className="app-shell">
       {/* 1. Structural fix: Renders the navigation element at the very top */}
       <SectionNav activeSection={activeSection} onSectionChange={setActiveSection} theme={theme} onToggleTheme={toggleTheme} />
-      
-      <Hero cityName={position.cityName} />
+
+      {loading && !error ? (
+        <>
+          <div className="loading-spinner" aria-hidden="true"></div>
+          <h1 className="loading-title text-3xl">
+            Preparing live pollution intelligence...
+          </h1>
+
+          <Hero cityName={position.cityName} />
+          {activeSection === 'home' && (
+            <div key="skeleton-grid" className="content-grid" style={{ marginTop: 'var(--sp-4)' }}>
+              <SkeletonDashboard />
+            </div>
+          )}
+        </>
+      ) : (
+        <>
+          <Hero cityName={position.cityName} />
 
       {activeSection === 'home' && (
         <AppControls
@@ -368,8 +437,8 @@ export default function App() {
 
       {error && <p className="error-banner">{error}</p>}
 
-      {activeSection === 'home' ? (
-        <div className="content-grid">
+      {activeSection === 'home' && current && (
+        <div key="dashboard-grid" className="content-grid">
           <Dashboard
             cityName={position.cityName}
             current={current}
@@ -382,28 +451,64 @@ export default function App() {
             confidenceScore={confidenceScore}
             dataCompleteness={dataCompleteness}
           />
-          <LocationMap center={position} nearbyPoints={nearbyPoints} confidenceScore={confidenceScore} />
-          <AlertsPanel cityName={position.cityName} current={current} confidenceScore={confidenceScore} dataCompleteness={dataCompleteness} exposureEstimate={exposureEstimate} />
+
+          <LocationMap
+            center={position}
+            nearbyPoints={nearbyPoints}
+            confidenceScore={confidenceScore}
+            windData={windData}
+          />
+
+          <AlertsPanel
+            cityName={position.cityName}
+            current={current}
+            confidenceScore={confidenceScore}
+            dataCompleteness={dataCompleteness}
+            exposureEstimate={exposureEstimate}
+          />
+
           <HealthAdvisory />
+
           <SolutionsAwareness />
-          <AnalyticsInsights analytics={analytics} trend={trend} timeRange={timeRange} />
+
+          <AnalyticsInsights
+            analytics={analytics}
+            trend={trend}
+            timeRange={timeRange}
+          />
+
           <ScenarioSimulator current={current} />
         </div>
-      ) : activeSection === 'community' ? (
+      )}
+
+      {activeSection === 'community' && (
         <div className="content-grid community-layout">
           <CommunityHub />
         </div>
-      ) : activeSection === 'history' ? (
+      )}
+
+      {activeSection === 'history' && (
         <div className="content-grid history-layout">
           <HistoricalAnalysis position={position} />
         </div>
-      ) : (
+      )}
+
+      {activeSection === 'quiz' && (
         <div className="content-grid quiz-layout">
           <QuizSection />
         </div>
       )}
 
+      {activeSection === 'game' && (
+        <div className="content-grid game-layout">
+          <AqiMissionGame current={current} />
+          <HotspotScoutGame nearbyPoints={nearbyPoints} />
+        </div>
+      )}
+
       <Footer />
+        </>
+      )}
     </main>
   );
 }
