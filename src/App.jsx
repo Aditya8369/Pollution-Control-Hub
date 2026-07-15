@@ -1,3 +1,4 @@
+import CarbonFootprintCalculator from "./components/CarbonFootprintCalculator";
 import { useEffect, useMemo, useState, useCallback } from 'react';
 import { useSWR } from './hooks/useSWR';
 import AlertsPanel from './components/AlertsPanel';
@@ -94,12 +95,13 @@ function AppControls({
 
 function SectionNav({ activeSection, onSectionChange, theme, onToggleTheme }) {
   const sections = [
-    { id: 'home', label: 'Home' },
-    { id: 'quiz', label: 'Quiz' },
+  { id: 'home', label: 'Home' },
+  { id: 'carbon', label: 'Carbon Footprint' },
+  { id: 'quiz', label: 'Quiz' },
     { id: 'game', label: 'Game' },
     { id: 'community', label: 'Community' },
     { id: 'history', label: 'History' }
-  ];
+];
   const isDark = theme === 'dark';
 
   return (
@@ -426,7 +428,9 @@ export default function App() {
         />
       )}
 
-      {locationNotice && selectedCity === 'auto' && (
+      {activeSection !== "carbon" &&
+  locationNotice &&
+  selectedCity === "auto" && (
         <div className="location-notice" role="status">
           <p>{locationNotice}</p>
           <button type="button" onClick={() => setLocationNotice('')}>
@@ -435,7 +439,8 @@ export default function App() {
         </div>
       )}
 
-      {error && <p className="error-banner">{error}</p>}
+      {activeSection !== "carbon" &&
+  error && <p className="error-banner">{error}</p>}
 
       {activeSection === 'home' && current && (
         <div key="dashboard-grid" className="content-grid">
@@ -450,7 +455,8 @@ export default function App() {
             isRefreshing={isRefreshing}
             confidenceScore={confidenceScore}
             dataCompleteness={dataCompleteness}
-          />
+            />
+          
 
           <LocationMap
             center={position}
@@ -470,6 +476,7 @@ export default function App() {
           <HealthAdvisory />
 
           <SolutionsAwareness />
+         
 
           <AnalyticsInsights
             analytics={analytics}
@@ -482,10 +489,14 @@ export default function App() {
       )}
 
       {activeSection === 'community' && (
-        <div className="content-grid community-layout">
-          <CommunityHub />
-        </div>
-      )}
+  <div className="content-grid community-layout">
+    <CommunityHub />
+  </div>
+)}
+
+{activeSection === "carbon" && (
+  <CarbonFootprintCalculator />
+)}
 
       {activeSection === 'history' && (
         <div className="content-grid history-layout">

@@ -31,6 +31,7 @@ A community-driven web app that turns raw air quality data into clear health gui
 
 - [About the Project](#-about-the-project)
 - [Key Features](#-key-features)
+- [Carbon Footprint Calculator](#-carbon-footprint-calculator)
 - [System Architecture](#️-system-architecture)
 - [Tech Stack](#-tech-stack)
 - [Project Structure](#-project-structure)
@@ -71,6 +72,27 @@ Urban air pollution is a silent crisis. Raw AQI numbers exist, but most people d
 | 🧪 **Scenario Simulator** | Model how different conditions affect local air quality. |
 | 🌱 **Solutions & Awareness** | Actionable tips and policy context for cleaner cities. |
 | 🧠 **Quiz Section** | Short quizzes to build environmental awareness. |
+| 🌍 **Carbon Footprint Calculator** | Estimate monthly CO₂ emissions based on daily travel, electricity usage, LPG consumption, and air travel with interactive charts and sustainability recommendations. |
+
+---
+
+## 🌍 Carbon Footprint Calculator
+
+The Carbon Footprint Calculator enables users to estimate their **monthly carbon dioxide (CO₂) emissions** based on everyday activities. It provides an interactive and easy-to-understand analysis of an individual's environmental impact while encouraging sustainable lifestyle choices.
+
+### ✨ Features
+
+- 🚗 Vehicle-based emission calculation (Car / Bike)
+- ⛽ Fuel type selection (Petrol, Diesel, CNG, Electric Vehicle)
+- 📏 Daily travel distance estimation
+- ⚡ Monthly electricity consumption analysis
+- 🔥 LPG cylinder usage calculation
+- ✈️ Air travel emission estimation
+- 📊 Interactive Pie Chart for emission distribution
+- 📈 Detailed emission breakdown
+- 🌱 Personalized sustainability recommendations based on emission level
+- ✅ Input validation for improved user experience
+- 📱 Fully responsive dashboard design
 
 ---
 
@@ -110,6 +132,8 @@ Pollution-Control-Hub/
 │   ├── components/
 │   │   ├── AlertsPanel.jsx
 │   │   ├── AnalyticsInsights.jsx
+│   │   ├── CarbonFootprintCalculator.css
+│   │   ├── CarbonFootprintCalculator.jsx
 │   │   ├── CommunityHub.jsx
 │   │   ├── Dashboard.jsx
 │   │   ├── HealthAdvisory.jsx
