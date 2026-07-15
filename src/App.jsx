@@ -16,6 +16,7 @@ import LocationSearch from './components/LocationSearch';
 import SkeletonDashboard from './components/SkeletonDashboard';
 import { CITY_COORDINATES } from './constants/cities';
 import HotspotScoutGame from "./components/HotspotScoutGame";
+import ErrorBoundary from "./components/ErrorBoundary";
 import {
   estimateWeeklyMonthlyAverages,
   fetchAirQualityByCoords,
@@ -437,47 +438,70 @@ export default function App() {
 
       {error && <p className="error-banner">{error}</p>}
 
-      {activeSection === 'home' && current && (
+      {aqiData?.isFallback && (
+        <div className="warning-banner" role="status">
+          <p>
+            ⚠️ <strong>Showing cached data:</strong> We couldn't retrieve live air quality data right now (you may be offline or the server could be down). Showing last known reading from {lastUpdated ? new Date(lastUpdated).toLocaleTimeString() : 'cache'}.
+          </p>
+        </div>
+      )}
+
+      {activeSection === 'home' && (
         <div key="dashboard-grid" className="content-grid">
-          <Dashboard
-            cityName={position.cityName}
-            current={current}
-            trend={trend}
-            cityComparisons={cityComparisons}
-            timeRange={timeRange}
-            onTimeRangeChange={setTimeRange}
-            lastUpdated={lastUpdated}
-            isRefreshing={isRefreshing}
-            confidenceScore={confidenceScore}
-            dataCompleteness={dataCompleteness}
-          />
+          {current ? (
+            <>
+              <ErrorBoundary>
+                <Dashboard
+                  cityName={position.cityName}
+                  current={current}
+                  trend={trend}
+                  cityComparisons={cityComparisons}
+                  timeRange={timeRange}
+                  onTimeRangeChange={setTimeRange}
+                  lastUpdated={lastUpdated}
+                  isRefreshing={isRefreshing}
+                  confidenceScore={confidenceScore}
+                  dataCompleteness={dataCompleteness}
+                  isFallback={aqiData?.isFallback}
+                />
+              </ErrorBoundary>
 
-          <LocationMap
-            center={position}
-            nearbyPoints={nearbyPoints}
-            confidenceScore={confidenceScore}
-            windData={windData}
-          />
+              <LocationMap
+                center={position}
+                nearbyPoints={nearbyPoints}
+                confidenceScore={confidenceScore}
+                windData={windData}
+              />
 
-          <AlertsPanel
-            cityName={position.cityName}
-            current={current}
-            confidenceScore={confidenceScore}
-            dataCompleteness={dataCompleteness}
-            exposureEstimate={exposureEstimate}
-          />
+              <AlertsPanel
+                cityName={position.cityName}
+                current={current}
+                confidenceScore={confidenceScore}
+                dataCompleteness={dataCompleteness}
+                exposureEstimate={exposureEstimate}
+              />
 
-          <HealthAdvisory />
+              <HealthAdvisory />
 
-          <SolutionsAwareness />
+              <SolutionsAwareness />
 
-          <AnalyticsInsights
-            analytics={analytics}
-            trend={trend}
-            timeRange={timeRange}
-          />
+              <AnalyticsInsights
+                analytics={analytics}
+                trend={trend}
+                timeRange={timeRange}
+              />
 
-          <ScenarioSimulator current={current} />
+              <ScenarioSimulator current={current} />
+            </>
+          ) : (
+            <ErrorBoundary>
+              <Dashboard
+                cityName={position.cityName}
+                current={null}
+                isFallback={false}
+              />
+            </ErrorBoundary>
+          )}
         </div>
       )}
 

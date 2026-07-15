@@ -15,6 +15,10 @@ export class MultiLevelCache {
     return `${this.namespace}:${key}`;
   }
 
+  _getFallbackKey(key) {
+    return `${this.namespace}:fallback:${key}`;
+  }
+
   get(key) {
     const fullKey = this._getKey(key);
     const now = Date.now();
@@ -47,6 +51,19 @@ export class MultiLevelCache {
     return null; // Cache miss
   }
 
+  getFallback(key) {
+    const fallbackKey = this._getFallbackKey(key);
+    try {
+      const raw = localStorage.getItem(fallbackKey);
+      if (raw) {
+        return JSON.parse(raw);
+      }
+    } catch (e) {
+      console.warn('Failed to read fallback from localStorage cache:', e);
+    }
+    return null;
+  }
+
   set(key, data, ttlMs = this.defaultTTL) {
     const fullKey = this._getKey(key);
     const expiresAt = Date.now() + ttlMs;
@@ -58,6 +75,7 @@ export class MultiLevelCache {
     // 2. Set L2
     try {
       localStorage.setItem(fullKey, JSON.stringify(entry));
+      localStorage.setItem(this._getFallbackKey(key), JSON.stringify(data));
     } catch (e) {
       console.warn('Failed to write to localStorage cache. Storage might be full:', e);
     }

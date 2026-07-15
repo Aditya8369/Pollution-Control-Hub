@@ -1286,6 +1286,16 @@ a {
   padding: var(--sp-4);
 }
 
+.warning-banner {
+  width: min(1180px, 94vw);
+  margin: 0 auto var(--sp-4);
+  background: #fef3c7;
+  border: 1px solid #fcd34d;
+  color: #92400e;
+  border-radius: var(--r-sm);
+  padding: var(--sp-4);
+}
+
 .location-notice {
   width: min(1180px, 94vw);
   margin: 0 auto var(--sp-4);
@@ -1327,6 +1337,12 @@ a {
   background: color-mix(in srgb, #dc2626 12%, var(--card));
   border-color: #dc2626;
   color: #fca5a5;
+}
+
+[data-theme="dark"] .warning-banner {
+  background: color-mix(in srgb, #d97706 12%, var(--card));
+  border-color: #d97706;
+  color: #fcd34d;
 }
 
 [data-theme="dark"] .location-notice {
@@ -3434,7 +3450,7 @@ a {
   margin-top: -0.2rem;
 }
 
-Hotspot Scout Game===========================*/ .hotspot-game {
+/* Hotspot Scout Game===========================*/ .hotspot-game {
   background: var(--card);
   border: 1px solid var(--line);
   border-radius: var(--r-md);
