@@ -62,13 +62,13 @@ function AppControls({
     <section className="app-controls" aria-label="Live controls">
       <div className="control-group" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'nowrap' }}>
         <label htmlFor="city-selector">Track city:</label>
-        <LocationSearch 
-          initialCityName={selectedCity === 'auto' ? 'auto' : selectedCity} 
-          onLocationSelected={onCityChange} 
+        <LocationSearch
+          initialCityName={selectedCity === 'auto' ? 'auto' : selectedCity}
+          onLocationSelected={onCityChange}
         />
-        <button 
-          type="button" 
-          className="btn-secondary text-sm" 
+        <button
+          type="button"
+          className="btn-secondary text-sm"
           style={{ padding: '0.4rem 0.8rem', whiteSpace: 'nowrap', flexShrink: 0 }}
           onClick={() => onCityChange('auto')}
         >
@@ -105,8 +105,8 @@ function SectionNav({ activeSection, onSectionChange, theme, onToggleTheme }) {
   const isDark = theme === 'dark';
 
   return (
-    <nav 
-      className="section-nav" 
+    <nav
+      className="section-nav"
       aria-label="Main sections"
     >
       <div className="nav-sections">
@@ -172,8 +172,8 @@ export default function App() {
   function getCityFromHash() {
     const params = new URLSearchParams(window.location.hash.slice(1));
     const name = params.get('city');
-    const lat  = parseFloat(params.get('lat'));
-    const lon  = parseFloat(params.get('lon'));
+    const lat = parseFloat(params.get('lat'));
+    const lon = parseFloat(params.get('lon'));
     // Only use hash values if all three are present and valid
     if (name && !isNaN(lat) && !isNaN(lon)) {
       return { name, lat, lon };
@@ -207,7 +207,7 @@ export default function App() {
   });
   const aqiKey = position.lat && position.lon ? `aqi_${position.lat}_${position.lon}` : null;
   const { data: aqiData, error: aqiError, isValidating: isAqiValidating, mutate: mutateAqi } = useSWR(
-    aqiKey, 
+    aqiKey,
     () => fetchAirQualityByCoords(position.lat, position.lon)
   );
 
@@ -367,7 +367,7 @@ export default function App() {
 
   const analytics = useMemo(() => estimateWeeklyMonthlyAverages(trend), [trend]);
   const exposureEstimate = useMemo(
-    () => estimateExposureTime(trend, current?.us_aqi), 
+    () => estimateExposureTime(trend, current?.us_aqi),
     [trend, current]
   );
 
@@ -385,14 +385,14 @@ export default function App() {
   }, [isRefreshing, mutateAqi, mutateCities, mutateWind]);
 
   useEffect(() => {
-  const handleOnline = () => refreshNow();
+    const handleOnline = () => refreshNow();
 
-  window.addEventListener("online", handleOnline);
+    window.addEventListener("online", handleOnline);
 
-  return () => {
-    window.removeEventListener("online", handleOnline);
-  };
-}, []);
+    return () => {
+      window.removeEventListener("online", handleOnline);
+    };
+  }, []);
 
   if (loading && !error) {
     return (
@@ -447,7 +447,8 @@ export default function App() {
 
       {activeSection !== "carbon" &&
   error && <p className="error-banner">{error}</p>}
-       {activeSection === 'home' && (
+
+{activeSection === 'home' && current && (
         <div className="content-grid">
           <Dashboard
             cityName={position.cityName}
@@ -516,11 +517,11 @@ export default function App() {
       )}
 
       {activeSection === 'game' && (
-  <div className="content-grid game-layout">
-    <AqiMissionGame current={current} />
-    <HotspotScoutGame nearbyPoints={nearbyPoints} />
-  </div>
-)}
+        <div className="content-grid game-layout">
+          <AqiMissionGame current={current} />
+          <HotspotScoutGame nearbyPoints={nearbyPoints} />
+        </div>
+      )}
 
       <Footer />
     </main>

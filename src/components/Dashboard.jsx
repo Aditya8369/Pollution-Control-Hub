@@ -162,6 +162,33 @@ const exportReportAsPDF = async () => {
     { name: 'O3', value: current.ozone, limit: 100, impact: 'Can trigger asthma and reduce lung function.', color: getPollutantColor(current.ozone, 100) },
     { name: 'CO', value: current.carbon_monoxide, limit: 4000, impact: 'High levels reduce oxygen delivery to the body.', color: getPollutantColor(current.carbon_monoxide, 4000) }
   ].map(p => ({ ...p, ratio: Math.max(10, (p.value / p.limit) * 100) })); // Minimum ratio of 10 for visibility
+
+  const getAqiTrendIndicator = () => {
+    if (!trend || trend.length < 2) return null;
+    
+    const windowSize = Math.min(4, Math.floor(trend.length / 2));
+    if (windowSize === 0) return null;
+
+    const recentData = trend.slice(-windowSize);
+    const previousData = trend.slice(-windowSize * 2, -windowSize);
+
+    const recentAvg = recentData.reduce((sum, item) => sum + item.us_aqi, 0) / windowSize;
+    const previousAvg = previousData.reduce((sum, item) => sum + item.us_aqi, 0) / windowSize;
+
+    const diff = recentAvg - previousAvg;
+    const threshold = 2;
+
+    if (diff > threshold) {
+      return { label: '🔴 ↑ Worsening', color: '#ef4444' };
+    } else if (diff < -threshold) {
+      return { label: '🟢 ↓ Improving', color: '#22c55e' };
+    } else {
+      return { label: '⚪ → Stable', color: '#94a3b8' };
+    }
+  };
+
+  const aqiTrend = getAqiTrendIndicator();
+
 return (
   <section className="panel dashboard" ref={reportRef}>
     <div className="panel-head">
@@ -230,6 +257,18 @@ return (
         </div>
 
         <p>{aqiBand.label}</p>
+
+        {aqiTrend && (
+          <div style={{
+            fontSize: "0.95rem",
+            fontWeight: "600",
+            color: aqiTrend.color,
+            marginTop: "0.5rem",
+            marginBottom: "0.5rem"
+          }}>
+            {aqiTrend.label}
+          </div>
+        )}
 
         <span
           className={`confidence-badge confidence-${confidenceScore?.toLowerCase()}`}
