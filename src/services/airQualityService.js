@@ -1,4 +1,5 @@
 import { CITY_COORDINATES } from '../constants/cities';
+import { aqiCache } from '../lib/cache';
 import { cacheStore } from '../utils/cacheStore';
 import ApiWorker from '../workers/apiWorker?worker';
 
@@ -43,8 +44,7 @@ const DIRECTION_LABELS = {
   '1,-1': 'South-East zone'
 };
 
-const gridCache = new Map();
-const CACHE_TTL_MS = 5 * 60 * 1000;
+
 
 function isValidCoord(lat, lon) {
   return (
@@ -66,9 +66,9 @@ async function fetchGridPointAqi(lat, lon, signal) {
 }
 
 export async function fetchLocalGrid(lat, lon, topN = 6, signal) {
-  const cacheKey = `${lat.toFixed(1)},${lon.toFixed(1)}`;
-  const cached = gridCache.get(cacheKey);
-  if (cached && Date.now() - cached.ts < CACHE_TTL_MS) return cached.points;
+  const cacheKey = `grid-${lat.toFixed(1)},${lon.toFixed(1)}`;
+  const cached = aqiCache.get(cacheKey);
+  if (cached) return cached;
 
   const gridOffsets = [-1, 0, 1].flatMap((dy) =>
     [-1, 0, 1]
@@ -96,7 +96,7 @@ export async function fetchLocalGrid(lat, lon, topN = 6, signal) {
     .sort((a, b) => b.aqi - a.aqi)
     .slice(0, topN);
 
-  gridCache.set(cacheKey, { ts: Date.now(), points });
+  aqiCache.set(cacheKey, points);
   return points;
 }
 
@@ -122,6 +122,10 @@ export async function fetchAirQualityByCoords(lat, lon, signal, skipGrid = false
   if (!navigator.onLine) { console.log("OFFLINE CHECK HIT");
     throw new Error("You're offline. Please reconnect to view air quality data." );}
   if (!isValidCoord(lat, lon)) throw new Error('Invalid coordinates provided.');
+
+  const cacheKey = `coords-${lat.toFixed(4)},${lon.toFixed(4)}`;
+  const cached = aqiCache.get(cacheKey);
+  if (cached) return cached;
 
   const today = new Date();
   const yesterday = new Date(today);
@@ -187,13 +191,16 @@ export async function fetchAirQualityByCoords(lat, lon, signal, skipGrid = false
   const nearbyPoints = skipGrid ? [] : await fetchLocalGrid(lat, lon, 6, signal);
   const { confidenceScore, dataCompleteness } = computeConfidence(hourly, times);
 
-  return {
+  const result = {
     current,
     trend,
     nearbyPoints,
     confidenceScore,
     dataCompleteness
   };
+
+  aqiCache.set(cacheKey, result);
+  return result;
 }
 
 export async function fetchWindData(lat, lon, signal) {
