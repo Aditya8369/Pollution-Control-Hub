@@ -8,14 +8,11 @@ function HotspotScoutGame({ nearbyPoints }) {
   const [selected, setSelected] = useState(null);
   const [round, setRound] = useState([]);
 
-   console.log("Round:", round);
+  const generateRound = () => {
+    const shuffled = shuffleArray(nearbyPoints);
 
-const generateRound = () => {
-  const shuffled = shuffleArray(nearbyPoints);
-  console.log("Shuffled:", shuffled);
-
-  setRound(shuffled.slice(0, 4));
-};
+    setRound(shuffled.slice(0, 4));
+  };
 
   useEffect(() => {
     if (nearbyPoints.length >= 4) {
@@ -38,32 +35,32 @@ const generateRound = () => {
     setSelected(winner);
   };
 
- 
+
   return (
-  <div className="hotspot-game">
-    <h2>Hotspot Scout Game</h2>
+    <div className="hotspot-game">
+      <h2>Hotspot Scout Game</h2>
 
-    <p>Score: {score}</p>
-    <p>Streak: {streak}</p>
+      <p>Score: {score}</p>
+      <p>Streak: {streak}</p>
 
-  <div className="hotspot-options">
-  {round.map((spot, index) => (
-    <button
-      key={index}
-      className="hotspot-option"
-      onClick={() => handleSelect(spot)}
-    >
-       {spot.areaName}
-    </button>
-  ))}
-</div>
-
-    {selected && (
-      <div style={{ marginTop: "20px" }}>
-        Highest AQI: <strong>{selected.name}</strong> ({selected.aqi})
+      <div className="hotspot-options">
+        {round.map((spot, index) => (
+          <button
+            key={index}
+            className="hotspot-option"
+            onClick={() => handleSelect(spot)}
+          >
+            {spot.areaName}
+          </button>
+        ))}
       </div>
-    )}
-  </div>
+
+      {selected && (
+        <div style={{ marginTop: "20px" }}>
+          Highest AQI: <strong>{selected.name}</strong> ({selected.aqi})
+        </div>
+      )}
+    </div>
   );
 }
 export default HotspotScoutGame;

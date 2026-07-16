@@ -12,8 +12,8 @@ const policies = [
   'Bharat Stage VI (BS6) Emission Standards',
   'FAME India Scheme for electric mobility',
   'City-level Clean Construction and Dust Control Rules',
-  'Perform, Achieve and Trade (PAT) Scheme for industrial enerygy efficiency',
-  'Renewable Energy Developement Programs'
+  'Perform, Achieve and Trade (PAT) Scheme for industrial energy efficiency',
+  'Renewable Energy Development Programs'
 ];
 
 const blogs = [

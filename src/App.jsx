@@ -61,13 +61,13 @@ function AppControls({
     <section className="app-controls" aria-label="Live controls">
       <div className="control-group" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'nowrap' }}>
         <label htmlFor="city-selector">Track city:</label>
-        <LocationSearch 
-          initialCityName={selectedCity === 'auto' ? 'auto' : selectedCity} 
-          onLocationSelected={onCityChange} 
+        <LocationSearch
+          initialCityName={selectedCity === 'auto' ? 'auto' : selectedCity}
+          onLocationSelected={onCityChange}
         />
-        <button 
-          type="button" 
-          className="btn-secondary text-sm" 
+        <button
+          type="button"
+          className="btn-secondary text-sm"
           style={{ padding: '0.4rem 0.8rem', whiteSpace: 'nowrap', flexShrink: 0 }}
           onClick={() => onCityChange('auto')}
         >
@@ -103,8 +103,8 @@ function SectionNav({ activeSection, onSectionChange, theme, onToggleTheme }) {
   const isDark = theme === 'dark';
 
   return (
-    <nav 
-      className="section-nav" 
+    <nav
+      className="section-nav"
       aria-label="Main sections"
     >
       <div className="nav-sections">
@@ -164,12 +164,48 @@ function SectionNav({ activeSection, onSectionChange, theme, onToggleTheme }) {
 }
 
 export default function App() {
-  const [activeSection, setActiveSection] = useState('home');
-  const [selectedCity, setSelectedCity] = useState('auto');
-  const [position, setPosition] = useState(DEFAULT_POSITION);
+  const [activeSection, setActiveSection] = useState(() => localStorage.getItem('activeSection') || 'home');
+
+  // --- Helper: read city info from the URL hash (e.g. #city=Mumbai&lat=19.07&lon=72.87) ---
+  function getCityFromHash() {
+    const params = new URLSearchParams(window.location.hash.slice(1));
+    const name = params.get('city');
+    const lat = parseFloat(params.get('lat'));
+    const lon = parseFloat(params.get('lon'));
+    // Only use hash values if all three are present and valid
+    if (name && !isNaN(lat) && !isNaN(lon)) {
+      return { name, lat, lon };
+    }
+    return null;
+  }
+
+  // --- Helper: write city info into the URL hash so Back/Forward works ---
+  function setCityInHash(name, lat, lon) {
+    const params = new URLSearchParams();
+    params.set('city', name);
+    params.set('lat', lat);
+    params.set('lon', lon);
+    // pushState so browser Back button can restore the previous city
+    window.history.pushState(null, '', '#' + params.toString());
+  }
+
+  // On first load: prefer URL hash → then localStorage → then 'auto'
+  const [selectedCity, setSelectedCity] = useState(() => {
+    const fromHash = getCityFromHash();
+    if (fromHash) return fromHash.name;
+    return localStorage.getItem('selectedCity') || 'auto';
+  });
+
+  // On first load: prefer URL hash → then localStorage → then DEFAULT_POSITION
+  const [position, setPosition] = useState(() => {
+    const fromHash = getCityFromHash();
+    if (fromHash) return { lat: fromHash.lat, lon: fromHash.lon, cityName: fromHash.name };
+    const saved = localStorage.getItem('position');
+    return saved ? JSON.parse(saved) : DEFAULT_POSITION;
+  });
   const aqiKey = position.lat && position.lon ? `aqi_${position.lat}_${position.lon}` : null;
   const { data: aqiData, error: aqiError, isValidating: isAqiValidating, mutate: mutateAqi } = useSWR(
-    aqiKey, 
+    aqiKey,
     () => fetchAirQualityByCoords(position.lat, position.lon)
   );
 
@@ -199,7 +235,26 @@ export default function App() {
   const [refreshCountdown, setRefreshCountdown] = useState(AUTO_REFRESH_SECONDS);
   const [locationNotice, setLocationNotice] = useState('');
   const [theme, setTheme] = useState('light');
-  const [timeRange, setTimeRange] = useState(24);
+  const [timeRange, setTimeRange] = useState(() => {
+    const saved = localStorage.getItem('timeRange');
+    return saved ? Number(saved) : 24;
+  });
+
+  useEffect(() => {
+    localStorage.setItem('activeSection', activeSection);
+  }, [activeSection]);
+
+  useEffect(() => {
+    localStorage.setItem('selectedCity', selectedCity);
+  }, [selectedCity]);
+
+  useEffect(() => {
+    localStorage.setItem('position', JSON.stringify(position));
+  }, [position]);
+
+  useEffect(() => {
+    localStorage.setItem('timeRange', timeRange.toString());
+  }, [timeRange]);
 
   // Update lastUpdated when data changes
   useEffect(() => {
@@ -252,9 +307,12 @@ export default function App() {
     }
   }, [selectedCity]);
 
+  // When user picks a city manually, update state + localStorage + URL hash
   const handleLocationSelected = (location) => {
     if (location === 'auto') {
       setSelectedCity('auto');
+      // Clear the hash so auto-detect takes over
+      window.history.pushState(null, '', window.location.pathname);
     } else {
       setSelectedCity(location.name);
       setPosition({
@@ -262,9 +320,28 @@ export default function App() {
         lon: location.lon,
         cityName: location.name
       });
+      // Write into URL so browser Back button can restore this selection
+      setCityInHash(location.name, location.lat, location.lon);
       setLocationNotice('');
     }
   };
+
+  // Listen for browser Back/Forward (popstate) and restore the city from the URL hash
+  useEffect(() => {
+    function handlePopState() {
+      const fromHash = getCityFromHash();
+      if (fromHash) {
+        // Restore the city that was in the URL before Back was pressed
+        setSelectedCity(fromHash.name);
+        setPosition({ lat: fromHash.lat, lon: fromHash.lon, cityName: fromHash.name });
+      } else {
+        // No hash → fall back to auto-detect
+        setSelectedCity('auto');
+      }
+    }
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
 
   useEffect(() => {
     const refreshTimer = setInterval(() => {
@@ -288,7 +365,7 @@ export default function App() {
 
   const analytics = useMemo(() => estimateWeeklyMonthlyAverages(trend), [trend]);
   const exposureEstimate = useMemo(
-    () => estimateExposureTime(trend, current?.us_aqi), 
+    () => estimateExposureTime(trend, current?.us_aqi),
     [trend, current]
   );
 
@@ -306,41 +383,37 @@ export default function App() {
   }, [isRefreshing, mutateAqi, mutateCities, mutateWind]);
 
   useEffect(() => {
-  const handleOnline = () => refreshNow();
+    const handleOnline = () => refreshNow();
 
-  window.addEventListener("online", handleOnline);
+    window.addEventListener("online", handleOnline);
 
-  return () => {
-    window.removeEventListener("online", handleOnline);
-  };
-}, []);
-
-  if (loading && !error) {
-    return (
-      <main className="app-shell">
-        <SectionNav activeSection={activeSection} onSectionChange={setActiveSection} theme={theme} onToggleTheme={toggleTheme} />
-
-        <div className="loading-spinner" aria-hidden="true"></div>
-        <h1 className="loading-title text-3xl">
-          Preparing live pollution intelligence...
-        </h1>
-
-        <Hero cityName={position.cityName} />
-        {activeSection === 'home' && (
-          <div className="content-grid" style={{ marginTop: 'var(--sp-4)' }}>
-            <SkeletonDashboard />
-          </div>
-        )}
-      </main>
-    );
-  }
+    return () => {
+      window.removeEventListener("online", handleOnline);
+    };
+  }, []);
 
   return (
     <main className="app-shell">
       {/* 1. Structural fix: Renders the navigation element at the very top */}
       <SectionNav activeSection={activeSection} onSectionChange={setActiveSection} theme={theme} onToggleTheme={toggleTheme} />
-      
-      <Hero cityName={position.cityName} />
+
+      {loading && !error ? (
+        <>
+          <div className="loading-spinner" aria-hidden="true"></div>
+          <h1 className="loading-title text-3xl">
+            Preparing live pollution intelligence...
+          </h1>
+
+          <Hero cityName={position.cityName} />
+          {activeSection === 'home' && (
+            <div key="skeleton-grid" className="content-grid" style={{ marginTop: 'var(--sp-4)' }}>
+              <SkeletonDashboard />
+            </div>
+          )}
+        </>
+      ) : (
+        <>
+          <Hero cityName={position.cityName} />
 
       {activeSection === 'home' && (
         <AppControls
@@ -362,10 +435,10 @@ export default function App() {
         </div>
       )}
 
-          {error && <p className="error-banner">{error}</p>}
+      {error && <p className="error-banner">{error}</p>}
 
       {activeSection === 'home' && current && (
-        <div className="content-grid">
+        <div key="dashboard-grid" className="content-grid">
           <Dashboard
             cityName={position.cityName}
             current={current}
@@ -427,13 +500,15 @@ export default function App() {
       )}
 
       {activeSection === 'game' && (
-  <div className="content-grid game-layout">
-    <AqiMissionGame current={current} />
-    <HotspotScoutGame nearbyPoints={nearbyPoints} />
-  </div>
-)}
+        <div className="content-grid game-layout">
+          <AqiMissionGame current={current} />
+          <HotspotScoutGame nearbyPoints={nearbyPoints} />
+        </div>
+      )}
 
       <Footer />
+        </>
+      )}
     </main>
   );
 }

@@ -11,8 +11,11 @@ import {
   PieChart,
   Pie,
   Cell
-} from 'recharts';
-import { getAQIBand, getPollutantColor } from '../services/airQualityService';
+} from "recharts";
+import { useRef, useState } from "react";
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
+import { getAQIBand, getPollutantColor } from "../services/airQualityService";
 
 function shortTimeLabel(isoTime) {
   return new Date(isoTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -60,6 +63,60 @@ export default function Dashboard({
   confidenceScore,
   dataCompleteness
 }) {
+  const reportRef = useRef(null);
+  const [isExporting, setIsExporting] = useState(false);
+
+  const exportReportAsPDF = async () => {
+    if (!reportRef.current || isExporting) return;
+    try {
+      setIsExporting(true);
+      const canvas = await html2canvas(reportRef.current, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: "#ffffff"
+      });
+      const imageData = canvas.toDataURL("image/png");
+      const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const margin = 10;
+      const imageWidth = pageWidth - margin * 2;
+      const imageHeight = (canvas.height * imageWidth) / canvas.width;
+      let heightLeft = imageHeight;
+      let position = margin;
+      pdf.addImage(imageData, "PNG", margin, position, imageWidth, imageHeight);
+      heightLeft -= pageHeight - margin * 2;
+      while (heightLeft > 0) {
+        position = heightLeft - imageHeight + margin;
+        pdf.addPage();
+        pdf.addImage(imageData, "PNG", margin, position, imageWidth, imageHeight);
+        heightLeft -= pageHeight - margin * 2;
+      }
+      const safeCityName = cityName.replace(/[^a-z0-9]/gi, "-").toLowerCase();
+      pdf.save(`${safeCityName}-air-quality-report.pdf`);
+    } catch (error) {
+      console.error("PDF export failed:", error);
+      alert("Unable to export the PDF. Please try again.");
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  if (!current) {
+    return (
+      <section data-testid="dashboard" className="panel dashboard">
+        <div className="panel-head">
+          <h2>Real-Time Pollution Dashboard</h2>
+          <p>Live readings for {cityName}</p>
+        </div>
+        <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--muted)' }}>
+          <h3>No data available</h3>
+          <p>We couldn't find pollution data for {cityName}.</p>
+        </div>
+      </section>
+    );
+  }
+
   const aqiBand = getAQIBand(current.us_aqi);
   const chartData = trend.slice(-timeRange).map((item) => ({
     ...item,
@@ -74,19 +131,50 @@ export default function Dashboard({
     { name: 'CO', value: current.carbon_monoxide, limit: 4000, impact: 'High levels reduce oxygen delivery to the body.', color: getPollutantColor(current.carbon_monoxide, 4000) }
   ].map(p => ({ ...p, ratio: Math.max(10, (p.value / p.limit) * 100) }));
 
+  const getAqiTrendIndicator = () => {
+    if (!trend || trend.length < 2) return null;
+    const windowSize = Math.min(4, Math.floor(trend.length / 2));
+    if (windowSize === 0) return null;
+    const recentData = trend.slice(-windowSize);
+    const previousData = trend.slice(-windowSize * 2, -windowSize);
+    const recentAvg = recentData.reduce((sum, item) => sum + item.us_aqi, 0) / windowSize;
+    const previousAvg = previousData.reduce((sum, item) => sum + item.us_aqi, 0) / windowSize;
+    const diff = recentAvg - previousAvg;
+    const threshold = 2;
+    if (diff > threshold) return { label: '🔴 ↑ Worsening', color: '#ef4444' };
+    else if (diff < -threshold) return { label: '🟢 ↓ Improving', color: '#22c55e' };
+    else return { label: '⚪ → Stable', color: '#94a3b8' };
+  };
+
+  const aqiTrend = getAqiTrendIndicator();
+
   return (
-    <section data-testid="dashboard" className="panel dashboard">
+    <section data-testid="dashboard" className="panel dashboard" ref={reportRef}>
       <div className="panel-head">
-        <h2>Real-Time Pollution Dashboard</h2>
-        <p>Live readings for {cityName}</p>
+        <div>
+          <h2>Real-Time Pollution Dashboard</h2>
+          <p>Live readings for {cityName}</p>
+        </div>
+        <button
+          type="button"
+          className="export-report-button"
+          onClick={exportReportAsPDF}
+          disabled={isExporting}
+          data-html2canvas-ignore="true"
+          aria-label={isExporting ? 'Generating PDF, please wait' : 'Export dashboard report as PDF'}
+        >
+          {isExporting ? "Generating PDF..." : "Export Report as PDF"}
+        </button>
         <div className="dashboard-tools">
-          <div data-testid="time-range-selector" className="range-switch">
+          <div data-testid="time-range-selector" className="range-switch" role="group" aria-label="Select time range">
             {[6, 12, 24].map((range) => (
               <button
                 key={range}
                 type="button"
                 className={timeRange === range ? 'active' : ''}
                 onClick={() => onTimeRangeChange(range)}
+                aria-label={`Show last ${range} hours`}
+                aria-pressed={timeRange === range}
               >
                 {range}h
               </button>
@@ -105,6 +193,11 @@ export default function Dashboard({
             {current.us_aqi}
           </div>
           <p data-testid="aqi-band-label">{aqiBand.label}</p>
+          {aqiTrend && (
+            <div style={{ fontSize: "0.95rem", fontWeight: "600", color: aqiTrend.color, marginTop: "0.5rem", marginBottom: "0.5rem" }}>
+              {aqiTrend.label}
+            </div>
+          )}
           <span className={`confidence-badge confidence-${confidenceScore?.toLowerCase()}`}>
             {confidenceScore} ({dataCompleteness}% data)
           </span>
