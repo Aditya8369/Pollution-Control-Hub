@@ -71,7 +71,7 @@ export function useSWR(key, fetcher, { ttl = 5 * 60 * 1000 } = {}) {
     if (!key) return;
     cacheStore.invalidate(key);
     await revalidate(true);
-  }, [key, revalidate]);
+  }, [key, revalidate, displayData]);
 
   return { data, error, isValidating, mutate };
 }
