@@ -87,11 +87,12 @@ export const test = base.extend({
   mockPage: async ({ page }, use) => {
     await interceptApis(page);
     await page.goto('/');
-    // Wait until the skeleton loader is gone and real content is shown
-    await page.waitForSelector('[data-testid="dashboard"]', { timeout: 15_000 });
+    // Wait for loading spinner to disappear first
+    await page.waitForSelector('.loading-spinner', { state: 'detached', timeout: 15_000 });
+    // Then wait for dashboard to appear
+    await page.waitForSelector('[data-testid="dashboard"]', { state: 'visible', timeout: 10_000 });
     await use(page);
   },
-
   /**
    * errorPage — Page where API calls fail, exercising error-state rendering.
    */
