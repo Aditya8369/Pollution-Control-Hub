@@ -51,7 +51,7 @@ export function useSWR(key, fetcher, { ttl = 5 * 60 * 1000 } = {}) {
     } finally {
       setIsValidating(false);
     }
-  }, [key, ttl, data]);
+  }, [key, ttl]);
 
   // Revalidate on mount or key change
   useEffect(() => {
