@@ -16,6 +16,7 @@ import LocationSearch from './components/LocationSearch';
 import SkeletonDashboard from './components/SkeletonDashboard';
 import { CITY_COORDINATES } from './constants/cities';
 import HotspotScoutGame from "./components/HotspotScoutGame";
+import ErrorBoundary from "./components/ErrorBoundary";
 import {
   estimateWeeklyMonthlyAverages,
   fetchAirQualityByCoords,
@@ -61,13 +62,13 @@ function AppControls({
     <section className="app-controls" aria-label="Live controls">
       <div className="control-group" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'nowrap' }}>
         <label htmlFor="city-selector">Track city:</label>
-        <LocationSearch 
-          initialCityName={selectedCity === 'auto' ? 'auto' : selectedCity} 
-          onLocationSelected={onCityChange} 
+        <LocationSearch
+          initialCityName={selectedCity === 'auto' ? 'auto' : selectedCity}
+          onLocationSelected={onCityChange}
         />
-        <button 
-          type="button" 
-          className="btn-secondary text-sm" 
+        <button
+          type="button"
+          className="btn-secondary text-sm"
           style={{ padding: '0.4rem 0.8rem', whiteSpace: 'nowrap', flexShrink: 0 }}
           onClick={() => onCityChange('auto')}
         >
@@ -103,8 +104,8 @@ function SectionNav({ activeSection, onSectionChange, theme }) {
   const isDark = theme === 'dark';
 
   return (
-    <nav 
-      className="section-nav" 
+    <nav
+      className="section-nav"
       aria-label="Main sections"
     >
       <div className="nav-sections">
@@ -162,8 +163,6 @@ function SectionNav({ activeSection, onSectionChange, theme }) {
     </nav>
   );
 }
-  );
-}
 
 export default function App() {
   const [activeSection, setActiveSection] = useState(() => localStorage.getItem('activeSection') || 'home');
@@ -172,8 +171,8 @@ export default function App() {
   function getCityFromHash() {
     const params = new URLSearchParams(window.location.hash.slice(1));
     const name = params.get('city');
-    const lat  = parseFloat(params.get('lat'));
-    const lon  = parseFloat(params.get('lon'));
+    const lat = parseFloat(params.get('lat'));
+    const lon = parseFloat(params.get('lon'));
     // Only use hash values if all three are present and valid
     if (name && !isNaN(lat) && !isNaN(lon)) {
       return { name, lat, lon };
@@ -207,7 +206,7 @@ export default function App() {
   });
   const aqiKey = position.lat && position.lon ? `aqi_${position.lat}_${position.lon}` : null;
   const { data: aqiData, error: aqiError, isValidating: isAqiValidating, mutate: mutateAqi } = useSWR(
-    aqiKey, 
+    aqiKey,
     () => fetchAirQualityByCoords(position.lat, position.lon)
   );
 
@@ -367,7 +366,7 @@ export default function App() {
 
   const analytics = useMemo(() => estimateWeeklyMonthlyAverages(trend), [trend]);
   const exposureEstimate = useMemo(
-    () => estimateExposureTime(trend, current?.us_aqi), 
+    () => estimateExposureTime(trend, current?.us_aqi),
     [trend, current]
   );
 
@@ -385,14 +384,14 @@ export default function App() {
   }, [isRefreshing, mutateAqi, mutateCities, mutateWind]);
 
   useEffect(() => {
-  const handleOnline = () => refreshNow();
+    const handleOnline = () => refreshNow();
 
-  window.addEventListener("online", handleOnline);
+    window.addEventListener("online", handleOnline);
 
-  return () => {
-    window.removeEventListener("online", handleOnline);
-  };
-}, []);
+    return () => {
+      window.removeEventListener("online", handleOnline);
+    };
+  }, []);
 
   useEffect(() => {
     eventBus.on('TOGGLE_THEME', toggleTheme);
@@ -404,32 +403,28 @@ export default function App() {
     };
   }, [toggleTheme, refreshNow]);
 
-  if (loading && !error) {
-    return (
-      <main className="app-shell">
-        <SectionNav activeSection={activeSection} onSectionChange={setActiveSection} theme={theme} />
-
-        <div className="loading-spinner" aria-hidden="true"></div>
-        <h1 className="loading-title text-3xl">
-          Preparing live pollution intelligence...
-        </h1>
-
-        <Hero cityName={position.cityName} />
-        {activeSection === 'home' && (
-          <div className="content-grid" style={{ marginTop: 'var(--sp-4)' }}>
-            <SkeletonDashboard />
-          </div>
-        )}
-      </main>
-    );
-  }
-
   return (
     <main className="app-shell">
       {/* 1. Structural fix: Renders the navigation element at the very top */}
       <SectionNav activeSection={activeSection} onSectionChange={setActiveSection} theme={theme} />
-      
-      <Hero cityName={position.cityName} />
+
+      {loading && !error ? (
+        <>
+          <div className="loading-spinner" aria-hidden="true"></div>
+          <h1 className="loading-title text-3xl">
+            Preparing live pollution intelligence...
+          </h1>
+
+          <Hero cityName={position.cityName} />
+          {activeSection === 'home' && (
+            <div key="skeleton-grid" className="content-grid" style={{ marginTop: 'var(--sp-4)' }}>
+              <SkeletonDashboard />
+            </div>
+          )}
+        </>
+      ) : (
+        <>
+          <Hero cityName={position.cityName} />
 
       {activeSection === 'home' && (
         <AppControls
@@ -451,49 +446,72 @@ export default function App() {
         </div>
       )}
 
-          {error && <p className="error-banner">{error}</p>}
+      {error && <p className="error-banner">{error}</p>}
 
-      {activeSection === 'home' && current && (
-        <div className="content-grid">
-          <Dashboard
-            cityName={position.cityName}
-            current={current}
-            trend={trend}
-            cityComparisons={cityComparisons}
-            timeRange={timeRange}
-            onTimeRangeChange={setTimeRange}
-            lastUpdated={lastUpdated}
-            isRefreshing={isRefreshing}
-            confidenceScore={confidenceScore}
-            dataCompleteness={dataCompleteness}
-          />
+      {aqiData?.isFallback && (
+        <div className="warning-banner" role="status">
+          <p>
+            ⚠️ <strong>Showing cached data:</strong> We couldn't retrieve live air quality data right now (you may be offline or the server could be down). Showing last known reading from {lastUpdated ? new Date(lastUpdated).toLocaleTimeString() : 'cache'}.
+          </p>
+        </div>
+      )}
 
-          <LocationMap
-            center={position}
-            nearbyPoints={nearbyPoints}
-            confidenceScore={confidenceScore}
-            windData={windData}
-          />
+      {activeSection === 'home' && (
+        <div key="dashboard-grid" className="content-grid">
+          {current ? (
+            <>
+              <ErrorBoundary>
+                <Dashboard
+                  cityName={position.cityName}
+                  current={current}
+                  trend={trend}
+                  cityComparisons={cityComparisons}
+                  timeRange={timeRange}
+                  onTimeRangeChange={setTimeRange}
+                  lastUpdated={lastUpdated}
+                  isRefreshing={isRefreshing}
+                  confidenceScore={confidenceScore}
+                  dataCompleteness={dataCompleteness}
+                  isFallback={aqiData?.isFallback}
+                />
+              </ErrorBoundary>
 
-          <AlertsPanel
-            cityName={position.cityName}
-            current={current}
-            confidenceScore={confidenceScore}
-            dataCompleteness={dataCompleteness}
-            exposureEstimate={exposureEstimate}
-          />
+              <LocationMap
+                center={position}
+                nearbyPoints={nearbyPoints}
+                confidenceScore={confidenceScore}
+                windData={windData}
+              />
 
-          <HealthAdvisory />
+              <AlertsPanel
+                cityName={position.cityName}
+                current={current}
+                confidenceScore={confidenceScore}
+                dataCompleteness={dataCompleteness}
+                exposureEstimate={exposureEstimate}
+              />
 
-          <SolutionsAwareness />
+              <HealthAdvisory />
 
-          <AnalyticsInsights
-            analytics={analytics}
-            trend={trend}
-            timeRange={timeRange}
-          />
+              <SolutionsAwareness />
 
-          <ScenarioSimulator current={current} />
+              <AnalyticsInsights
+                analytics={analytics}
+                trend={trend}
+                timeRange={timeRange}
+              />
+
+              <ScenarioSimulator current={current} />
+            </>
+          ) : (
+            <ErrorBoundary>
+              <Dashboard
+                cityName={position.cityName}
+                current={null}
+                isFallback={false}
+              />
+            </ErrorBoundary>
+          )}
         </div>
       )}
 
@@ -516,13 +534,15 @@ export default function App() {
       )}
 
       {activeSection === 'game' && (
-  <div className="content-grid game-layout">
-    <AqiMissionGame current={current} />
-    <HotspotScoutGame nearbyPoints={nearbyPoints} />
-  </div>
-)}
+        <div className="content-grid game-layout">
+          <AqiMissionGame current={current} />
+          <HotspotScoutGame nearbyPoints={nearbyPoints} />
+        </div>
+      )}
 
       <Footer />
+        </>
+      )}
     </main>
   );
 }
