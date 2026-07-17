@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useCallback } from 'react';
+import { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import { useSWR } from './hooks/useSWR';
 import AlertsPanel from './components/AlertsPanel';
 import AnalyticsInsights from './components/AnalyticsInsights';
@@ -94,6 +94,9 @@ function AppControls({
 }
 
 function SectionNav({ activeSection, onSectionChange, theme, onToggleTheme }) {
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const menuRef = useRef(null);
+
   const sections = [
     { id: 'home', label: 'Home' },
     { id: 'quiz', label: 'Quiz' },
@@ -103,22 +106,64 @@ function SectionNav({ activeSection, onSectionChange, theme, onToggleTheme }) {
   ];
   const isDark = theme === 'dark';
 
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setIsMenuOpen(false);
+      }
+    }
+    
+    function handleKeyDown(event) {
+      if (event.key === 'Escape') {
+        setIsMenuOpen(false);
+      }
+    }
+
+    if (isMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('keydown', handleKeyDown);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isMenuOpen]);
+
+  const handleSectionClick = (id) => {
+    onSectionChange(id);
+    setIsMenuOpen(false);
+  };
+
   return (
     <nav
       className="section-nav"
       aria-label="Main sections"
+      ref={menuRef}
     >
       <div className="nav-sections">
-        {sections.map((section) => (
-          <button
-            key={section.id}
-            type="button"
-            className={activeSection === section.id ? 'active' : ''}
-            onClick={() => onSectionChange(section.id)}
-          >
-            {section.label}
-          </button>
-        ))}
+        <button 
+          className={`hamburger-menu-icon ${isMenuOpen ? 'open' : ''}`}
+          onClick={() => setIsMenuOpen(!isMenuOpen)}
+          aria-expanded={isMenuOpen}
+          aria-label="Toggle navigation menu"
+        >
+          <span></span>
+          <span></span>
+          <span></span>
+        </button>
+
+        <div className={`nav-links-container ${isMenuOpen ? 'open' : ''}`}>
+          {sections.map((section) => (
+            <button
+              key={section.id}
+              type="button"
+              className={activeSection === section.id ? 'active' : ''}
+              onClick={() => handleSectionClick(section.id)}
+            >
+              {section.label}
+            </button>
+          ))}
+        </div>
 
         <div className="nav-divider"></div>
 
@@ -416,121 +461,121 @@ export default function App() {
         <>
           <Hero cityName={position.cityName} />
 
-      {activeSection === 'home' && (
-        <AppControls
-          selectedCity={selectedCity}
-          onCityChange={handleLocationSelected}
-          onRefresh={refreshNow}
-          isRefreshing={isRefreshing}
-          refreshCountdown={refreshCountdown}
-          lastUpdated={lastUpdated}
-        />
-      )}
-
-      {locationNotice && selectedCity === 'auto' && (
-        <div className="location-notice" role="status">
-          <p>{locationNotice}</p>
-          <button type="button" onClick={() => setLocationNotice('')}>
-            Dismiss
-          </button>
-        </div>
-      )}
-
-      {error && <p className="error-banner">{error}</p>}
-
-      {aqiData?.isFallback && (
-        <div className="warning-banner" role="status">
-          <p>
-            ⚠️ <strong>Showing cached data:</strong> We couldn't retrieve live air quality data right now (you may be offline or the server could be down). Showing last known reading from {lastUpdated ? new Date(lastUpdated).toLocaleTimeString() : 'cache'}.
-          </p>
-        </div>
-      )}
-
-      {activeSection === 'home' && (
-        <div key="dashboard-grid" className="content-grid">
-          {current ? (
-            <>
-              <ErrorBoundary>
-                <Dashboard
-                  cityName={position.cityName}
-                  current={current}
-                  trend={trend}
-                  cityComparisons={cityComparisons}
-                  timeRange={timeRange}
-                  onTimeRangeChange={setTimeRange}
-                  lastUpdated={lastUpdated}
-                  isRefreshing={isRefreshing}
-                  confidenceScore={confidenceScore}
-                  dataCompleteness={dataCompleteness}
-                  isFallback={aqiData?.isFallback}
-                />
-              </ErrorBoundary>
-
-              <LocationMap
-                center={position}
-                nearbyPoints={nearbyPoints}
-                confidenceScore={confidenceScore}
-                windData={windData}
-              />
-
-              <AlertsPanel
-                cityName={position.cityName}
-                current={current}
-                confidenceScore={confidenceScore}
-                dataCompleteness={dataCompleteness}
-                exposureEstimate={exposureEstimate}
-              />
-
-              <HealthAdvisory />
-
-              <SolutionsAwareness />
-
-              <AnalyticsInsights
-                analytics={analytics}
-                trend={trend}
-                timeRange={timeRange}
-              />
-
-              <ScenarioSimulator current={current} />
-            </>
-          ) : (
-            <ErrorBoundary>
-              <Dashboard
-                cityName={position.cityName}
-                current={null}
-                isFallback={false}
-              />
-            </ErrorBoundary>
+          {activeSection === 'home' && (
+            <AppControls
+              selectedCity={selectedCity}
+              onCityChange={handleLocationSelected}
+              onRefresh={refreshNow}
+              isRefreshing={isRefreshing}
+              refreshCountdown={refreshCountdown}
+              lastUpdated={lastUpdated}
+            />
           )}
-        </div>
-      )}
 
-      {activeSection === 'community' && (
-        <div className="content-grid community-layout">
-          <CommunityHub />
-        </div>
-      )}
+          {locationNotice && selectedCity === 'auto' && (
+            <div className="location-notice" role="status">
+              <p>{locationNotice}</p>
+              <button type="button" onClick={() => setLocationNotice('')}>
+                Dismiss
+              </button>
+            </div>
+          )}
 
-      {activeSection === 'history' && (
-        <div className="content-grid history-layout">
-          <HistoricalAnalysis position={position} />
-        </div>
-      )}
+          {error && <p className="error-banner">{error}</p>}
 
-      {activeSection === 'quiz' && (
-        <div className="content-grid quiz-layout">
-          <QuizSection />
-        </div>
-      )}
+          {aqiData?.isFallback && (
+            <div className="warning-banner" role="status">
+              <p>
+                ⚠️ <strong>Showing cached data:</strong> We couldn't retrieve live air quality data right now (you may be offline or the server could be down). Showing last known reading from {lastUpdated ? new Date(lastUpdated).toLocaleTimeString() : 'cache'}.
+              </p>
+            </div>
+          )}
 
-      {activeSection === 'game' && (
-        <div className="content-grid game-layout">
-          <AqiMissionGame current={current} />
-          <HotspotScoutGame nearbyPoints={nearbyPoints} />
-        </div>
-      )}
+          {activeSection === 'home' && (
+            <div key="dashboard-grid" className="content-grid">
+              {current ? (
+                <>
+                  <ErrorBoundary>
+                    <Dashboard
+                      cityName={position.cityName}
+                      current={current}
+                      trend={trend}
+                      cityComparisons={cityComparisons}
+                      timeRange={timeRange}
+                      onTimeRangeChange={setTimeRange}
+                      lastUpdated={lastUpdated}
+                      isRefreshing={isRefreshing}
+                      confidenceScore={confidenceScore}
+                      dataCompleteness={dataCompleteness}
+                      isFallback={aqiData?.isFallback}
+                    />
+                  </ErrorBoundary>
 
-      <Footer />
+                  <LocationMap
+                    center={position}
+                    nearbyPoints={nearbyPoints}
+                    confidenceScore={confidenceScore}
+                    windData={windData}
+                  />
+
+                  <AlertsPanel
+                    cityName={position.cityName}
+                    current={current}
+                    confidenceScore={confidenceScore}
+                    dataCompleteness={dataCompleteness}
+                    exposureEstimate={exposureEstimate}
+                  />
+
+                  <HealthAdvisory />
+
+                  <SolutionsAwareness />
+
+                  <AnalyticsInsights
+                    analytics={analytics}
+                    trend={trend}
+                    timeRange={timeRange}
+                  />
+
+                  <ScenarioSimulator current={current} />
+                </>
+              ) : (
+                <ErrorBoundary>
+                  <Dashboard
+                    cityName={position.cityName}
+                    current={null}
+                    isFallback={false}
+                  />
+                </ErrorBoundary>
+              )}
+            </div>
+          )}
+
+          {activeSection === 'community' && (
+            <div className="content-grid community-layout">
+              <CommunityHub />
+            </div>
+          )}
+
+          {activeSection === 'history' && (
+            <div className="content-grid history-layout">
+              <HistoricalAnalysis position={position} />
+            </div>
+          )}
+
+          {activeSection === 'quiz' && (
+            <div className="content-grid quiz-layout">
+              <QuizSection />
+            </div>
+          )}
+
+          {activeSection === 'game' && (
+            <div className="content-grid game-layout">
+              <AqiMissionGame current={current} />
+              <HotspotScoutGame nearbyPoints={nearbyPoints} />
+            </div>
+          )}
+
+          <Footer />
         </>
       )}
     </main>
