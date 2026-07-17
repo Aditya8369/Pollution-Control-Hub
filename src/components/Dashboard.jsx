@@ -62,7 +62,8 @@ export default function Dashboard({
   lastUpdated,
   isRefreshing,
   confidenceScore,
-  dataCompleteness
+  dataCompleteness,
+  isFallback
 }) {
   const reportRef = useRef(null);
 const [isExporting, setIsExporting] = useState(false);
@@ -144,7 +145,7 @@ const exportReportAsPDF = async () => {
         </div>
         <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--muted)' }}>
           <h3>No data available</h3>
-          <p>We couldn't find pollution data for {cityName}.</p>
+          <p>We couldn't retrieve live air quality data for {cityName} and no cached readings are available.</p>
         </div>
       </section>
     );
@@ -194,7 +195,24 @@ return (
     <div className="panel-head">
       <div>
         <h2>Real-Time Pollution Dashboard</h2>
-        <p>Live readings for {cityName}</p>
+        <p>
+          Live readings for {cityName}
+          {isFallback && (
+            <span className="fallback-badge" style={{
+              marginLeft: '0.75rem',
+              padding: '0.2rem 0.5rem',
+              backgroundColor: '#d97706',
+              color: '#fff',
+              borderRadius: '4px',
+              fontSize: '0.75rem',
+              fontWeight: 'bold',
+              display: 'inline-block',
+              verticalAlign: 'middle'
+            }}>
+              Showing Cached Reading
+            </span>
+          )}
+        </p>
       </div>
 
       <button

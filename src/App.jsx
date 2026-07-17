@@ -15,8 +15,8 @@ import HistoricalAnalysis from './components/HistoricalAnalysis';
 import LocationSearch from './components/LocationSearch';
 import LocationGate from './components/LocationGate';
 import SkeletonDashboard from './components/SkeletonDashboard';
-import { CITY_COORDINATES } from './constants/cities';
-import HotspotScoutGame from "./components/HotspotScoutGame";
+import HotspotScoutGame from './components/HotspotScoutGame';
+import ErrorBoundary from './components/ErrorBoundary';
 import {
   estimateWeeklyMonthlyAverages,
   fetchAirQualityByCoords,
@@ -32,7 +32,6 @@ import {
 import { reverseGeocode } from './services/geocodingService';
 
 const LOCATION_SOURCE_KEY = 'locationSource';
-
 const THEME_STORAGE_KEY = 'pollution-hub-theme';
 const AUTO_REFRESH_SECONDS = 180;
 
@@ -107,13 +106,9 @@ function SectionNav({ activeSection, onSectionChange, theme, onToggleTheme }) {
     { id: 'community', label: 'Community' },
     { id: 'history', label: 'History' }
   ];
-  const isDark = theme === 'dark';
 
   return (
-    <nav
-      className="section-nav"
-      aria-label="Main sections"
-    >
+    <nav className="section-nav" aria-label="Main sections">
       <div className="nav-sections">
         {sections.map((section) => (
           <button
@@ -130,26 +125,20 @@ function SectionNav({ activeSection, onSectionChange, theme, onToggleTheme }) {
 
         <button
           type="button"
-          className={`theme-toggle-inline ${theme === "dark" ? "dark" : ""}`}
+          className={`theme-toggle-inline ${theme === 'dark' ? 'dark' : ''}`}
           onClick={onToggleTheme}
           aria-label="Toggle Theme"
         >
           <span className="toggle-thumb">
-            {theme === "dark" ? (
-              <svg
-                viewBox="0 0 24 24"
-                className="moon-icon"
-              >
+            {theme === 'dark' ? (
+              <svg viewBox="0 0 24 24" className="moon-icon">
                 <path
                   d="M20 15.5A8.5 8.5 0 1 1 12.5 4a7 7 0 0 0 7.5 11.5z"
                   fill="currentColor"
                 />
               </svg>
             ) : (
-              <svg
-                viewBox="0 0 24 24"
-                className="sun-icon"
-              >
+              <svg viewBox="0 0 24 24" className="sun-icon">
                 <circle cx="12" cy="12" r="5" fill="currentColor" />
                 <g stroke="currentColor" strokeWidth="2">
                   <line x1="12" y1="1" x2="12" y2="4" />
@@ -173,30 +162,25 @@ function SectionNav({ activeSection, onSectionChange, theme, onToggleTheme }) {
 export default function App() {
   const [activeSection, setActiveSection] = useState(() => localStorage.getItem('activeSection') || 'home');
 
-  // --- Helper: read city info from the URL hash (e.g. #city=Mumbai&lat=19.07&lon=72.87) ---
   function getCityFromHash() {
     const params = new URLSearchParams(window.location.hash.slice(1));
     const name = params.get('city');
     const lat = parseFloat(params.get('lat'));
     const lon = parseFloat(params.get('lon'));
-    // Only use hash values if all three are present and valid
     if (name && !isNaN(lat) && !isNaN(lon)) {
       return { name, lat, lon };
     }
     return null;
   }
 
-  // --- Helper: write city info into the URL hash so Back/Forward works ---
   function setCityInHash(name, lat, lon) {
     const params = new URLSearchParams();
     params.set('city', name);
     params.set('lat', lat);
     params.set('lon', lon);
-    // pushState so browser Back button can restore the previous city
     window.history.pushState(null, '', '#' + params.toString());
   }
 
-  // On first load: URL hash → manual city (if saved) → otherwise 'auto'
   const [selectedCity, setSelectedCity] = useState(() => {
     const fromHash = getCityFromHash();
     if (fromHash) return fromHash.name;
@@ -207,7 +191,6 @@ export default function App() {
     return 'auto';
   });
 
-  // Only restore position from a trusted source — never auto-load Delhi
   const [position, setPosition] = useState(() => {
     const fromHash = getCityFromHash();
     if (fromHash) return { lat: fromHash.lat, lon: fromHash.lon, cityName: fromHash.name };
@@ -229,8 +212,6 @@ export default function App() {
   const [isDetectingLocation, setIsDetectingLocation] = useState(false);
   const [locationError, setLocationError] = useState('');
   const geoRequestId = useRef(0);
-
-  // Must grant location OR pick a city manually — no Delhi default
   const showLocationGate = !position;
 
   const positionRef = useRef(position);
@@ -341,7 +322,6 @@ export default function App() {
     }
   }, [position]);
 
-  // Clear stale Delhi data saved by older versions
   useEffect(() => {
     const source = localStorage.getItem(LOCATION_SOURCE_KEY);
     if (source !== 'gps' && source !== 'manual') {
@@ -354,7 +334,6 @@ export default function App() {
     localStorage.setItem('timeRange', timeRange.toString());
   }, [timeRange]);
 
-  // Update lastUpdated when data changes
   useEffect(() => {
     if (aqiData) setLastUpdated(new Date().toISOString());
   }, [aqiData]);
@@ -366,7 +345,6 @@ export default function App() {
       (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
         ? 'dark'
         : 'light');
-
     setTheme(initialTheme);
   }, []);
 
@@ -375,7 +353,6 @@ export default function App() {
     localStorage.setItem(THEME_STORAGE_KEY, theme);
   }, [theme]);
 
-  // When user picks a city manually, update state + localStorage + URL hash
   const handleLocationSelected = (location) => {
     if (location === 'auto') {
       handleUseMyLocation();
@@ -392,17 +369,14 @@ export default function App() {
     }
   };
 
-  // Listen for browser Back/Forward (popstate) and restore the city from the URL hash
   useEffect(() => {
     function handlePopState() {
       const fromHash = getCityFromHash();
       if (fromHash) {
-        // Restore the city that was in the URL before Back was pressed
         setSelectedCity(fromHash.name);
         setPosition({ lat: fromHash.lat, lon: fromHash.lon, cityName: fromHash.name });
         localStorage.setItem(LOCATION_SOURCE_KEY, 'manual');
       } else {
-        // No hash → fall back to auto-detect
         setSelectedCity('auto');
         localStorage.removeItem(LOCATION_SOURCE_KEY);
         setPosition(null);
@@ -438,7 +412,6 @@ export default function App() {
     [trend, current]
   );
 
-
   const toggleTheme = () => {
     setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
   };
@@ -461,35 +434,6 @@ export default function App() {
     };
   }, []);
 
-  if (showLocationGate) {
-    return (
-      <main className="app-shell">
-        <SectionNav activeSection={activeSection} onSectionChange={setActiveSection} theme={theme} onToggleTheme={toggleTheme} />
-        <Hero cityName="your area" />
-        <LocationGate
-          onUseMyLocation={handleUseMyLocation}
-          isDetecting={isDetectingLocation}
-          errorMessage={locationError}
-          onSearchCity={focusCitySearch}
-        />
-        {activeSection === 'home' && (
-          <AppControls
-            selectedCity={selectedCity}
-            displayCityName={position?.cityName}
-            onCityChange={handleLocationSelected}
-            onUseMyLocation={handleUseMyLocation}
-            isDetectingLocation={isDetectingLocation}
-            onRefresh={refreshNow}
-            isRefreshing={false}
-            refreshCountdown={refreshCountdown}
-            lastUpdated=""
-          />
-        )}
-        <Footer />
-      </main>
-    );
-  }
-
   if (loading && !error) {
     return (
       <main className="app-shell">
@@ -500,7 +444,7 @@ export default function App() {
           Preparing live pollution intelligence...
         </h1>
 
-        <Hero cityName={position?.cityName || 'your area'} />
+        <Hero cityName={position.cityName} />
         {activeSection === 'home' && (
           <div className="content-grid" style={{ marginTop: 'var(--sp-4)' }}>
             <SkeletonDashboard />
@@ -515,7 +459,7 @@ export default function App() {
       {/* 1. Structural fix: Renders the navigation element at the very top */}
       <SectionNav activeSection={activeSection} onSectionChange={setActiveSection} theme={theme} onToggleTheme={toggleTheme} />
 
-      <Hero cityName={position?.cityName || 'your area'} />
+      <Hero cityName={position.cityName} />
 
       {activeSection === 'home' && (
         <AppControls
@@ -533,47 +477,64 @@ export default function App() {
 
       {error && <p className="error-banner">{error}</p>}
 
-      {activeSection === 'home' && current && position && (
-        <div className="content-grid">
-          <Dashboard
-            cityName={position.cityName}
-            current={current}
-            trend={trend}
-            cityComparisons={cityComparisons}
-            timeRange={timeRange}
-            onTimeRangeChange={setTimeRange}
-            lastUpdated={lastUpdated}
-            isRefreshing={isRefreshing}
-            confidenceScore={confidenceScore}
-            dataCompleteness={dataCompleteness}
-          />
+      {aqiData?.isFallback && (
+        <div className="warning-banner" role="status">
+          <p>
+            Showing cached data: we could not retrieve live air quality right now.
+            Last known reading from {lastUpdated ? new Date(lastUpdated).toLocaleTimeString() : 'cache'}.
+          </p>
+        </div>
+      )}
 
-          <LocationMap
-            center={position}
-            nearbyPoints={nearbyPoints}
-            confidenceScore={confidenceScore}
-            windData={windData}
-          />
+      {activeSection === 'home' && (
+        <div key="dashboard-grid" className="content-grid">
+          {current && position ? (
+            <>
+              <ErrorBoundary>
+                <Dashboard
+                  cityName={position.cityName}
+                  current={current}
+                  trend={trend}
+                  cityComparisons={cityComparisons}
+                  timeRange={timeRange}
+                  onTimeRangeChange={setTimeRange}
+                  lastUpdated={lastUpdated}
+                  isRefreshing={isRefreshing}
+                  confidenceScore={confidenceScore}
+                  dataCompleteness={dataCompleteness}
+                  isFallback={aqiData?.isFallback}
+                />
+              </ErrorBoundary>
 
-          <AlertsPanel
-            cityName={position.cityName}
-            current={current}
-            confidenceScore={confidenceScore}
-            dataCompleteness={dataCompleteness}
-            exposureEstimate={exposureEstimate}
-          />
+              <LocationMap
+                center={position}
+                nearbyPoints={nearbyPoints}
+                confidenceScore={confidenceScore}
+                windData={windData}
+              />
 
-          <HealthAdvisory />
+              <AlertsPanel
+                cityName={position.cityName}
+                current={current}
+                confidenceScore={confidenceScore}
+                dataCompleteness={dataCompleteness}
+                exposureEstimate={exposureEstimate}
+              />
 
-          <SolutionsAwareness />
-
-          <AnalyticsInsights
-            analytics={analytics}
-            trend={trend}
-            timeRange={timeRange}
-          />
-
-          <ScenarioSimulator current={current} />
+              <HealthAdvisory />
+              <SolutionsAwareness />
+              <AnalyticsInsights analytics={analytics} trend={trend} timeRange={timeRange} />
+              <ScenarioSimulator current={current} />
+            </>
+          ) : (
+            <ErrorBoundary>
+              <Dashboard
+                cityName={position?.cityName || 'your area'}
+                current={null}
+                isFallback={false}
+              />
+            </ErrorBoundary>
+          )}
         </div>
       )}
 
