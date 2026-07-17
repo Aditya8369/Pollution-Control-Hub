@@ -32,12 +32,10 @@ export function useSWR(key, fetcher, { ttl = 5 * 60 * 1000 } = {}) {
   const revalidate = useCallback(async (force = false) => {
     if (!key) return;
 
-    const isStale = cacheStore.isStale(key, ttl);
-    if (!force && !isStale) {
-      const cached = cacheStore.get(key);
-      if (cached && cached.data !== data) {
-        setData(cached.data);
-      }
+    const stale = await cacheStore.isStale(key, ttl);
+    if (!force && !stale) {
+      const cached = await cacheStore.get(key);
+      if (cached) setData(cached.data);
       return;
     }
 
@@ -53,7 +51,7 @@ export function useSWR(key, fetcher, { ttl = 5 * 60 * 1000 } = {}) {
     } finally {
       setIsValidating(false);
     }
-  }, [key, ttl, displayData]);
+  }, [key, ttl]);
 
   // Revalidate on mount or key change
   useEffect(() => {

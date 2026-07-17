@@ -29,8 +29,7 @@ export default function LocationSearch({ onLocationSelected, initialCityName }) 
   }, []);
 
   useEffect(() => {
-    // Update local query if external initialCityName changes (like auto-detect)
-    if (initialCityName && initialCityName !== 'auto' && initialCityName !== 'Your Current Location') {
+    if (initialCityName && initialCityName !== 'auto') {
       setQuery(initialCityName);
     }
   }, [initialCityName]);
