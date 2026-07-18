@@ -438,19 +438,19 @@ export const BP_PM10 = [
 
 export const BP_NO2 = [
   { cLow: 0, cHigh: 100, iLow: 0, iHigh: 50 },
-  { cLow: 102, cHigh: 188, iLow: 51, iHigh: 100 },
-  { cLow: 190, cHigh: 677, iLow: 101, iHigh: 150 },
-  { cLow: 679, cHigh: 1220, iLow: 151, iHigh: 200 },
-  { cLow: 1222, cHigh: 2348, iLow: 201, iHigh: 300 },
-  { cLow: 2350, cHigh: 3852, iLow: 301, iHigh: 500 },
+  { cLow: 101, cHigh: 188, iLow: 51, iHigh: 100 },
+  { cLow: 189, cHigh: 677, iLow: 101, iHigh: 150 },
+  { cLow: 678, cHigh: 1220, iLow: 151, iHigh: 200 },
+  { cLow: 1221, cHigh: 2348, iLow: 201, iHigh: 300 },
+  { cLow: 2349, cHigh: 3852, iLow: 301, iHigh: 500 },
 ];
 
 export const BP_O3 = [
   { cLow: 0, cHigh: 116, iLow: 0, iHigh: 50 },
-  { cLow: 118, cHigh: 147, iLow: 51, iHigh: 100 },
-  { cLow: 149, cHigh: 186, iLow: 101, iHigh: 150 },
-  { cLow: 188, cHigh: 225, iLow: 151, iHigh: 200 },
-  { cLow: 227, cHigh: 733, iLow: 201, iHigh: 300 },
+  { cLow: 117, cHigh: 147, iLow: 51, iHigh: 100 },
+  { cLow: 148, cHigh: 186, iLow: 101, iHigh: 150 },
+  { cLow: 187, cHigh: 225, iLow: 151, iHigh: 200 },
+  { cLow: 226, cHigh: 733, iLow: 201, iHigh: 300 },
 ];
 
 export const BP_CO = [
