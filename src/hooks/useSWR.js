@@ -39,7 +39,7 @@ export function useSWR(key, fetcher, { ttl = 5 * 60 * 1000 } = {}) {
     setCurrentKey(key);
     setData(getInitialData());
     setError(null);
-    setIsValidating(!getInitialData() && !!key);
+    setIsValidating(!!key);
   }
 
   // Asynchronous revalidation executor
@@ -96,7 +96,7 @@ export function useSWR(key, fetcher, { ttl = 5 * 60 * 1000 } = {}) {
   // Force revalidation runner (ideal for manual 'Refresh' buttons)
   const mutate = useCallback(async () => {
     if (!key) return;
-    cacheStore.invalidate(key);
+    await cacheStore.invalidate(key);
     await revalidate(true);
   }, [key, revalidate]);
 
