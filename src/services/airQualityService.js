@@ -1,7 +1,13 @@
 import { CITY_COORDINATES } from '../constants/cities';
 import { aqiCache } from '../lib/cache';
 import { cacheStore } from '../utils/cacheStore';
+import { LRUCache } from 'lru-cache';
 import ApiWorker from '../workers/apiWorker?worker';
+
+export const airQualityCache = new LRUCache({
+  max: 500,
+  ttl: 1000 * 60 * 5, 
+});
 
 const BASE_URL = 'https://air-quality-api.open-meteo.com/v1/air-quality';
 
@@ -285,7 +291,7 @@ export async function fetchAirQualityByCoords(lat, lon, signal, skipGrid = false
     dataCompleteness
   };
 
-  aqiCache.set(cacheKey, result);
+  airQualityCache.set(cacheKey, result);
   return result;
 }
 

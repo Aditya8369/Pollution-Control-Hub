@@ -332,7 +332,12 @@ return (
                 innerRadius={50}
                 outerRadius={75}
                 paddingAngle={5}
-                label={({ name }) => name}
+                label={({ name, x, y, textAnchor }) => (
+                  // Clamp y so labels near the top/bottom edge don't get clipped
+                  <text x={x} y={Math.max(y, 12)} textAnchor={textAnchor} dominantBaseline="central" fill="var(--ink)" fontSize={12}>
+                    {name}
+                  </text>
+                )}
                 labelLine={false}
               >
                 {pollutants.map((entry, index) => (
