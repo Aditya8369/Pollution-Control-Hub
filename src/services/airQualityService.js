@@ -6,12 +6,20 @@ import ApiWorker from '../workers/apiWorker?worker';
 const BASE_URL = 'https://air-quality-api.open-meteo.com/v1/air-quality';
 
 // Historical data contains multiple days, so findLastIndex() - ensures we use today's reading instead of yesterday's.
-function getCurrentHourIndex(times) {
-  const now = new Date();
-  const currentHour = now.getHours();
-  const index = times.findLastIndex((isoTime) => new Date(isoTime).getHours() === currentHour);
+function getCurrentHourIndex(times, utcOffsetSeconds = 0) {
+  // Current time in the queried location's timezone
+  const nowInLocation = new Date(Date.now() + utcOffsetSeconds * 1000);
+  const currentHour = nowInLocation.getUTCHours();
+
+  const index = times.findLastIndex((isoTime) => {
+    const hour = parseInt(isoTime.slice(11, 13), 10);
+    return hour === currentHour;
+  });
+
   return index === -1 ? 0 : index;
 }
+
+
 
 export function getAQIBand(value) {
   if (value <= 50) return { label: 'Good', color: '#1f9d55' };
@@ -60,8 +68,13 @@ async function fetchGridPointAqi(lat, lon, signal) {
   const response = await fetch(url, { signal });
   if (!response.ok) return null;
   const data = await response.json();
+  console.log(data.utc_offset_seconds);
+  console.log(data.timezone);
   const times = data.hourly?.time || [];
-  const idx = getCurrentHourIndex(times);
+  const idx = getCurrentHourIndex(
+    times,
+    data.utc_offset_seconds ?? 0
+  );
   return Math.round(data.hourly?.us_aqi?.[idx] ?? 0);
 }
 
@@ -251,8 +264,10 @@ export async function fetchAirQualityByCoords(lat, lon, signal, skipGrid = false
   }
   const hourly = data.hourly || {};
   const times = hourly.time || [];
-  const idx = getCurrentHourIndex(times);
-
+  const idx = getCurrentHourIndex(
+    times,
+    data.utc_offset_seconds ?? 0
+  );
   const current = {
     time: times[idx],
     pm2_5: Math.round(hourly.pm2_5?.[idx] ?? 0),
@@ -266,13 +281,13 @@ export async function fetchAirQualityByCoords(lat, lon, signal, skipGrid = false
   const startIndex = idx - 23;
 
   const trend = times
-  .slice(startIndex, idx + 1)
-  .map((time, i) => ({
-    time,
-    pm2_5: Math.round(hourly.pm2_5?.[startIndex + i] ?? 0),
-    pm10: Math.round(hourly.pm10?.[startIndex + i] ?? 0),
-    us_aqi: Math.round(hourly.us_aqi?.[startIndex + i] ?? 0)
-  }));
+    .slice(startIndex, idx + 1)
+    .map((time, i) => ({
+      time,
+      pm2_5: Math.round(hourly.pm2_5?.[startIndex + i] ?? 0),
+      pm10: Math.round(hourly.pm10?.[startIndex + i] ?? 0),
+      us_aqi: Math.round(hourly.us_aqi?.[startIndex + i] ?? 0)
+    }));
 
   const nearbyPoints = skipGrid ? [] : await fetchLocalGrid(lat, lon, 6, signal);
   const { confidenceScore, dataCompleteness } = computeConfidence(hourly, times);
@@ -312,7 +327,7 @@ export async function fetchCityComparisons(signal) {
       try {
         const key = `aqi_lite_${city.lat}_${city.lon}`;
         const result = await cacheStore.deduplicate(key, () => fetchAirQualityByCoords(city.lat, city.lon, signal, true));
-        
+
         return {
           city: city.name,
           aqi: result.current.us_aqi,
