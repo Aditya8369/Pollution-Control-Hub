@@ -1,5 +1,13 @@
 import { CITY_COORDINATES } from '../constants/cities';
+import { aqiCache } from '../lib/cache';
 import { cacheStore } from '../utils/cacheStore';
+import { LRUCache } from 'lru-cache';
+import ApiWorker from '../workers/apiWorker?worker';
+
+export const airQualityCache = new LRUCache({
+  max: 500,
+  ttl: 1000 * 60 * 5, 
+});
 
 const BASE_URL = 'https://air-quality-api.open-meteo.com/v1/air-quality';
 
@@ -42,8 +50,7 @@ const DIRECTION_LABELS = {
   '1,-1': 'South-East zone'
 };
 
-const gridCache = new Map();
-const CACHE_TTL_MS = 5 * 60 * 1000;
+
 
 function isValidCoord(lat, lon) {
   return (
@@ -65,9 +72,9 @@ async function fetchGridPointAqi(lat, lon, signal) {
 }
 
 export async function fetchLocalGrid(lat, lon, topN = 6, signal) {
-  const cacheKey = `${lat.toFixed(1)},${lon.toFixed(1)}`;
-  const cached = gridCache.get(cacheKey);
-  if (cached && Date.now() - cached.ts < CACHE_TTL_MS) return cached.points;
+  const cacheKey = `grid-${lat.toFixed(1)},${lon.toFixed(1)}`;
+  const cached = aqiCache.get(cacheKey);
+  if (cached) return cached;
 
   const gridOffsets = [-1, 0, 1].flatMap((dy) =>
     [-1, 0, 1]
@@ -95,7 +102,7 @@ export async function fetchLocalGrid(lat, lon, topN = 6, signal) {
     .sort((a, b) => b.aqi - a.aqi)
     .slice(0, topN);
 
-  gridCache.set(cacheKey, { ts: Date.now(), points });
+  aqiCache.set(cacheKey, points);
   return points;
 }
 
@@ -117,10 +124,29 @@ function computeConfidence(hourly, times) {
 }
 
 export async function fetchAirQualityByCoords(lat, lon, signal, skipGrid = false) {
+  const cacheKey = `coords-${lat.toFixed(4)},${lon.toFixed(4)}`;
 
-  if (!navigator.onLine) { console.log("OFFLINE CHECK HIT");
-    throw new Error("You're offline. Please reconnect to view air quality data." );}
+  const getFallbackData = () => {
+    const fallbackData = aqiCache.getFallback(cacheKey);
+    if (fallbackData) {
+      return {
+        ...fallbackData,
+        isFallback: true
+      };
+    }
+    return null;
+  };
+
+  if (!navigator.onLine) {
+    console.log("OFFLINE CHECK HIT");
+    const fallback = getFallbackData();
+    if (fallback) return fallback;
+    throw new Error("You're offline. Please reconnect to view air quality data.");
+  }
   if (!isValidCoord(lat, lon)) throw new Error('Invalid coordinates provided.');
+
+  const cached = aqiCache.get(cacheKey);
+  if (cached) return cached;
 
   const today = new Date();
   const yesterday = new Date(today);
@@ -132,13 +158,103 @@ export async function fetchAirQualityByCoords(lat, lon, signal, skipGrid = false
 
   const url = `${BASE_URL}?latitude=${lat}&longitude=${lon}&hourly=pm2_5,pm10,carbon_monoxide,nitrogen_dioxide,ozone,us_aqi&timezone=auto&start_date=${startDate}&end_date=${endDate}`;
 
-  const response = await fetch(url, { signal });
+  const fetchWithWorker = (workerUrl, workerSignal) => {
+    return new Promise((resolve, reject) => {
+      const worker = new ApiWorker();
+      let aborted = false;
 
-  if (!response.ok) {
-    throw new Error('Failed to fetch live AQI data.');
+      const onAbort = () => {
+        aborted = true;
+        worker.terminate();
+        reject(new DOMException('Aborted', 'AbortError'));
+      };
+
+      worker.onmessage = (e) => {
+        if (workerSignal) {
+          workerSignal.removeEventListener('abort', onAbort);
+        }
+        if (e.data.success) {
+          resolve(e.data.data);
+        } else {
+          reject(new Error(e.data.error || 'Failed to fetch live AQI data.'));
+        }
+        worker.terminate();
+      };
+
+      worker.onerror = (err) => {
+        if (workerSignal) {
+          workerSignal.removeEventListener('abort', onAbort);
+        }
+        reject(err);
+        worker.terminate();
+      };
+
+      if (workerSignal) {
+        if (workerSignal.aborted) {
+          worker.terminate();
+          return reject(new DOMException('Aborted', 'AbortError'));
+        }
+        workerSignal.addEventListener('abort', onAbort);
+      }
+
+      worker.postMessage({ url: workerUrl });
+    });
+  };
+
+  let attempts = 3;
+  let delay = 1000;
+  let lastError = null;
+  let data = null;
+
+  for (let attempt = 1; attempt <= attempts; attempt++) {
+    try {
+      data = await fetchWithWorker(url, signal);
+      break;
+    } catch (err) {
+      if (err.name === 'AbortError') {
+        throw err;
+      }
+      lastError = err;
+      if (attempt < attempts) {
+        try {
+          await new Promise((resolveDelay, rejectDelay) => {
+            const timeoutId = setTimeout(() => {
+              if (signal) signal.removeEventListener('abort', onAbortWait);
+              resolveDelay();
+            }, delay);
+
+            const onAbortWait = () => {
+              clearTimeout(timeoutId);
+              if (signal) signal.removeEventListener('abort', onAbortWait);
+              rejectDelay(new DOMException('Aborted', 'AbortError'));
+            };
+
+            if (signal) {
+              if (signal.aborted) {
+                clearTimeout(timeoutId);
+                return rejectDelay(new DOMException('Aborted', 'AbortError'));
+              }
+              signal.addEventListener('abort', onAbortWait);
+            }
+          });
+        } catch (waitErr) {
+          if (waitErr.name === 'AbortError') {
+            throw waitErr;
+          }
+        }
+        delay *= 2;
+      }
+    }
   }
 
-  const data = await response.json();
+  if (!data) {
+    const fallback = getFallbackData();
+    if (fallback) {
+      console.warn("API call failed after max retries. Using fallback cached data.", lastError);
+      return fallback;
+    }
+    throw lastError || new Error('Failed to fetch live AQI data.');
+  }
   const hourly = data.hourly || {};
   const times = hourly.time || [];
   const idx = getCurrentHourIndex(times);
@@ -167,13 +283,16 @@ export async function fetchAirQualityByCoords(lat, lon, signal, skipGrid = false
   const nearbyPoints = skipGrid ? [] : await fetchLocalGrid(lat, lon, 6, signal);
   const { confidenceScore, dataCompleteness } = computeConfidence(hourly, times);
 
-  return {
+  const result = {
     current,
     trend,
     nearbyPoints,
     confidenceScore,
     dataCompleteness
   };
+
+  airQualityCache.set(cacheKey, result);
+  return result;
 }
 
 export async function fetchWindData(lat, lon, signal) {
