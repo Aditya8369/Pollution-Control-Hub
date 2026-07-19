@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, useCallback } from 'react';
-import { useSWR } from './hooks/useSWR';
+import  useSWR  from './hooks/useSWR';
 import AlertsPanel from './components/AlertsPanel';
 import AnalyticsInsights from './components/AnalyticsInsights';
 import CommunityHub from './components/CommunityHub';

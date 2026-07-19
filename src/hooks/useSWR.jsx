@@ -1,19 +1,18 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { cacheStore } from '../utils/cacheStore';
+import { useState, useEffect, useCallback, useRef } from "react";
+import { cacheStore } from "../utils/cacheStore";
 
-export function useSWR(key, fetcher, { ttl = 5 * 60 * 1000 } = {}) {
-  // Initial state based on synchronous cache read
+let lastFetch = 0;
+
+function useSWR(key, fetcher, { ttl = 5 * 60 * 1000 } = {}) {
   const getInitialData = () => (key ? cacheStore.get(key)?.data : undefined);
-  
+
   const [data, setData] = useState(getInitialData);
   const [error, setError] = useState(null);
   const [isValidating, setIsValidating] = useState(() => !getInitialData() && !!key);
   const [currentKey, setCurrentKey] = useState(key);
-
   const fetcherRef = useRef(fetcher);
   fetcherRef.current = fetcher;
 
-  // Handle key changes synchronously to avoid flash of old data
   if (key !== currentKey) {
     setCurrentKey(key);
     const cachedData = getInitialData();
@@ -25,35 +24,34 @@ export function useSWR(key, fetcher, { ttl = 5 * 60 * 1000 } = {}) {
   const revalidate = useCallback(async (force = false) => {
     if (!key) return;
 
+    const now = Date.now();
+    if (now - lastFetch < 60000) return; // throttle: 1 min
+    lastFetch = now;
+
     const isStale = cacheStore.isStale(key, ttl);
     if (!force && !isStale) {
       const cached = cacheStore.get(key);
-      if (cached && cached.data !== data) {
-        setData(cached.data);
-      }
+      if (cached && cached.data !== data) setData(cached.data);
       return;
     }
 
     setIsValidating(true);
     try {
-      const newData = await cacheStore.deduplicate(key, () => fetcherRef.current());
+      const newData = await cacheStore.deduplicate(key, () => fetcherRef.current(key));
       setData(newData);
       setError(null);
     } catch (err) {
-      if (err.name !== 'AbortError') {
-        setError(err);
-      }
-    } finally {
-      setIsValidating(false);
+      if (err.name === "AbortError") return;
+      console.error("API error:", err);
+      setError(err.message || "Failed to fetch data");
     }
   }, [key, ttl, data]);
 
-  // Revalidate on mount or key change
   useEffect(() => {
     revalidate();
+     return () => setIsValidating(false);
   }, [revalidate]);
 
-  // Force revalidation (e.g. for refresh button)
   const mutate = useCallback(async () => {
     if (!key) return;
     cacheStore.invalidate(key);
@@ -62,3 +60,6 @@ export function useSWR(key, fetcher, { ttl = 5 * 60 * 1000 } = {}) {
 
   return { data, error, isValidating, mutate };
 }
+
+export default useSWR;
+

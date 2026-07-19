@@ -354,3 +354,21 @@ export function estimateAQI(pm25, pm10, no2, o3, co) {
   return Math.max(...scores);
 }
 
+let lastFetch = 0;
+
+export async function getAirQuality(lat, lon) {
+  const now = Date.now();
+  if (now - lastFetch < 60000) return; // wait 1 min between calls
+  lastFetch = now;
+
+  try {
+    const res = await fetch(`https://api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lon}`);
+    if (!res.ok) throw new Error(`API error: ${res.status}`);
+    return await res.json();
+  } catch (err) {
+    console.error(err);
+    throw new Error("Failed to fetch live AQI data. Please try again later.");
+  }
+}
+
+
