@@ -27,10 +27,6 @@ const inFlight = new Map();
 const memoryCache = new Map();
 
 export const cacheStore = {
-  getFromMemory(key) {
-    return memoryCache.get(key) || null;
-  },
-
   async get(key) {
     if (memoryCache.has(key)) return memoryCache.get(key);
     try {

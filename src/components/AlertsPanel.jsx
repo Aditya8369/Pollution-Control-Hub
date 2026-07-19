@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { SAFE_LIMITS } from '../constants/cities';
 
 function buildWarnings(current) {
@@ -12,6 +12,9 @@ function buildWarnings(current) {
 }
 
 export default function AlertsPanel({ cityName, current, confidenceScore , exposureEstimate}) {
+  const [permission, setPermission] = useState(
+    'Notification' in window ? Notification.permission : 'denied'
+  );
   if (!current) {return null;}
   const warnings = useMemo(() => buildWarnings(current), [current]);
   const lastNotified = useRef('');
@@ -34,24 +37,40 @@ export default function AlertsPanel({ cityName, current, confidenceScore , expos
       lastNotified.current = signature;
     };
 
-    if (Notification.permission === 'granted') {
+    if (permission === 'granted') {
       sendNotification();
       return;
     }
+  }, [warnings, cityName, current.us_aqi, permission]);
 
-    if (Notification.permission !== 'denied') {
-      Notification.requestPermission().then((permission) => {
-        if (permission === 'granted') sendNotification();
-      });
-    }
-  }, [warnings, cityName, current.us_aqi]);
+  const requestNotificationPermission = () => {
+    if (!('Notification' in window)) return;
+    Notification.requestPermission().then((newPermission) => {
+      setPermission(newPermission);
+    });
+  };
 
   return (
-    <section className="panel">
+    <section data-testid="alerts-panel" className="panel">
       <div className="panel-head">
         <h2>Alerts & Notifications</h2>
         <p>Health warnings based on safe pollutant thresholds</p>
       </div>
+
+      {permission === 'default' && (
+        <div style={{ marginBottom: '1rem', padding: '1rem', backgroundColor: 'var(--card-bg, #f8fafc)', borderRadius: '0.5rem', border: '1px solid var(--border-color, #e2e8f0)' }}>
+          <button 
+            type="button"
+            onClick={requestNotificationPermission}
+            style={{ padding: '0.5rem 1rem', cursor: 'pointer', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '4px', fontWeight: '500' }}
+          >
+            Enable Desktop Notifications
+          </button>
+          <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary, #64748b)', marginTop: '0.5rem', marginBottom: 0 }}>
+            Enable notifications to receive real-time pollution alerts.
+          </p>
+        </div>
+      )}
 
       {exposureEstimate && (
         <div className="exposure-card">
@@ -74,7 +93,7 @@ export default function AlertsPanel({ cityName, current, confidenceScore , expos
           )}
           <ul className="warnings">
             {warnings.map((warning) => (
-              <li key={warning}>{warning}</li>
+              <li data-testid="alert-item" key={warning}>{warning}</li>
             ))}
           </ul>
         </>

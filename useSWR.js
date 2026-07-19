@@ -3,11 +3,7 @@ import { cacheStore } from '../utils/cacheStore';
 
 export function useSWR(key, fetcher, { ttl = 5 * 60 * 1000 } = {}) {
   // Initial state based on synchronous cache read
-  const getInitialData = () => {
-    if (!key) return undefined;
-    const cached = cacheStore.getFromMemory(key);
-    return cached ? cached.data : undefined;
-  };
+  const getInitialData = () => (key ? cacheStore.get(key)?.data : undefined);
   
   const [data, setData] = useState(getInitialData);
   const [error, setError] = useState(null);
@@ -16,9 +12,6 @@ export function useSWR(key, fetcher, { ttl = 5 * 60 * 1000 } = {}) {
 
   const fetcherRef = useRef(fetcher);
   fetcherRef.current = fetcher;
-
-  const dataRef = useRef(data);
-  dataRef.current = data;
 
   // Handle key changes synchronously to avoid flash of old data
   const isKeyChanged = key !== currentKey;
@@ -39,13 +32,12 @@ export function useSWR(key, fetcher, { ttl = 5 * 60 * 1000 } = {}) {
   const revalidate = useCallback(async (force = false) => {
     if (!key) return;
 
-    const isStale = await cacheStore.isStale(key, ttl);
+    const isStale = cacheStore.isStale(key, ttl);
     if (!force && !isStale) {
-      const cached = await cacheStore.get(key);
-      if (cached && cached.data !== dataRef.current) {
+      const cached = cacheStore.get(key);
+      if (cached && cached.data !== data) {
         setData(cached.data);
       }
-      setIsValidating(false);
       return;
     }
 
@@ -61,7 +53,7 @@ export function useSWR(key, fetcher, { ttl = 5 * 60 * 1000 } = {}) {
     } finally {
       setIsValidating(false);
     }
-  }, [key, ttl]);
+  }, [key, ttl, displayData]);
 
   // Revalidate on mount or key change
   useEffect(() => {

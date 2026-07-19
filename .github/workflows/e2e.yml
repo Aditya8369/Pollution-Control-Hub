@@ -1,0 +1,144 @@
+name: E2E Tests (Playwright)
+
+# ── Trigger conditions ────────────────────────────────────────────────────────
+on:
+  pull_request:
+    branches: [main, master, develop]
+  push:
+    branches: [main, master]
+  # Allow manual trigger from the Actions tab
+  workflow_dispatch:
+
+# ── Concurrency: cancel in-progress runs for the same branch ─────────────────
+concurrency:
+  group: e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ── Job 1: Install deps and run Playwright across all browsers ──────────────
+  playwright:
+    name: Playwright E2E (${{ matrix.browser }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    strategy:
+      # Don't cancel other browsers if one fails — we want the full picture
+      fail-fast: false
+      matrix:
+        browser: [chromium, firefox, webkit]
+
+    steps:
+      # 1. Check out the repo
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 2. Set up Node.js (matches Vite's requirements)
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      # 3. Install npm dependencies (including Playwright)
+      - name: Install dependencies
+        run: npm ci
+
+      # 4. Install the specific Playwright browser binary + OS dependencies
+      - name: Install Playwright browser (${{ matrix.browser }})
+        run: npx playwright install --with-deps ${{ matrix.browser }}
+
+      # 5. Build the application so the preview server can serve it
+      #    (alternatively, Playwright's webServer config starts `vite` directly)
+      - name: Build application
+        run: npm run build
+        env:
+          NODE_ENV: production
+
+      # 6. Run the E2E suite for the current browser shard
+      - name: Run Playwright tests (${{ matrix.browser }})
+        run: npx playwright test --project=${{ matrix.browser }}
+        env:
+          CI: true
+          # Ensure Vite preview port matches playwright.config.js baseURL
+          VITE_PORT: 5173
+
+      # 7. Upload the HTML report and any failure artefacts
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-${{ matrix.browser }}
+          path: playwright-report/
+          retention-days: 14
+
+      # 8. Upload traces / screenshots on failure for easier debugging
+      - name: Upload test artefacts on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-artefacts-${{ matrix.browser }}
+          path: |
+            test-results/
+            playwright-report/
+          retention-days: 7
+
+  # ── Job 2: Mobile smoke test (Chromium / Pixel 5 viewport) ─────────────────
+  playwright-mobile:
+    name: Playwright E2E (mobile-chrome)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Build application
+        run: npm run build
+        env:
+          NODE_ENV: production
+
+      - name: Run mobile smoke tests
+        run: npx playwright test --project=mobile-chrome
+        env:
+          CI: true
+
+      - name: Upload mobile test report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-mobile-chrome
+          path: playwright-report/
+          retention-days: 14
+
+  # ── Job 3: Status check gate ────────────────────────────────────────────────
+  # This job provides a single status check that GitHub branch protection rules
+  # can reference instead of all individual matrix jobs.
+  e2e-status:
+    name: E2E Tests — All Passed
+    needs: [playwright, playwright-mobile]
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Check all E2E jobs succeeded
+        run: |
+          if [[ "${{ needs.playwright.result }}" != "success" ]]; then
+            echo "❌ Cross-browser E2E tests failed."
+            exit 1
+          fi
+          if [[ "${{ needs.playwright-mobile.result }}" != "success" ]]; then
+            echo "❌ Mobile E2E tests failed."
+            exit 1
+          fi
+          echo "✅ All E2E tests passed."

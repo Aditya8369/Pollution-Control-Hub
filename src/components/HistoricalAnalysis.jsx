@@ -81,7 +81,7 @@ export default function HistoricalAnalysis({ position }) {
   if (!data) return null;
 
   return (
-    <div className="historical-analysis-container section-card">
+    <div data-testid="historical-analysis" className="historical-analysis-container section-card">
       <header className="mb-6">
         <h2 className="text-2xl font-semibold">Long-Term Climate & Pollution Trends</h2>
         <p className="text-sm opacity-80">
