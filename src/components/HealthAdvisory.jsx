@@ -38,6 +38,26 @@ const organImpacts = [
         <circle cx="12" cy="12" r="3" strokeLinecap="round" strokeLinejoin="round" />
       </svg>
     )
+  },
+  {
+    title: 'Brain',
+    impact: 'Pollutant exposure is linked to cognitive fog, headaches, reduced concentration, and long-term neurological decline.',
+    icon: (
+      <svg className="organ-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <path d="M9.5 2a3.5 3.5 0 0 0-3.5 3.5v.55A3.5 3.5 0 0 0 4 9.34v1.32a3.5 3.5 0 0 0-1 2.47V15.5A3.5 3.5 0 0 0 6.5 19h.55A3.5 3.5 0 0 0 10 21.45V22" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M14.5 2a3.5 3.5 0 0 1 3.5 3.5v.55A3.5 3.5 0 0 1 20 9.34v1.32a3.5 3.5 0 0 1 1 2.47V15.5A3.5 3.5 0 0 1 17.5 19h-.55A3.5 3.5 0 0 1 14 21.45V22" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    )
+  },
+  {
+    title: 'Immune System',
+    impact: 'Chronic exposure weakens immune response, increasing susceptibility to respiratory infections and slower recovery times.',
+    icon: (
+      <svg className="organ-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <path d="M12 2 3 6v6c0 5 4 9.5 9 10 5-.5 9-5 9-10V6l-9-4Z" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M9 12l2 2 4-4" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    )
   }
 ];
 

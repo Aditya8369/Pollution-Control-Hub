@@ -40,6 +40,7 @@
   --sky-text: #0284c7;
   --danger-fill: #ffcccc;
   --danger-text: #dc2626;
+  --bg-card-alt: #f8fafc;
 }
 
 :root[data-theme="dark"] {
@@ -53,6 +54,7 @@
   --accent: #fb923c;
   --sky: #38bdf8;
   --danger: #f87171;
+  --bg-card-alt: #1a2434;
 
   --shadow-sm: 0 2px 10px rgba(0, 0, 0, 0.35);
   --shadow-md: 0 14px 34px rgba(0, 0, 0, 0.45);
@@ -3450,7 +3452,8 @@ a {
   margin-top: -0.2rem;
 }
 
-/* Hotspot Scout Game===========================*/ .hotspot-game {
+/* Hotspot Scout Game===========================*/
+.hotspot-game {
   background: var(--card);
   border: 1px solid var(--line);
   border-radius: var(--r-md);
@@ -3822,6 +3825,8 @@ a {
   }
 }
 
+
+
 /* ============================================================
    Mobile History/Calendar Overflow Fix v2 (mobile only)
    ============================================================ */
@@ -3890,4 +3895,96 @@ body {
   height: 12px;
   border-radius: 3px;
   flex-shrink: 0;
+}
+
+/* ============================================================
+   Mobile Navigation Enhancements (Hamburger Menu)
+   ============================================================ */
+.hamburger-menu-icon {
+  display: none;
+}
+
+.nav-links-container {
+  display: flex;
+  gap: var(--sp-2);
+}
+
+@media (max-width: 767px) {
+  .hamburger-menu-icon {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around;
+    width: 36px;
+    height: 36px;
+    background: transparent !important;
+    border: none !important;
+    cursor: pointer;
+    padding: 8px !important;
+    z-index: 60;
+  }
+  
+  .hamburger-menu-icon span {
+    width: 20px;
+    height: 2px;
+    background: var(--muted);
+    border-radius: 10px;
+    transition: all 0.3s linear;
+    position: relative;
+    transform-origin: 1px;
+  }
+  
+  .hamburger-menu-icon.open span:nth-child(1) {
+    transform: rotate(45deg);
+  }
+  
+  .hamburger-menu-icon.open span:nth-child(2) {
+    opacity: 0;
+    transform: translateX(10px);
+  }
+  
+  .hamburger-menu-icon.open span:nth-child(3) {
+    transform: rotate(-45deg);
+  }
+
+  .nav-sections {
+    justify-content: space-between !important;
+    flex-wrap: nowrap !important;
+    padding: 0.3rem 0.5rem !important;
+  }
+
+  .nav-divider {
+    display: none !important;
+  }
+
+  .nav-links-container {
+    position: absolute;
+    top: calc(100% + 10px);
+    left: 10px;
+    right: 10px;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: var(--r-md);
+    padding: var(--sp-3);
+    box-shadow: var(--shadow-md);
+    flex-direction: column;
+    gap: var(--sp-2);
+    
+    /* Animation */
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-10px);
+    transition: all 0.3s var(--ease);
+  }
+
+  .nav-links-container.open {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+  }
+
+  .nav-links-container button {
+    width: 100%;
+    text-align: left;
+    padding: 0.75rem 1rem !important;
+  }
 }
