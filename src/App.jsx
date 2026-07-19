@@ -635,15 +635,6 @@ export default function App() {
             </div>
           )}
 
-          {locationNotice && selectedCity === "auto" && (
-            <div className="location-notice" role="status">
-              <p>{locationNotice}</p>
-              <button type="button" onClick={() => setLocationNotice("")}>
-                Dismiss
-              </button>
-            </div>
-          )}
-
           {error && <p className="error-banner">{error}</p>}
 
           {activeSection === "home" && current && (

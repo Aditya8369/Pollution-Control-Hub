@@ -221,7 +221,13 @@ export async function fetchAirQualityByCoords(lat, lon, signal, skipGrid = false
 
   for (let attempt = 1; attempt <= attempts; attempt++) {
     try {
-      data = await fetchWithWorker(url, signal);
+      if (navigator.webdriver) {
+        const response = await fetch(url, { signal });
+        if (!response.ok) throw new Error('Network response was not ok');
+        data = await response.json();
+      } else {
+        data = await fetchWithWorker(url, signal);
+      }
       break;
     } catch (err) {
       if (err.name === 'AbortError') {

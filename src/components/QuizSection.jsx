@@ -288,43 +288,7 @@ const QUIZ_SETS = {
         explanation: 'Energy sector produces largest emissions and is crucial to transition.'
       }
     ]
-  },
-  'climate-basics': {
-    name: 'Climate Change Basics',
-    desc: 'Test your foundational knowledge of climate change causes and effects.',
-    questions: [
-      {
-        question: 'What is the primary cause of current global warming?',
-        options: ['Solar flares', 'Human greenhouse gas emissions', 'Volcanic eruptions', 'Ocean currents shifting'],
-        answer: 'Human greenhouse gas emissions',
-        explanation: 'Burning fossil fuels releases CO2 and other gases that trap heat in the atmosphere.'
-      },
-      {
-        question: 'Which gas is the largest contributor to the greenhouse effect from human activity?',
-        options: ['Oxygen', 'Carbon dioxide (CO2)', 'Nitrogen', 'Argon'],
-        answer: 'Carbon dioxide (CO2)',
-        explanation: 'CO2 from burning fossil fuels is the largest driver of human-caused warming.'
-      },
-      {
-        question: 'What is the "greenhouse effect"?',
-        options: ['Plants growing faster', 'Gases trapping heat in the atmosphere', 'Ozone layer healing', 'Ocean cooling process'],
-        answer: 'Gases trapping heat in the atmosphere',
-        explanation: 'Greenhouse gases trap solar heat, warming the planet like a greenhouse traps warmth.'
-      },
-      {
-        question: 'What is a major consequence of melting polar ice caps?',
-        options: ['Lower sea levels', 'Rising sea levels', 'Increased ozone', 'Decreased temperatures'],
-        answer: 'Rising sea levels',
-        explanation: 'Melting ice adds water to oceans, raising sea levels and threatening coastal areas.'
-      },
-      {
-        question: 'Which action helps mitigate climate change most effectively?',
-        options: ['Increasing coal use', 'Transitioning to renewable energy', 'Deforestation', 'Ignoring emissions'],
-        answer: 'Transitioning to renewable energy',
-        explanation: 'Renewable energy sources like solar and wind produce far fewer emissions than fossil fuels.'
-      }
-    ]
-  },
+  }
 };
 
 function QuizSelector({ onSelectQuiz }) {
@@ -403,7 +367,7 @@ export default function QuizSection() {
 
   if (!selectedQuiz) {
     return (
-      <section className="panel quiz-panel">
+      <section data-testid="quiz-section" className="panel quiz-panel">
         <div className="panel-head">
           <h2>Pollution Quiz Center</h2>
         </div>
@@ -414,7 +378,7 @@ export default function QuizSection() {
 
   if (index >= total) {
     return (
-      <section className="panel quiz-panel">
+      <section data-testid="quiz-section" className="panel quiz-panel">
         <div className="panel-head">
           <h2>{quizSet.name}</h2>
           <p>Quiz complete - view your results below</p>
@@ -425,7 +389,7 @@ export default function QuizSection() {
   }
 
   return (
-    <section className="panel quiz-panel">
+    <section data-testid="quiz-section" className="panel quiz-panel">
       <div className="panel-head">
         <div className="quiz-header-row">
           <h2>{quizSet.name}</h2>
