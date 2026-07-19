@@ -1,7 +1,7 @@
 import { CITY_COORDINATES } from '../constants/cities';
 import { aqiCache } from '../lib/cache';
 import { cacheStore } from '../utils/cacheStore';
-import LRUCache from 'lru-cache';
+import { LRUCache } from 'lru-cache';
 import ApiWorker from '../workers/apiWorker?worker';
 
 export const airQualityCache = new LRUCache({
