@@ -391,7 +391,16 @@ export default function App() {
   const [refreshCountdown, setRefreshCountdown] =
     useState(AUTO_REFRESH_SECONDS);
   const [locationNotice, setLocationNotice] = useState("");
-  const [theme, setTheme] = useState("light");
+  const [theme, setTheme] = useState(() => {
+  const savedTheme = localStorage.getItem(THEME_STORAGE_KEY);
+
+  if (savedTheme) return savedTheme;
+
+  return window.matchMedia &&
+    window.matchMedia("(prefers-color-scheme: dark)").matches
+    ? "dark"
+    : "light";
+});
   const [timeRange, setTimeRange] = useState(() => {
     const saved = localStorage.getItem("timeRange");
     return saved ? Number(saved) : 24;
@@ -417,18 +426,6 @@ export default function App() {
   useEffect(() => {
     if (aqiData) setLastUpdated(new Date().toISOString());
   }, [aqiData]);
-
-  useEffect(() => {
-    const savedTheme = localStorage.getItem(THEME_STORAGE_KEY);
-    const initialTheme =
-      savedTheme ||
-      (window.matchMedia &&
-        window.matchMedia("(prefers-color-scheme: dark)").matches
-        ? "dark"
-        : "light");
-
-    setTheme(initialTheme);
-  }, []);
 
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
