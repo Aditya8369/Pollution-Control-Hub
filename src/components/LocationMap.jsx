@@ -20,7 +20,7 @@ export default function LocationMap({ center, nearbyPoints, confidenceScore, win
   }) : null;
 
   return (
-    <section className="panel">
+    <section data-testid="location-map" className="panel">
       <div className="panel-head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
           <h2>Location-Based Tracking</h2>

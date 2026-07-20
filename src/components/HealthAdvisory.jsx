@@ -1,27 +1,33 @@
 import { useState } from 'react';
 
-import { FaHeartbeat, FaLungs, FaHandSparkles } from "react-icons/fa";
-const sections = [
+const organImpacts = [
   {
-    title: "Lungs",
-    icon: <FaLungs />,
-    variant: "lungs",
-    impact:
-      "Fine particles inflame airways and can worsen asthma, bronchitis, and breathing difficulty.",
+    title: 'Lungs',
+    impact: 'Fine particles inflame airways, triggering asthma, bronchitis, and long-term capacity reduction.',
+    icon: (
+      <svg className="organ-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <path d="M12 2v20M6 5c-3 0-4 3-4 7s2 7 4 7c3 0 4-4 4-7S9 5 6 5zM18 5c3 0 4 3 4 7s-2 7-4 7c-3 0-4-4-4-7s1-7 4-7z" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    )
   },
   {
-    title: "Heart",
-    icon: <FaHeartbeat />,
-    variant: "heart",
-    impact:
-      "Long-term exposure to polluted air increases blood pressure and cardiovascular disease risk.",
+    title: 'Heart',
+    impact: 'Microscopic pollutants pass into blood, causing inflammation, arterial stiffness, and clotting risk.',
+    icon: (
+      <svg className="organ-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    )
   },
   {
-    title: "Skin",
-    icon: <FaHandSparkles />,
-    variant: "skin",
-    impact:
-      "Air pollutants and smog can trigger irritation, dryness, and premature aging.",
+    title: 'Skin',
+    impact: 'Smog and soot block pores, leading to oxidative stress, moisture loss, and premature aging.',
+    icon: (
+      <svg className="organ-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <path d="M12 2a5 5 0 0 0-5 5v3a5 5 0 0 0 10 0V7a5 5 0 0 0-5-5z" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M17 16c0-2.2-1.8-4-4-4h-2c-2.2 0-4 1.8-4 4v4h10v-4z" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    )
   },
   {
     title: 'Eyes',
@@ -54,7 +60,6 @@ const sections = [
     )
   }
 ];
-
 
 const audiences = {
   general: {
@@ -183,7 +188,7 @@ export default function HealthAdvisory() {
   const [activeTab, setActiveTab] = useState('general');
 
   return (
-    <section className="panel health-advisory-panel">
+    <section data-testid="health-advisory" className="panel health-advisory-panel">
       <div className="panel-head">
         <h2>Health Advisory Hub</h2>
         <p>How current air quality impacts your organs, and recommended steps to protect yourself.</p>
@@ -191,14 +196,14 @@ export default function HealthAdvisory() {
 
       {/* Organ Impacts Grid */}
       <h3 className="section-subtitle">Organ-Specific Impacts</h3>
-     <div className="advisory-grid">
-        {sections.map((section) => (
-          <article key={section.title} className="advisory-card">
-            <div className={`icon-container ${section.variant}`}>{section.icon}</div>
-            <div className="advisory-card-top">
-              <h3>{section.title}</h3>
+      <div className="advisory-grid">
+        {organImpacts.map((organ) => (
+          <article key={organ.title} className="advisory-card">
+            <div className="advisory-card-header">
+              {organ.icon}
+              <h3>{organ.title}</h3>
             </div>
-            <p>{section.impact}</p>
+            <p>{organ.impact}</p>
           </article>
         ))}
       </div>

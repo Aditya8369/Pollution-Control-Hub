@@ -51,7 +51,7 @@ export default function AlertsPanel({ cityName, current, confidenceScore , expos
   };
 
   return (
-    <section className="panel">
+    <section data-testid="alerts-panel" className="panel">
       <div className="panel-head">
         <h2>Alerts & Notifications</h2>
         <p>Health warnings based on safe pollutant thresholds</p>
@@ -93,7 +93,7 @@ export default function AlertsPanel({ cityName, current, confidenceScore , expos
           )}
           <ul className="warnings">
             {warnings.map((warning) => (
-              <li key={warning}>{warning}</li>
+              <li data-testid="alert-item" key={warning}>{warning}</li>
             ))}
           </ul>
         </>

@@ -1,26 +1,4 @@
-
-import { useEffect, useMemo, useState, useCallback } from 'react';
-import  useSWR  from './hooks/useSWR';
-import AlertsPanel from './components/AlertsPanel';
-import AnalyticsInsights from './components/AnalyticsInsights';
-import CommunityHub from './components/CommunityHub';
-import Dashboard from './components/Dashboard';
-import Footer from './components/Footer';
-import HealthAdvisory from './components/HealthAdvisory';
-import LocationMap from './components/LocationMap';
-import QuizSection from './components/QuizSection';
-import SolutionsAwareness from './components/SolutionsAwareness';
-import ScenarioSimulator from './components/ScenarioSimulator';
-import AqiMissionGame from './components/AqiMissionGame';
-import HistoricalAnalysis from './components/HistoricalAnalysis';
-import LocationSearch from './components/LocationSearch';
-import SkeletonDashboard from './components/SkeletonDashboard';
-import { CITY_COORDINATES } from './constants/cities';
-
-import { useEffect, useMemo, useState, useCallback } from "react";
-
 import { useEffect, useMemo, useState, useCallback, useRef } from "react";
-
 import { useSWR } from "./hooks/useSWR";
 import AlertsPanel from "./components/AlertsPanel";
 import AnalyticsInsights from "./components/AnalyticsInsights";
@@ -37,7 +15,6 @@ import HistoricalAnalysis from "./components/HistoricalAnalysis";
 import LocationSearch from "./components/LocationSearch";
 import SkeletonDashboard from "./components/SkeletonDashboard";
 import { CITY_COORDINATES } from "./constants/cities";
-
 import HotspotScoutGame from "./components/HotspotScoutGame";
 import ErrorBoundary from "./components/ErrorBoundary";
 import {
@@ -362,16 +339,22 @@ export default function App() {
     return localStorage.getItem("selectedCity") || "auto";
   });
 
-  // On first load: prefer URL hash → then localStorage → then DEFAULT_POSITION
+  // On first load: prefer URL hash → then (if a real city was saved) localStorage → else null.
+  // Never default to Delhi when the selection is 'auto' — wait for geolocation instead,
+  // otherwise an AQI fetch fires for Delhi before geolocation resolves (race condition).
   const [position, setPosition] = useState(() => {
     const fromHash = getCityFromHash();
     if (fromHash)
       return { lat: fromHash.lat, lon: fromHash.lon, cityName: fromHash.name };
-    const saved = localStorage.getItem("position");
-    return saved ? JSON.parse(saved) : DEFAULT_POSITION;
+    const savedCity = localStorage.getItem("selectedCity");
+    if (savedCity && savedCity !== "auto") {
+      const saved = localStorage.getItem("position");
+      if (saved) return JSON.parse(saved);
+    }
+    return null;
   });
   const aqiKey =
-    position.lat && position.lon ? `aqi_${position.lat}_${position.lon}` : null;
+    position?.lat && position?.lon ? `aqi_${position.lat}_${position.lon}` : null;
   const {
     data: aqiData,
     error: aqiError,
@@ -388,7 +371,7 @@ export default function App() {
   } = useSWR(cityKey, () => fetchCityComparisons());
 
   const windKey =
-    position.lat && position.lon
+    position?.lat && position?.lon
       ? `wind_${position.lat}_${position.lon}`
       : null;
   const {
@@ -414,6 +397,9 @@ export default function App() {
   const [refreshCountdown, setRefreshCountdown] =
     useState(AUTO_REFRESH_SECONDS);
   const [locationNotice, setLocationNotice] = useState("");
+  // Bumped whenever the user wants geolocation retried (e.g. clicking "Auto Detect"
+  // while already on 'auto'), since selectedCity alone wouldn't change to retrigger it.
+  const [geoAttempt, setGeoAttempt] = useState(0);
   const [theme, setTheme] = useState(() => {
   const savedTheme = localStorage.getItem(THEME_STORAGE_KEY);
 
@@ -438,7 +424,7 @@ export default function App() {
   }, [selectedCity]);
 
   useEffect(() => {
-    localStorage.setItem("position", JSON.stringify(position));
+    if (position) localStorage.setItem("position", JSON.stringify(position));
   }, [position]);
 
   useEffect(() => {
@@ -459,9 +445,8 @@ export default function App() {
     if (selectedCity === "auto") {
       if (!navigator.geolocation) {
         setLocationNotice(
-          "Your browser can't detect location, so we're showing Delhi.",
+          "Your browser can't detect location. Please search for a city instead.",
         );
-        setPosition(DEFAULT_POSITION);
         return;
       }
 
@@ -474,48 +459,28 @@ export default function App() {
             cityName: "Your Current Location",
           });
         },
-        () => {
-          setLocationNotice(
-            "Couldn't detect your location — showing Delhi for now.",
-          );
-          setPosition(DEFAULT_POSITION);
+        (err) => {
+          const message =
+            err.code === err.PERMISSION_DENIED
+              ? "Location access denied. Use Auto Detect to retry, or search for a city."
+              : "Couldn't detect your location. Use Auto Detect to retry, or search for a city.";
+          setLocationNotice(message);
+          // Do NOT fall back to Delhi — leave position unset so no AQI is fetched
+          // until the user retries geolocation or picks a city explicitly.
         },
         { timeout: 8000 },
       );
     }
-  }, [selectedCity]);
+  }, [selectedCity, geoAttempt]);
 
   const handleLocationSelected = (location) => {
     if (location === "auto") {
+      // Delegate the actual geolocation call to the effect below (single source of
+      // truth) instead of duplicating it here — running both caused a race where
+      // whichever call resolved/fell back last (often Delhi) silently won.
       setSelectedCity("auto");
-
-      if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-          (positionObj) => {
-            setPosition({
-              lat: positionObj.coords.latitude,
-              lon: positionObj.coords.longitude,
-              cityName: "Current Location",
-            });
-            setLocationNotice("");
-          },
-          (error) => {
-            console.warn("Geolocation fallback active:", error);
-            setPosition({
-              lat: 28.6139,
-              lon: 77.209,
-              cityName: "Delhi (Default)",
-            });
-            setLocationNotice(
-              "Location access denied. Using default tracking region.",
-            );
-          },
-        );
-      } else {
-        console.error(
-          "Geolocation is not supported by this browser interface.",
-        );
-      }
+      setLocationNotice("");
+      setGeoAttempt((n) => n + 1);
     } else {
       setSelectedCity(location.name);
       setPosition({
@@ -623,7 +588,7 @@ export default function App() {
             Preparing live pollution intelligence...
           </h1>
 
-          <Hero cityName={position.cityName} />
+          <Hero cityName={position?.cityName || "your area"} />
           {activeSection === "home" && (
             <div
               key="skeleton-grid"
@@ -636,7 +601,7 @@ export default function App() {
         </>
       ) : (
         <>
-          <Hero cityName={position.cityName} />
+          <Hero cityName={position?.cityName || "your area"} />
 
           {activeSection === 'home' && (
             <AppControls
@@ -663,7 +628,7 @@ export default function App() {
           {activeSection === "home" && current && (
             <div key="dashboard-grid" className="content-grid">
               <Dashboard
-                cityName={position.cityName}
+                cityName={position?.cityName || "your area"}
                 current={current}
                 trend={trend}
                 cityComparisons={cityComparisons}
@@ -683,7 +648,7 @@ export default function App() {
               />
 
               <AlertsPanel
-                cityName={position.cityName}
+                cityName={position?.cityName || "your area"}
                 current={current}
                 confidenceScore={confidenceScore}
                 dataCompleteness={dataCompleteness}
