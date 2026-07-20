@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { SAFE_LIMITS } from '../constants/cities';
 
 function buildWarnings(current) {
@@ -6,13 +6,15 @@ function buildWarnings(current) {
   if (current.pm2_5 > SAFE_LIMITS.pm2_5) warnings.push('PM2.5 is high. Wear a certified mask and avoid heavy outdoor exercise.');
   if (current.pm10 > SAFE_LIMITS.pm10) warnings.push('PM10 is elevated. Keep windows closed during peak traffic hours.');
   if (current.nitrogen_dioxide > SAFE_LIMITS.nitrogen_dioxide) warnings.push('NO2 levels are unsafe. Reduce roadside exposure if possible.');
-  if (current.carbon_monoxide > SAFE_LIMITS.carbon_monoxide) warnings.push('CO levels are elevated. Ensure good ventilation and avoid enclosed traffic areas.');
   if (current.ozone > SAFE_LIMITS.ozone) warnings.push('Ozone levels are high. Limit outdoor activity during peak sunlight hours.');
   if (current.us_aqi > 120) warnings.push('AQI suggests unhealthy conditions. Avoid outdoor activities today.');
   return warnings;
 }
 
 export default function AlertsPanel({ cityName, current, confidenceScore , exposureEstimate}) {
+  const [permission, setPermission] = useState(
+    'Notification' in window ? Notification.permission : 'denied'
+  );
   if (!current) {return null;}
   const warnings = useMemo(() => buildWarnings(current), [current]);
   const lastNotified = useRef('');
@@ -35,17 +37,18 @@ export default function AlertsPanel({ cityName, current, confidenceScore , expos
       lastNotified.current = signature;
     };
 
-    if (Notification.permission === 'granted') {
+    if (permission === 'granted') {
       sendNotification();
       return;
     }
+  }, [warnings, cityName, current.us_aqi, permission]);
 
-    if (Notification.permission !== 'denied') {
-      Notification.requestPermission().then((permission) => {
-        if (permission === 'granted') sendNotification();
-      });
-    }
-  }, [warnings, cityName, current.us_aqi]);
+  const requestNotificationPermission = () => {
+    if (!('Notification' in window)) return;
+    Notification.requestPermission().then((newPermission) => {
+      setPermission(newPermission);
+    });
+  };
 
   return (
     <section className="panel">
@@ -53,6 +56,21 @@ export default function AlertsPanel({ cityName, current, confidenceScore , expos
         <h2>Alerts & Notifications</h2>
         <p>Health warnings based on safe pollutant thresholds</p>
       </div>
+
+      {permission === 'default' && (
+        <div style={{ marginBottom: '1rem', padding: '1rem', backgroundColor: 'var(--card-bg, #f8fafc)', borderRadius: '0.5rem', border: '1px solid var(--border-color, #e2e8f0)' }}>
+          <button 
+            type="button"
+            onClick={requestNotificationPermission}
+            style={{ padding: '0.5rem 1rem', cursor: 'pointer', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '4px', fontWeight: '500' }}
+          >
+            Enable Desktop Notifications
+          </button>
+          <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary, #64748b)', marginTop: '0.5rem', marginBottom: 0 }}>
+            Enable notifications to receive real-time pollution alerts.
+          </p>
+        </div>
+      )}
 
       {exposureEstimate && (
         <div className="exposure-card">

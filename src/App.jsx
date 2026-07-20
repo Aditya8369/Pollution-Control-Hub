@@ -1,4 +1,4 @@
-<<<<<<< HEAD
+
 import { useEffect, useMemo, useState, useCallback } from 'react';
 import  useSWR  from './hooks/useSWR';
 import AlertsPanel from './components/AlertsPanel';
@@ -16,8 +16,11 @@ import HistoricalAnalysis from './components/HistoricalAnalysis';
 import LocationSearch from './components/LocationSearch';
 import SkeletonDashboard from './components/SkeletonDashboard';
 import { CITY_COORDINATES } from './constants/cities';
-=======
+
 import { useEffect, useMemo, useState, useCallback } from "react";
+
+import { useEffect, useMemo, useState, useCallback, useRef } from "react";
+
 import { useSWR } from "./hooks/useSWR";
 import AlertsPanel from "./components/AlertsPanel";
 import AnalyticsInsights from "./components/AnalyticsInsights";
@@ -34,7 +37,7 @@ import HistoricalAnalysis from "./components/HistoricalAnalysis";
 import LocationSearch from "./components/LocationSearch";
 import SkeletonDashboard from "./components/SkeletonDashboard";
 import { CITY_COORDINATES } from "./constants/cities";
->>>>>>> cabb23949075f8b89cf341c87038276e41e0f480
+
 import HotspotScoutGame from "./components/HotspotScoutGame";
 import ErrorBoundary from "./components/ErrorBoundary";
 import {
@@ -140,55 +143,187 @@ function SectionNav({ activeSection, onSectionChange, theme }) {
   ];
   const isDark = theme === "dark";
 
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const menuRef = useRef(null);
+  
+  const [isMobile, setIsMobile] = useState(() => 
+    typeof window !== 'undefined' ? window.matchMedia("(max-width: 768px)").matches : false
+  );
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(max-width: 768px)");
+    const handler = (e) => setIsMobile(e.matches);
+    
+    // Add compatibility for older browsers if needed, though addEventListener is widely supported
+    if (mediaQuery.addEventListener) {
+      mediaQuery.addEventListener("change", handler);
+      return () => mediaQuery.removeEventListener("change", handler);
+    } else {
+      mediaQuery.addListener(handler);
+      return () => mediaQuery.removeListener(handler);
+    }
+  }, []);
+
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setIsMenuOpen(false);
+      }
+    }
+
+    function handleKeyDown(event) {
+      if (event.key === 'Escape') {
+        setIsMenuOpen(false);
+      }
+    }
+
+    if (isMenuOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener('keydown', handleKeyDown);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isMenuOpen]);
+
+  const handleSectionClick = (id) => {
+    onSectionChange(id);
+    setIsMenuOpen(false);
+  };
+
+  const themeToggleNode = (
+    <button
+      type="button"
+      className={`theme-toggle-inline ${theme === "dark" ? "dark" : ""}`}
+      onClick={() => eventBus.emit('TOGGLE_THEME')}
+      aria-label="Toggle Theme"
+    >
+      <span className="toggle-thumb">
+        {theme === "dark" ? (
+          <svg viewBox="0 0 24 24" className="moon-icon">
+            <path
+              d="M20 15.5A8.5 8.5 0 1 1 12.5 4a7 7 0 0 0 7.5 11.5z"
+              fill="currentColor"
+            />
+          </svg>
+        ) : (
+          <svg viewBox="0 0 24 24" className="sun-icon">
+            <circle cx="12" cy="12" r="5" fill="currentColor" />
+            <g stroke="currentColor" strokeWidth="2">
+              <line x1="12" y1="1" x2="12" y2="4" />
+              <line x1="12" y1="20" x2="12" y2="23" />
+              <line x1="1" y1="12" x2="4" y2="12" />
+              <line x1="20" y1="12" x2="23" y2="12" />
+              <line x1="4" y1="4" x2="6" y2="6" />
+              <line x1="18" y1="18" x2="20" y2="20" />
+              <line x1="18" y1="6" x2="20" y2="4" />
+              <line x1="4" y1="20" x2="6" y2="18" />
+            </g>
+          </svg>
+        )}
+      </span>
+    </button>
+  );
+
+  if (!isMobile) {
+    return (
+      <nav className="section-nav" aria-label="Main sections" ref={menuRef}>
+        <div className="nav-sections">
+          {sections.map((section) => (
+            <button
+              key={section.id}
+              type="button"
+              className={activeSection === section.id ? "active" : ""}
+              onClick={() => handleSectionClick(section.id)}
+            >
+              {section.label}
+            </button>
+          ))}
+          <div className="nav-divider"></div>
+          {themeToggleNode}
+        </div>
+      </nav>
+    );
+  }
+
   return (
-    <nav className="section-nav" aria-label="Main sections">
-      <div className="nav-sections">
-        {sections.map((section) => (
-          <button
-            key={section.id}
-            type="button"
-            className={activeSection === section.id ? "active" : ""}
-            onClick={() => onSectionChange(section.id)}
-          >
-            {section.label}
-          </button>
-        ))}
-
-        <div className="nav-divider"></div>
-
-        <button
-          type="button"
-          className={`theme-toggle-inline ${theme === "dark" ? "dark" : ""}`}
-          onClick={() => eventBus.emit('TOGGLE_THEME')}
-          aria-label="Toggle Theme"
+    <header className="section-nav" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+      <nav aria-label="Main sections" ref={menuRef} style={{ display: 'flex', alignItems: 'center' }}>
+        <button 
+          className="hamburger-btn" 
+          onClick={() => setIsMenuOpen(!isMenuOpen)}
+          aria-expanded={isMenuOpen}
+          aria-label="Toggle navigation"
+          style={{
+            border: '1px solid var(--line)',
+            background: 'var(--card)',
+            color: 'var(--ink)',
+            borderRadius: '50%',
+            width: '44px',
+            height: '44px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            cursor: 'pointer',
+            boxShadow: 'var(--shadow-sm)',
+            padding: 0
+          }}
         >
-          <span className="toggle-thumb">
-            {theme === "dark" ? (
-              <svg viewBox="0 0 24 24" className="moon-icon">
-                <path
-                  d="M20 15.5A8.5 8.5 0 1 1 12.5 4a7 7 0 0 0 7.5 11.5z"
-                  fill="currentColor"
-                />
-              </svg>
+          <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
+            {isMenuOpen ? (
+              <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z"/>
             ) : (
-              <svg viewBox="0 0 24 24" className="sun-icon">
-                <circle cx="12" cy="12" r="5" fill="currentColor" />
-                <g stroke="currentColor" strokeWidth="2">
-                  <line x1="12" y1="1" x2="12" y2="4" />
-                  <line x1="12" y1="20" x2="12" y2="23" />
-                  <line x1="1" y1="12" x2="4" y2="12" />
-                  <line x1="20" y1="12" x2="23" y2="12" />
-                  <line x1="4" y1="4" x2="6" y2="6" />
-                  <line x1="18" y1="18" x2="20" y2="20" />
-                  <line x1="18" y1="6" x2="20" y2="4" />
-                  <line x1="4" y1="20" x2="6" y2="18" />
-                </g>
-              </svg>
+              <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
             )}
-          </span>
+          </svg>
         </button>
-      </div>
-    </nav>
+
+        {isMenuOpen && (
+          <div style={{
+            position: 'absolute',
+            top: '100%',
+            left: '1rem',
+            right: '1rem',
+            marginTop: '0.5rem',
+            background: 'var(--card)',
+            boxShadow: 'var(--shadow-lg)',
+            border: '1px solid var(--line)',
+            borderRadius: 'var(--r-md)',
+            padding: '0.5rem',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '0.5rem',
+            zIndex: 50
+          }}>
+            {sections.map((section) => (
+              <button
+                key={section.id}
+                type="button"
+                className={activeSection === section.id ? "active" : ""}
+                onClick={() => handleSectionClick(section.id)}
+                style={{
+                  width: '100%',
+                  textAlign: 'center',
+                  padding: '0.75rem 1rem',
+                  border: 'none',
+                  background: activeSection === section.id ? 'linear-gradient(120deg, var(--brand), var(--sky))' : 'transparent',
+                  color: activeSection === section.id ? '#fff' : 'var(--muted)',
+                  borderRadius: '999px',
+                  fontWeight: '700',
+                  fontSize: '0.9rem',
+                  cursor: 'pointer'
+                }}
+              >
+                {section.label}
+              </button>
+            ))}
+          </div>
+        )}
+      </nav>
+
+      {themeToggleNode}
+    </header>
   );
 }
 
@@ -311,7 +446,7 @@ export default function App() {
     const initialTheme =
       savedTheme ||
       (window.matchMedia &&
-      window.matchMedia("(prefers-color-scheme: dark)").matches
+        window.matchMedia("(prefers-color-scheme: dark)").matches
         ? "dark"
         : "light");
 
@@ -506,25 +641,25 @@ export default function App() {
         <>
           <Hero cityName={position.cityName} />
 
-      {activeSection === 'home' && (
-        <AppControls
-          selectedCity={selectedCity}
-          onCityChange={handleLocationSelected}
+          {activeSection === 'home' && (
+            <AppControls
+              selectedCity={selectedCity}
+              onCityChange={handleLocationSelected}
 
-          isRefreshing={isRefreshing}
-          refreshCountdown={refreshCountdown}
-          lastUpdated={lastUpdated}
-        />
-      )}
+              isRefreshing={isRefreshing}
+              refreshCountdown={refreshCountdown}
+              lastUpdated={lastUpdated}
+            />
+          )}
 
-      {locationNotice && selectedCity === 'auto' && (
-        <div className="location-notice" role="status">
-          <p>{locationNotice}</p>
-          <button type="button" onClick={() => setLocationNotice('')}>
-            Dismiss
-          </button>
-        </div>
-      )}
+          {locationNotice && selectedCity === 'auto' && (
+            <div className="location-notice" role="status">
+              <p>{locationNotice}</p>
+              <button type="button" onClick={() => setLocationNotice('')}>
+                Dismiss
+              </button>
+            </div>
+          )}
 
           {locationNotice && selectedCity === "auto" && (
             <div className="location-notice" role="status">
