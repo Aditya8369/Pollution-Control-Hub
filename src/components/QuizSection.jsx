@@ -288,8 +288,87 @@ const QUIZ_SETS = {
         explanation: 'Energy sector produces largest emissions and is crucial to transition.'
       }
     ]
+  },
+  'Climate Clarity': {
+    name: 'Climate Clarity',
+    desc: 'Learn the foundational science and facts behind climate change.',
+    questions: [
+      {
+        question: 'What is the greenhouse effect?',
+        options: [
+          'Ozone layer depletion',
+          'Trapping of heat by atmospheric gases',
+          'Melting of polar ice',
+          'Cooling of the atmosphere'
+        ],
+        answer: 'Trapping of heat by atmospheric gases',
+        explanation: 'Greenhouse gases trap heat radiating from Earth, warming the atmosphere.'
+      },
+      {
+        question: 'Which gas contributes most to human-caused global warming?',
+        options: ['Oxygen', 'Carbon dioxide (CO2)', 'Nitrogen', 'Argon'],
+        answer: 'Carbon dioxide (CO2)',
+        explanation: 'CO2 from burning fossil fuels is the largest driver of human-caused warming.'
+      },
+      {
+        question: 'What is the main cause of rising CO2 levels since the industrial era?',
+        options: [
+          'Volcanic eruptions',
+          'Burning fossil fuels',
+          'Ocean currents',
+          'Solar radiation changes'
+        ],
+        answer: 'Burning fossil fuels',
+        explanation: 'Coal, oil, and gas combustion for energy is the top source of excess CO2.'
+      },
+      {
+        question: 'What is a direct consequence of global warming?',
+        options: [
+          'Sea level rise',
+          'Increased ozone thickness',
+          'Cooling oceans',
+          'Reduced extreme weather'
+        ],
+        answer: 'Sea level rise',
+        explanation: 'Melting ice sheets and thermal expansion of oceans raise sea levels.'
+      },
+      {
+        question: 'What does "carbon footprint" measure?',
+        options: [
+          'Land used for farming',
+          'Total greenhouse gases produced by activities',
+          'Number of trees planted',
+          'Water consumption'
+        ],
+        answer: 'Total greenhouse gases produced by activities',
+        explanation: 'Carbon footprint tracks the greenhouse gas emissions caused by a person or activity.'
+      },
+      {
+        question: 'What is the goal of the Paris Agreement?',
+        options: [
+          'Ban all fossil fuels immediately',
+          'Limit global warming well below 2°C',
+          'Increase industrial output',
+          'Eliminate renewable energy subsidies'
+        ],
+        answer: 'Limit global warming well below 2°C',
+        explanation: 'The Paris Agreement aims to keep global temperature rise well below 2°C above pre-industrial levels.'
+      },
+      {
+        question: 'Which practice helps mitigate climate change?',
+        options: [
+          'Deforestation',
+          'Renewable energy adoption',
+          'Increasing coal power',
+          'Single-use plastics'
+        ],
+        answer: 'Renewable energy adoption',
+        explanation: 'Switching to renewable energy sources reduces greenhouse gas emissions.'
+      }
+    ]
   }
 };
+ 
 
 function QuizSelector({ onSelectQuiz }) {
   return (
