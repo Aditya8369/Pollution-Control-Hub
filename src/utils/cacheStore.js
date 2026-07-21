@@ -72,7 +72,8 @@ export const cacheStore = {
 
         request.onerror = () => resolve(null);
       });
-    } catch {
+    } catch (error) {
+      handleIndexedDBError('open/read', error);
       return null;
     }
   },
