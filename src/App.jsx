@@ -66,7 +66,7 @@ function AppControls({
           display: "flex",
           alignItems: "center",
           gap: "0.5rem",
-          flexWrap: "nowrap",
+          flexWrap: "wrap",
         }}
       >
         <label htmlFor="city-selector">Track city:</label>

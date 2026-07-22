@@ -1,7 +1,6 @@
 const DB_NAME = 'pollution-hub-cache';
 const STORE_NAME = 'aqi-cache';
 const DB_VERSION = 1;
-const DEFAULT_CACHE_TTL = 60 * 60 * 1000; // 1 hour
 
 let db = null;
 
@@ -19,13 +18,7 @@ function openDB() {
           keyPath: 'key',
         });
 
-
-        store.createIndex('timestamp', 'timestamp', {
-          unique: false,
-        });
-
         store.createIndex('timestamp', 'timestamp', { unique: false });
-
       }
     };
 
@@ -52,65 +45,12 @@ async function executeStoreOperation(mode, operation) {
 const inFlight = new Map();
 const memoryCache = new Map();
 
-async function cleanupExpiredEntries(ttl = DEFAULT_CACHE_TTL) {
-  const cutoff = Date.now() - ttl;
-
-  // Clean memory cache
-  for (const [key, entry] of memoryCache.entries()) {
-    if (entry.timestamp < cutoff) {
-      memoryCache.delete(key);
-    }
-  }
-
-  // Clean IndexedDB
-  try {
-    const database = await openDB();
-
-    await new Promise((resolve) => {
-      const tx = database.transaction(STORE_NAME, 'readwrite');
-      const store = tx.objectStore(STORE_NAME);
-      const request = store.openCursor();
-
-      request.onsuccess = (event) => {
-        const cursor = event.target.result;
-
-        if (!cursor) {
-          resolve();
-          return;
-        }
-
-        if (cursor.value.timestamp < cutoff) {
-          cursor.delete();
-        }
-
-        cursor.continue();
-      };
-
-      request.onerror = () => resolve();
-    });
-  } catch (err) {
-    console.warn('IndexedDB cleanup failed:', err);
-  }
-}
-
 export const cacheStore = {
   getFromMemory(key) {
     return memoryCache.get(key) || null;
   },
 
   async get(key) {
-
-    if (memoryCache.has(key)) {
-      return memoryCache.get(key);
-    }
-
-    try {
-      const database = await openDB();
-
-      return new Promise((resolve) => {
-        const tx = database.transaction(STORE_NAME, 'readonly');
-        const request = tx.objectStore(STORE_NAME).get(key);
-
     if (memoryCache.has(key)) return memoryCache.get(key);
 
     try {
@@ -119,7 +59,6 @@ export const cacheStore = {
           'readonly',
           (store) => store.get(key)
         );
-
 
         request.onsuccess = () => {
           const result = request.result;
@@ -140,11 +79,6 @@ export const cacheStore = {
   },
 
   async set(key, data) {
-
-    // Run cleanup in the background without blocking writes.
-    cleanupExpiredEntries().catch(() => {});
-
-
     const entry = {
       key,
       data,
@@ -154,17 +88,10 @@ export const cacheStore = {
     memoryCache.set(key, entry);
 
     try {
-
-      const database = await openDB();
-      const tx = database.transaction(STORE_NAME, 'readwrite');
-
-      tx.objectStore(STORE_NAME).put(entry);
-
       await executeStoreOperation(
         'readwrite',
         (store) => store.put(entry)
       );
-
     } catch (err) {
       console.warn('IndexedDB write failed:', err);
     }
@@ -175,17 +102,10 @@ export const cacheStore = {
       memoryCache.delete(key);
 
       try {
-
-        const database = await openDB();
-        const tx = database.transaction(STORE_NAME, 'readwrite');
-
-        tx.objectStore(STORE_NAME).delete(key);
-
         await executeStoreOperation(
           'readwrite',
           (store) => store.delete(key)
         );
-
       } catch (err) {
         console.warn('IndexedDB delete failed:', err);
       }
@@ -193,17 +113,10 @@ export const cacheStore = {
       memoryCache.clear();
 
       try {
-
-        const database = await openDB();
-        const tx = database.transaction(STORE_NAME, 'readwrite');
-
-        tx.objectStore(STORE_NAME).clear();
-
         await executeStoreOperation(
           'readwrite',
           (store) => store.clear()
         );
-
       } catch (err) {
         console.warn('IndexedDB clear failed:', err);
       }
@@ -213,29 +126,13 @@ export const cacheStore = {
   async isStale(key, ttl) {
     const cached = memoryCache.get(key) || await this.get(key);
 
-
-    if (!cached) {
-      return true;
-    }
-
     if (!cached) return true;
-
 
     return Date.now() - cached.timestamp >= ttl;
   },
 
-  async cleanup(ttl = DEFAULT_CACHE_TTL) {
-    await cleanupExpiredEntries(ttl);
-  },
-
   async deduplicate(key, fetcher) {
-
-    if (!key) {
-      return null;
-    }
-
     if (!key) return null;
-
 
     if (inFlight.has(key)) {
       return inFlight.get(key);

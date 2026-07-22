@@ -7,7 +7,7 @@ export default function AnalyticsInsights({ analytics, trend, timeRange }) {
   }));
 
   return (
-    <section data-testid="analytics-insights" className="panel w-[1180px]">
+    <section data-testid="analytics-insights" className="panel">
       <div className="panel-head">
         <h2>Data Analytics & Insights</h2>
         <p>Weekly/monthly outlook and simple trend-based AQI prediction</p>

@@ -215,7 +215,7 @@ export default function CommunityHub() {
           placeholder="Describe location and issue details"
           onChange={(event) => setForm((prev) => ({ ...prev, description: event.target.value }))}
         />
-        <input key={fileInputKey} type="file" accept="image/jpeg,image/png,image/webp" onChange={uploadImage} />
+        <input key={fileInputKey} type="file" accept="image/jpeg,image/png,image/webp" onChange={uploadImage} style={{ width: '100%' }} />
         {uploadError && <p className="upload-error">{uploadError}</p>}
         <button type="submit">Submit Report</button>
       </form>
