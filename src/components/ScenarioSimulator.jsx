@@ -1,9 +1,68 @@
 import { useEffect, useState } from 'react';
+import { CarFront,Sun } from "lucide-react";
 import { CITY_COORDINATES } from '../constants/cities';
 import { fetchAirQualityByCoords, getAQIBand, estimateAQI } from '../services/airQualityService';
 
-/* ─── Preset intervention scenarios ──────────────────────────────────────── */
+const PM25GaugeIcon = ({ size = 24 }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 32 32"
+    xmlns="http://www.w3.org/2000/svg"
+    aria-hidden="true"
+    >
+    {/* Colored AQI gauge */}
+    <path
+      d="M5 21 A11 11 0 0 1 9 12"
+      fill="none"
+      stroke="#84cc16"
+      strokeWidth="4"
+      strokeLinecap="round"
+      />
 
+    <path
+      d="M9 12 A11 11 0 0 1 16 9"
+      fill="none"
+      stroke="#eab308"
+      strokeWidth="4"
+      />
+
+    <path
+      d="M16 9 A11 11 0 0 1 23 12"
+      fill="none"
+      stroke="#f97316"
+      strokeWidth="4"
+      />
+
+    <path
+      d="M23 12 A11 11 0 0 1 27 21"
+      fill="none"
+      stroke="#ef4444"
+      strokeWidth="4"
+      strokeLinecap="round"
+      />
+
+    {/* Needle */}
+    <line
+      x1="16"
+      y1="21"
+      x2="10"
+      y2="15"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      />
+
+    {/* Center */}
+    <circle
+      cx="16"
+      cy="21"
+      r="2.5"
+      fill="currentColor"
+      />
+  </svg>
+);
+/* ─── Preset intervention scenarios ──────────────────────────────────────── */
 const PRESETS = [
   {
     id: 'traffic',
@@ -208,25 +267,32 @@ export default function ScenarioSimulator({ current }) {
         <SliderGroup
           id="slider-pm25"
           label="Reduce PM2.5"
-          emoji="🌫️"
+          icon={PM25GaugeIcon}
           value={pm25Reduction}
-          onChange={(v) => { setActivePreset(null); setPm25Reduction(v); }}
+          onChange={(v) => {
+            setActivePreset(null);
+            setPm25Reduction(v);
+          }}
           current={current.pm2_5}
           unit="µg/m³"
         />
         <SliderGroup
           id="slider-no2"
           label="Reduce NO₂"
-          emoji="🚦"
+          icon={CarFront}
           value={no2Reduction}
-          onChange={(v) => { setActivePreset(null); setNo2Reduction(v); }}
+          onChange={(v) => {
+            setActivePreset(null);
+            setNo2Reduction(v);
+          }}
           current={current.nitrogen_dioxide}
           unit="µg/m³"
         />
         <SliderGroup
           id="slider-o3"
           label="Reduce Ozone"
-          emoji="☀️"
+          icon={Sun}
+          iconColor="#efa001"
           value={o3Reduction}
           onChange={(v) => { setActivePreset(null); setO3Reduction(v); }}
           current={current.ozone}
@@ -375,16 +441,32 @@ export default function ScenarioSimulator({ current }) {
 }
 
 /* ─── Sub-components ──────────────────────────────────────────────────────── */
-
-function SliderGroup({ id, label, emoji, value, onChange, current, unit }) {
+function SliderGroup({
+  id,
+  label,
+  emoji,
+  icon: Icon,
+  iconColor,
+  value,
+  onChange,
+  current,
+  unit
+}) {
   const reduced = Math.round(current * (1 - value / 100));
+
   return (
     <div className="sim-slider-group">
       <label htmlFor={id}>
-        <span className="sim-slider-emoji" aria-hidden="true">{emoji}</span>
+
+        <span className="sim-slider-emoji" aria-hidden="true">
+          {Icon ? <Icon size={20} color={iconColor} /> : emoji}
+        </span>
+
         {label}
+
         <span className="sim-slider-value">{value}%</span>
       </label>
+
       <input
         id={id}
         type="range"
@@ -395,24 +477,11 @@ function SliderGroup({ id, label, emoji, value, onChange, current, unit }) {
         onChange={(e) => onChange(Number(e.target.value))}
         aria-label={`${label} reduction percentage`}
       />
+
       <div className="sim-slider-range">
         <span>Current: {current} {unit}</span>
         <span>Target: {reduced} {unit}</span>
       </div>
     </div>
-  );
-}
-
-function PollutantRow({ label, before, after, unit }) {
-  const improved = after < before;
-  return (
-    <tr className="sim-pollutant-row">
-      <td>{label}</td>
-      <td>{before} <small>{unit}</small></td>
-      <td className="sim-table-arrow" aria-hidden="true">→</td>
-      <td className={improved ? 'sim-val-better' : 'sim-val-same'}>
-        {after} <small>{unit}</small>
-      </td>
-    </tr>
   );
 }
