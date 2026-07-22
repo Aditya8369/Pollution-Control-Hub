@@ -11,7 +11,7 @@ const AQI_LEGEND_BANDS = [
   { label: 'Hazardous', color: '#7f1d1d' },
 ];
 
-export default function CalendarHeatmap({ data }) {
+export default function ({ data }) {
   if (!data || data.length === 0) {
     return (
       <div className="calendar-heatmap-empty">
@@ -25,7 +25,8 @@ export default function CalendarHeatmap({ data }) {
   // In a real robust calendar, we'd align with Sunday/Monday start.
 
   // Align to first day of the week (Sunday)
-  const firstDate = new Date(data[0].date);
+  const [year, month, day] = data[0].date.split("-").map(Number);
+  const firstDate = new Date(year, month - 1, day);
   const startDay = firstDate.getDay();
 
   const paddedData = [];
