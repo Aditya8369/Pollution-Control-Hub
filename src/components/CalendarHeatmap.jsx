@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { getAQIBand } from '../services/airQualityService';
 
 // Matches the bands defined in getAQIBand() in airQualityService.js
@@ -22,14 +22,6 @@ const MONTH_NAMES = [
  * contains any day belonging to each calendar month.
  *
  * Returns an array of objects: { weekIndex, label, isFirstOfYear, year }
- *
- * Algorithm:
- *   - Walk every week column.
- *   - Find the first non-null entry in the column.
- *   - If that entry's month differs from the previously seen month, record a
- *     label at this weekIndex.
- *   - If the month is January (0) record isFirstOfYear = true so we can
- *     render a year separator as well.
  */
 function computeTemporalMarkers(weeks) {
   const markers = [];
@@ -61,6 +53,8 @@ function computeTemporalMarkers(weeks) {
 }
 
 export default function CalendarHeatmap({ data }) {
+  const [activeTooltip, setActiveTooltip] = useState(null);
+
   if (!data || data.length === 0) {
     return (
       <div className="calendar-heatmap-empty">
@@ -92,6 +86,26 @@ export default function CalendarHeatmap({ data }) {
 
   // Build a lookup: weekIndex → marker (for O(1) access while rendering)
   const markerByWeek = new Map(markers.map((m) => [m.weekIndex, m]));
+
+  const handleCellMouseEnter = (e, day, aqiBand) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    setActiveTooltip({
+      date: day.date,
+      maxAqi: day.maxAqi,
+      label: aqiBand.label,
+      color: aqiBand.color,
+      rect: {
+        left: rect.left,
+        top: rect.top,
+        width: rect.width,
+        height: rect.height,
+      },
+    });
+  };
+
+  const handleCellMouseLeave = () => {
+    setActiveTooltip(null);
+  };
 
   return (
     <div className="calendar-heatmap-container">
@@ -154,10 +168,8 @@ export default function CalendarHeatmap({ data }) {
                       style={{ backgroundColor: aqiBand.color }}
                       // Native tooltip as accessible fallback
                       title={`${day.date}: AQI ${day.maxAqi} — ${aqiBand.label}`}
-                      // data-* attributes power the CSS-only rich tooltip
-                      data-tip-date={day.date}
-                      data-tip-aqi={day.maxAqi}
-                      data-tip-severity={aqiBand.label}
+                      onMouseEnter={(e) => handleCellMouseEnter(e, day, aqiBand)}
+                      onMouseLeave={handleCellMouseLeave}
                       role="img"
                       aria-label={`${day.date}: AQI ${day.maxAqi}, ${aqiBand.label}`}
                     />
@@ -168,6 +180,44 @@ export default function CalendarHeatmap({ data }) {
           })}
         </div>
       </div>
+
+      {/* ── Adaptive Floating Portal Tooltip (Escapes all overflow clipping) ── */}
+      {activeTooltip && (
+        <div
+          className="calendar-floating-tooltip"
+          style={{
+            position: 'fixed',
+            top:
+              activeTooltip.rect.top < 85
+                ? `${activeTooltip.rect.top + activeTooltip.rect.height + 8}px`
+                : `${activeTooltip.rect.top - 8}px`,
+            left: `${Math.max(
+              90,
+              Math.min(
+                (typeof window !== 'undefined' ? window.innerWidth : 1200) - 90,
+                activeTooltip.rect.left + activeTooltip.rect.width / 2
+              )
+            )}px`,
+            transform:
+              activeTooltip.rect.top < 85
+                ? 'translate(-50%, 0)'
+                : 'translate(-50%, -100%)',
+            zIndex: 99999,
+            pointerEvents: 'none',
+          }}
+        >
+          <div className="calendar-tooltip-date">{activeTooltip.date}</div>
+          <div className="calendar-tooltip-body">
+            <span
+              className="calendar-tooltip-badge"
+              style={{ backgroundColor: activeTooltip.color }}
+            >
+              AQI {activeTooltip.maxAqi}
+            </span>
+            <span className="calendar-tooltip-label">{activeTooltip.label}</span>
+          </div>
+        </div>
+      )}
 
       {/* ── Legend ─────────────────────────────────────────────── */}
       <div className="calendar-legend">

@@ -2640,64 +2640,51 @@ a {
   margin-left: 2px;
 }
 
-/* ── Rich CSS-only tooltip ──────────────────────────────── */
-.calendar-day[data-tip-date] {
-  position: relative;
-}
-
-.calendar-day[data-tip-date]::after {
-  content:
-    attr(data-tip-date) '\A'
-    'AQI ' attr(data-tip-aqi) '\A'
-    attr(data-tip-severity);
-
-  white-space: pre;
-
-  /* Positioning */
-  position: absolute;
-  bottom: calc(100% + 8px);
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 100;
-
-  /* Appearance */
+/* ── Adaptive Floating Portal Tooltip ───────────────────── */
+.calendar-floating-tooltip {
   background: var(--ink);
   color: var(--card);
-  padding: 6px 10px;
+  padding: 8px 12px;
   border-radius: var(--r-sm);
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--line);
+  font-family: inherit;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  white-space: nowrap;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  animation: fadeIn 120ms ease forwards;
+}
+
+.calendar-tooltip-date {
   font-size: 0.7rem;
-  line-height: 1.55;
+  opacity: 0.85;
   font-weight: 500;
-  box-shadow: var(--shadow-md);
-  pointer-events: none;
-
-  /* Hidden by default */
-  opacity: 0;
-  visibility: hidden;
-  transition: opacity 120ms ease, visibility 120ms ease;
+  color: var(--card);
 }
 
-/* Small arrow caret */
-.calendar-day[data-tip-date]::before {
-  content: '';
-  position: absolute;
-  bottom: calc(100% + 2px);
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 100;
-  border: 4px solid transparent;
-  border-top-color: var(--ink);
-  pointer-events: none;
-  opacity: 0;
-  visibility: hidden;
-  transition: opacity 120ms ease, visibility 120ms ease;
+.calendar-tooltip-body {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
-.calendar-day[data-tip-date]:hover::after,
-.calendar-day[data-tip-date]:hover::before {
-  opacity: 1;
-  visibility: visible;
+.calendar-tooltip-badge {
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 0.7rem;
+  line-height: 1.2;
 }
+
+.calendar-tooltip-label {
+  font-weight: 600;
+  color: var(--card);
+}
+
 
 /* ==========================================================================
    Location Search (Autocomplete)
