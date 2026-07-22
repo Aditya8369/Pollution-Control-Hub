@@ -45,21 +45,50 @@ async function executeStoreOperation(mode, operation) {
 const inFlight = new Map();
 const memoryCache = new Map();
 
+async function cleanupExpiredEntries() {
+  const ONE_DAY = 24 * 60 * 60 * 1000;
+  const expired = Date.now() - ONE_DAY;
+  
+  for (const [key, value] of memoryCache.entries()) {
+    if (value.timestamp && value.timestamp < expired) {
+      memoryCache.delete(key);
+    }
+  }
+
+  try {
+    const store = await getObjectStore('readwrite');
+    const index = store.index('timestamp');
+    const request = index.openCursor(IDBKeyRange.upperBound(expired));
+
+    request.onsuccess = (event) => {
+      const cursor = event.target.result;
+      if (cursor) {
+        cursor.delete();
+        cursor.continue();
+      }
+    };
+  } catch (err) {
+    // Ignore cleanup errors
+  }
+}
+
 export const cacheStore = {
   getFromMemory(key) {
     return memoryCache.get(key) || null;
   },
 
-  async get(key) {
-    if (memoryCache.has(key)) return memoryCache.get(key);
+  get: async function(key) {
+    if (memoryCache.has(key)) {
+      return memoryCache.get(key);
+    }
 
     try {
-      return new Promise(async (resolve) => {
-        const request = await executeStoreOperation(
-          'readonly',
-          (store) => store.get(key)
-        );
+      const request = await executeStoreOperation(
+        'readonly',
+        (store) => store.get(key)
+      );
 
+      return await new Promise((resolve) => {
         request.onsuccess = () => {
           const result = request.result;
 
@@ -73,12 +102,14 @@ export const cacheStore = {
         request.onerror = () => resolve(null);
       });
     } catch (error) {
-      handleIndexedDBError('open/read', error);
+      console.warn('IndexedDB read failed:', error);
       return null;
     }
   },
 
-  async set(key, data) {
+  set: async function(key, data) {
+    // Run cleanup in the background without blocking writes.
+    cleanupExpiredEntries().catch(() => {});
     const entry = {
       key,
       data,
