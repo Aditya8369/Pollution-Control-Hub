@@ -151,38 +151,41 @@ export default function Dashboard({
 
   return (
     <section data-testid="dashboard" className="panel dashboard" ref={reportRef}>
-      <div className="panel-head">
-        <div>
-          <h2>Real-Time Pollution Dashboard</h2>
-          <p>
-            Live readings for {cityName}
-            {isFallback && (
-              <span className="fallback-badge" style={{
-                marginLeft: '0.75rem',
-                padding: '0.2rem 0.5rem',
-                backgroundColor: '#d97706',
-                color: '#fff',
-                borderRadius: '4px',
-                fontSize: '0.75rem',
-                fontWeight: 'bold',
-                display: 'inline-block',
-                verticalAlign: 'middle'
-              }}>
-                Showing Cached Reading
-              </span>
-            )}
-          </p>
+      <div className="panel-head" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.75rem', flexWrap: 'wrap' }}>
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <h2>Real-Time Pollution Dashboard</h2>
+            <p>
+              Live readings for {cityName}
+              {isFallback && (
+                <span className="fallback-badge" style={{
+                  marginLeft: '0.75rem',
+                  padding: '0.2rem 0.5rem',
+                  backgroundColor: '#d97706',
+                  color: '#fff',
+                  borderRadius: '4px',
+                  fontSize: '0.75rem',
+                  fontWeight: 'bold',
+                  display: 'inline-block',
+                  verticalAlign: 'middle'
+                }}>
+                  Showing Cached Reading
+                </span>
+              )}
+            </p>
+          </div>
+          <button
+            type="button"
+            className="export-report-button"
+            onClick={exportReportAsPDF}
+            disabled={isExporting}
+            data-html2canvas-ignore="true"
+            aria-label={isExporting ? 'Generating PDF, please wait' : 'Export dashboard report as PDF'}
+            style={{ flexShrink: 0 }}
+          >
+            {isExporting ? "Generating PDF..." : "Export Report as PDF"}
+          </button>
         </div>
-        <button
-          type="button"
-          className="export-report-button"
-          onClick={exportReportAsPDF}
-          disabled={isExporting}
-          data-html2canvas-ignore="true"
-          aria-label={isExporting ? 'Generating PDF, please wait' : 'Export dashboard report as PDF'}
-        >
-          {isExporting ? "Generating PDF..." : "Export Report as PDF"}
-        </button>
         <div className="dashboard-tools">
           <div data-testid="time-range-selector" className="range-switch" role="group" aria-label="Select time range">
             {[6, 12, 24].map((range) => (
@@ -204,8 +207,8 @@ export default function Dashboard({
         </div>
       </div>
 
-      <div className="kpi-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))' }}>
-        <article className="kpi-card aqi" style={{ gridColumn: 'span 1' }}>
+      <div className="kpi-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(min(300px, 100%), 1fr))' }}>
+        <article className="kpi-card aqi">
           <h3>US AQI</h3>
           <div data-testid="aqi-value" className="kpi-value" style={{ color: aqiBand.color }}>
             {current.us_aqi}
@@ -221,7 +224,7 @@ export default function Dashboard({
           </span>
         </article>
 
-        <article className="kpi-card chart-card" style={{ gridColumn: 'span 2', display: 'flex', flexDirection: 'column' }}>
+        <article className="kpi-card chart-card" style={{ display: 'flex', flexDirection: 'column' }}>
           <h3>Pollutant Health Speedometer</h3>
           <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>
             Relative magnitude vs. WHO guidelines. Larger segments indicate higher severity.
