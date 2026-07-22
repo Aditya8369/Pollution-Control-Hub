@@ -77,3 +77,5 @@ export function useSWR(key, fetcher, { ttl = 5 * 60 * 1000 } = {}) {
 
   return { data: displayData, error: displayError, isValidating: displayIsValidating, mutate };
 }
+
+export default useSWR;
