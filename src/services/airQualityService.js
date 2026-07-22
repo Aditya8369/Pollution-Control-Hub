@@ -493,4 +493,3 @@ export function estimateAQI(pm25, pm10, no2, o3, co) {
   ];
   return Math.max(...scores);
 }
-

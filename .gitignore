@@ -1,2 +1,7 @@
 node_modules/
 dist/
+
+# SQLite database files (server/db.js writes here) — local data, not source
+server/data/*.db
+server/data/*.db-shm
+server/data/*.db-wal
