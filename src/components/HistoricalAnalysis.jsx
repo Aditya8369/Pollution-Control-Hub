@@ -59,12 +59,12 @@ export default function HistoricalAnalysis({ position }) {
     return () => {
       active = false;
     };
-  }, [position.lat, position.lon]);
+  }, [position?.lat, position?.lon]);
 
   if (loading) {
     return (
-      <div className="historical-analysis-container flex flex-col items-center justify-center p-12">
-        <div className="live-dot active mb-4"></div>
+      <div className="historical-analysis-container" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '3rem', textAlign: 'center' }}>
+        <div className="live-dot active" style={{ marginBottom: '1rem' }}></div>
         <p>Crunching 3 years of historical AQI data...</p>
       </div>
     );
@@ -72,7 +72,7 @@ export default function HistoricalAnalysis({ position }) {
 
   if (error) {
     return (
-      <div className="historical-analysis-container p-8 text-center text-red-500">
+      <div className="historical-analysis-container" style={{ padding: '2rem', textAlign: 'center', color: '#ef4444' }}>
         <p>Error: {error}</p>
       </div>
     );
@@ -82,26 +82,26 @@ export default function HistoricalAnalysis({ position }) {
 
   return (
     <div data-testid="historical-analysis" className="historical-analysis-container section-card">
-      <header className="mb-6">
-        <h2 className="text-2xl font-semibold">Long-Term Climate & Pollution Trends</h2>
-        <p className="text-sm opacity-80">
-          Showing 3 years of daily max AQI severity for {position.cityName}
+      <header style={{ marginBottom: '1.5rem' }}>
+        <h2 style={{ fontSize: '1.4rem', fontWeight: 600, margin: '0 0 0.25rem' }}>Long-Term Climate & Pollution Trends</h2>
+        <p style={{ fontSize: '0.88rem', opacity: 0.8, margin: 0 }}>
+          Showing 3 years of daily max AQI severity for {position?.cityName || "your area"}
         </p>
       </header>
 
-      <div className="stats-row flex gap-6 mb-8">
-        <div className="stat-box p-4 rounded-lg bg-black/5 dark:bg-white/5 flex-1">
-          <p className="text-sm opacity-70">Overall Average AQI</p>
-          <p className="text-3xl font-bold">{data.overallAvg}</p>
+      <div className="stats-row" style={{ marginBottom: '2rem' }}>
+        <div className="stat-box" style={{ padding: '1rem', borderRadius: '0.5rem', background: 'rgba(0,0,0,0.05)', flex: '1 1 200px', minWidth: 0 }}>
+          <p style={{ fontSize: '0.85rem', opacity: 0.7, margin: '0 0 0.25rem' }}>Overall Average AQI</p>
+          <p style={{ fontSize: '1.8rem', fontWeight: 700, margin: 0, fontFamily: '"Fraunces", serif' }}>{data.overallAvg}</p>
         </div>
-        <div className="stat-box p-4 rounded-lg bg-black/5 dark:bg-white/5 flex-1">
-          <p className="text-sm opacity-70">Days Recorded</p>
-          <p className="text-3xl font-bold">{data.daily.length}</p>
+        <div className="stat-box" style={{ padding: '1rem', borderRadius: '0.5rem', background: 'rgba(0,0,0,0.05)', flex: '1 1 200px', minWidth: 0 }}>
+          <p style={{ fontSize: '0.85rem', opacity: 0.7, margin: '0 0 0.25rem' }}>Days Recorded</p>
+          <p style={{ fontSize: '1.8rem', fontWeight: 700, margin: 0, fontFamily: '"Fraunces", serif' }}>{data.daily.length}</p>
         </div>
       </div>
 
-      <div className="heatmap-section overflow-hidden">
-        <h3 className="text-lg font-medium mb-4">Daily Severity Calendar</h3>
+      <div className="heatmap-section" style={{ overflow: 'hidden' }}>
+        <h3 style={{ fontSize: '1.1rem', fontWeight: 500, margin: '0 0 1rem' }}>Daily Severity Calendar</h3>
         <CalendarHeatmap data={data.daily} />
       </div>
     </div>

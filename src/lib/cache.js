@@ -1,6 +1,6 @@
 /**
  * MultiLevelCache
- * 
+ *
  * L1: In-Memory Map (fastest, cleared on page refresh)
  * L2: LocalStorage (persists across reloads, limited capacity)
  */
@@ -19,81 +19,119 @@ export class MultiLevelCache {
     return `${this.namespace}:fallback:${key}`;
   }
 
+  _readStorage(key) {
+    try {
+      const raw = localStorage.getItem(key);
+      return raw ? JSON.parse(raw) : null;
+    } catch (e) {
+      console.warn('Failed to read from localStorage cache:', e);
+      return null;
+    }
+  }
+
+  _writeStorage(
+    key,
+    value,
+    errorMessage = 'Failed to write to localStorage cache.'
+  ) {
+    try {
+      localStorage.setItem(key, JSON.stringify(value));
+    } catch (e) {
+      console.warn(errorMessage, e);
+    }
+  }
+
+  _removeStorage(key) {
+    try {
+      localStorage.removeItem(key);
+    } catch (e) {
+      console.warn('Failed to remove from localStorage cache:', e);
+    }
+  }
+
   get(key) {
     const fullKey = this._getKey(key);
     const now = Date.now();
 
     // 1. Check L1 Cache
     const l1Entry = this.memoryCache.get(fullKey);
+
     if (l1Entry) {
       if (now < l1Entry.expiresAt) {
         return l1Entry.data;
       }
-      this.memoryCache.delete(fullKey); // Expired
+
+      this.memoryCache.delete(fullKey);
     }
 
     // 2. Check L2 Cache
-    try {
-      const l2Raw = localStorage.getItem(fullKey);
-      if (l2Raw) {
-        const l2Entry = JSON.parse(l2Raw);
-        if (now < l2Entry.expiresAt) {
-          // Backfill L1 Cache
-          this.memoryCache.set(fullKey, l2Entry);
-          return l2Entry.data;
-        }
-        localStorage.removeItem(fullKey); // Expired
+    const l2Entry = this._readStorage(fullKey);
+
+    if (l2Entry) {
+      if (now < l2Entry.expiresAt) {
+        // Backfill L1 Cache
+        this.memoryCache.set(fullKey, l2Entry);
+        return l2Entry.data;
       }
-    } catch (e) {
-      console.warn('Failed to read from localStorage cache:', e);
+
+      this._removeStorage(fullKey);
     }
 
-    return null; // Cache miss
+    return null;
   }
 
   getFallback(key) {
-    const fallbackKey = this._getFallbackKey(key);
-    try {
-      const raw = localStorage.getItem(fallbackKey);
-      if (raw) {
-        return JSON.parse(raw);
-      }
-    } catch (e) {
-      console.warn('Failed to read fallback from localStorage cache:', e);
-    }
-    return null;
+    return this._readStorage(this._getFallbackKey(key));
   }
 
   set(key, data, ttlMs = this.defaultTTL) {
     const fullKey = this._getKey(key);
     const expiresAt = Date.now() + ttlMs;
-    const entry = { data, expiresAt };
+
+    const entry = {
+      data,
+      expiresAt,
+    };
 
     // 1. Set L1
     this.memoryCache.set(fullKey, entry);
 
     // 2. Set L2
-    try {
-      localStorage.setItem(fullKey, JSON.stringify(entry));
-      localStorage.setItem(this._getFallbackKey(key), JSON.stringify(data));
-    } catch (e) {
-      console.warn('Failed to write to localStorage cache. Storage might be full:', e);
-    }
+    this._writeStorage(
+      fullKey,
+      entry,
+      'Failed to write to localStorage cache. Storage might be full:'
+    );
+
+    this._writeStorage(
+      this._getFallbackKey(key),
+      data,
+      'Failed to write to localStorage cache. Storage might be full:'
+    );
   }
 
   clear() {
     this.memoryCache.clear();
+
     try {
+      const keysToRemove = [];
+
       for (let i = 0; i < localStorage.length; i++) {
-        const k = localStorage.key(i);
-        if (k && k.startsWith(this.namespace)) {
-          localStorage.removeItem(k);
+        const key = localStorage.key(i);
+
+        if (key && key.startsWith(this.namespace)) {
+          keysToRemove.push(key);
         }
       }
+
+      keysToRemove.forEach((key) => this._removeStorage(key));
     } catch (e) {
       console.warn('Failed to clear localStorage cache:', e);
     }
   }
 }
 
-export const aqiCache = new MultiLevelCache('aqi-cache', 5 * 60 * 1000); // 5 minutes TTL
+export const aqiCache = new MultiLevelCache(
+  'aqi-cache',
+  5 * 60 * 1000
+);
