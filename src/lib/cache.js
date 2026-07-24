@@ -128,6 +128,12 @@ export class MultiLevelCache {
     } catch (e) {
       console.warn('Failed to clear localStorage cache:', e);
     }
+
+    keysToRemove.forEach((key) => {
+      localStorage.removeItem(key);
+    });
+  } catch (e) {
+    console.warn('Failed to clear localStorage cache:', e);
   }
 }
 
