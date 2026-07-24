@@ -750,35 +750,116 @@ a {
 
 .pollutants-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: var(--sp-3);
-  margin-top: var(--sp-5);
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: var(--sp-4, 1rem);
+  margin-top: var(--sp-3, 0.75rem);
+  margin-bottom: var(--sp-4, 1rem);
 }
 
 .pollutant-card {
-  background: var(--card);
-  border: 1px solid var(--line);
-  border-radius: var(--r-sm);
-  padding: var(--sp-3);
-  box-shadow: var(--shadow-sm);
+  position: relative;
+  background: var(--card, #ffffff);
+  border: 1px solid var(--line, #e2e8f0);
+  border-radius: var(--r-md, 12px);
+  padding: 1rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  overflow: hidden;
 }
 
-.pollutant-card h4 {
-  font-size: 0.9rem;
-  margin-bottom: var(--sp-1);
+.pollutant-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+}
+
+.pollutant-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.pollutant-card-header h4 {
+  font-size: 1rem;
+  font-weight: 700;
+  margin: 0;
+  color: var(--text-primary, #0f172a);
+  letter-spacing: 0.2px;
+}
+
+.pollutant-status-pill {
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.2rem 0.55rem;
+  border-radius: 20px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  line-height: 1;
+}
+
+.pollutant-value-container {
+  display: flex;
+  align-items: baseline;
+  gap: 0.35rem;
+  margin-top: 0.25rem;
+  margin-bottom: 0.35rem;
 }
 
 .pollutant-value {
-  font-size: 1.3rem;
-  font-weight: 700;
-  color: var(--accent);
+  font-size: 1.75rem;
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.5px;
 }
 
 .pollutant-unit {
-  font-size: 0.8rem;
-  color: var(--muted);
-  margin-left: 2px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--muted, #64748b);
+}
+
+.pollutant-meta-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.75rem;
+  color: var(--muted, #64748b);
+  margin-top: 0.4rem;
+  margin-bottom: 0.5rem;
+}
+
+.pollutant-limit {
+  font-weight: 500;
+}
+
+.pollutant-percent {
+  font-weight: 700;
+}
+
+.pollutant-progress-track {
+  width: 100%;
+  height: 6px;
+  background: rgba(0, 0, 0, 0.06);
+  border-radius: 10px;
+  overflow: hidden;
+  margin-top: auto;
+}
+
+[data-theme="dark"] .pollutant-progress-track {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.pollutant-progress-fill {
+  height: 100%;
+  border-radius: 10px;
+  transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 /* ============================================================
@@ -3680,6 +3761,179 @@ a {
   cursor: not-allowed;
   opacity: 0.65;
 }
+
+.share-aqi-button {
+  padding: 10px 18px;
+  border: none;
+  border-radius: 12px;
+  background: #f97316;
+  color: white;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    opacity 0.2s ease;
+}
+
+.share-aqi-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(249, 115, 22, 0.3);
+}
+
+.share-aqi-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+
+   /* AQI Share Card Styling  */
+
+.share-card-container {
+  position: fixed;
+  left: -9999px;
+  top: 0;
+  width: 380px;
+  background: linear-gradient(145deg, #0f172a 0%, #1e293b 100%);
+  border-radius: 22px;
+  padding: 24px;
+  font-family: 'Space Grotesk', system-ui, -apple-system, sans-serif;
+  color: #f8fafc;
+  box-sizing: border-box;
+  border: 1.5px solid #334155;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.75);
+}
+
+.share-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.share-card-badge {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  color: #38bdf8;
+  text-transform: uppercase;
+}
+
+
+
+.share-card-date {
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.share-card-city {
+  margin: 0 0 16px 0;
+  font-size: 28px;
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: -0.5px;
+}
+
+.share-card-hero {
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 16px;
+  padding: 20px 24px;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.share-card-hero-left {
+  display: flex;
+  flex-direction: column;
+}
+
+.share-card-hero-sub {
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  color: #94a3b8;
+  text-transform: uppercase;
+  font-weight: 700;
+  margin-bottom: 6px;
+}
+
+.share-card-hero-value {
+  font-size: 60px;
+  font-weight: 900;
+  line-height: 1.15;
+  letter-spacing: -2px;
+  padding-bottom: 24px;
+}
+
+.share-card-hero-pill {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 18px;
+  padding-bottom: 18px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: #ffffff;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+  margin-top: 12px;
+}
+
+
+.share-card-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.share-card-tile {
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 14px;
+  padding: 12px 8px;
+  text-align: center;
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  transition: border-color 0.2s ease;
+}
+
+.share-card-tile-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #94a3b8;
+  margin-bottom: 4px;
+  letter-spacing: 0.5px;
+}
+
+.share-card-tile-value {
+  font-size: 18px;
+  font-weight: 800;
+  margin-bottom: 2px;
+}
+
+.share-card-tile-unit {
+  font-size: 10px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.share-card-footer {
+  padding-top: 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  justify: space-between;
+  align-items: center;
+  gap: 12px;
+  font-size: 11px;
+  color: #64748b;
+}
+
+
 
 /* ============================================================
    Mobile History/Calendar Overflow Fix v2 (mobile only)
