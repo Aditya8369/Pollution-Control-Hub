@@ -4,6 +4,8 @@
  * L1: In-Memory Map (fastest, cleared on page refresh)
  * L2: LocalStorage (persists across reloads, limited capacity)
  */
+export let cacheWarningShown = false;
+
 export class MultiLevelCache {
   constructor(
     namespace = 'pc-hub-cache',
@@ -49,8 +51,21 @@ export class MultiLevelCache {
   ) {
     try {
       localStorage.setItem(key, JSON.stringify(value));
-    } catch (e) {
-      console.warn(errorMessage, e);
+    } catch (error) {
+      if (
+        error instanceof DOMException &&
+        (
+          error.name === "QuotaExceededError" ||
+          error.name === "NS_ERROR_DOM_QUOTA_REACHED"
+        )
+      ) {
+        if (!cacheWarningShown) {
+          cacheWarningShown = true;
+          console.warn("[cache] Storage is full. Data is being cached in memory.");
+        }
+      } else {
+        throw error;
+      }
     }
   }
 

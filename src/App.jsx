@@ -60,6 +60,7 @@ function AppControls({
   isRefreshing,
   refreshCountdown,
   lastUpdated,
+  detecting,
 }) {
   return (
     <section className="app-controls" aria-label="Live controls">
@@ -86,8 +87,9 @@ function AppControls({
             flexShrink: 0,
           }}
           onClick={() => onCityChange("auto")}
+          disabled={detecting}
         >
-          Auto Detect
+          {detecting ? "Detecting..." : "Auto Detect"}
         </button>
       </div>
 
@@ -259,6 +261,7 @@ function SectionNav({ activeSection, onSectionChange, theme }) {
           onClick={() => setIsMenuOpen(!isMenuOpen)}
           aria-expanded={isMenuOpen}
           aria-label="Toggle navigation"
+          aria-controls="mobile-navigation"
           style={{
             border: "1px solid var(--line)",
             background: "var(--card)",
@@ -284,7 +287,8 @@ function SectionNav({ activeSection, onSectionChange, theme }) {
         </button>
 
         {isMenuOpen && (
-          <div
+          <nav
+            id="mobile-navigation"
             style={{
               position: "absolute",
               top: "100%",
@@ -327,7 +331,7 @@ function SectionNav({ activeSection, onSectionChange, theme }) {
                 {section.label}
               </button>
             ))}
-          </div>
+          </nav>
         )}
       </nav>
 
@@ -441,6 +445,18 @@ export default function App() {
     return saved ? Number(saved) : 24;
   });
 
+  const debounceRef = useRef(null);
+  const geoRequestId = useRef(0);
+  const [detecting, setDetecting] = useState(false);
+
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+      }
+    };
+  }, []);
+
   useEffect(() => {
     localStorage.setItem("activeSection", activeSection);
   }, [activeSection]);
@@ -467,68 +483,71 @@ export default function App() {
     localStorage.setItem(THEME_STORAGE_KEY, theme);
   }, [theme]);
 
-  useEffect(() => {
-    if (selectedCity === "auto") {
-      if (!navigator.geolocation) {
+  const startGeolocation = useCallback(() => {
+    const requestId = ++geoRequestId.current;
+
+    if (!navigator.geolocation) {
+      setLocationNotice(
+        "Your browser can't detect location, so we're showing Delhi.",
+      );
+      setPosition(DEFAULT_POSITION);
+      setDetecting(false);
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (coords) => {
+        if (requestId !== geoRequestId.current) return;
+        setLocationNotice("");
+        setPosition({
+          lat: Number(coords.coords.latitude.toFixed(4)),
+          lon: Number(coords.coords.longitude.toFixed(4)),
+          cityName: "Your Current Location",
+        });
+        setDetecting(false);
+      },
+      (error) => {
+        if (requestId !== geoRequestId.current) return;
+        console.warn("Geolocation fallback active:", error);
         setLocationNotice(
-          "Your browser can't detect location, so we're showing Delhi.",
+          "Couldn't detect your location — showing Delhi for now.",
         );
         setPosition(DEFAULT_POSITION);
-        return;
-      }
+        setDetecting(false);
+      },
+      { timeout: 8000 },
+    );
+  }, []);
 
-      navigator.geolocation.getCurrentPosition(
-        (coords) => {
-          setLocationNotice("");
-          setPosition({
-            lat: Number(coords.coords.latitude.toFixed(4)),
-            lon: Number(coords.coords.longitude.toFixed(4)),
-            cityName: "Your Current Location",
-          });
-        },
-        () => {
-          setLocationNotice(
-            "Couldn't detect your location — showing Delhi for now.",
-          );
-          setPosition(DEFAULT_POSITION);
-        },
-        { timeout: 8000 },
-      );
+  // Initial mount geolocation if selectedCity is auto
+  useEffect(() => {
+    if (selectedCity === "auto") {
+      setDetecting(true);
+      startGeolocation();
     }
-  }, [selectedCity]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
+enhancement/280-add-static-typing
   /** @param {any} location */
     const handleLocationSelected = (location) => {
     if (location === "auto") {
-      setSelectedCity("auto");
 
-      if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-          (positionObj) => {
-            setPosition({
-              lat: positionObj.coords.latitude,
-              lon: positionObj.coords.longitude,
-              cityName: "Current Location",
-            });
-            setLocationNotice("");
-          },
-          (error) => {
-            console.warn("Geolocation fallback active:", error);
-            setPosition({
-              lat: 28.6139,
-              lon: 77.209,
-              cityName: "Delhi (Default)",
-            });
-            setLocationNotice(
-              "Location access denied. Using default tracking region.",
-            );
-          },
-        );
-      } else {
-        console.error(
-          "Geolocation is not supported by this browser interface.",
-        );
-      }
+  const handleAutoDetect = useCallback(() => {
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+    }
+    setDetecting(true);
+    debounceRef.current = setTimeout(() => {
+ main
+      setSelectedCity("auto");
+      startGeolocation();
+    }, 500);
+  }, [startGeolocation]);
+
+  const handleLocationSelected = useCallback((location) => {
+    if (location === "auto") {
+      handleAutoDetect();
     } else {
       setSelectedCity(location.name);
       setPosition({
@@ -539,7 +558,8 @@ export default function App() {
       setCityInHash(location.name, location.lat, location.lon);
       setLocationNotice("");
     }
-  };
+  }, [handleAutoDetect]);
+
   // Listen for browser Back/Forward (popstate) and restore the city from the URL hash
   useEffect(() => {
     function handlePopState() {
@@ -555,11 +575,13 @@ export default function App() {
       } else {
         // No hash → fall back to auto-detect
         setSelectedCity("auto");
+        setDetecting(true);
+        startGeolocation();
       }
     }
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
-  }, []);
+  }, [startGeolocation]);
 
   useEffect(() => {
     const refreshTimer = setInterval(() => {
@@ -662,6 +684,7 @@ export default function App() {
               isRefreshing={isRefreshing}
               refreshCountdown={refreshCountdown}
               lastUpdated={lastUpdated}
+              detecting={detecting}
             />
           )}
 

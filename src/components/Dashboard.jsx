@@ -28,12 +28,12 @@ function CustomTooltip({ active, payload }) {
   if (active && payload && payload.length) {
     const data = payload[0].payload;
     return (
-      <div className="custom-tooltip" style={{ 
-        backgroundColor: 'var(--bg-card, #ffffff)', 
-        padding: '1rem', 
-        border: '1px solid var(--border-color, #e2e8f0)', 
-        borderRadius: '0.5rem', 
-        boxShadow: '0 10px 25px rgba(0,0,0,0.2)', 
+      <div className="custom-tooltip" style={{
+        backgroundColor: 'var(--bg-card, #ffffff)',
+        padding: '1rem',
+        border: '1px solid var(--border-color, #e2e8f0)',
+        borderRadius: '0.5rem',
+        boxShadow: '0 10px 25px rgba(0,0,0,0.2)',
         maxWidth: '250px',
         zIndex: 1000,
         position: 'relative'
@@ -69,7 +69,9 @@ export default function Dashboard({
   isFallback
 }) {
   const reportRef = useRef(null);
+  const shareCardRef = useRef(null);
   const [isExporting, setIsExporting] = useState(false);
+  const [isSharing, setIsSharing] = useState(false);
 
   const exportReportAsPDF = async () => {
     if (!reportRef.current || isExporting) return;
@@ -106,6 +108,50 @@ export default function Dashboard({
       setIsExporting(false);
     }
   };
+
+  const shareAQICard = async () => {
+    if (!shareCardRef.current || isSharing) return;
+    try {
+      setIsSharing(true);
+      const canvas = await html2canvas(shareCardRef.current, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: '#0f172a',
+        logging: false,
+      });
+      const safeCityName = cityName.replace(/[^a-z0-9]/gi, "-").toLowerCase();
+      const fileName = `${safeCityName}-aqi-${new Date().toISOString().slice(0, 10)}.png`;
+
+      // Use native Web Share API on mobile if available
+      if (navigator.share && navigator.canShare) {
+        canvas.toBlob(async (blob) => {
+          const file = new File([blob], fileName, { type: "image/png" });
+          if (navigator.canShare({ files: [file] })) {
+            await navigator.share({
+              files: [file],
+              title: `${cityName} Air Quality`,
+              text: `Current AQI in ${cityName}: ${current.us_aqi} — ${getAQIBand(current.us_aqi).label}`,
+            });
+            return;
+          }
+          triggerDownload(canvas, fileName);
+        });
+      } else {
+        triggerDownload(canvas, fileName);
+      }
+    } catch (error) {
+      console.error("AQI share card export failed:", error);
+    } finally {
+      setIsSharing(false);
+    }
+  };
+
+  function triggerDownload(canvas, fileName) {
+    const link = document.createElement("a");
+    link.download = fileName;
+    link.href = canvas.toDataURL("image/png");
+    link.click();
+  }
 
   if (!current) {
     return (
@@ -154,6 +200,7 @@ export default function Dashboard({
   const aqiTrend = getAqiTrendIndicator();
 
   return (
+    <>
     <section data-testid="dashboard" className="panel dashboard" ref={reportRef}>
       <MorningBriefing current={current} trend={trend} />
       <div className="panel-head" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
@@ -179,17 +226,30 @@ export default function Dashboard({
               )}
             </p>
           </div>
-          <button
-            type="button"
-            className="export-report-button"
-            onClick={exportReportAsPDF}
-            disabled={isExporting}
-            data-html2canvas-ignore="true"
-            aria-label={isExporting ? 'Generating PDF, please wait' : 'Export dashboard report as PDF'}
-            style={{ flexShrink: 0 }}
-          >
-            {isExporting ? "Generating PDF..." : "Export Report as PDF"}
-          </button>
+          <div style={{ display: 'flex', gap: '0.5rem', flexShrink: 0, flexWrap: 'wrap' }} data-html2canvas-ignore="true">
+            <button
+              type="button"
+              className="export-report-button"
+              onClick={exportReportAsPDF}
+              disabled={isExporting}
+              data-html2canvas-ignore="true"
+              aria-label={isExporting ? 'Generating PDF, please wait' : 'Export dashboard report as PDF'}
+              style={{ flexShrink: 0 }}
+            >
+              {isExporting ? "Generating PDF..." : "Export Report as PDF"}
+            </button>
+            <button
+              type="button"
+              className="share-aqi-button"
+              onClick={shareAQICard}
+              disabled={isSharing}
+              data-html2canvas-ignore="true"
+              aria-label={isSharing ? 'Generating share card, please wait' : 'Share AQI as image'}
+              style={{ flexShrink: 0 }}
+            >
+              {isSharing ? "Generating..." : "Share AQI"}
+            </button>
+          </div>
         </div>
         <div className="dashboard-tools">
           <div data-testid="time-range-selector" className="range-switch" role="group" aria-label="Select time range">
@@ -310,5 +370,75 @@ export default function Dashboard({
         </article>
       </div>
     </section>
+
+    {/* Hidden AQI Share Card — captured by html2canvas */}
+    <div
+      ref={shareCardRef}
+      aria-hidden="true"
+      className="share-card-container"
+      style={{
+        borderColor: `${aqiBand.color}44`,
+      }}
+    >
+      {/* Header */}
+      <div className="share-card-header">
+        <span className="share-card-badge">POLLUTION CONTROL HUB</span>
+        <span className="share-card-date">
+          {new Date().toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}
+        </span>
+      </div>
+
+      <h2 className="share-card-city">
+        {cityName}
+      </h2>
+
+      {/* Hero AQI Box */}
+      <div className="share-card-hero">
+        <div className="share-card-hero-left">
+          <span className="share-card-hero-sub">AIR QUALITY INDEX</span>
+          <span className="share-card-hero-value" style={{ color: aqiBand.color }}>
+            {current.us_aqi}
+          </span>
+        </div>
+        <div className="share-card-hero-pill" style={{ background: aqiBand.color }}>
+          {aqiBand.label}
+        </div>
+      </div>
+
+      {/* Pollutant Metric Grid Tiles */}
+      <div className="share-card-grid">
+        {[
+          { label: 'PM2.5', value: current.pm2_5, limit: 15 },
+          { label: 'PM10',  value: current.pm10, limit: 45 },
+          { label: 'NO₂',   value: current.nitrogen_dioxide, limit: 25 },
+        ].map(({ label, value, limit }) => {
+          const color = getPollutantColor(value, limit);
+          return (
+            <div
+              key={label}
+              className="share-card-tile"
+              style={{
+                borderColor: `${color}66`,
+                borderTop: `3px solid ${color}`
+              }}
+            >
+              <div className="share-card-tile-label">{label}</div>
+              <div className="share-card-tile-value" style={{ color }}>
+                {value !== undefined ? Number(value).toFixed(1) : '—'}
+              </div>
+              <div className="share-card-tile-unit">µg/m³</div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Footer Branding */}
+      <div className="share-card-footer">
+        <span>🌍 Live Air Quality Status</span>
+        <span>pollution-control-hub.vercel.app</span>
+      </div>
+    </div>
+
+    </>
   );
 }

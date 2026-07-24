@@ -130,7 +130,8 @@ describe("MultiLevelCache", () => {
 
   it("handles localStorage setItem errors gracefully", () => {
     vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
-      throw new Error("Storage write failed");
+      const err = new DOMException("Storage write failed", "QuotaExceededError");
+      throw err;
     });
 
     expect(() =>
