@@ -90,11 +90,9 @@ body {
   line-height: 1.55;
   color: var(--ink);
   background:
-    radial-gradient(
-      circle at 8% 15%,
+    radial-gradient(circle at 8% 15%,
       rgba(13, 148, 136, 0.14),
-      transparent 32%
-    ),
+      transparent 32%),
     radial-gradient(circle at 92% 8%, rgba(249, 115, 22, 0.1), transparent 30%),
     linear-gradient(180deg, #f7faf9 0%, #eef2f1 100%);
   transition:
@@ -106,11 +104,9 @@ body {
 :root[data-theme="dark"] body {
   background:
     radial-gradient(circle at 6% 12%, rgba(45, 212, 191, 0.1), transparent 34%),
-    radial-gradient(
-      circle at 90% 6%,
+    radial-gradient(circle at 90% 6%,
       rgba(251, 146, 60, 0.08),
-      transparent 32%
-    ),
+      transparent 32%),
     linear-gradient(180deg, #05080f 0%, #0a1018 100%);
 }
 
@@ -146,6 +142,7 @@ a {
 }
 
 @media (prefers-reduced-motion: reduce) {
+
   *,
   *::before,
   *::after {
@@ -237,22 +234,18 @@ a {
   content: "";
   position: absolute;
   inset: 0;
-  background: radial-gradient(
-    circle at 88% 100%,
-    rgba(249, 115, 22, 0.55),
-    transparent 55%
-  );
+  background: radial-gradient(circle at 88% 100%,
+      rgba(249, 115, 22, 0.55),
+      transparent 55%);
   pointer-events: none;
 }
 
 .hero-overlay {
   position: absolute;
   inset: 0;
-  background: linear-gradient(
-    180deg,
-    rgba(15, 23, 42, 0),
-    rgba(15, 23, 42, 0.35)
-  );
+  background: linear-gradient(180deg,
+      rgba(15, 23, 42, 0),
+      rgba(15, 23, 42, 0.35));
 }
 
 .hero-content {
@@ -959,14 +952,14 @@ a {
   .dashboard,
   .panel:last-child,
   .scenario-simulator,
-  .content-grid > *:nth-child(4),
-  .content-grid > *:nth-child(5) {
+  .content-grid>*:nth-child(4),
+  .content-grid>*:nth-child(5) {
     grid-column: span 2;
   }
 }
 
 /* subtle vertical dividers between the 3 columns for extra clarity */
-.three-col > div + div {
+.three-col>div+div {
   border-left: 1px solid var(--line);
   padding-left: var(--sp-5);
 }
@@ -1634,7 +1627,7 @@ a {
   margin-bottom: var(--sp-2);
 }
 
-.quiz-selector > p {
+.quiz-selector>p {
   color: var(--muted);
   margin-bottom: var(--sp-5);
 }
@@ -2879,20 +2872,16 @@ a {
 
 .mission-select-card.active {
   border-color: var(--brand);
-  background: linear-gradient(
-    140deg,
-    rgba(13, 148, 136, 0.08),
-    rgba(2, 132, 199, 0.04)
-  );
+  background: linear-gradient(140deg,
+      rgba(13, 148, 136, 0.08),
+      rgba(2, 132, 199, 0.04));
   box-shadow: 0 0 0 2px var(--brand);
 }
 
 :root[data-theme="dark"] .mission-select-card.active {
-  background: linear-gradient(
-    140deg,
-    rgba(34, 211, 238, 0.12),
-    rgba(56, 189, 248, 0.06)
-  );
+  background: linear-gradient(140deg,
+      rgba(34, 211, 238, 0.12),
+      rgba(56, 189, 248, 0.06));
 }
 
 .mission-icon-lg {
@@ -3248,20 +3237,16 @@ a {
 
 .policy-card.deployed {
   border-color: var(--brand);
-  background: linear-gradient(
-    140deg,
-    rgba(13, 148, 136, 0.05),
-    rgba(2, 132, 199, 0.02)
-  );
+  background: linear-gradient(140deg,
+      rgba(13, 148, 136, 0.05),
+      rgba(2, 132, 199, 0.02));
   box-shadow: 0 0 0 2px var(--brand);
 }
 
 :root[data-theme="dark"] .policy-card.deployed {
-  background: linear-gradient(
-    140deg,
-    rgba(34, 211, 238, 0.08),
-    rgba(56, 189, 248, 0.04)
-  );
+  background: linear-gradient(140deg,
+      rgba(34, 211, 238, 0.08),
+      rgba(56, 189, 248, 0.04));
 }
 
 .policy-card:disabled {
@@ -3699,6 +3684,7 @@ a {
    Mobile History/Calendar Overflow Fix v2 (mobile only)
    ============================================================ */
 @media (max-width: 640px) {
+
   /* THE key fix: force the grid track itself to shrink,
      not just its children */
   .content-grid {
@@ -3707,7 +3693,7 @@ a {
 
   .history-layout,
   .panel,
-  .content-grid > * {
+  .content-grid>* {
     min-width: 0;
     max-width: 100%;
   }
@@ -3932,7 +3918,7 @@ a {
     grid-template-columns: 1fr;
   }
 
-  .three-col > div + div {
+  .three-col>div+div {
     border-left: none;
     padding-left: 0;
     border-top: 1px solid var(--line);
@@ -4381,14 +4367,15 @@ a {
    ========================================= */
 .commute-container {
   width: 100%;
-  padding: 3rem 2rem; /* Increased top/bottom and left/right padding */
+  padding: 3rem 2rem;
+  /* Increased top/bottom and left/right padding */
 }
 
 .commute-title {
   margin-bottom: 1.5rem;
   font-size: 1.8rem;
   font-weight: bold;
-  color: #1f2937; /* Dark gray */
+  color: var(--ink);
 }
 
 .commute-layout {
@@ -4404,8 +4391,10 @@ a {
 }
 
 .commute-sidebar {
-  background-color: #ffffff; /* Solid white background */
-  border: 1px solid #e5e7eb; /* Light gray border */
+  background-color: #ffffff;
+  /* Solid white background */
+  border: 1px solid #e5e7eb;
+  /* Light gray border */
   border-radius: 0.75rem;
   padding: 1.5rem;
   height: fit-content;
@@ -4426,7 +4415,8 @@ a {
 .commute-form input {
   width: 100%;
   padding: 0.75rem 1rem;
-  border: 1px solid #d1d5db; /* Visible border */
+  border: 1px solid #d1d5db;
+  /* Visible border */
   border-radius: 0.5rem;
   background-color: #ffffff;
   color: #111827;
@@ -4434,7 +4424,8 @@ a {
 }
 
 .commute-form input:focus {
-  outline: 2px solid #0d9488; /* Teal focus ring */
+  outline: 2px solid #0d9488;
+  /* Teal focus ring */
   border-color: transparent;
 }
 
@@ -4442,8 +4433,10 @@ a {
   width: 100%;
   margin-top: 1rem;
   padding: 0.8rem 1.5rem;
-  background-color: #0d9488; /* Explicit Teal color */
-  color: #ffffff; /* White text */
+  background-color: #0d9488;
+  /* Explicit Teal color */
+  color: #ffffff;
+  /* White text */
   border: none;
   border-radius: 0.5rem;
   font-weight: 600;
@@ -4453,7 +4446,8 @@ a {
 }
 
 .commute-btn:hover {
-  background-color: #0f766e; /* Darker teal on hover */
+  background-color: #0f766e;
+  /* Darker teal on hover */
 }
 
 .commute-btn:disabled {
@@ -4464,7 +4458,8 @@ a {
 .commute-stats {
   margin-top: 1.5rem;
   padding: 1rem;
-  background-color: #f0fdfa; /* Very light teal */
+  background-color: #f0fdfa;
+  /* Very light teal */
   border: 1px solid #ccfbf1;
   border-radius: 0.5rem;
 }
