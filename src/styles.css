@@ -161,6 +161,11 @@ a {
    ============================================================ */
 .app-shell {
   min-height: 100vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  animation: fade-in 700ms ease;
+
   animation: fade-in 600ms var(--ease);
   padding-bottom: var(--sp-6);
   overflow-x: clip;
@@ -561,7 +566,6 @@ a {
   margin-top: var(--sp-2);
   font-size: 0.94rem;
 }
-
 .icon-container {
   width: 40px;
   height: 40px;
@@ -591,6 +595,11 @@ a {
   border-color: var(--sky);
 }
 
+.icon-container.moderate {
+  background: var(--sev-mod-fill);
+  color: var(--sev-mod-line);
+  border-color: var(--sev-mod-line);
+}
 /* ============================================================
    Exposure card
    ============================================================ */
@@ -935,8 +944,8 @@ a {
 
 /* ============================================================
    Advisory / three-col / analytics
-   ============================================================ */
-/* yeh hamesha rahe, bahar hi */
+   ============================================================ 
+ yeh hamesha rahe, bahar hi */
 .advisory-grid,
 .three-col,
 .analytics-kpis {
@@ -2351,6 +2360,8 @@ a {
   }
 }
 
+.loading-container {
+
 /* ============================================================
    Enhanced Health Advisory Section
    ============================================================ */
@@ -3082,10 +3093,71 @@ a {
   border: 1px solid var(--line);
   padding: 1rem;
   border-radius: 12px;
+
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
+
+  min-height: 70vh;
+  text-align: center;
+  padding: 20px;
+}
+
+.loading-spinner {
+  width: 60px;
+  height: 60px;
+  border: 6px solid #e5e7eb;
+  border-top: 6px solid #22c55e;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 20px;
+}
+
+.loading-container h1 {
+  font-size: 2rem;
+  margin-bottom: 10px;
+}
+
+.loading-container p {
+  font-size: 1rem;
+  color: #666;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.advisory-grid.improved {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+.improved-card {
+  padding: 16px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.06);
+  transition: transform 0.2s ease;
+}
+
+.improved-card:hover {
+  transform: translateY(-4px);
+}
+
+.tips-section {
+  margin-top: 20px;
+}
+
+.tips-section h3 {
+  margin-bottom: 10px;
+}
+html, body {
+  height: auto;
+  overflow-y: auto;
+}
+
   gap: 0.25rem;
   text-align: center;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.02);
