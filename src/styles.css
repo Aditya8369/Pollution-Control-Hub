@@ -752,6 +752,7 @@ a {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   gap: var(--sp-3);
+  margin-top: var(--sp-5);
 }
 
 .pollutant-card {
