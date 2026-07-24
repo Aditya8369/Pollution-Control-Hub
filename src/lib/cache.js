@@ -5,9 +5,14 @@
  * L2: LocalStorage (persists across reloads, limited capacity)
  */
 export class MultiLevelCache {
-  constructor(namespace = 'pc-hub-cache', defaultTTL = 5 * 60 * 1000) {
+  constructor(
+    namespace = 'pc-hub-cache',
+    defaultTTL = 5 * 60 * 1000,
+    maxEntries = Infinity
+  ) {
     this.namespace = namespace;
     this.defaultTTL = defaultTTL;
+    this.maxEntries = maxEntries;
     this.memoryCache = new Map();
   }
 
@@ -93,7 +98,15 @@ export class MultiLevelCache {
       expiresAt,
     };
 
-    // 1. Set L1
+    const entry = {
+      data,
+      expiresAt,
+    };
+
+    // Evict oldest entry if cache limit is reached
+    this._evictIfNeeded();
+
+    // Store in L1 cache
     this.memoryCache.set(fullKey, entry);
 
     // 2. Set L2
