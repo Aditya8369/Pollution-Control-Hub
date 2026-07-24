@@ -1,4 +1,26 @@
+
+import { useEffect, useMemo, useState, useCallback } from 'react';
+import  useSWR  from './hooks/useSWR';
+import AlertsPanel from './components/AlertsPanel';
+import AnalyticsInsights from './components/AnalyticsInsights';
+import CommunityHub from './components/CommunityHub';
+import Dashboard from './components/Dashboard';
+import Footer from './components/Footer';
+import HealthAdvisory from './components/HealthAdvisory';
+import LocationMap from './components/LocationMap';
+import QuizSection from './components/QuizSection';
+import SolutionsAwareness from './components/SolutionsAwareness';
+import ScenarioSimulator from './components/ScenarioSimulator';
+import AqiMissionGame from './components/AqiMissionGame';
+import HistoricalAnalysis from './components/HistoricalAnalysis';
+import LocationSearch from './components/LocationSearch';
+import SkeletonDashboard from './components/SkeletonDashboard';
+import { CITY_COORDINATES } from './constants/cities';
+
+import { useEffect, useMemo, useState, useCallback } from "react";
+
 import { useEffect, useMemo, useState, useCallback, useRef } from "react";
+
 import { useSWR } from "./hooks/useSWR";
 import AlertsPanel from "./components/AlertsPanel";
 import AnalyticsInsights from "./components/AnalyticsInsights";
@@ -15,6 +37,7 @@ import HistoricalAnalysis from "./components/HistoricalAnalysis";
 import LocationSearch from "./components/LocationSearch";
 import SkeletonDashboard from "./components/SkeletonDashboard";
 import { CITY_COORDINATES } from "./constants/cities";
+
 import HotspotScoutGame from "./components/HotspotScoutGame";
 import ErrorBoundary from "./components/ErrorBoundary";
 import Commute from "./components/Commute";
