@@ -17,14 +17,15 @@ import SkeletonDashboard from "./components/SkeletonDashboard";
 import { CITY_COORDINATES } from "./constants/cities";
 import HotspotScoutGame from "./components/HotspotScoutGame";
 import ErrorBoundary from "./components/ErrorBoundary";
+import Commute from "./components/Commute";
 import {
   estimateWeeklyMonthlyAverages,
   fetchAirQualityByCoords,
   fetchCityComparisons,
   estimateExposureTime,
-  fetchWindData
-} from './services/airQualityService';
-import { eventBus } from './core/events';
+  fetchWindData,
+} from "./services/airQualityService";
+import { eventBus } from "./core/events";
 
 const DEFAULT_POSITION = {
   lat: 28.6139,
@@ -66,7 +67,7 @@ function AppControls({
           display: "flex",
           alignItems: "center",
           gap: "0.5rem",
-          flexWrap: "nowrap",
+          flexWrap: "wrap",
         }}
       >
         <label htmlFor="city-selector">Track city:</label>
@@ -98,7 +99,13 @@ function AppControls({
       </div>
 
       <div className="control-group actions">
-        <button type="button" onClick={() => eventBus.emit('FORCE_REFRESH')} disabled={isRefreshing}>Refresh Now</button>
+        <button
+          type="button"
+          onClick={() => eventBus.emit("FORCE_REFRESH")}
+          disabled={isRefreshing}
+        >
+          Refresh Now
+        </button>
         <small>
           Last updated:{" "}
           {lastUpdated
@@ -117,20 +124,23 @@ function SectionNav({ activeSection, onSectionChange, theme }) {
     { id: "game", label: "Game" },
     { id: "community", label: "Community" },
     { id: "history", label: "History" },
+    { id: "Commute", label: "Commute" },
   ];
   const isDark = theme === "dark";
 
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef(null);
-  
-  const [isMobile, setIsMobile] = useState(() => 
-    typeof window !== 'undefined' ? window.matchMedia("(max-width: 768px)").matches : false
+
+  const [isMobile, setIsMobile] = useState(() =>
+    typeof window !== "undefined"
+      ? window.matchMedia("(max-width: 768px)").matches
+      : false,
   );
 
   useEffect(() => {
     const mediaQuery = window.matchMedia("(max-width: 768px)");
     const handler = (e) => setIsMobile(e.matches);
-    
+
     // Add compatibility for older browsers if needed, though addEventListener is widely supported
     if (mediaQuery.addEventListener) {
       mediaQuery.addEventListener("change", handler);
@@ -149,18 +159,18 @@ function SectionNav({ activeSection, onSectionChange, theme }) {
     }
 
     function handleKeyDown(event) {
-      if (event.key === 'Escape') {
+      if (event.key === "Escape") {
         setIsMenuOpen(false);
       }
     }
 
     if (isMenuOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-      document.addEventListener('keydown', handleKeyDown);
+      document.addEventListener("mousedown", handleClickOutside);
+      document.addEventListener("keydown", handleKeyDown);
     }
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-      document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleKeyDown);
     };
   }, [isMenuOpen]);
 
@@ -173,7 +183,7 @@ function SectionNav({ activeSection, onSectionChange, theme }) {
     <button
       type="button"
       className={`theme-toggle-inline ${theme === "dark" ? "dark" : ""}`}
-      onClick={() => eventBus.emit('TOGGLE_THEME')}
+      onClick={() => eventBus.emit("TOGGLE_THEME")}
       aria-label="Toggle Theme"
     >
       <span className="toggle-thumb">
@@ -225,54 +235,68 @@ function SectionNav({ activeSection, onSectionChange, theme }) {
   }
 
   return (
-    <header className="section-nav" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-      <nav aria-label="Main sections" ref={menuRef} style={{ display: 'flex', alignItems: 'center' }}>
-        <button 
-          className="hamburger-btn" 
+    <header
+      className="section-nav"
+      style={{
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        width: "100%",
+      }}
+    >
+      <nav
+        aria-label="Main sections"
+        ref={menuRef}
+        style={{ display: "flex", alignItems: "center" }}
+      >
+        <button
+          className="hamburger-btn"
           onClick={() => setIsMenuOpen(!isMenuOpen)}
           aria-expanded={isMenuOpen}
           aria-label="Toggle navigation"
           style={{
-            border: '1px solid var(--line)',
-            background: 'var(--card)',
-            color: 'var(--ink)',
-            borderRadius: '50%',
-            width: '44px',
-            height: '44px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer',
-            boxShadow: 'var(--shadow-sm)',
-            padding: 0
+            border: "1px solid var(--line)",
+            background: "var(--card)",
+            color: "var(--ink)",
+            borderRadius: "50%",
+            width: "44px",
+            height: "44px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            cursor: "pointer",
+            boxShadow: "var(--shadow-sm)",
+            padding: 0,
           }}
         >
           <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
             {isMenuOpen ? (
-              <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z"/>
+              <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z" />
             ) : (
-              <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/>
+              <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z" />
             )}
           </svg>
         </button>
 
         {isMenuOpen && (
-          <div style={{
-            position: 'absolute',
-            top: '100%',
-            left: '1rem',
-            right: '1rem',
-            marginTop: '0.5rem',
-            background: 'var(--card)',
-            boxShadow: 'var(--shadow-lg)',
-            border: '1px solid var(--line)',
-            borderRadius: 'var(--r-md)',
-            padding: '0.5rem',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '0.5rem',
-            zIndex: 50
-          }}>
+          <div
+            style={{
+              position: "absolute",
+              top: "100%",
+              left: "1rem",
+              right: "1rem",
+              marginTop: "0.5rem",
+              background: "var(--card)",
+              boxShadow: "var(--shadow-lg)",
+              border: "1px solid var(--line)",
+              borderRadius: "var(--r-md)",
+              padding: "0.5rem",
+              display: "flex",
+              flexDirection: "column",
+              gap: "0.5rem",
+              zIndex: 50,
+            }}
+          >
             {sections.map((section) => (
               <button
                 key={section.id}
@@ -280,16 +304,19 @@ function SectionNav({ activeSection, onSectionChange, theme }) {
                 className={activeSection === section.id ? "active" : ""}
                 onClick={() => handleSectionClick(section.id)}
                 style={{
-                  width: '100%',
-                  textAlign: 'center',
-                  padding: '0.75rem 1rem',
-                  border: 'none',
-                  background: activeSection === section.id ? 'linear-gradient(120deg, var(--brand), var(--sky))' : 'transparent',
-                  color: activeSection === section.id ? '#fff' : 'var(--muted)',
-                  borderRadius: '999px',
-                  fontWeight: '700',
-                  fontSize: '0.9rem',
-                  cursor: 'pointer'
+                  width: "100%",
+                  textAlign: "center",
+                  padding: "0.75rem 1rem",
+                  border: "none",
+                  background:
+                    activeSection === section.id
+                      ? "linear-gradient(120deg, var(--brand), var(--sky))"
+                      : "transparent",
+                  color: activeSection === section.id ? "#fff" : "var(--muted)",
+                  borderRadius: "999px",
+                  fontWeight: "700",
+                  fontSize: "0.9rem",
+                  cursor: "pointer",
                 }}
               >
                 {section.label}
@@ -392,15 +419,15 @@ export default function App() {
     useState(AUTO_REFRESH_SECONDS);
   const [locationNotice, setLocationNotice] = useState("");
   const [theme, setTheme] = useState(() => {
-  const savedTheme = localStorage.getItem(THEME_STORAGE_KEY);
+    const savedTheme = localStorage.getItem(THEME_STORAGE_KEY);
 
-  if (savedTheme) return savedTheme;
+    if (savedTheme) return savedTheme;
 
-  return window.matchMedia &&
-    window.matchMedia("(prefers-color-scheme: dark)").matches
-    ? "dark"
-    : "light";
-});
+    return window.matchMedia &&
+      window.matchMedia("(prefers-color-scheme: dark)").matches
+      ? "dark"
+      : "light";
+  });
   const [timeRange, setTimeRange] = useState(() => {
     const saved = localStorage.getItem("timeRange");
     return saved ? Number(saved) : 24;
@@ -579,19 +606,23 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    eventBus.on('TOGGLE_THEME', toggleTheme);
-    eventBus.on('FORCE_REFRESH', refreshNow);
+    eventBus.on("TOGGLE_THEME", toggleTheme);
+    eventBus.on("FORCE_REFRESH", refreshNow);
 
     return () => {
-      eventBus.off('TOGGLE_THEME', toggleTheme);
-      eventBus.off('FORCE_REFRESH', refreshNow);
+      eventBus.off("TOGGLE_THEME", toggleTheme);
+      eventBus.off("FORCE_REFRESH", refreshNow);
     };
   }, [toggleTheme, refreshNow]);
 
   return (
     <main className="app-shell">
       {/* 1. Structural fix: Renders the navigation element at the very top */}
-      <SectionNav activeSection={activeSection} onSectionChange={setActiveSection} theme={theme} />
+      <SectionNav
+        activeSection={activeSection}
+        onSectionChange={setActiveSection}
+        theme={theme}
+      />
 
       {loading && !error ? (
         <>
@@ -615,21 +646,20 @@ export default function App() {
         <>
           <Hero cityName={position.cityName} />
 
-          {activeSection === 'home' && (
+          {activeSection === "home" && (
             <AppControls
               selectedCity={selectedCity}
               onCityChange={handleLocationSelected}
-
               isRefreshing={isRefreshing}
               refreshCountdown={refreshCountdown}
               lastUpdated={lastUpdated}
             />
           )}
 
-          {locationNotice && selectedCity === 'auto' && (
+          {locationNotice && selectedCity === "auto" && (
             <div className="location-notice" role="status">
               <p>{locationNotice}</p>
-              <button type="button" onClick={() => setLocationNotice('')}>
+              <button type="button" onClick={() => setLocationNotice("")}>
                 Dismiss
               </button>
             </div>
@@ -706,6 +736,7 @@ export default function App() {
             </div>
           )}
 
+          {activeSection === "Commute" && <Commute />}
           <Footer />
         </>
       )}
