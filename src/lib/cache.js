@@ -18,15 +18,18 @@ export class MultiLevelCache {
     this.memoryCache = new Map();
   }
 
-  _getKey(key) {
+  /** @param {any} key */
+    _getKey(key) {
     return `${this.namespace}:${key}`;
   }
 
-  _getFallbackKey(key) {
+  /** @param {any} key */
+    _getFallbackKey(key) {
     return `${this.namespace}:fallback:${key}`;
   }
 
-  _readStorage(key) {
+  /** @param {any} key */
+    _readStorage(key) {
     try {
       const raw = localStorage.getItem(key);
       return raw ? JSON.parse(raw) : null;
@@ -36,7 +39,12 @@ export class MultiLevelCache {
     }
   }
 
-  _writeStorage(
+  /**
+     * @param {any} key
+     * @param {any} value
+     * @param {any} errorMessage
+     */
+    _writeStorage(
     key,
     value,
     errorMessage = 'Failed to write to localStorage cache.'
@@ -61,7 +69,8 @@ export class MultiLevelCache {
     }
   }
 
-  _removeStorage(key) {
+  /** @param {any} key */
+    _removeStorage(key) {
     try {
       localStorage.removeItem(key);
     } catch (e) {
@@ -78,7 +87,8 @@ export class MultiLevelCache {
     }
   }
 
-  get(key) {
+  /** @param {any} key */
+    get(key) {
     const fullKey = this._getKey(key);
     const now = Date.now();
 
@@ -109,11 +119,17 @@ export class MultiLevelCache {
     return null;
   }
 
-  getFallback(key) {
+  /** @param {any} key */
+    getFallback(key) {
     return this._readStorage(this._getFallbackKey(key));
   }
 
-  set(key, data, ttlMs = this.defaultTTL) {
+  /**
+     * @param {any} key
+     * @param {any} data
+     * @param {any} ttlMs
+     */
+    set(key, data, ttlMs = this.defaultTTL) {
     const fullKey = this._getKey(key);
     const expiresAt = Date.now() + ttlMs;
 

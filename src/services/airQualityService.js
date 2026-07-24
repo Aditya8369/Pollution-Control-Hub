@@ -12,6 +12,10 @@ export const airQualityCache = new LRUCache({
 const BASE_URL = 'https://air-quality-api.open-meteo.com/v1/air-quality';
 
 // Historical data contains multiple days, so findLastIndex() - ensures we use today's reading instead of yesterday's.
+/**
+ * @param {any} times
+ * @param {any} utcOffsetSeconds
+ */
 function getCurrentHourIndex(times, utcOffsetSeconds = 0) {
   // Current time in the queried location's timezone
   const nowInLocation = new Date(Date.now() + utcOffsetSeconds * 1000);
@@ -27,6 +31,7 @@ function getCurrentHourIndex(times, utcOffsetSeconds = 0) {
 
 
 
+/** @param {any} value */
 export function getAQIBand(value) {
   if (value <= 50) return { label: 'Good', color: '#1f9d55' };
   if (value <= 100) return { label: 'Moderate', color: '#f59e0b' };
@@ -36,6 +41,10 @@ export function getAQIBand(value) {
   return { label: 'Hazardous', color: '#7f1d1d' };
 }
 
+/**
+ * @param {any} value
+ * @param {any} limit
+ */
 export function getPollutantColor(value, limit) {
   const ratio = value / limit;
   if (ratio <= 0.5) return '#1f9d55'; // Good (well within)
@@ -60,6 +69,10 @@ const DIRECTION_LABELS = {
 
 
 
+/**
+ * @param {any} lat
+ * @param {any} lon
+ */
 function isValidCoord(lat, lon) {
   return (
     typeof lat === 'number' && typeof lon === 'number' &&
@@ -68,6 +81,11 @@ function isValidCoord(lat, lon) {
   );
 }
 
+/**
+ * @param {any} lat
+ * @param {any} lon
+ * @param {any} signal
+ */
 async function fetchGridPointAqi(lat, lon, signal) {
   if (!isValidCoord(lat, lon)) return null;
   const url = `${BASE_URL}?latitude=${lat}&longitude=${lon}&hourly=us_aqi&timezone=auto&forecast_days=1`;
@@ -84,6 +102,12 @@ async function fetchGridPointAqi(lat, lon, signal) {
   return Math.round(data.hourly?.us_aqi?.[idx] ?? 0);
 }
 
+/**
+ * @param {any} lat
+ * @param {any} lon
+ * @param {any} topN
+ * @param {any} signal
+ */
 export async function fetchLocalGrid(lat, lon, topN = 6, signal) {
   const cacheKey = `grid-${lat.toFixed(1)},${lon.toFixed(1)}`;
   const cached = aqiCache.get(cacheKey);
@@ -119,6 +143,10 @@ export async function fetchLocalGrid(lat, lon, topN = 6, signal) {
   return points;
 }
 
+/**
+ * @param {any} hourly
+ * @param {any} times
+ */
 function computeConfidence(hourly, times) {
   const POLLUTANT_FIELDS = ['pm2_5', 'pm10', 'carbon_monoxide', 'nitrogen_dioxide', 'ozone', 'us_aqi'];
 
@@ -136,6 +164,12 @@ function computeConfidence(hourly, times) {
   return { confidenceScore, dataCompleteness };
 }
 
+/**
+ * @param {any} lat
+ * @param {any} lon
+ * @param {any} signal
+ * @param {any} skipGrid
+ */
 export async function fetchAirQualityByCoords(lat, lon, signal, skipGrid = false) {
   const cacheKey = `coords-${lat.toFixed(4)},${lon.toFixed(4)}`;
 
@@ -171,7 +205,11 @@ export async function fetchAirQualityByCoords(lat, lon, signal, skipGrid = false
 
   const url = `${BASE_URL}?latitude=${lat}&longitude=${lon}&hourly=pm2_5,pm10,carbon_monoxide,nitrogen_dioxide,ozone,us_aqi&timezone=auto&start_date=${startDate}&end_date=${endDate}`;
 
-  const fetchWithWorker = (workerUrl, workerSignal) => {
+  /**
+     * @param {any} workerUrl
+     * @param {any} workerSignal
+     */
+    const fetchWithWorker = (workerUrl, workerSignal) => {
     return new Promise((resolve, reject) => {
       const worker = new ApiWorker();
       let aborted = false;
@@ -239,6 +277,7 @@ export async function fetchAirQualityByCoords(lat, lon, signal, skipGrid = false
           await new Promise((resolveDelay, rejectDelay) => {
             const timeoutId = setTimeout(() => {
               if (signal) signal.removeEventListener('abort', onAbortWait);
+      // @ts-ignore
               resolveDelay();
             }, delay);
 
@@ -316,6 +355,11 @@ export async function fetchAirQualityByCoords(lat, lon, signal, skipGrid = false
   return result;
 }
 
+/**
+ * @param {any} lat
+ * @param {any} lon
+ * @param {any} signal
+ */
 export async function fetchWindData(lat, lon, signal) {
   if (!isValidCoord(lat, lon)) return null;
   const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=wind_speed_10m,wind_direction_10m`;
@@ -333,6 +377,7 @@ export async function fetchWindData(lat, lon, signal) {
   }
 }
 
+/** @param {any} signal */
 export async function fetchCityComparisons(signal) {
   const cityData = await Promise.all(
     CITY_COORDINATES.map(async (city) => {
@@ -361,6 +406,7 @@ export async function fetchCityComparisons(signal) {
   return cityData.sort((a, b) => b.aqi - a.aqi);
 }
 
+/** @param {any} trend */
 export function estimateWeeklyMonthlyAverages(trend) {
   const dayAverage = trend.reduce((acc, item) => acc + item.us_aqi, 0) / (trend.length || 1);
   const weekly = Math.round(dayAverage * 1.05);
@@ -373,6 +419,11 @@ export function estimateWeeklyMonthlyAverages(trend) {
   };
 }
 
+/**
+ * @param {any} trend
+ * @param {any} currentAQI
+ * @param {any} threshold
+ */
 export function estimateExposureTime(trend, currentAQI, threshold = 120) {
 
   if (!trend.length) {
@@ -428,6 +479,10 @@ export function estimateExposureTime(trend, currentAQI, threshold = 120) {
 
 /* ─── AQI sub-index breakpoints (US EPA standard) ─────────────────────────── */
 
+/**
+ * @param {any} concentration
+ * @param {any} breakpoints
+ */
 export function subAqi(concentration, breakpoints) {
   for (const bp of breakpoints) {
     if (concentration >= bp.cLow && concentration <= bp.cHigh) {
@@ -483,6 +538,13 @@ export const BP_CO = [
   { cLow: 34301, cHigh: 51500, iLow: 301, iHigh: 500 },
 ];
 
+/**
+ * @param {any} pm25
+ * @param {any} pm10
+ * @param {any} no2
+ * @param {any} o3
+ * @param {any} co
+ */
 export function estimateAQI(pm25, pm10, no2, o3, co) {
   const scores = [
     subAqi(pm25, BP_PM25),

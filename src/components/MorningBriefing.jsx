@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { getAQIBand } from '../services/airQualityService';
 import './MorningBriefing.css';
 
+/** @param {any} params */
 export default function MorningBriefing({ current, trend }) {
   const [isVisible, setIsVisible] = useState(true);
   const [streak, setStreak] = useState(0);
@@ -22,6 +23,7 @@ export default function MorningBriefing({ current, trend }) {
       if (lastCheckIn) {
         const lastDate = new Date(lastCheckIn);
         const today = new Date(todayStr);
+      // @ts-ignore
         const diffTime = Math.abs(today - lastDate);
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
         

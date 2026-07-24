@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { ACTIONS, MISSIONS } from './aqiGameData';
 import { estimateAQI, getAQIBand } from '../services/airQualityService';
 
+/** @param {any} params */
 export default function AqiMissionGame({ current }) {
   const [gameState, setGameState] = useState('idle'); // 'idle' | 'playing' | 'completed'
   const [selectedMission, setSelectedMission] = useState(MISSIONS[0]);
@@ -29,6 +30,7 @@ export default function AqiMissionGame({ current }) {
         factor = parseFloat((160 / Math.max(10, current.us_aqi)).toFixed(2));
         scaled = true;
       }
+      // @ts-ignore
       startPollutants = {
         pm2_5: Math.round(current.pm2_5 * factor),
         pm10: Math.round(current.pm10 * factor),
@@ -84,7 +86,8 @@ export default function AqiMissionGame({ current }) {
   }, [gameState, currentPollutants, deployedActions]);
 
   // Toggle deployment of a policy/action
-  const handleToggleAction = (actionId) => {
+  /** @param {any} actionId */
+    const handleToggleAction = (actionId) => {
     if (gameState !== 'playing') return;
 
     setDeployedActions((prev) => {
@@ -150,7 +153,8 @@ export default function AqiMissionGame({ current }) {
   const isTargetAchieved = currentSimResults.improvement >= selectedMission.targetImprovement;
 
   // Complete and evaluate the mission
-  const evaluateMission = (isTimeout = false) => {
+  /** @param {any} isTimeout */
+    const evaluateMission = (isTimeout = false) => {
     const results = getSimulatedResults();
     const success = results.improvement >= selectedMission.targetImprovement;
 

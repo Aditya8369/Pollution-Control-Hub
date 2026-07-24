@@ -1,6 +1,11 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { cacheStore } from '../utils/cacheStore';
 
+/**
+ * @param {any} key
+ * @param {any} fetcher
+ * @param {any} params
+ */
 export function useSWR(key, fetcher, { ttl = 5 * 60 * 1000 } = {}) {
   // Initial state based on synchronous cache read
   const getInitialData = () => {

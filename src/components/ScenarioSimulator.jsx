@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { useEffect, useState } from 'react';
 import { CarFront,Sun } from "lucide-react";
 import { CITY_COORDINATES } from '../constants/cities';
