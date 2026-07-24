@@ -54,6 +54,15 @@ export class MultiLevelCache {
     }
   }
 
+  _evictIfNeeded() {
+    if (this.memoryCache.size >= this.maxEntries) {
+      const firstKey = this.memoryCache.keys().next().value;
+      if (firstKey) {
+        this.memoryCache.delete(firstKey);
+      }
+    }
+  }
+
   get(key) {
     const fullKey = this._getKey(key);
     const now = Date.now();
@@ -98,11 +107,6 @@ export class MultiLevelCache {
       expiresAt,
     };
 
-    const entry = {
-      data,
-      expiresAt,
-    };
-
     // Evict oldest entry if cache limit is reached
     this._evictIfNeeded();
 
@@ -141,12 +145,6 @@ export class MultiLevelCache {
     } catch (e) {
       console.warn('Failed to clear localStorage cache:', e);
     }
-
-    keysToRemove.forEach((key) => {
-      localStorage.removeItem(key);
-    });
-  } catch (e) {
-    console.warn('Failed to clear localStorage cache:', e);
   }
 }
 
