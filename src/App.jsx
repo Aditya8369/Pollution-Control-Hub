@@ -528,23 +528,18 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-enhancement/280-add-static-typing
-  /** @param {any} location */
-    const handleLocationSelected = (location) => {
-    if (location === "auto") {
-
   const handleAutoDetect = useCallback(() => {
     if (debounceRef.current) {
       clearTimeout(debounceRef.current);
     }
     setDetecting(true);
     debounceRef.current = setTimeout(() => {
- main
       setSelectedCity("auto");
       startGeolocation();
     }, 500);
   }, [startGeolocation]);
 
+  /** @param {any} location */
   const handleLocationSelected = useCallback((location) => {
     if (location === "auto") {
       handleAutoDetect();
