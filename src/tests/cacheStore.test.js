@@ -1,3 +1,15 @@
+import { vi, beforeEach, afterEach } from 'vitest';
+import { cacheStore } from '../utils/cacheStore';
+
+beforeEach(async () => {
+  await cacheStore.invalidate();
+  vi.restoreAllMocks();
+});
+
+afterEach(() => {
+  vi.restoreAllMocks();
+});
+
 test("getFromMemory returns null for missing key", () => {
   expect(cacheStore.getFromMemory("missing")).toBeNull();
 });
@@ -42,17 +54,17 @@ test("isStale returns false for fresh cache", async () => {
 test("isStale returns true for expired cache", async () => {
   await cacheStore.set("old", { aqi: 80 });
 
-  jest.spyOn(Date, "now").mockReturnValue(Date.now() + 200000);
+  vi.spyOn(Date, "now").mockReturnValue(Date.now() + 200000);
 
   expect(await cacheStore.isStale("old", 1000)).toBe(true);
 
-  Date.now.mockRestore();
+  vi.restoreAllMocks();
 });
 test("isStale returns true for missing entry", async () => {
   expect(await cacheStore.isStale("missing", 5000)).toBe(true);
 });
 test("deduplicate avoids duplicate fetches", async () => {
-  const fetcher = jest.fn().mockResolvedValue({ aqi: 70 });
+  const fetcher = vi.fn().mockResolvedValue({ aqi: 70 });
 
   const [a, b] = await Promise.all([
     cacheStore.deduplicate("key", fetcher),
@@ -63,7 +75,7 @@ test("deduplicate avoids duplicate fetches", async () => {
   expect(a).toEqual(b);
 });
 test("deduplicate returns null for empty key", async () => {
-  const result = await cacheStore.deduplicate("", jest.fn());
+  const result = await cacheStore.deduplicate("", vi.fn());
 
   expect(result).toBeNull();
 });
