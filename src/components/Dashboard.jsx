@@ -18,10 +18,12 @@ import html2canvas from "html2canvas";
 import { getAQIBand, getPollutantColor } from "../services/airQualityService";
 import MorningBriefing from "./MorningBriefing";
 
+/** @param {any} isoTime */
 function shortTimeLabel(isoTime) {
   return new Date(isoTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 
+/** @param {any} params */
 function CustomTooltip({ active, payload }) {
   if (active && payload && payload.length) {
     const data = payload[0].payload;
@@ -52,6 +54,7 @@ function CustomTooltip({ active, payload }) {
   return null;
 }
 
+/** @param {any} params */
 export default function Dashboard({
   cityName,
   current,

@@ -36,6 +36,7 @@ const DEFAULT_POSITION = {
 const THEME_STORAGE_KEY = "pollution-hub-theme";
 const AUTO_REFRESH_SECONDS = 180;
 
+/** @param {any} params */
 function Hero({ cityName }) {
   return (
     <header className="hero flex *:flex-col items-center justify-center text-center">
@@ -52,6 +53,7 @@ function Hero({ cityName }) {
   );
 }
 
+/** @param {any} params */
 function AppControls({
   selectedCity,
   onCityChange,
@@ -117,6 +119,7 @@ function AppControls({
   );
 }
 
+/** @param {any} params */
 function SectionNav({ activeSection, onSectionChange, theme }) {
   const sections = [
     { id: "home", label: "Home" },
@@ -139,7 +142,8 @@ function SectionNav({ activeSection, onSectionChange, theme }) {
 
   useEffect(() => {
     const mediaQuery = window.matchMedia("(max-width: 768px)");
-    const handler = (e) => setIsMobile(e.matches);
+    /** @param {any} e */
+      const handler = (e) => setIsMobile(e.matches);
 
     // Add compatibility for older browsers if needed, though addEventListener is widely supported
     if (mediaQuery.addEventListener) {
@@ -174,7 +178,8 @@ function SectionNav({ activeSection, onSectionChange, theme }) {
     };
   }, [isMenuOpen]);
 
-  const handleSectionClick = (id) => {
+  /** @param {any} id */
+    const handleSectionClick = (id) => {
     onSectionChange(id);
     setIsMenuOpen(false);
   };
@@ -381,6 +386,7 @@ export default function App() {
     error: aqiError,
     isValidating: isAqiValidating,
     mutate: mutateAqi,
+      // @ts-ignore
   } = useSWR(aqiKey, () => fetchAirQualityByCoords(position.lat, position.lon));
 
   const cityKey = "city_comparisons";
@@ -389,6 +395,7 @@ export default function App() {
     error: citiesError,
     isValidating: isCitiesValidating,
     mutate: mutateCities,
+      // @ts-ignore
   } = useSWR(cityKey, () => fetchCityComparisons());
 
   const windKey =
@@ -400,6 +407,7 @@ export default function App() {
     error: windError,
     isValidating: isWindValidating,
     mutate: mutateWind,
+      // @ts-ignore
   } = useSWR(windKey, () => fetchWindData(position.lat, position.lon));
 
   const current = aqiData?.current;
@@ -489,7 +497,8 @@ export default function App() {
     }
   }, [selectedCity]);
 
-  const handleLocationSelected = (location) => {
+  /** @param {any} location */
+    const handleLocationSelected = (location) => {
     if (location === "auto") {
       setSelectedCity("auto");
 

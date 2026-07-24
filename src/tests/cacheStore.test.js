@@ -2,6 +2,7 @@ import { vi, beforeEach, afterEach } from 'vitest';
 import { cacheStore } from '../utils/cacheStore';
 
 beforeEach(async () => {
+      // @ts-ignore
   await cacheStore.invalidate();
   vi.restoreAllMocks();
 });
@@ -41,6 +42,7 @@ test("invalidate without key clears cache", async () => {
   await cacheStore.set("a", { aqi: 1 });
   await cacheStore.set("b", { aqi: 2 });
 
+      // @ts-ignore
   await cacheStore.invalidate();
 
   expect(cacheStore.getFromMemory("a")).toBeNull();
