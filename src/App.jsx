@@ -18,6 +18,7 @@ import { CITY_COORDINATES } from "./constants/cities";
 import HotspotScoutGame from "./components/HotspotScoutGame";
 import ErrorBoundary from "./components/ErrorBoundary";
 import Commute from "./components/Commute";
+import GettingStarted from "./components/GettingStarted";
 import {
   estimateWeeklyMonthlyAverages,
   fetchAirQualityByCoords,
@@ -122,6 +123,7 @@ function AppControls({
 function SectionNav({ activeSection, onSectionChange, theme }) {
   const sections = [
     { id: "home", label: "Home" },
+    { id: "getting-started", label: "Getting Started" },
     { id: "quiz", label: "Quiz" },
     { id: "game", label: "Game" },
     { id: "community", label: "Community" },
@@ -751,6 +753,12 @@ export default function App() {
             <div className="content-grid game-layout">
               <AqiMissionGame current={current} />
               <HotspotScoutGame nearbyPoints={nearbyPoints} />
+            </div>
+          )}
+
+          {activeSection === "getting-started" && (
+            <div className="content-grid getting-started-layout">
+               <GettingStarted />
             </div>
           )}
 
