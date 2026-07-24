@@ -256,6 +256,7 @@ function SectionNav({ activeSection, onSectionChange, theme }) {
           onClick={() => setIsMenuOpen(!isMenuOpen)}
           aria-expanded={isMenuOpen}
           aria-label="Toggle navigation"
+          aria-controls="mobile-navigation"
           style={{
             border: "1px solid var(--line)",
             background: "var(--card)",
@@ -281,7 +282,8 @@ function SectionNav({ activeSection, onSectionChange, theme }) {
         </button>
 
         {isMenuOpen && (
-          <div
+          <nav
+            id="mobile-navigation"
             style={{
               position: "absolute",
               top: "100%",
@@ -324,7 +326,7 @@ function SectionNav({ activeSection, onSectionChange, theme }) {
                 {section.label}
               </button>
             ))}
-          </div>
+          </nav>
         )}
       </nav>
 
