@@ -4630,8 +4630,7 @@ a {
   margin-bottom: 1.5rem;
   font-size: 1.8rem;
   font-weight: bold;
-  color: #1f2937;
-  /* Dark gray */
+  color: var(--ink);
 }
 
 .commute-layout {
