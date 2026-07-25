@@ -497,6 +497,23 @@ export default function App() {
     localStorage.setItem(THEME_STORAGE_KEY, theme);
   }, [theme]);
 
+  // Sync theme with OS dark-mode changes (only when user has no manual preference)
+  useEffect(() => {
+    if (!window.matchMedia) return;
+
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+
+    const handleOsThemeChange = (e) => {
+      const hasManualPreference = localStorage.getItem(THEME_STORAGE_KEY);
+      if (!hasManualPreference) {
+        setTheme(e.matches ? "dark" : "light");
+      }
+    };
+
+    mediaQuery.addEventListener("change", handleOsThemeChange);
+    return () => mediaQuery.removeEventListener("change", handleOsThemeChange);
+  }, []);
+
   const startGeolocation = useCallback(() => {
     const requestId = ++geoRequestId.current;
 
