@@ -2,6 +2,7 @@ const DB_NAME = 'pollution-hub-cache';
 const STORE_NAME = 'aqi-cache';
 const DB_VERSION = 1;
 
+/** @type {any} */
 let db = null;
 
 function openDB() {
@@ -11,6 +12,7 @@ function openDB() {
     const request = indexedDB.open(DB_NAME, DB_VERSION);
 
     request.onupgradeneeded = (event) => {
+      // @ts-ignore
       const database = event.target.result;
 
       if (!database.objectStoreNames.contains(STORE_NAME)) {
@@ -23,6 +25,7 @@ function openDB() {
     };
 
     request.onsuccess = (event) => {
+      // @ts-ignore
       db = event.target.result;
       resolve(db);
     };
@@ -31,24 +34,43 @@ function openDB() {
   });
 }
 
+/** @param {any} mode */
 async function getObjectStore(mode = 'readonly') {
   const database = await openDB();
   const transaction = database.transaction(STORE_NAME, mode);
   return transaction.objectStore(STORE_NAME);
 }
 
+/**
+ * @param {any} mode
+ * @param {any} operation
+ */
 async function executeStoreOperation(mode, operation) {
   const store = await getObjectStore(mode);
   return operation(store);
 }
 
 const inFlight = new Map();
+let persistenceDegraded = false;
+const errorListeners = new Set();
+
+function notifyPersistenceError(err) {
+  persistenceDegraded = true;
+  for (const listener of errorListeners) {
+    try {
+      listener(err);
+    } catch (_) {
+      // Never let a listener crash the cache layer.
+    }
+  }
+}
+
 const memoryCache = new Map();
 
 async function cleanupExpiredEntries() {
   const ONE_DAY = 24 * 60 * 60 * 1000;
   const expired = Date.now() - ONE_DAY;
-  
+
   for (const [key, value] of memoryCache.entries()) {
     if (value.timestamp && value.timestamp < expired) {
       memoryCache.delete(key);
@@ -73,11 +95,21 @@ async function cleanupExpiredEntries() {
 }
 
 export const cacheStore = {
+  isPersistenceDegraded() {
+    return persistenceDegraded;
+  },
+
+  onPersistenceError(callback) {
+    errorListeners.add(callback);
+    return () => errorListeners.delete(callback);
+  },
+
+  /** @param {any} key */
   getFromMemory(key) {
     return memoryCache.get(key) || null;
   },
 
-  get: async function(key) {
+  get: async function (key) {
     if (memoryCache.has(key)) {
       return memoryCache.get(key);
     }
@@ -103,13 +135,14 @@ export const cacheStore = {
       });
     } catch (error) {
       console.warn('IndexedDB read failed:', error);
+      notifyPersistenceError(error);
       return null;
     }
   },
 
-  set: async function(key, data) {
+  set: async function (key, data) {
     // Run cleanup in the background without blocking writes.
-    cleanupExpiredEntries().catch(() => {});
+    cleanupExpiredEntries().catch(() => { });
     const entry = {
       key,
       data,
@@ -125,9 +158,11 @@ export const cacheStore = {
       );
     } catch (err) {
       console.warn('IndexedDB write failed:', err);
+      notifyPersistenceError(err);
     }
   },
 
+  /** @param {any} key */
   async invalidate(key) {
     if (key) {
       memoryCache.delete(key);
@@ -139,6 +174,7 @@ export const cacheStore = {
         );
       } catch (err) {
         console.warn('IndexedDB delete failed:', err);
+        notifyPersistenceError(err);
       }
     } else {
       memoryCache.clear();
@@ -150,10 +186,15 @@ export const cacheStore = {
         );
       } catch (err) {
         console.warn('IndexedDB clear failed:', err);
+        notifyPersistenceError(err);
       }
     }
   },
 
+  /**
+   * @param {any} key
+   * @param {any} ttl
+   */
   async isStale(key, ttl) {
     const cached = memoryCache.get(key) || await this.get(key);
 
@@ -162,6 +203,10 @@ export const cacheStore = {
     return Date.now() - cached.timestamp >= ttl;
   },
 
+  /**
+   * @param {any} key
+   * @param {any} fetcher
+   */
   async deduplicate(key, fetcher) {
     if (!key) return null;
 

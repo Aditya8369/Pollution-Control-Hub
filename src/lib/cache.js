@@ -4,22 +4,32 @@
  * L1: In-Memory Map (fastest, cleared on page refresh)
  * L2: LocalStorage (persists across reloads, limited capacity)
  */
+export let cacheWarningShown = false;
+
 export class MultiLevelCache {
-  constructor(namespace = 'pc-hub-cache', defaultTTL = 5 * 60 * 1000) {
+  constructor(
+    namespace = 'pc-hub-cache',
+    defaultTTL = 5 * 60 * 1000,
+    maxEntries = Infinity
+  ) {
     this.namespace = namespace;
     this.defaultTTL = defaultTTL;
+    this.maxEntries = maxEntries;
     this.memoryCache = new Map();
   }
 
-  _getKey(key) {
+  /** @param {any} key */
+    _getKey(key) {
     return `${this.namespace}:${key}`;
   }
 
-  _getFallbackKey(key) {
+  /** @param {any} key */
+    _getFallbackKey(key) {
     return `${this.namespace}:fallback:${key}`;
   }
 
-  _readStorage(key) {
+  /** @param {any} key */
+    _readStorage(key) {
     try {
       const raw = localStorage.getItem(key);
       return raw ? JSON.parse(raw) : null;
@@ -29,19 +39,38 @@ export class MultiLevelCache {
     }
   }
 
-  _writeStorage(
+  /**
+     * @param {any} key
+     * @param {any} value
+     * @param {any} errorMessage
+     */
+    _writeStorage(
     key,
     value,
     errorMessage = 'Failed to write to localStorage cache.'
   ) {
     try {
       localStorage.setItem(key, JSON.stringify(value));
-    } catch (e) {
-      console.warn(errorMessage, e);
+    } catch (error) {
+      if (
+        error instanceof DOMException &&
+        (
+          error.name === "QuotaExceededError" ||
+          error.name === "NS_ERROR_DOM_QUOTA_REACHED"
+        )
+      ) {
+        if (!cacheWarningShown) {
+          cacheWarningShown = true;
+          console.warn("[cache] Storage is full. Data is being cached in memory.");
+        }
+      } else {
+        throw error;
+      }
     }
   }
 
-  _removeStorage(key) {
+  /** @param {any} key */
+    _removeStorage(key) {
     try {
       localStorage.removeItem(key);
     } catch (e) {
@@ -49,7 +78,17 @@ export class MultiLevelCache {
     }
   }
 
-  get(key) {
+  _evictIfNeeded() {
+    if (this.memoryCache.size >= this.maxEntries) {
+      const firstKey = this.memoryCache.keys().next().value;
+      if (firstKey) {
+        this.memoryCache.delete(firstKey);
+      }
+    }
+  }
+
+  /** @param {any} key */
+    get(key) {
     const fullKey = this._getKey(key);
     const now = Date.now();
 
@@ -80,11 +119,17 @@ export class MultiLevelCache {
     return null;
   }
 
-  getFallback(key) {
+  /** @param {any} key */
+    getFallback(key) {
     return this._readStorage(this._getFallbackKey(key));
   }
 
-  set(key, data, ttlMs = this.defaultTTL) {
+  /**
+     * @param {any} key
+     * @param {any} data
+     * @param {any} ttlMs
+     */
+    set(key, data, ttlMs = this.defaultTTL) {
     const fullKey = this._getKey(key);
     const expiresAt = Date.now() + ttlMs;
 
@@ -93,7 +138,10 @@ export class MultiLevelCache {
       expiresAt,
     };
 
-    // 1. Set L1
+    // Evict oldest entry if cache limit is reached
+    this._evictIfNeeded();
+
+    // Store in L1 cache
     this.memoryCache.set(fullKey, entry);
 
     // 2. Set L2

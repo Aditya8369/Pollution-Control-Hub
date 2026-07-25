@@ -78,6 +78,7 @@ export default function CommunityHub() {
         // Remove oldest/lowest-vote reports until write succeeds
         const sorted = [...reports].sort((a, b) => {
           if (a.votes !== b.votes) return a.votes - b.votes;
+      // @ts-ignore
           return new Date(a.createdAt) - new Date(b.createdAt);
         });
 
@@ -105,7 +106,8 @@ export default function CommunityHub() {
     localStorage.setItem(VOTES_STORAGE_KEY, JSON.stringify([...votedIds]));
   }, [votedIds]);
 
-  const onSubmit = (event) => {
+  /** @param {any} event */
+    const onSubmit = (event) => {
     event.preventDefault();
     if (!form.title.trim() || !form.description.trim()) return;
 
@@ -126,7 +128,8 @@ export default function CommunityHub() {
     setFileInputKey(Date.now());
   };
 
-  const uploadImage = async (event) => {
+  /** @param {any} event */
+    const uploadImage = async (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -156,7 +159,8 @@ export default function CommunityHub() {
     reader.readAsDataURL(file);
   };
 
-  const vote = (id) => {
+  /** @param {any} id */
+    const vote = (id) => {
     if (votedIds.has(id)) return;
 
     setReports((prev) =>
@@ -165,6 +169,7 @@ export default function CommunityHub() {
 
         const nextVotes = report.votes + 1;
         const createdDate = new Date(report.createdAt);
+      // @ts-ignore
         const ageInDays = (new Date() - createdDate) / (1000 * 60 * 60 * 24);
         
         let updatedStatus = report.status;

@@ -4,6 +4,7 @@ import { searchLocations } from '../services/geocodingService';
 const RECENT_SEARCHES_KEY = 'pollution_hub_recent_searches';
 const MAX_RECENT_SEARCHES = 5;
 
+/** @param {any} params */
 export default function LocationSearch({ onLocationSelected, initialCityName }) {
   const [query, setQuery] = useState(initialCityName || '');
   const [suggestions, setSuggestions] = useState([]);
@@ -46,7 +47,8 @@ export default function LocationSearch({ onLocationSelected, initialCityName }) 
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const saveRecentSearch = (location) => {
+  /** @param {any} location */
+    const saveRecentSearch = (location) => {
   const newRecent = [location, ...recentSearches.filter(s => s.id !== location.id)].slice(0, MAX_RECENT_SEARCHES);
   setRecentSearches(newRecent);
   try {
@@ -56,7 +58,8 @@ export default function LocationSearch({ onLocationSelected, initialCityName }) 
   }
 };
 
-  const handleSelect = (location) => {
+  /** @param {any} location */
+    const handleSelect = (location) => {
     setQuery(location.name); // Just show the city name in input
     setIsOpen(false);
     setSuggestions([]);
@@ -65,7 +68,8 @@ export default function LocationSearch({ onLocationSelected, initialCityName }) 
     onLocationSelected(location);
   };
 
-const handleInputChange = (e) => {
+/** @param {any} e */
+    const handleInputChange = (e) => {
   const val = e.target.value;
   setQuery(val);
   setActiveIndex(-1);
@@ -95,7 +99,8 @@ const handleInputChange = (e) => {
   }, 500);
 };
 
-  const handleKeyDown = (e) => {
+  /** @param {any} e */
+    const handleKeyDown = (e) => {
     const items = query.trim() === '' ? recentSearches : suggestions;
     
     if (e.key === 'ArrowDown') {

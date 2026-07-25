@@ -1,5 +1,6 @@
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 
+/** @param {any} params */
 export default function AnalyticsInsights({ analytics, trend, timeRange }) {
   const dynamicSeries = trend.slice(-timeRange).map((item, index) => ({
     hour: `H${index + 1}`,

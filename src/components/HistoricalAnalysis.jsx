@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import CalendarHeatmap from './CalendarHeatmap';
 import { fetchHistoricalData } from '../services/historicalDataService';
 
+/** @param {any} params */
 export default function HistoricalAnalysis({ position }) {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState(null);

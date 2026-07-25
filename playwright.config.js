@@ -35,7 +35,7 @@ export default defineConfig({
   // Shared settings for all projects (browsers)
   use: {
     // Base URL for page.goto('/') calls
-    baseURL: 'http://localhost:5173',
+    baseURL: 'http://127.0.0.1:5173',
 
     // Capture trace on first retry — invaluable for debugging CI failures
     trace: 'on-first-retry',
@@ -73,7 +73,7 @@ export default defineConfig({
   // down afterwards.  On CI the server is started the same way.
   webServer: {
     command: 'npm run dev',
-    url: 'http://localhost:5173',
+    url: 'http://127.0.0.1:5173',
     reuseExistingServer: !process.env.CI,
     timeout: 60_000,
     // Suppress Vite's noisy output in CI logs

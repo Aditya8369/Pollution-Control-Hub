@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { useSWR } from "./hooks/useSWR";
+import { cacheStore } from "./utils/cacheStore";
 import AlertsPanel from "./components/AlertsPanel";
 import AnalyticsInsights from "./components/AnalyticsInsights";
 import CommunityHub from "./components/CommunityHub";
@@ -18,6 +19,7 @@ import { CITY_COORDINATES } from "./constants/cities";
 import HotspotScoutGame from "./components/HotspotScoutGame";
 import ErrorBoundary from "./components/ErrorBoundary";
 import Commute from "./components/Commute";
+import GettingStarted from "./components/GettingStarted";
 import {
   estimateWeeklyMonthlyAverages,
   fetchAirQualityByCoords,
@@ -36,6 +38,7 @@ const DEFAULT_POSITION = {
 const THEME_STORAGE_KEY = "pollution-hub-theme";
 const AUTO_REFRESH_SECONDS = 180;
 
+/** @param {any} params */
 function Hero({ cityName }) {
   return (
     <header className="hero flex *:flex-col items-center justify-center text-center">
@@ -52,12 +55,14 @@ function Hero({ cityName }) {
   );
 }
 
+/** @param {any} params */
 function AppControls({
   selectedCity,
   onCityChange,
   isRefreshing,
   refreshCountdown,
   lastUpdated,
+  detecting,
 }) {
   return (
     <section className="app-controls" aria-label="Live controls">
@@ -84,8 +89,9 @@ function AppControls({
             flexShrink: 0,
           }}
           onClick={() => onCityChange("auto")}
+          disabled={detecting}
         >
-          Auto Detect
+          {detecting ? "Detecting..." : "Auto Detect"}
         </button>
       </div>
 
@@ -117,9 +123,11 @@ function AppControls({
   );
 }
 
+/** @param {any} params */
 function SectionNav({ activeSection, onSectionChange, theme }) {
   const sections = [
     { id: "home", label: "Home" },
+    { id: "getting-started", label: "Getting Started" },
     { id: "quiz", label: "Quiz" },
     { id: "game", label: "Game" },
     { id: "community", label: "Community" },
@@ -139,6 +147,7 @@ function SectionNav({ activeSection, onSectionChange, theme }) {
 
   useEffect(() => {
     const mediaQuery = window.matchMedia("(max-width: 768px)");
+    /** @param {any} e */
     const handler = (e) => setIsMobile(e.matches);
 
     // Add compatibility for older browsers if needed, though addEventListener is widely supported
@@ -174,6 +183,7 @@ function SectionNav({ activeSection, onSectionChange, theme }) {
     };
   }, [isMenuOpen]);
 
+  /** @param {any} id */
   const handleSectionClick = (id) => {
     onSectionChange(id);
     setIsMenuOpen(false);
@@ -254,6 +264,7 @@ function SectionNav({ activeSection, onSectionChange, theme }) {
           onClick={() => setIsMenuOpen(!isMenuOpen)}
           aria-expanded={isMenuOpen}
           aria-label="Toggle navigation"
+          aria-controls="mobile-navigation"
           style={{
             border: "1px solid var(--line)",
             background: "var(--card)",
@@ -279,7 +290,8 @@ function SectionNav({ activeSection, onSectionChange, theme }) {
         </button>
 
         {isMenuOpen && (
-          <div
+          <nav
+            id="mobile-navigation"
             style={{
               position: "absolute",
               top: "100%",
@@ -322,7 +334,7 @@ function SectionNav({ activeSection, onSectionChange, theme }) {
                 {section.label}
               </button>
             ))}
-          </div>
+          </nav>
         )}
       </nav>
 
@@ -381,6 +393,7 @@ export default function App() {
     error: aqiError,
     isValidating: isAqiValidating,
     mutate: mutateAqi,
+    // @ts-ignore
   } = useSWR(aqiKey, () => fetchAirQualityByCoords(position.lat, position.lon));
 
   const cityKey = "city_comparisons";
@@ -389,6 +402,7 @@ export default function App() {
     error: citiesError,
     isValidating: isCitiesValidating,
     mutate: mutateCities,
+    // @ts-ignore
   } = useSWR(cityKey, () => fetchCityComparisons());
 
   const windKey =
@@ -400,6 +414,7 @@ export default function App() {
     error: windError,
     isValidating: isWindValidating,
     mutate: mutateWind,
+    // @ts-ignore
   } = useSWR(windKey, () => fetchWindData(position.lat, position.lon));
 
   const current = aqiData?.current;
@@ -418,6 +433,7 @@ export default function App() {
   const [refreshCountdown, setRefreshCountdown] =
     useState(AUTO_REFRESH_SECONDS);
   const [locationNotice, setLocationNotice] = useState("");
+  const [persistenceWarning, setPersistenceWarning] = useState("");
   const [theme, setTheme] = useState(() => {
     const savedTheme = localStorage.getItem(THEME_STORAGE_KEY);
 
@@ -432,6 +448,28 @@ export default function App() {
     const saved = localStorage.getItem("timeRange");
     return saved ? Number(saved) : 24;
   });
+
+  const debounceRef = useRef(null);
+  const geoRequestId = useRef(0);
+  const [detecting, setDetecting] = useState(false);
+
+  useEffect(() => {
+    const unsubscribe = cacheStore.onPersistenceError(() => {
+      setPersistenceWarning(
+        "Offline caching is unavailable — your data may not persist between sessions."
+      );
+    });
+    return unsubscribe;
+  }, []);
+
+
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     localStorage.setItem("activeSection", activeSection);
@@ -459,67 +497,83 @@ export default function App() {
     localStorage.setItem(THEME_STORAGE_KEY, theme);
   }, [theme]);
 
+  // Sync theme with OS dark-mode changes (only when user has no manual preference)
   useEffect(() => {
-    if (selectedCity === "auto") {
-      if (!navigator.geolocation) {
+    if (!window.matchMedia) return;
+
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+
+    const handleOsThemeChange = (e) => {
+      const hasManualPreference = localStorage.getItem(THEME_STORAGE_KEY);
+      if (!hasManualPreference) {
+        setTheme(e.matches ? "dark" : "light");
+      }
+    };
+
+    mediaQuery.addEventListener("change", handleOsThemeChange);
+    return () => mediaQuery.removeEventListener("change", handleOsThemeChange);
+  }, []);
+
+  const startGeolocation = useCallback(() => {
+    const requestId = ++geoRequestId.current;
+
+    if (!navigator.geolocation) {
+      setLocationNotice(
+        "Your browser can't detect location, so we're showing Delhi.",
+      );
+      setPosition(DEFAULT_POSITION);
+      setDetecting(false);
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (coords) => {
+        if (requestId !== geoRequestId.current) return;
+        setLocationNotice("");
+        setPosition({
+          lat: Number(coords.coords.latitude.toFixed(4)),
+          lon: Number(coords.coords.longitude.toFixed(4)),
+          cityName: "Your Current Location",
+        });
+        setDetecting(false);
+      },
+      (error) => {
+        if (requestId !== geoRequestId.current) return;
+        console.warn("Geolocation fallback active:", error);
         setLocationNotice(
-          "Your browser can't detect location, so we're showing Delhi.",
+          "Couldn't detect your location — showing Delhi for now.",
         );
         setPosition(DEFAULT_POSITION);
-        return;
-      }
+        setDetecting(false);
+      },
+      { timeout: 8000 },
+    );
+  }, []);
 
-      navigator.geolocation.getCurrentPosition(
-        (coords) => {
-          setLocationNotice("");
-          setPosition({
-            lat: Number(coords.coords.latitude.toFixed(4)),
-            lon: Number(coords.coords.longitude.toFixed(4)),
-            cityName: "Your Current Location",
-          });
-        },
-        () => {
-          setLocationNotice(
-            "Couldn't detect your location — showing Delhi for now.",
-          );
-          setPosition(DEFAULT_POSITION);
-        },
-        { timeout: 8000 },
-      );
+  // Initial mount geolocation if selectedCity is auto
+  useEffect(() => {
+    if (selectedCity === "auto") {
+      setDetecting(true);
+      startGeolocation();
     }
-  }, [selectedCity]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-  const handleLocationSelected = (location) => {
-    if (location === "auto") {
+  const handleAutoDetect = useCallback(() => {
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+    }
+    setDetecting(true);
+    debounceRef.current = setTimeout(() => {
       setSelectedCity("auto");
+      startGeolocation();
+    }, 500);
+  }, [startGeolocation]);
 
-      if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(
-          (positionObj) => {
-            setPosition({
-              lat: positionObj.coords.latitude,
-              lon: positionObj.coords.longitude,
-              cityName: "Current Location",
-            });
-            setLocationNotice("");
-          },
-          (error) => {
-            console.warn("Geolocation fallback active:", error);
-            setPosition({
-              lat: 28.6139,
-              lon: 77.209,
-              cityName: "Delhi (Default)",
-            });
-            setLocationNotice(
-              "Location access denied. Using default tracking region.",
-            );
-          },
-        );
-      } else {
-        console.error(
-          "Geolocation is not supported by this browser interface.",
-        );
-      }
+  /** @param {any} location */
+  const handleLocationSelected = useCallback((location) => {
+    if (location === "auto") {
+      handleAutoDetect();
     } else {
       setSelectedCity(location.name);
       setPosition({
@@ -530,7 +584,8 @@ export default function App() {
       setCityInHash(location.name, location.lat, location.lon);
       setLocationNotice("");
     }
-  };
+  }, [handleAutoDetect]);
+
   // Listen for browser Back/Forward (popstate) and restore the city from the URL hash
   useEffect(() => {
     function handlePopState() {
@@ -546,11 +601,13 @@ export default function App() {
       } else {
         // No hash → fall back to auto-detect
         setSelectedCity("auto");
+        setDetecting(true);
+        startGeolocation();
       }
     }
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
-  }, []);
+  }, [startGeolocation]);
 
   useEffect(() => {
     const refreshTimer = setInterval(() => {
@@ -626,7 +683,10 @@ export default function App() {
 
       {loading && !error ? (
         <>
-          <div className="loading-spinner" aria-hidden="true"></div>
+          <div role="status" aria-live="polite" aria-label="Loading">
+            <div className="loading-spinner"></div>
+            <span className="sr-only">Loading…</span>
+          </div>
           <h1 className="loading-title text-3xl">
             Preparing live pollution intelligence...
           </h1>
@@ -653,6 +713,7 @@ export default function App() {
               isRefreshing={isRefreshing}
               refreshCountdown={refreshCountdown}
               lastUpdated={lastUpdated}
+              detecting={detecting}
             />
           )}
 
@@ -666,7 +727,7 @@ export default function App() {
           )}
 
           {error && <p className="error-banner">{error}</p>}
-
+          {persistenceWarning && <p className="error-banner">{persistenceWarning}</p>}
           {activeSection === "home" && current && (
             <div key="dashboard-grid" className="content-grid">
               <Dashboard
@@ -733,6 +794,12 @@ export default function App() {
             <div className="content-grid game-layout">
               <AqiMissionGame current={current} />
               <HotspotScoutGame nearbyPoints={nearbyPoints} />
+            </div>
+          )}
+
+          {activeSection === "getting-started" && (
+            <div className="content-grid getting-started-layout">
+              <GettingStarted />
             </div>
           )}
 

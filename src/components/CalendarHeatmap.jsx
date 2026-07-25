@@ -52,6 +52,7 @@ function computeTemporalMarkers(weeks) {
   return markers;
 }
 
+/** @param {any} params */
 export default function CalendarHeatmap({ data }) {
   const [activeTooltip, setActiveTooltip] = useState(null);
 
@@ -87,7 +88,12 @@ export default function CalendarHeatmap({ data }) {
   // Build a lookup: weekIndex → marker (for O(1) access while rendering)
   const markerByWeek = new Map(markers.map((m) => [m.weekIndex, m]));
 
-  const handleCellMouseEnter = (e, day, aqiBand) => {
+  /**
+     * @param {any} e
+     * @param {any} day
+     * @param {any} aqiBand
+     */
+    const handleCellMouseEnter = (e, day, aqiBand) => {
     const rect = e.currentTarget.getBoundingClientRect();
     setActiveTooltip({
       date: day.date,

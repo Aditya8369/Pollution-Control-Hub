@@ -17,6 +17,10 @@ const geocodeLocation = async (locationName) => {
 };
 
 // 2. Helper: Get Air Quality for a specific coordinate (Open-Meteo API)
+/**
+ * @param {any} lon
+ * @param {any} lat
+ */
 const getSegmentPollution = async (lon, lat) => {
   const response = await fetch(
     `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lon}&current=pm2_5`,
@@ -28,6 +32,10 @@ const getSegmentPollution = async (lon, lat) => {
 };
 
 // 3. Main Function: Calculate the Cleanest Route
+/**
+ * @param {any} originText
+ * @param {any} destinationText
+ */
 export const calculateCleanRoute = async (originText, destinationText) => {
   try {
     // Step A: Convert user input into map coordinates
@@ -78,6 +86,7 @@ export const calculateCleanRoute = async (originText, destinationText) => {
       }
 
       const avgPm25 = (totalPm / checkpoints.length).toFixed(1);
+      // @ts-ignore
       const exposureScore = route.distance * avgPm25;
 
       evaluatedRoutes.push({

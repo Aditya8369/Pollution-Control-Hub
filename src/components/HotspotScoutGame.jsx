@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { shuffleArray, getHighestAQI } from "./hotspotGameUtils";
 
+/** @param {any} params */
 function HotspotScoutGame({ nearbyPoints }) {
 
   const [score, setScore] = useState(0);
@@ -20,7 +21,8 @@ function HotspotScoutGame({ nearbyPoints }) {
     }
   }, [nearbyPoints]);
 
-  const handleSelect = (spot) => {
+  /** @param {any} spot */
+    const handleSelect = (spot) => {
     if (round.length === 0) return;
 
     const winner = getHighestAQI(round);

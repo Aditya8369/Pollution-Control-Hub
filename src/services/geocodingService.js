@@ -1,5 +1,9 @@
 const GEOCODING_BASE_URL = 'https://geocoding-api.open-meteo.com/v1/search';
 
+/**
+ * @param {any} query
+ * @param {any} count
+ */
 export async function searchLocations(query, count = 5) {
   if (!query || query.trim() === '') return [];
 

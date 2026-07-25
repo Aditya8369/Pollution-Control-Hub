@@ -291,6 +291,7 @@ const QUIZ_SETS = {
   }
 };
 
+/** @param {any} params */
 function QuizSelector({ onSelectQuiz }) {
   return (
     <div className="quiz-selector">
@@ -309,6 +310,7 @@ function QuizSelector({ onSelectQuiz }) {
   );
 }
 
+/** @param {any} params */
 function QuizResult({ score, total, onRestart }) {
   const percent = Math.round((score / total) * 100);
 
@@ -336,7 +338,8 @@ export default function QuizSection() {
   const isLastQuestion = index === total - 1;
   const progress = useMemo(() => ((index + 1) / total) * 100, [index, total]);
 
-  const submitAnswer = (selectedOption) => {
+  /** @param {any} selectedOption */
+    const submitAnswer = (selectedOption) => {
     if (submitted) return;
 
     setSelected(selectedOption);

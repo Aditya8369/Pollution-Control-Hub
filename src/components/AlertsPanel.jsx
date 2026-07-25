@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { SAFE_LIMITS } from '../constants/cities';
 
+/** @param {any} current */
 function buildWarnings(current) {
   const warnings = [];
   if (current.pm2_5 > SAFE_LIMITS.pm2_5) warnings.push('PM2.5 is high. Wear a certified mask and avoid heavy outdoor exercise.');
@@ -11,6 +12,7 @@ function buildWarnings(current) {
   return warnings;
 }
 
+/** @param {any} params */
 export default function AlertsPanel({ cityName, current, confidenceScore , exposureEstimate}) {
   const [permission, setPermission] = useState(
     'Notification' in window ? Notification.permission : 'denied'
