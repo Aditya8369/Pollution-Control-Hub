@@ -27,6 +27,5 @@ jobs:
               repo: context.repo.repo,
               issue_number: issue_number,
               body: `Issue is assigned to you, @${assignee}! 🎯
-
-⏳ **Note:** Please submit a working PR within 3 days, else the issue will be unassigned and open for other contributors. 🚀`
+           ⏳ **Note:** Please submit a working PR within 3 days, else the issue will be unassigned and open for other contributors. 🚀`
             });
