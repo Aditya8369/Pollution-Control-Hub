@@ -321,18 +321,60 @@ export default function Dashboard({
       </div>
 
       <div data-testid="pollutants-grid" className="pollutants-grid">
-        {pollutants.map((p) => (
-          <article
-            key={p.name}
-            data-testid={`pollutant-${p.name.toLowerCase().replace('.', '_')}`}
-            className="pollutant-card"
-            style={{ borderLeft: `4px solid ${p.color}` }}
-          >
-            <h4>{p.name}</h4>
-            <span className="pollutant-value">{p.value}</span>
-            <span className="pollutant-unit">µg/m³</span>
-          </article>
-        ))}
+        {pollutants.map((p) => {
+          const pct = Math.round((p.value / p.limit) * 100);
+          const status =
+            pct >= 100
+              ? { label: 'HIGH', bg: '#fee2e2', color: '#ef4444' }
+              : pct >= 50
+              ? { label: 'CAUTION', bg: '#fff7ed', color: '#f97316' }
+              : { label: 'SAFE', bg: '#f0fdf4', color: '#22c55e' };
+
+          return (
+            <article
+              key={p.name}
+              data-testid={`pollutant-${p.name.toLowerCase().replace('.', '_')}`}
+              className="pollutant-card"
+              style={{ borderLeft: `4px solid ${p.color}` }}
+            >
+              <div className="pollutant-card-header">
+                <h4>{p.name}</h4>
+                <span
+                  className="pollutant-status-pill"
+                  style={{ backgroundColor: status.bg, color: status.color }}
+                >
+                  <span style={{
+                    width: '7px', height: '7px',
+                    borderRadius: '50%',
+                    backgroundColor: status.color,
+                    display: 'inline-block'
+                  }} />
+                  {status.label}
+                </span>
+              </div>
+
+              <div className="pollutant-value-container">
+                <span className="pollutant-value" style={{ color: p.color }}>{p.value}</span>
+                <span className="pollutant-unit">µg/m³</span>
+              </div>
+
+              <div className="pollutant-meta-info">
+                <span className="pollutant-limit">WHO Limit: {p.limit} µg/m³</span>
+                <span className="pollutant-percent" style={{ color: p.color }}>{pct}%</span>
+              </div>
+
+              <div className="pollutant-progress-track">
+                <div
+                  className="pollutant-progress-fill"
+                  style={{
+                    width: `${Math.min(pct, 100)}%`,
+                    backgroundColor: p.color
+                  }}
+                />
+              </div>
+            </article>
+          );
+        })}
       </div>
 
       <div className="chart-grid">
