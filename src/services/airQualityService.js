@@ -6,7 +6,7 @@ import ApiWorker from '../workers/apiWorker?worker';
 
 export const airQualityCache = new LRUCache({
   max: 500,
-  ttl: 1000 * 60 * 5, 
+  ttl: 1000 * 60 * 5,
 });
 
 const BASE_URL = 'https://air-quality-api.open-meteo.com/v1/air-quality';
@@ -92,8 +92,6 @@ async function fetchGridPointAqi(lat, lon, signal) {
   const response = await fetch(url, { signal });
   if (!response.ok) return null;
   const data = await response.json();
-  console.log(data.utc_offset_seconds);
-  console.log(data.timezone);
   const times = data.hourly?.time || [];
   const idx = getCurrentHourIndex(
     times,
@@ -185,7 +183,6 @@ export async function fetchAirQualityByCoords(lat, lon, signal, skipGrid = false
   };
 
   if (!navigator.onLine) {
-    console.log("OFFLINE CHECK HIT");
     const fallback = getFallbackData();
     if (fallback) return fallback;
     throw new Error("You're offline. Please reconnect to view air quality data.");
@@ -209,7 +206,7 @@ export async function fetchAirQualityByCoords(lat, lon, signal, skipGrid = false
      * @param {any} workerUrl
      * @param {any} workerSignal
      */
-    const fetchWithWorker = (workerUrl, workerSignal) => {
+  const fetchWithWorker = (workerUrl, workerSignal) => {
     return new Promise((resolve, reject) => {
       const worker = new ApiWorker();
       let aborted = false;
@@ -277,7 +274,7 @@ export async function fetchAirQualityByCoords(lat, lon, signal, skipGrid = false
           await new Promise((resolveDelay, rejectDelay) => {
             const timeoutId = setTimeout(() => {
               if (signal) signal.removeEventListener('abort', onAbortWait);
-      // @ts-ignore
+              // @ts-ignore
               resolveDelay();
             }, delay);
 
