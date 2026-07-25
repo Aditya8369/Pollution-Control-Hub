@@ -5,48 +5,81 @@ function GettingStarted() {
       aria-labelledby="getting-started-title"
     >
       <div className="getting-started-content">
-        <header className="getting-started-header">
-          <h2 id="getting-started-title">Getting Started</h2>
-          <p>
-            Welcome to <strong>Pollution Control Hub</strong>. This guide will
-            help you understand the platform, discover its capabilities, and
-            learn how to make the most of every feature.
-          </p>
-        </header>
+
+        {/* Internal Guide Navigation */}
+        <nav
+          className="getting-started-nav"
+          aria-label="Getting Started Sections"
+        >
+          <button className="guide-tab active" type="button">
+            Overview
+          </button>
+
+          <button className="guide-tab" type="button">
+            Features
+          </button>
+
+          <button className="guide-tab" type="button">
+            AQI Basics
+          </button>
+
+          <button className="guide-tab" type="button">
+            Pollutants
+          </button>
+
+          <button className="guide-tab" type="button">
+            Health
+          </button>
+
+          <button className="guide-tab" type="button">
+            FAQ
+          </button>
+        </nav>
 
         <section className="getting-started-section">
-          <h3>About the Platform</h3>
-          <p>
-            Pollution Control Hub is an interactive environmental platform that
-            combines real-time air quality monitoring, historical pollution
-            trends, community participation, educational activities, and
-            awareness tools into one experience.
-          </p>
-        </section>
+  <div className="overview-content">
+    <div className="overview-item">
+      <h4>01. What is Pollution Control Hub?</h4>
+      <p>
+        Pollution Control Hub is an open-source platform that helps people
+        understand air quality through real-time monitoring, historical
+        insights, community participation, educational activities, and health
+        awareness resources.
+      </p>
+    </div>
 
-        <section className="getting-started-section">
-          <h3>What this guide will cover</h3>
+    <div className="overview-item">
+      <h4>02. Why was it built?</h4>
+      <p>
+        Air quality information is often difficult to interpret. The platform
+        was created to transform complex pollution data into simple,
+        understandable information that encourages informed decisions and
+        community-driven environmental action.
+      </p>
+    </div>
 
-          <ul className="getting-started-list">
-            <li>Platform overview and objectives</li>
-            <li>Understanding each section of the application</li>
-            <li>Air Quality Index (AQI) basics</li>
-            <li>Pollutants and their health impacts</li>
-            <li>Health recommendations and environmental awareness</li>
-            <li>Frequently Asked Questions</li>
-          </ul>
-        </section>
+    <div className="overview-item">
+      <h4>03. Who is it for?</h4>
+      <p>
+        Whether you're a resident, student, educator, researcher, health-
+        conscious individual, or community volunteer, Pollution Control Hub
+        provides tools that make environmental information easier to access and
+        understand.
+      </p>
+    </div>
 
-        <section className="getting-started-section">
-          <h3>Coming Soon</h3>
+    <div className="overview-item">
+      <h4>04. What problem does it solve?</h4>
+      <p>
+        The platform bridges the gap between raw pollution data and meaningful
+        action by helping users monitor air quality, understand its impact, and
+        discover practical ways to contribute toward cleaner and healthier
+        communities.
+      </p>
+    </div>
 
-          <p>
-            This is the foundation of the Getting Started guide. Future updates
-            will gradually introduce dedicated sections covering every major
-            feature of Pollution Control Hub with simple explanations,
-            walkthroughs, and helpful resources.
-          </p>
-        </section>
+  </div>
+</section>
       </div>
     </section>
   );
