@@ -666,7 +666,10 @@ export default function App() {
 
       {loading && !error ? (
         <>
-          <div className="loading-spinner" aria-hidden="true"></div>
+          <div role="status" aria-live="polite" aria-label="Loading">
+            <div className="loading-spinner"></div>
+            <span className="sr-only">Loading…</span>
+          </div>
           <h1 className="loading-title text-3xl">
             Preparing live pollution intelligence...
           </h1>
