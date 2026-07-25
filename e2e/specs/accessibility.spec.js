@@ -82,7 +82,7 @@ test.describe('ARIA roles and live regions', () => {
     await expect(controls).toBeVisible();
   });
 
-  test('loading spinner has aria-hidden', async ({ page }) => {
+  test('loading spinner is wrapped in an ARIA live region', async ({ page }) => {
     // Intercept with a slow response to catch the loading state
     await page.route('**/air-quality-api.open-meteo.com/**', async (route) => {
       await new Promise((r) => setTimeout(r, 500));
@@ -91,10 +91,14 @@ test.describe('ARIA roles and live regions', () => {
     await page.route('**/api.open-meteo.com/**', (route) => route.abort('failed'));
     await page.goto('/');
 
-    const spinner = page.locator('.loading-spinner[aria-hidden="true"]');
-    // Spinner should be aria-hidden since it's decorative
-    if (await spinner.isVisible({ timeout: 2_000 })) {
-      await expect(spinner).toHaveAttribute('aria-hidden', 'true');
+    const liveRegion = page.locator('[role="status"][aria-live="polite"]');
+    // Spinner wrapper should be an ARIA live region so screen readers announce loading
+    if (await liveRegion.isVisible({ timeout: 2_000 })) {
+      await expect(liveRegion).toHaveAttribute('role', 'status');
+      await expect(liveRegion).toHaveAttribute('aria-live', 'polite');
+      // The decorative spinner inside must NOT have aria-hidden on the wrapper
+      const spinner = liveRegion.locator('.loading-spinner');
+      await expect(spinner).toBeVisible();
     }
   });
 });
