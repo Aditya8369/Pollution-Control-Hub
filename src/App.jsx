@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { useSWR } from "./hooks/useSWR";
+import { cacheStore } from "./utils/cacheStore";
 import AlertsPanel from "./components/AlertsPanel";
 import AnalyticsInsights from "./components/AnalyticsInsights";
 import CommunityHub from "./components/CommunityHub";
@@ -147,7 +148,7 @@ function SectionNav({ activeSection, onSectionChange, theme }) {
   useEffect(() => {
     const mediaQuery = window.matchMedia("(max-width: 768px)");
     /** @param {any} e */
-      const handler = (e) => setIsMobile(e.matches);
+    const handler = (e) => setIsMobile(e.matches);
 
     // Add compatibility for older browsers if needed, though addEventListener is widely supported
     if (mediaQuery.addEventListener) {
@@ -183,7 +184,7 @@ function SectionNav({ activeSection, onSectionChange, theme }) {
   }, [isMenuOpen]);
 
   /** @param {any} id */
-    const handleSectionClick = (id) => {
+  const handleSectionClick = (id) => {
     onSectionChange(id);
     setIsMenuOpen(false);
   };
@@ -392,7 +393,7 @@ export default function App() {
     error: aqiError,
     isValidating: isAqiValidating,
     mutate: mutateAqi,
-      // @ts-ignore
+    // @ts-ignore
   } = useSWR(aqiKey, () => fetchAirQualityByCoords(position.lat, position.lon));
 
   const cityKey = "city_comparisons";
@@ -401,7 +402,7 @@ export default function App() {
     error: citiesError,
     isValidating: isCitiesValidating,
     mutate: mutateCities,
-      // @ts-ignore
+    // @ts-ignore
   } = useSWR(cityKey, () => fetchCityComparisons());
 
   const windKey =
@@ -413,7 +414,7 @@ export default function App() {
     error: windError,
     isValidating: isWindValidating,
     mutate: mutateWind,
-      // @ts-ignore
+    // @ts-ignore
   } = useSWR(windKey, () => fetchWindData(position.lat, position.lon));
 
   const current = aqiData?.current;
@@ -432,6 +433,7 @@ export default function App() {
   const [refreshCountdown, setRefreshCountdown] =
     useState(AUTO_REFRESH_SECONDS);
   const [locationNotice, setLocationNotice] = useState("");
+  const [persistenceWarning, setPersistenceWarning] = useState("");
   const [theme, setTheme] = useState(() => {
     const savedTheme = localStorage.getItem(THEME_STORAGE_KEY);
 
@@ -450,6 +452,16 @@ export default function App() {
   const debounceRef = useRef(null);
   const geoRequestId = useRef(0);
   const [detecting, setDetecting] = useState(false);
+
+  useEffect(() => {
+    const unsubscribe = cacheStore.onPersistenceError(() => {
+      setPersistenceWarning(
+        "Offline caching is unavailable — your data may not persist between sessions."
+      );
+    });
+    return unsubscribe;
+  }, []);
+
 
   useEffect(() => {
     return () => {
@@ -695,7 +707,7 @@ export default function App() {
           )}
 
           {error && <p className="error-banner">{error}</p>}
-
+          {persistenceWarning && <p className="error-banner">{persistenceWarning}</p>}
           {activeSection === "home" && current && (
             <div key="dashboard-grid" className="content-grid">
               <Dashboard
@@ -767,7 +779,7 @@ export default function App() {
 
           {activeSection === "getting-started" && (
             <div className="content-grid getting-started-layout">
-               <GettingStarted />
+              <GettingStarted />
             </div>
           )}
 

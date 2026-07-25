@@ -51,12 +51,26 @@ async function executeStoreOperation(mode, operation) {
 }
 
 const inFlight = new Map();
+let persistenceDegraded = false;
+const errorListeners = new Set();
+
+function notifyPersistenceError(err) {
+  persistenceDegraded = true;
+  for (const listener of errorListeners) {
+    try {
+      listener(err);
+    } catch (_) {
+      // Never let a listener crash the cache layer.
+    }
+  }
+}
+
 const memoryCache = new Map();
 
 async function cleanupExpiredEntries() {
   const ONE_DAY = 24 * 60 * 60 * 1000;
   const expired = Date.now() - ONE_DAY;
-  
+
   for (const [key, value] of memoryCache.entries()) {
     if (value.timestamp && value.timestamp < expired) {
       memoryCache.delete(key);
@@ -81,12 +95,21 @@ async function cleanupExpiredEntries() {
 }
 
 export const cacheStore = {
+  isPersistenceDegraded() {
+    return persistenceDegraded;
+  },
+
+  onPersistenceError(callback) {
+    errorListeners.add(callback);
+    return () => errorListeners.delete(callback);
+  },
+
   /** @param {any} key */
-    getFromMemory(key) {
+  getFromMemory(key) {
     return memoryCache.get(key) || null;
   },
 
-  get: async function(key) {
+  get: async function (key) {
     if (memoryCache.has(key)) {
       return memoryCache.get(key);
     }
@@ -112,13 +135,14 @@ export const cacheStore = {
       });
     } catch (error) {
       console.warn('IndexedDB read failed:', error);
+      notifyPersistenceError(error);
       return null;
     }
   },
 
-  set: async function(key, data) {
+  set: async function (key, data) {
     // Run cleanup in the background without blocking writes.
-    cleanupExpiredEntries().catch(() => {});
+    cleanupExpiredEntries().catch(() => { });
     const entry = {
       key,
       data,
@@ -134,6 +158,7 @@ export const cacheStore = {
       );
     } catch (err) {
       console.warn('IndexedDB write failed:', err);
+      notifyPersistenceError(err);
     }
   },
 
@@ -149,6 +174,7 @@ export const cacheStore = {
         );
       } catch (err) {
         console.warn('IndexedDB delete failed:', err);
+        notifyPersistenceError(err);
       }
     } else {
       memoryCache.clear();
@@ -160,6 +186,7 @@ export const cacheStore = {
         );
       } catch (err) {
         console.warn('IndexedDB clear failed:', err);
+        notifyPersistenceError(err);
       }
     }
   },
