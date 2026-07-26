@@ -72,6 +72,14 @@ export default function Dashboard({
   const shareCardRef = useRef(null);
   const [isExporting, setIsExporting] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
+  
+  const [isBriefingDismissed, setIsBriefingDismissed] = useState(false);
+  const [showBriefingTrigger, setShowBriefingTrigger] = useState(0);
+
+  const handleShowBriefing = () => {
+    setIsBriefingDismissed(false);
+    setShowBriefingTrigger(prev => prev + 1);
+  };
 
   const exportReportAsPDF = async () => {
     if (!reportRef.current || isExporting) return;
@@ -202,7 +210,12 @@ export default function Dashboard({
   return (
     <>
     <section data-testid="dashboard" className="panel dashboard" ref={reportRef}>
-      <MorningBriefing current={current} trend={trend} />
+      <MorningBriefing 
+        current={current} 
+        trend={trend} 
+        showTrigger={showBriefingTrigger}
+        onDismiss={() => setIsBriefingDismissed(true)} 
+      />
       <div className="panel-head" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.75rem', flexWrap: 'wrap' }}>
           <div style={{ minWidth: 0, flex: 1 }}>
@@ -226,7 +239,17 @@ export default function Dashboard({
               )}
             </p>
           </div>
-          <div style={{ display: 'flex', gap: '0.5rem', flexShrink: 0, flexWrap: 'wrap' }} data-html2canvas-ignore="true">
+          <div style={{ display: 'flex', gap: '0.5rem', flexShrink: 0, flexWrap: 'wrap', alignItems: 'center' }} data-html2canvas-ignore="true">
+            {isBriefingDismissed && (
+              <button
+                type="button"
+                onClick={handleShowBriefing}
+                style={{ background: 'none', border: 'none', color: 'var(--primary-color, #0d9488)', textDecoration: 'underline', cursor: 'pointer', fontSize: '0.9rem', padding: '0.2rem 0.5rem', fontWeight: '500' }}
+                aria-label="Show Morning Briefing"
+              >
+                Show Briefing
+              </button>
+            )}
             <button
               type="button"
               className="export-report-button"
