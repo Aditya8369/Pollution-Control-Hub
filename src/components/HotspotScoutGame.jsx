@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { eventBus } from "../core/events";
 import { shuffleArray, getHighestAQI } from "./hotspotGameUtils";
 
 /** @param {any} params */
@@ -29,7 +30,11 @@ function HotspotScoutGame({ nearbyPoints }) {
 
     if (spot.aqi === winner.aqi) {
       setScore(prev => prev + 1);
-      setStreak(prev => prev + 1);
+      setStreak(prev => {
+        const nextStreak = prev + 1;
+        eventBus.emit("ACHIEVEMENT_TRIGGER", { type: "game_scout", streak: nextStreak });
+        return nextStreak;
+      });
     } else {
       setStreak(0);
     }

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { eventBus } from '../core/events';
 
 const STORAGE_KEY = 'pollution-community-reports';
 const VOTES_STORAGE_KEY = 'pollution-community-voted-ids';
@@ -75,10 +76,9 @@ export default function CommunityHub() {
     } catch (e) {
       if (e.name === 'QuotaExceededError' || e.code === 22) {
         console.error('localStorage quota exceeded. Pruning oldest reports...');
-        // Remove oldest/lowest-vote reports until write succeeds
         const sorted = [...reports].sort((a, b) => {
           if (a.votes !== b.votes) return a.votes - b.votes;
-      // @ts-ignore
+          // @ts-ignore
           return new Date(a.createdAt) - new Date(b.createdAt);
         });
 
@@ -89,12 +89,8 @@ export default function CommunityHub() {
             setReports(pruned);
             break;
           } catch {
-            pruned.shift(); // remove lowest-value report
+            pruned.shift();
           }
-        }
-
-        if (pruned.length === 0) {
-          console.error('All community reports pruned — localStorage quota still exceeded.');
         }
       } else {
         throw e;
@@ -107,7 +103,7 @@ export default function CommunityHub() {
   }, [votedIds]);
 
   /** @param {any} event */
-    const onSubmit = (event) => {
+  const onSubmit = (event) => {
     event.preventDefault();
     if (!form.title.trim() || !form.description.trim()) return;
 
@@ -118,18 +114,19 @@ export default function CommunityHub() {
       image: form.image,
       votes: 0,
       createdAt: new Date().toISOString(),
-      status:"Pending",
+      status: "Pending",
       verifiedAt: "",
-      moderationNotes:"",
+      moderationNotes: "",
     };
 
     setReports((prev) => [newReport, ...prev]);
     setForm({ title: '', description: '', image: '' });
     setFileInputKey(Date.now());
+    eventBus.emit("ACHIEVEMENT_TRIGGER", { type: "report" });
   };
 
   /** @param {any} event */
-    const uploadImage = async (event) => {
+  const uploadImage = async (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -160,7 +157,7 @@ export default function CommunityHub() {
   };
 
   /** @param {any} id */
-    const vote = (id) => {
+  const vote = (id) => {
     if (votedIds.has(id)) return;
 
     setReports((prev) =>
@@ -169,7 +166,7 @@ export default function CommunityHub() {
 
         const nextVotes = report.votes + 1;
         const createdDate = new Date(report.createdAt);
-      // @ts-ignore
+        // @ts-ignore
         const ageInDays = (new Date() - createdDate) / (1000 * 60 * 60 * 24);
         
         let updatedStatus = report.status;

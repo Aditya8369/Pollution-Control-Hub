@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { eventBus } from '../core/events';
 
 const QUIZ_SETS = {
   'eco-iq': {
@@ -346,20 +347,6 @@ export default function QuizSection() {
     setSubmitted(true);
 
     if (selectedOption === current.answer) {
-      setScore((prev) => prev + 1);
-    }
-  };
-  const goNext = () => {
-    if (!submitted) return;
-    if (isLastQuestion) {
-      setIndex(total);
-      return;
-    }
-    setIndex((prev) => prev + 1);
-    setSelected('');
-    setSubmitted(false);
-  };
-
   const restartQuiz = () => {
     setSelectedQuiz(null);
     setIndex(0);

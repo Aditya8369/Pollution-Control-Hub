@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { eventBus } from '../core/events';
 import { ACTIONS, MISSIONS } from './aqiGameData';
 import { estimateAQI, getAQIBand } from '../services/airQualityService';
 
@@ -154,7 +155,7 @@ export default function AqiMissionGame({ current }) {
 
   // Complete and evaluate the mission
   /** @param {any} isTimeout */
-    const evaluateMission = (isTimeout = false) => {
+  const evaluateMission = (isTimeout = false) => {
     const results = getSimulatedResults();
     const success = results.improvement >= selectedMission.targetImprovement;
 
@@ -167,6 +168,9 @@ export default function AqiMissionGame({ current }) {
       deployedActions: [...deployedActions]
     });
     setGameState('completed');
+    if (success) {
+      eventBus.emit("ACHIEVEMENT_TRIGGER", { type: "game_win" });
+    }
   };
 
   return (
