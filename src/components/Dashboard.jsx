@@ -72,6 +72,36 @@ export default function Dashboard({
   const shareCardRef = useRef(null);
   const [isExporting, setIsExporting] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
+  const [toastMessage, setToastMessage] = useState('');
+
+  const handleCopyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      setToastMessage('Link copied to clipboard!');
+    } catch (err) {
+      const textArea = document.createElement('textarea');
+      textArea.value = window.location.href;
+      textArea.style.position = 'fixed';
+      document.body.appendChild(textArea);
+      textArea.focus();
+      textArea.select();
+      try {
+        document.execCommand('copy');
+        setToastMessage('Link copied to clipboard!');
+      } catch (copyErr) {
+        console.error('Failed to copy link', copyErr);
+        alert('Failed to copy link. Please copy the URL manually.');
+      }
+      document.body.removeChild(textArea);
+    }
+  };
+
+  useEffect(() => {
+    if (toastMessage) {
+      const timer = setTimeout(() => setToastMessage(''), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [toastMessage]);
 
   const exportReportAsPDF = async () => {
     if (!reportRef.current || isExporting) return;
@@ -248,6 +278,30 @@ export default function Dashboard({
                 style={{ flexShrink: 0 }}
               >
                 {isSharing ? "Generating..." : "Share AQI"}
+              </button>
+              <button
+                type="button"
+                className="copy-link-button"
+                onClick={handleCopyLink}
+                data-html2canvas-ignore="true"
+                aria-label="Copy shareable dashboard URL to clipboard"
+                style={{
+                  flexShrink: 0,
+                  background: 'var(--brand, #0d9488)',
+                  color: '#fff',
+                  border: 'none',
+                  padding: '0.5rem 1rem',
+                  borderRadius: '999px',
+                  fontWeight: '700',
+                  fontSize: '0.85rem',
+                  cursor: 'pointer',
+                  boxShadow: 'var(--shadow-sm)',
+                  transition: 'background 0.2s'
+                }}
+                onMouseOver={(e) => { e.currentTarget.style.background = 'var(--brand-strong, #0b7d73)'; }}
+                onMouseOut={(e) => { e.currentTarget.style.background = 'var(--brand, #0d9488)'; }}
+              >
+                🔗 Copy Link
               </button>
             </div>
           </div>
@@ -481,6 +535,30 @@ export default function Dashboard({
         </div>
       </div>
 
+      {toastMessage && (
+        <div
+          style={{
+            position: 'fixed',
+            bottom: '2rem',
+            right: '2rem',
+            backgroundColor: 'var(--ink, #0f172a)',
+            color: 'var(--card, #ffffff)',
+            padding: '0.75rem 1.5rem',
+            borderRadius: '8px',
+            boxShadow: 'var(--shadow-lg)',
+            zIndex: 10000,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            fontWeight: 500,
+            fontSize: '0.9rem',
+            border: '1px solid var(--line)'
+          }}
+        >
+          <span>✨</span>
+          <span>{toastMessage}</span>
+        </div>
+      )}
     </>
   );
 }
