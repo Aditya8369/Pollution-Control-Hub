@@ -239,7 +239,7 @@ export default function CommunityHub({ position }) {
   const { hotspots } = clusterReports(reports);
 
   return (
-    <section className="panel">
+    <section data-testid="community-hub" className="panel">
       <div className="panel-head">
         <h2>Community Contribution</h2>
         <p>Report local pollution issues with evidence and crowd voting</p>
