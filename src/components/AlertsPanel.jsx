@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { SAFE_LIMITS } from '../constants/cities';
 
+const HISTORY_KEY = 'aqi-alert-history';
+const MAX_HISTORY = 50;
+
 /** @param {any} current */
 function buildWarnings(current) {
   const warnings = [];
@@ -17,6 +20,19 @@ export default function AlertsPanel({ cityName, current, confidenceScore , expos
   const [permission, setPermission] = useState(
     'Notification' in window ? Notification.permission : 'denied'
   );
+
+  const [alertHistory, setAlertHistory] = useState(() => {
+    try {
+      const stored = localStorage.getItem(HISTORY_KEY);
+      return stored ? JSON.parse(stored) : [];
+    } catch (_e) {
+      return [];
+    }
+  });
+
+  // Separate ref for history deduplication — does not affect notification behavior
+  const lastHistorySignature = useRef('');
+
   if (!current) {return null;}
   const warnings = useMemo(() => buildWarnings(current), [current]);
   const lastNotified = useRef('');
@@ -31,6 +47,27 @@ export default function AlertsPanel({ cityName, current, confidenceScore , expos
 
     const signature = `${cityName}:${warnings.join('|')}`;
     if (lastNotified.current === signature) return;
+
+    // Append to history only when the warning set is new
+    if (lastHistorySignature.current !== signature) {
+      lastHistorySignature.current = signature;
+      const timestamp = new Date().toLocaleString();
+      const newEntries = warnings.map((w) => ({
+        timestamp,
+        city: cityName,
+        aqi: current.us_aqi,
+        warning: w,
+      }));
+      setAlertHistory((prev) => {
+        const updated = [...newEntries, ...prev].slice(0, MAX_HISTORY);
+        try {
+          localStorage.setItem(HISTORY_KEY, JSON.stringify(updated));
+        } catch (_e) {
+          // Quota exceeded — skip persist
+        }
+        return updated;
+      });
+    }
 
     const sendNotification = () => {
       new Notification('Pollution Alert', {
@@ -52,10 +89,19 @@ export default function AlertsPanel({ cityName, current, confidenceScore , expos
     });
   };
 
+  const handleClearHistory = () => {
+    try {
+      localStorage.removeItem(HISTORY_KEY);
+    } catch (_e) {
+      // ignore
+    }
+    setAlertHistory([]);
+  };
+
   return (
     <section data-testid="alerts-panel" className="panel">
       <div className="panel-head">
-        <h2>Alerts & Notifications</h2>
+        <h2>Alerts &amp; Notifications</h2>
         <p>Health warnings based on safe pollutant thresholds</p>
       </div>
 
@@ -102,6 +148,33 @@ export default function AlertsPanel({ cityName, current, confidenceScore , expos
       ) : (
         <p className="safe-note">Air quality is within safer limits right now. Keep monitoring for changes.</p>
       )}
+
+      <div className="alert-history">
+        <div className="alert-history-head">
+          <h3>Alert History</h3>
+          {alertHistory.length > 0 && (
+            <button
+              type="button"
+              className="alert-history-clear"
+              onClick={handleClearHistory}
+            >
+              Clear History
+            </button>
+          )}
+        </div>
+        {alertHistory.length === 0 ? (
+          <p className="alert-history-empty">No alert history yet.</p>
+        ) : (
+          <ul className="alert-history-list">
+            {alertHistory.map((entry, i) => (
+              <li key={i} className="alert-history-item">
+                <span className="alert-history-meta">{entry.timestamp} · {entry.city} · AQI {entry.aqi}</span>
+                <span className="alert-history-warning">{entry.warning}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
     </section>
   );
 }
