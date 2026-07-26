@@ -678,12 +678,16 @@ export default function App() {
 
   return (
     <main className="app-shell">
+      <a href="#main-content" className="skip-link">
+        Skip to main content
+      </a>
       {/* 1. Structural fix: Renders the navigation element at the very top */}
       <SectionNav
         activeSection={activeSection}
         onSectionChange={setActiveSection}
         theme={theme}
       />
+      <div id="main-content">
 
       {loading && !error ? (
         <>
@@ -811,6 +815,7 @@ export default function App() {
           <Footer />
         </>
       )}
+      </div>
     </main>
   );
 }

@@ -226,6 +226,28 @@ a {
   border: 0;
 }
 
+/* Skip to main content link — hidden off-screen, visible on keyboard focus */
+.skip-link {
+  position: absolute;
+  top: -100%;
+  left: var(--sp-3, 1rem);
+  z-index: 1000;
+  padding: 0.6rem 1.2rem;
+  background: var(--brand, #2563eb);
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.95rem;
+  border-radius: var(--r-md, 0.5rem);
+  text-decoration: none;
+  transition: top 0.15s ease;
+}
+
+.skip-link:focus {
+  top: var(--sp-3, 1rem);
+  outline: 3px solid #fff;
+  outline-offset: 2px;
+}
+
 /* ============================================================
    Hero
    ============================================================ */
