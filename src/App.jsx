@@ -539,7 +539,11 @@ export default function App() {
       },
       (error) => {
         if (requestId !== geoRequestId.current) return;
-        console.warn("Geolocation fallback active:", error);
+        console.warn("Geolocation is unavailable. Using the fallback location.");
+
+            if (import.meta.env.DEV) {
+              console.debug("Geolocation fallback diagnostics:", error);
+            }
         setLocationNotice(
           "Couldn't detect your location — showing Delhi for now.",
         );
