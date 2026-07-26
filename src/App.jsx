@@ -344,9 +344,33 @@ function SectionNav({ activeSection, onSectionChange, theme }) {
 }
 
 export default function App() {
-  const [activeSection, setActiveSection] = useState(
-    () => localStorage.getItem("activeSection") || "home",
-  );
+  const initialHashStates = useMemo(() => {
+    const params = new URLSearchParams(window.location.hash.slice(1));
+    const name = params.get("city");
+    const lat = parseFloat(params.get("lat"));
+    const lon = parseFloat(params.get("lon"));
+    const timeRangeVal = params.get("timeRange") ? Number(params.get("timeRange")) : null;
+    const activeSecVal = params.get("section");
+    
+    if (name && !isNaN(lat) && !isNaN(lon)) {
+      return {
+        hasData: true,
+        cityName: name,
+        lat,
+        lon,
+        timeRange: timeRangeVal,
+        section: activeSecVal
+      };
+    }
+    return { hasData: false };
+  }, []);
+
+  const [activeSection, setActiveSection] = useState(() => {
+    if (initialHashStates.hasData && initialHashStates.section) {
+      return initialHashStates.section;
+    }
+    return localStorage.getItem("activeSection") || "home";
+  });
 
   // --- Helper: read city info from the URL hash (e.g. #city=Mumbai&lat=19.07&lon=72.87) ---
   function getCityFromHash() {
@@ -365,24 +389,25 @@ export default function App() {
   function setCityInHash(name, lat, lon) {
     const params = new URLSearchParams();
     params.set("city", name);
-    params.set("lat", lat);
-    params.set("lon", lon);
+    params.set("lat", lat.toString());
+    params.set("lon", lon.toString());
+    params.set("timeRange", timeRange.toString());
+    params.set("section", activeSection);
     // pushState so browser Back button can restore the previous city
     window.history.pushState(null, "", "#" + params.toString());
   }
 
   // On first load: prefer URL hash → then localStorage → then 'auto'
   const [selectedCity, setSelectedCity] = useState(() => {
-    const fromHash = getCityFromHash();
-    if (fromHash) return fromHash.name;
+    if (initialHashStates.hasData) return initialHashStates.cityName;
     return localStorage.getItem("selectedCity") || "auto";
   });
 
   // On first load: prefer URL hash → then localStorage → then DEFAULT_POSITION
   const [position, setPosition] = useState(() => {
-    const fromHash = getCityFromHash();
-    if (fromHash)
-      return { lat: fromHash.lat, lon: fromHash.lon, cityName: fromHash.name };
+    if (initialHashStates.hasData) {
+      return { lat: initialHashStates.lat, lon: initialHashStates.lon, cityName: initialHashStates.cityName };
+    }
     const saved = localStorage.getItem("position");
     return saved ? JSON.parse(saved) : DEFAULT_POSITION;
   });
@@ -445,6 +470,9 @@ export default function App() {
       : "light";
   });
   const [timeRange, setTimeRange] = useState(() => {
+    if (initialHashStates.hasData && initialHashStates.timeRange) {
+      return initialHashStates.timeRange;
+    }
     const saved = localStorage.getItem("timeRange");
     return saved ? Number(saved) : 24;
   });
@@ -474,6 +502,18 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem("activeSection", activeSection);
   }, [activeSection]);
+
+  useEffect(() => {
+    if (position.lat && position.lon && position.cityName) {
+      const params = new URLSearchParams(window.location.hash.slice(1));
+      params.set("city", position.cityName);
+      params.set("lat", position.lat.toString());
+      params.set("lon", position.lon.toString());
+      params.set("timeRange", timeRange.toString());
+      params.set("section", activeSection);
+      window.history.replaceState(null, "", "#" + params.toString());
+    }
+  }, [position.cityName, position.lat, position.lon, timeRange, activeSection]);
 
   useEffect(() => {
     localStorage.setItem("selectedCity", selectedCity);
@@ -590,18 +630,25 @@ export default function App() {
     }
   }, [handleAutoDetect]);
 
-  // Listen for browser Back/Forward (popstate) and restore the city from the URL hash
+  // Listen for browser Back/Forward (popstate) and restore the state from the URL hash
   useEffect(() => {
     function handlePopState() {
-      const fromHash = getCityFromHash();
-      if (fromHash) {
-        // Restore the city that was in the URL before Back was pressed
-        setSelectedCity(fromHash.name);
+      const params = new URLSearchParams(window.location.hash.slice(1));
+      const name = params.get("city");
+      const lat = parseFloat(params.get("lat"));
+      const lon = parseFloat(params.get("lon"));
+      const timeRangeVal = params.get("timeRange") ? Number(params.get("timeRange")) : null;
+      const activeSecVal = params.get("section");
+
+      if (name && !isNaN(lat) && !isNaN(lon)) {
+        setSelectedCity(name);
         setPosition({
-          lat: fromHash.lat,
-          lon: fromHash.lon,
-          cityName: fromHash.name,
+          lat,
+          lon,
+          cityName: name,
         });
+        if (timeRangeVal) setTimeRange(timeRangeVal);
+        if (activeSecVal) setActiveSection(activeSecVal);
       } else {
         // No hash → fall back to auto-detect
         setSelectedCity("auto");
