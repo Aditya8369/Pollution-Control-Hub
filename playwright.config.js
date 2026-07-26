@@ -35,7 +35,7 @@ export default defineConfig({
   // Shared settings for all projects (browsers)
   use: {
     // Base URL for page.goto('/') calls
-    baseURL: 'http://127.0.0.1:5173',
+    baseURL: 'http://localhost:5173',
 
     // Capture trace on first retry — invaluable for debugging CI failures
     trace: 'on-first-retry',
@@ -68,27 +68,16 @@ export default defineConfig({
     },
   ],
 
-  // ── Local dev server(s) ─────────────────────────────────────────────────────
-  // Playwright starts both the Express API and the Vite dev server before
-  // running tests (CommunityHub now calls the real backend, so the API must
-  // be up too) and shuts them down afterwards.
-  webServer: [
-    {
-      command: 'npm run server',
-      url: 'http://localhost:5175/api/health',
-      reuseExistingServer: !process.env.CI,
-      timeout: 30_000,
-      stdout: process.env.CI ? 'ignore' : 'pipe',
-      stderr: 'pipe',
-    },
-    {
-      command: 'npm run dev',
-      url: 'http://127.0.0.1:5173',
-      reuseExistingServer: !process.env.CI,
-      timeout: 60_000,
-      // Suppress Vite's noisy output in CI logs
-      stdout: process.env.CI ? 'ignore' : 'pipe',
-      stderr: 'pipe',
-    },
-  ],
+  // ── Local dev server ────────────────────────────────────────────────────────
+  // Playwright will start `vite` automatically before running tests and shut it
+  // down afterwards.  On CI the server is started the same way.
+  webServer: {
+    command: 'npm run dev',
+    url: 'http://localhost:5173',
+    reuseExistingServer: !process.env.CI,
+    timeout: 60_000,
+    // Suppress Vite's noisy output in CI logs
+    stdout: process.env.CI ? 'ignore' : 'pipe',
+    stderr: 'pipe',
+  },
 });

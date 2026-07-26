@@ -26,7 +26,7 @@ const blogs = [
 
 export default function SolutionsAwareness() {
   return (
-    <section className="panel">
+    <section data-testid="solutions-awareness" className="panel">
       <div className="panel-head">
         <h2>Solutions & Awareness</h2>
         <p>Individual actions, policy support, and learning resources</p>
