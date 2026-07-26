@@ -12,11 +12,13 @@ import {
   Pie,
   Cell
 } from "recharts";
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
-import { getAQIBand, getPollutantColor } from "../services/airQualityService";
+import { useSWR } from "../hooks/useSWR";
+import { getAQIBand, getPollutantColor, fetch7DayForecast, getWeatherDetails } from "../services/airQualityService";
 import MorningBriefing from "./MorningBriefing";
+import { eventBus } from "../core/events";
 
 /** @param {any} isoTime */
 function shortTimeLabel(isoTime) {
@@ -57,6 +59,8 @@ function CustomTooltip({ active, payload }) {
 /** @param {any} params */
 export default function Dashboard({
   cityName,
+  lat,
+  lon,
   current,
   trend,
   cityComparisons,
@@ -68,6 +72,34 @@ export default function Dashboard({
   dataCompleteness,
   isFallback
 }) {
+  const forecastKey = lat && lon ? `forecast_${lat.toFixed(4)}_${lon.toFixed(4)}` : null;
+  const {
+    data: forecastData,
+    error: forecastError,
+    mutate: mutateForecast
+  } = useSWR(forecastKey, () => fetch7DayForecast(lat, lon), { ttl: 60 * 60 * 1000 });
+
+  const [animateForecast, setAnimateForecast] = useState(false);
+
+  useEffect(() => {
+    if (forecastData) {
+      const timer = setTimeout(() => setAnimateForecast(true), 100);
+      return () => clearTimeout(timer);
+    } else {
+      setAnimateForecast(false);
+    }
+  }, [forecastData]);
+
+  useEffect(() => {
+    const handleForceRefresh = () => {
+      mutateForecast();
+    };
+    eventBus.on("FORCE_REFRESH", handleForceRefresh);
+    return () => {
+      eventBus.off("FORCE_REFRESH", handleForceRefresh);
+    };
+  }, [mutateForecast]);
+
   const reportRef = useRef(null);
   const shareCardRef = useRef(null);
   const [isExporting, setIsExporting] = useState(false);
@@ -169,6 +201,9 @@ export default function Dashboard({
   }
 
   const aqiBand = getAQIBand(current.us_aqi);
+  const forecastAqiValues = forecastData ? forecastData.map(d => d.aqi) : [];
+  const minAqi = forecastAqiValues.length > 0 ? Math.min(...forecastAqiValues) : Infinity;
+  const maxAqi = forecastAqiValues.length > 0 ? Math.max(...forecastAqiValues) : -Infinity;
   const chartData = trend.slice(-timeRange).map((item) => ({
     ...item,
     label: shortTimeLabel(item.time)
@@ -378,6 +413,124 @@ export default function Dashboard({
         </div>
 
         <div className="chart-grid">
+          <article className="chart-card forecast-card" style={{ gridColumn: '1 / -1' }}>
+            <h3>7-Day AQI & Weather Forecast</h3>
+            {forecastError && <p style={{ color: 'var(--danger)', padding: '1rem' }}>Failed to load forecast data.</p>}
+            {!forecastData && !forecastError && (
+              <div style={{ padding: '2rem', textAlign: 'center', opacity: 0.7 }}>
+                <span className="live-dot active" style={{ display: 'inline-block', marginRight: '0.5rem' }}></span>
+                Loading 7-day forecast...
+              </div>
+            )}
+            {forecastData && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', marginTop: '1rem' }}>
+                {forecastData.map((day) => {
+                  const weather = getWeatherDetails(day.weatherCode);
+                  const band = getAQIBand(day.aqi);
+                  const isBest = day.aqi === minAqi;
+                  const isWorst = day.aqi === maxAqi;
+                  
+                  const formattedDate = new Date(day.date).toLocaleDateString(undefined, {
+                    weekday: 'short',
+                    month: 'short',
+                    day: 'numeric',
+                    timeZone: 'UTC'
+                  });
+
+                  return (
+                    <div
+                      key={day.date}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '1rem',
+                        padding: '0.75rem 1rem',
+                        borderRadius: '8px',
+                        background: 'var(--bg-card-alt, rgba(0,0,0,0.015))',
+                        border: '1px solid var(--line)',
+                        flexWrap: 'wrap'
+                      }}
+                    >
+                      {/* Date and Weather */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', minWidth: '150px' }}>
+                        <span style={{ fontSize: '1.25rem' }} title={weather.label}>{weather.icon}</span>
+                        <div style={{ display: 'flex', flexDirection: 'column' }}>
+                          <span style={{ fontWeight: '600', fontSize: '0.95rem', color: 'var(--ink)' }}>{formattedDate}</span>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>{weather.label}</span>
+                        </div>
+                      </div>
+
+                      {/* Animated AQI relative bar */}
+                      <div style={{ flex: '1 1 200px', minWidth: '150px' }}>
+                        <div style={{ height: '8px', width: '100%', background: 'var(--line)', borderRadius: '4px', overflow: 'hidden' }}>
+                          <div
+                            style={{
+                              height: '100%',
+                              width: animateForecast ? `${Math.min(100, (day.aqi / 300) * 100)}%` : '0%',
+                              background: band.color,
+                              borderRadius: '4px',
+                              transition: 'width 1s cubic-bezier(0.22, 1, 0.36, 1)'
+                            }}
+                          />
+                        </div>
+                      </div>
+
+                      {/* AQI Value and Band */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', minWidth: '120px' }}>
+                        <span style={{ fontWeight: '700', fontSize: '1.1rem', color: band.color }}>{day.aqi}</span>
+                        <span
+                          style={{
+                            padding: '0.15rem 0.5rem',
+                            borderRadius: '999px',
+                            backgroundColor: `${band.color}22`,
+                            color: band.color,
+                            fontSize: '0.75rem',
+                            fontWeight: '600',
+                            whiteSpace: 'nowrap'
+                          }}
+                        >
+                          {band.label}
+                        </span>
+                      </div>
+
+                      {/* Best/Worst highlights */}
+                      {isBest && (
+                        <span
+                          style={{
+                            padding: '0.2rem 0.6rem',
+                            borderRadius: '6px',
+                            backgroundColor: 'rgba(34, 197, 94, 0.15)',
+                            color: '#15803d',
+                            fontSize: '0.75rem',
+                            fontWeight: '700',
+                            border: '1px solid rgba(34, 197, 94, 0.3)'
+                          }}
+                        >
+                          ✨ Best Day
+                        </span>
+                      )}
+                      {isWorst && (
+                        <span
+                          style={{
+                            padding: '0.2rem 0.6rem',
+                            borderRadius: '6px',
+                            backgroundColor: 'rgba(239, 68, 68, 0.15)',
+                            color: '#b91c1c',
+                            fontSize: '0.75rem',
+                            fontWeight: '700',
+                            border: '1px solid rgba(239, 68, 68, 0.3)'
+                          }}
+                        >
+                          ⚠️ Worst Day
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </article>
+
           <article className="chart-card">
             <h3>AQI Trend ({timeRange}h)</h3>
             <div data-testid="aqi-trend-chart">
