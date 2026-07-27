@@ -7,24 +7,36 @@ export default function HistoricalAnalysis({ position }) {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
-  
+
   const workerRef = useRef(null);
 
   useEffect(() => {
-    // Initialize web worker
-    workerRef.current = new Worker(new URL('../workers/historicalDataWorker.js', import.meta.url), {
-      type: 'module'
-    });
+    try {
+      // Initialize web worker
+      workerRef.current = new Worker(new URL('../workers/historicalDataWorker.js', import.meta.url), {
+        type: 'module'
+      });
 
-    workerRef.current.onmessage = (e) => {
-      if (e.data.error) {
-        setError(e.data.error);
+      workerRef.current.onmessage = (e) => {
+        if (e.data.error) {
+          setError(e.data.error);
+          setLoading(false);
+        } else {
+          setData(e.data);
+          setLoading(false);
+        }
+      };
+
+      workerRef.current.onerror = (err) => {
+        console.error('HistoricalAnalysis worker error:', err);
+        setError('Failed to process historical data.');
         setLoading(false);
-      } else {
-        setData(e.data);
-        setLoading(false);
-      }
-    };
+      };
+    } catch (err) {
+      console.error('Failed to initialize historical data worker:', err);
+      setError('Historical data processing is unavailable in this environment.');
+      setLoading(false);
+    }
 
     return () => {
       workerRef.current?.terminate();
@@ -40,10 +52,15 @@ export default function HistoricalAnalysis({ position }) {
         setError(null);
         // Fetch last 3 years of data
         const rawData = await fetchHistoricalData(position.lat, position.lon, 3);
-        
-        if (active && workerRef.current) {
-          // Offload processing to worker
-          workerRef.current.postMessage(rawData);
+
+        if (active) {
+          if (workerRef.current) {
+            // Offload processing to worker
+            workerRef.current.postMessage(rawData);
+          } else {
+            setError('Historical data processing is unavailable.');
+            setLoading(false);
+          }
         }
       } catch (err) {
         if (active) {
