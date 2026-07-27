@@ -135,23 +135,26 @@ export default function CommunityHub() {
     if (!file) return;
 
     setUploadError('');
-
-    if (file.size > MAX_IMAGE_SIZE_BYTES) {
-      setUploadError(
-        `Image too large (${(file.size / 1024 / 1024).toFixed(1)} MB). Maximum is 500 KB.`
-      );
-      event.target.value = '';
-      setFileInputKey(Date.now());
-      return;
-    }
-
     setIsProcessingImage(true);
 
     const reader = new FileReader();
     reader.onload = async () => {
       try {
         const compressed = await compressImage(String(reader.result));
-        setForm((prev) => ({ ...prev, image: compressed }));
+        
+        // Calculate size of the compressed image in bytes from the base64 string
+        const base64Str = compressed.split(',')[1];
+        const compressedSize = Math.round((base64Str.length * 3) / 4) - (base64Str.endsWith('==') ? 2 : base64Str.endsWith('=') ? 1 : 0);
+
+        if (compressedSize > MAX_IMAGE_SIZE_BYTES) {
+          setUploadError(
+            `Image too large (${(compressedSize / 1024 / 1024).toFixed(1)} MB). Maximum is 500 KB.`
+          );
+          event.target.value = '';
+          setFileInputKey(Date.now());
+        } else {
+          setForm((prev) => ({ ...prev, image: compressed }));
+        }
       } catch {
         setUploadError('Failed to process image. Please try again.');
       } finally {
