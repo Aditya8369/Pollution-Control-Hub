@@ -1,6 +1,6 @@
 // @ts-nocheck
 import { useEffect, useState } from 'react';
-import { CarFront,Sun } from "lucide-react";
+import { CarFront, Sun, Wind, Factory } from "lucide-react";
 import { CITY_COORDINATES } from '../constants/cities';
 import { fetchAirQualityByCoords, getAQIBand, estimateAQI } from '../services/airQualityService';
 
@@ -11,7 +11,7 @@ const PM25GaugeIcon = ({ size = 24 }) => (
     viewBox="0 0 32 32"
     xmlns="http://www.w3.org/2000/svg"
     aria-hidden="true"
-    >
+  >
     {/* Colored AQI gauge */}
     <path
       d="M5 21 A11 11 0 0 1 9 12"
@@ -19,21 +19,21 @@ const PM25GaugeIcon = ({ size = 24 }) => (
       stroke="#84cc16"
       strokeWidth="4"
       strokeLinecap="round"
-      />
+    />
 
     <path
       d="M9 12 A11 11 0 0 1 16 9"
       fill="none"
       stroke="#eab308"
       strokeWidth="4"
-      />
+    />
 
     <path
       d="M16 9 A11 11 0 0 1 23 12"
       fill="none"
       stroke="#f97316"
       strokeWidth="4"
-      />
+    />
 
     <path
       d="M23 12 A11 11 0 0 1 27 21"
@@ -41,7 +41,7 @@ const PM25GaugeIcon = ({ size = 24 }) => (
       stroke="#ef4444"
       strokeWidth="4"
       strokeLinecap="round"
-      />
+    />
 
     {/* Needle */}
     <line
@@ -52,7 +52,7 @@ const PM25GaugeIcon = ({ size = 24 }) => (
       stroke="currentColor"
       strokeWidth="2"
       strokeLinecap="round"
-      />
+    />
 
     {/* Center */}
     <circle
@@ -60,7 +60,7 @@ const PM25GaugeIcon = ({ size = 24 }) => (
       cy="21"
       r="2.5"
       fill="currentColor"
-      />
+    />
   </svg>
 );
 /* ─── Preset intervention scenarios ──────────────────────────────────────── */
@@ -71,8 +71,10 @@ const PRESETS = [
     label: 'Traffic Control',
     description: 'Odd-even driving, EV mandates',
     pm25: 10,
+    pm10: 10,
     no2: 20,
     o3: 5,
+    co: 15,
   },
   {
     id: 'industrial',
@@ -80,8 +82,10 @@ const PRESETS = [
     label: 'Industrial Limits',
     description: 'Stricter stack emission caps',
     pm25: 25,
+    pm10: 20,
     no2: 15,
     o3: 0,
+    co: 10,
   },
   {
     id: 'green',
@@ -89,8 +93,10 @@ const PRESETS = [
     label: 'Green Cover',
     description: 'Urban forestry & park expansion',
     pm25: 10,
+    pm10: 10,
     no2: 5,
     o3: 15,
+    co: 5,
   },
   {
     id: 'clean-fuel',
@@ -98,8 +104,10 @@ const PRESETS = [
     label: 'Clean Fuel Switch',
     description: 'Replace petrol/diesel with CNG/EV',
     pm25: 20,
+    pm10: 15,
     no2: 30,
     o3: 10,
+    co: 25,
   },
   {
     id: 'combined',
@@ -107,8 +115,10 @@ const PRESETS = [
     label: 'Combined Policy',
     description: 'All interventions together',
     pm25: 50,
+    pm10: 50,
     no2: 50,
     o3: 50,
+    co: 50,
   },
 ];
 
@@ -116,8 +126,10 @@ const PRESETS = [
 
 export default function ScenarioSimulator({ current }) {
   const [pm25Reduction, setPm25Reduction] = useState(0);
+  const [pm10Reduction, setPm10Reduction] = useState(0);
   const [no2Reduction, setNo2Reduction] = useState(0);
   const [o3Reduction, setO3Reduction] = useState(0);
+  const [coReduction, setCoReduction] = useState(0);
   const [activePreset, setActivePreset] = useState(null);
 
   // Multi-city: selected city names (start with just the first city as placeholder;
@@ -134,13 +146,17 @@ export default function ScenarioSimulator({ current }) {
       // Deselect — reset sliders
       setActivePreset(null);
       setPm25Reduction(0);
+      setPm10Reduction(0);
       setNo2Reduction(0);
       setO3Reduction(0);
+      setCoReduction(0);
     } else {
       setActivePreset(preset.id);
       setPm25Reduction(preset.pm25);
+      setPm10Reduction(preset.pm10);
       setNo2Reduction(preset.no2);
       setO3Reduction(preset.o3);
+      setCoReduction(preset.co);
     }
   }
 
@@ -186,15 +202,17 @@ export default function ScenarioSimulator({ current }) {
 
   /* ── Derived values for the "active city" (from prop) ── */
   const reducedPm25 = current.pm2_5 * (1 - pm25Reduction / 100);
+  const reducedPm10 = current.pm10 * (1 - pm10Reduction / 100);
   const reducedNo2 = current.nitrogen_dioxide * (1 - no2Reduction / 100);
   const reducedO3 = current.ozone * (1 - o3Reduction / 100);
+  const reducedCo = current.carbon_monoxide * (1 - coReduction / 100);
 
   const estimatedAqi = estimateAQI(
     Math.round(reducedPm25),
-    current.pm10,
+    Math.round(reducedPm10),
     Math.round(reducedNo2),
     Math.round(reducedO3),
-    current.carbon_monoxide
+    Math.round(reducedCo)
   );
 
   const currentBand = getAQIBand(current.us_aqi);
@@ -208,14 +226,16 @@ export default function ScenarioSimulator({ current }) {
   /* ── Compute simulated result for a comparison city ── */
   function simulateCity(data) {
     const rPm25 = data.pm2_5 * (1 - pm25Reduction / 100);
+    const rPm10 = data.pm10 * (1 - pm10Reduction / 100);
     const rNo2 = data.nitrogen_dioxide * (1 - no2Reduction / 100);
     const rO3 = data.ozone * (1 - o3Reduction / 100);
+    const rCo = data.carbon_monoxide * (1 - coReduction / 100);
     const simAqi = estimateAQI(
       Math.round(rPm25),
-      data.pm10,
+      Math.round(rPm10),
       Math.round(rNo2),
       Math.round(rO3),
-      data.carbon_monoxide
+      Math.round(rCo)
     );
     const imp =
       data.us_aqi > 0
@@ -226,8 +246,10 @@ export default function ScenarioSimulator({ current }) {
       simBand: getAQIBand(simAqi),
       improvement: imp,
       rPm25: Math.round(rPm25),
+      rPm10: Math.round(rPm10),
       rNo2: Math.round(rNo2),
       rO3: Math.round(rO3),
+      rCo: Math.round(rCo),
     };
   }
 
@@ -256,8 +278,10 @@ export default function ScenarioSimulator({ current }) {
             <span className="sim-preset-desc">{preset.description}</span>
             <span className="sim-preset-tags">
               {preset.pm25 > 0 && <span className="sim-tag">PM2.5 −{preset.pm25}%</span>}
+              {preset.pm10 > 0 && <span className="sim-tag">PM10 −{preset.pm10}%</span>}
               {preset.no2 > 0 && <span className="sim-tag">NO₂ −{preset.no2}%</span>}
               {preset.o3 > 0 && <span className="sim-tag">O₃ −{preset.o3}%</span>}
+              {preset.co > 0 && <span className="sim-tag">CO −{preset.co}%</span>}
             </span>
           </button>
         ))}
@@ -275,6 +299,19 @@ export default function ScenarioSimulator({ current }) {
             setPm25Reduction(v);
           }}
           current={current.pm2_5}
+          unit="µg/m³"
+        />
+        <SliderGroup
+          id="slider-pm10"
+          label="Reduce PM10"
+          icon={Wind}
+          iconColor="#8b5cf6"
+          value={pm10Reduction}
+          onChange={(v) => {
+            setActivePreset(null);
+            setPm10Reduction(v);
+          }}
+          current={current.pm10}
           unit="µg/m³"
         />
         <SliderGroup
@@ -297,6 +334,16 @@ export default function ScenarioSimulator({ current }) {
           value={o3Reduction}
           onChange={(v) => { setActivePreset(null); setO3Reduction(v); }}
           current={current.ozone}
+          unit="µg/m³"
+        />
+        <SliderGroup
+          id="slider-co"
+          label="Reduce Carbon Monoxide"
+          icon={Factory}
+          iconColor="#64748b"
+          value={coReduction}
+          onChange={(v) => { setActivePreset(null); setCoReduction(v); }}
+          current={current.carbon_monoxide}
           unit="µg/m³"
         />
       </div>
@@ -379,7 +426,7 @@ export default function ScenarioSimulator({ current }) {
             const data = cityData[cityName];
             if (!data) return null;
 
-            const { simAqi, simBand, improvement: imp, rPm25, rNo2, rO3 } = simulateCity(data);
+            const { simAqi, simBand, improvement: imp, rPm25, rPm10, rNo2, rO3, rCo } = simulateCity(data);
             const origBand = getAQIBand(data.us_aqi);
 
             return (
@@ -428,8 +475,10 @@ export default function ScenarioSimulator({ current }) {
                   </thead>
                   <tbody>
                     <PollutantRow label="PM2.5" before={data.pm2_5} after={rPm25} unit="µg/m³" />
+                    <PollutantRow label="PM10" before={data.pm10} after={rPm10} unit="µg/m³" />
                     <PollutantRow label="NO₂" before={data.nitrogen_dioxide} after={rNo2} unit="µg/m³" />
                     <PollutantRow label="Ozone" before={data.ozone} after={rO3} unit="µg/m³" />
+                    <PollutantRow label="CO" before={data.carbon_monoxide} after={rCo} unit="µg/m³" />
                   </tbody>
                 </table>
               </div>
