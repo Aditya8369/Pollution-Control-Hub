@@ -20,6 +20,7 @@ import HotspotScoutGame from "./components/HotspotScoutGame";
 import ErrorBoundary from "./components/ErrorBoundary";
 import Commute from "./components/Commute";
 import GettingStarted from "./components/GettingStarted";
+import CityCompare from "./components/CityCompare";
 import {
   estimateWeeklyMonthlyAverages,
   fetchAirQualityByCoords,
@@ -128,6 +129,7 @@ function SectionNav({ activeSection, onSectionChange, theme }) {
   const sections = [
     { id: "home", label: "Home" },
     { id: "getting-started", label: "Getting Started" },
+    { id: "Compare", label: "Compare" },
     { id: "quiz", label: "Quiz" },
     { id: "game", label: "Game" },
     { id: "community", label: "Community" },
@@ -823,6 +825,7 @@ export default function App() {
           )}
 
           {activeSection === "Commute" && <Commute />}
+          {activeSection === "Compare" && <CityCompare />}
           <Footer />
         </>
       )}
