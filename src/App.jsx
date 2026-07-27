@@ -451,6 +451,15 @@ export default function App() {
 
   const debounceRef = useRef(null);
   const geoRequestId = useRef(0);
+  const scrollAnchorRef = useRef(null);
+
+  useEffect(() => {
+    if (activeSection === "home") {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    } else if (scrollAnchorRef.current) {
+      scrollAnchorRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [activeSection]);
   const [detecting, setDetecting] = useState(false);
 
   useEffect(() => {
@@ -696,6 +705,7 @@ export default function App() {
           </h1>
 
           <Hero cityName={position.cityName} />
+          <div ref={scrollAnchorRef} aria-hidden="true" />
           {activeSection === "home" && (
             <div
               key="skeleton-grid"
@@ -709,6 +719,7 @@ export default function App() {
       ) : (
         <>
           <Hero cityName={position.cityName} />
+          <div ref={scrollAnchorRef} aria-hidden="true" />
 
           {activeSection === "home" && (
             <AppControls
