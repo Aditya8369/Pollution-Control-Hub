@@ -63,14 +63,14 @@ export async function fetchHistoricalData(lat, lon, years = 1) {
   startDateObj.setFullYear(today.getFullYear() - years);
   const startDate = startDateObj.toISOString().split('T')[0];
 
-  const cacheKey = `history_${lat.toFixed(4)}_${lon.toFixed(4)}_${startDate}_${endDate}`;
+  const cacheKey = `history_export_${lat.toFixed(4)}_${lon.toFixed(4)}_${startDate}_${endDate}`;
   
   const cached = await getCachedData(cacheKey);
   if (cached) {
     return cached;
   }
 
-  const url = `${BASE_URL}?latitude=${lat}&longitude=${lon}&hourly=us_aqi&timezone=auto&start_date=${startDate}&end_date=${endDate}`;
+  const url = `${BASE_URL}?latitude=${lat}&longitude=${lon}&hourly=pm2_5,pm10,carbon_monoxide,nitrogen_dioxide,ozone,us_aqi&timezone=auto&start_date=${startDate}&end_date=${endDate}`;
   
   const response = await fetch(url);
   if (!response.ok) {
