@@ -72,6 +72,14 @@ export default function Dashboard({
   const shareCardRef = useRef(null);
   const [isExporting, setIsExporting] = useState(false);
   const [isSharing, setIsSharing] = useState(false);
+  
+  const [isBriefingDismissed, setIsBriefingDismissed] = useState(false);
+  const [showBriefingTrigger, setShowBriefingTrigger] = useState(0);
+
+  const handleShowBriefing = () => {
+    setIsBriefingDismissed(false);
+    setShowBriefingTrigger(prev => prev + 1);
+  };
 
   const exportReportAsPDF = async () => {
     if (!reportRef.current || isExporting) return;

@@ -3,16 +3,24 @@ import { getAQIBand } from '../services/airQualityService';
 import './MorningBriefing.css';
 
 /** @param {any} params */
-export default function MorningBriefing({ current, trend }) {
+export default function MorningBriefing({ current, trend, showTrigger, onDismiss }) {
   const [isVisible, setIsVisible] = useState(true);
   const [streak, setStreak] = useState(0);
   
+  useEffect(() => {
+    if (showTrigger) {
+      localStorage.removeItem('briefingDismissed');
+      setIsVisible(true);
+    }
+  }, [showTrigger]);
+
   useEffect(() => {
     // Check dismissal
     const todayStr = new Date().toISOString().split('T')[0];
     const dismissedOn = localStorage.getItem('briefingDismissed');
     if (dismissedOn === todayStr) {
       setIsVisible(false);
+      if (onDismiss) onDismiss();
     }
 
     // Check streak
@@ -47,6 +55,7 @@ export default function MorningBriefing({ current, trend }) {
     const todayStr = new Date().toISOString().split('T')[0];
     localStorage.setItem('briefingDismissed', todayStr);
     setIsVisible(false);
+    if (onDismiss) onDismiss();
   };
 
   const currentHour = new Date().getHours();
