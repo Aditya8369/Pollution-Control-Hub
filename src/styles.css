@@ -4914,3 +4914,226 @@ a {
     line-height: 1.6;
   }
 }
+
+/* ============================================================
+   Multi-City AQI Comparison Section
+   ============================================================ */
+.compare-controls-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background: color-mix(in srgb, var(--line) 25%, transparent);
+  border-radius: var(--r-md);
+  border: 1px solid var(--line);
+}
+
+.preset-buttons-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.compare-grid {
+  display: grid;
+  gap: 1.25rem;
+  margin-top: 1.5rem;
+  align-items: stretch;
+}
+
+.compare-grid.cols-4 {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.compare-grid.cols-3 {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.compare-grid.cols-2 {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.compare-grid.cols-1 {
+  grid-template-columns: 1fr;
+}
+
+@media (max-width: 1024px) {
+  .compare-grid.cols-4 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .compare-grid.cols-4,
+  .compare-grid.cols-3,
+  .compare-grid.cols-2 {
+    grid-template-columns: 1fr;
+  }
+}
+
+.compare-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  position: relative;
+  transition: transform 200ms var(--ease), box-shadow 200ms var(--ease);
+}
+
+.compare-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-md);
+}
+
+.compare-card.winner-card {
+  border-color: #10b981;
+  background: color-mix(in srgb, #10b981 6%, var(--card));
+}
+
+/* Fixed Badge Slot for Vertical Alignment */
+.card-badge-slot {
+  min-height: 26px;
+  display: flex;
+  align-items: center;
+  margin-bottom: 0.25rem;
+}
+
+.winner-badge {
+  display: inline-block;
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.15rem 0.5rem;
+  border-radius: 12px;
+}
+
+.winner-badge-placeholder {
+  height: 24px;
+  display: block;
+}
+
+.compare-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  min-height: 32px;
+}
+
+.compare-city-name {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.card-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.btn-change-city {
+  background: color-mix(in srgb, var(--line) 30%, transparent);
+  border: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.25rem 0.5rem;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 150ms var(--ease);
+}
+
+.btn-change-city:hover {
+  color: var(--brand);
+  background: var(--card);
+  border-color: var(--brand);
+}
+
+.btn-text-cancel {
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 0.8rem;
+  cursor: pointer;
+  margin-top: 0.25rem;
+  text-decoration: underline;
+}
+
+.btn-remove {
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 1.1rem;
+  cursor: pointer;
+  padding: 0.2rem 0.4rem;
+  line-height: 1;
+  border-radius: 4px;
+}
+
+.btn-remove:hover {
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.1);
+}
+
+.pollutant-summary-box {
+  background: color-mix(in srgb, var(--line) 30%, transparent);
+  padding: 0.75rem 1rem;
+  border-radius: var(--r-md);
+  margin-top: 1rem;
+}
+
+.summary-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.88rem;
+  margin-bottom: 0.35rem;
+  color: var(--muted);
+}
+
+.summary-row strong {
+  color: var(--ink);
+}
+
+.who-bar-bg {
+  height: 6px;
+  background: var(--line);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-top: 0.4rem;
+}
+
+.who-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 300ms ease;
+}
+
+.pollutant-list {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem 1rem;
+  padding-top: 0.75rem;
+  border-top: 1px dashed var(--line);
+}
+
+.pollutant-item {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+.pollutant-item strong {
+  color: var(--ink);
+}
+
