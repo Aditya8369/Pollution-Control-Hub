@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 
 const STORAGE_KEY = 'pollution-community-reports';
 const VOTES_STORAGE_KEY = 'pollution-community-voted-ids';
-const VOTE_THRESHOLD = 5; 
+const VOTE_THRESHOLD = 5;
 const X_DAYS = 7;
 const MAX_IMAGE_SIZE_BYTES = 500 * 1024; // 500 KB
 const STORAGE_WARN_THRESHOLD = 5 * 1024 * 1024; // 5 MB warning
@@ -59,6 +59,7 @@ export default function CommunityHub() {
   });
   const [fileInputKey, setFileInputKey] = useState(Date.now());
   const [uploadError, setUploadError] = useState('');
+  const [isProcessingImage, setIsProcessingImage] = useState(false);
 
   useEffect(() => {
     try {
@@ -78,7 +79,7 @@ export default function CommunityHub() {
         // Remove oldest/lowest-vote reports until write succeeds
         const sorted = [...reports].sort((a, b) => {
           if (a.votes !== b.votes) return a.votes - b.votes;
-      // @ts-ignore
+          // @ts-ignore
           return new Date(a.createdAt) - new Date(b.createdAt);
         });
 
@@ -107,7 +108,7 @@ export default function CommunityHub() {
   }, [votedIds]);
 
   /** @param {any} event */
-    const onSubmit = (event) => {
+  const onSubmit = (event) => {
     event.preventDefault();
     if (!form.title.trim() || !form.description.trim()) return;
 
@@ -118,9 +119,9 @@ export default function CommunityHub() {
       image: form.image,
       votes: 0,
       createdAt: new Date().toISOString(),
-      status:"Pending",
+      status: "Pending",
       verifiedAt: "",
-      moderationNotes:"",
+      moderationNotes: "",
     };
 
     setReports((prev) => [newReport, ...prev]);
@@ -129,7 +130,7 @@ export default function CommunityHub() {
   };
 
   /** @param {any} event */
-    const uploadImage = async (event) => {
+  const uploadImage = async (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -144,6 +145,8 @@ export default function CommunityHub() {
       return;
     }
 
+    setIsProcessingImage(true);
+
     const reader = new FileReader();
     reader.onload = async () => {
       try {
@@ -151,16 +154,19 @@ export default function CommunityHub() {
         setForm((prev) => ({ ...prev, image: compressed }));
       } catch {
         setUploadError('Failed to process image. Please try again.');
+      } finally {
+        setIsProcessingImage(false);
       }
     };
     reader.onerror = () => {
       setUploadError('Failed to read image file. Please try again.');
+      setIsProcessingImage(false);
     };
     reader.readAsDataURL(file);
   };
 
   /** @param {any} id */
-    const vote = (id) => {
+  const vote = (id) => {
     if (votedIds.has(id)) return;
 
     setReports((prev) =>
@@ -169,9 +175,9 @@ export default function CommunityHub() {
 
         const nextVotes = report.votes + 1;
         const createdDate = new Date(report.createdAt);
-      // @ts-ignore
+        // @ts-ignore
         const ageInDays = (new Date() - createdDate) / (1000 * 60 * 60 * 24);
-        
+
         let updatedStatus = report.status;
         let verifiedAtTimestamp = report.verifiedAt;
         let notes = report.moderationNotes;
@@ -182,9 +188,9 @@ export default function CommunityHub() {
           notes = "Automatically verified via community consensus upvotes.";
         }
 
-        return { 
-          ...report, 
-          votes: nextVotes, 
+        return {
+          ...report,
+          votes: nextVotes,
           status: updatedStatus,
           verifiedAt: verifiedAtTimestamp,
           moderationNotes: notes
@@ -220,9 +226,24 @@ export default function CommunityHub() {
           placeholder="Describe location and issue details"
           onChange={(event) => setForm((prev) => ({ ...prev, description: event.target.value }))}
         />
-        <input key={fileInputKey} type="file" accept="image/jpeg,image/png,image/webp" onChange={uploadImage} style={{ width: '100%' }} />
+        <input
+          key={fileInputKey}
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          onChange={uploadImage}
+          style={{ width: '100%' }}
+          disabled={isProcessingImage}
+        />
+        {isProcessingImage && (
+          <p className="upload-processing" role="status" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span className="live-dot active" aria-hidden="true"></span>
+            Processing image...
+          </p>
+        )}
         {uploadError && <p className="upload-error">{uploadError}</p>}
-        <button type="submit">Submit Report</button>
+        <button type="submit" disabled={isProcessingImage}>
+          {isProcessingImage ? 'Processing image…' : 'Submit Report'}
+        </button>
       </form>
 
       <div className="filter-tabs" style={{ display: 'flex', gap: '8px', margin: '15px 0' }}>
