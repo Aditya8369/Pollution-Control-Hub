@@ -1,0 +1,315 @@
+{
+  "hero": {
+    "eyebrow": "Pollution Control Hub",
+    "title": "Monitor. Understand. Act.",
+    "description": "A single digital platform to track air quality in {{cityName}}, protect health, and mobilize community-driven climate action."
+  },
+  "controls": {
+    "trackCity": "Track city:",
+    "autoDetect": "Auto Detect",
+    "detecting": "Detecting...",
+    "refreshing": "Refreshing live feed...",
+    "autoRefresh": "Auto refresh in {{seconds}}s",
+    "refreshNow": "Refresh Now",
+    "lastUpdated": "Last updated: {{time}}",
+    "waiting": "Waiting..."
+  },
+  "nav": {
+    "home": "Home",
+    "getting-started": "Getting Started",
+    "quiz": "Quiz",
+    "game": "Game",
+    "community": "Community",
+    "history": "History",
+    "Commute": "Commute",
+    "toggleTheme": "Toggle Theme",
+    "toggleNavigation": "Toggle navigation"
+  },
+  "status": {
+    "loading": "Loading",
+    "preparing": "Preparing live pollution intelligence...",
+    "offlineWarning": "Offline caching is unavailable — your data may not persist between sessions.",
+    "geolocationUnavailable": "Your browser can't detect location, so we're showing Delhi.",
+    "geolocationError": "Couldn't detect your location — showing Delhi for now.",
+    "dismiss": "Dismiss"
+  },
+  "footer": {
+    "brandTitle": "Pollution Control Hub",
+    "brandDesc": "Monitor. Understand. Act. A community-driven platform turning air quality data into clear health guidance and local climate action.",
+    "project": "Project",
+    "github": "GitHub Repository",
+    "reportIssue": "Report an Issue",
+    "contributing": "Contributing Guide",
+    "dataSources": "Data & Sources",
+    "copyright": "© {{year}} Pollution Control Hub.",
+    "tagline": "From awareness to action — one city at a time. 🌱"
+  },
+  "dashboard": {
+    "title": "Real-Time Pollution Dashboard",
+    "liveReadings": "Live readings for {{cityName}}",
+    "noData": "No data available",
+    "noDataDesc": "We couldn't retrieve live air quality data for {{cityName}} and no cached readings are available.",
+    "exportPDF": "Export Report as PDF",
+    "exportingPDF": "Generating PDF...",
+    "shareAQI": "Share AQI",
+    "sharingAQI": "Generating...",
+    "updating": "Updating...",
+    "updated": "Updated {{time}}",
+    "justNow": "just now",
+    "usAqi": "US AQI",
+    "dataCompleteness": "{{score}} ({{completeness}}% data)",
+    "speedometerTitle": "Pollutant Health Speedometer",
+    "speedometerDesc": "Relative magnitude vs. WHO guidelines. Larger segments indicate higher severity.",
+    "aqiTrend": "AQI Trend ({{range}}h)",
+    "cityComparison": "City-Wise AQI Comparison",
+    "shareCardBrand": "POLLUTION CONTROL HUB",
+    "shareCardIndex": "AIR QUALITY INDEX",
+    "shareCardFooter": "🌍 Live Air Quality Status",
+    "showingCached": "Showing Cached Reading",
+    "status": {
+      "high": "HIGH",
+      "caution": "CAUTION",
+      "safe": "SAFE"
+    },
+    "limit": "WHO Limit: {{limit}} µg/m³",
+    "worsening": "🔴 ↑ Worsening",
+    "improving": "🟢 ↓ Improving",
+    "stable": "⚪ → Stable",
+    "pollutants": {
+      "pm25": "Fine particles can penetrate lungs and enter the bloodstream.",
+      "pm10": "Coarse particles can irritate airways and cause coughing.",
+      "no2": "May irritate airways and aggravate respiratory diseases.",
+      "o3": "Can trigger asthma and reduce lung function.",
+      "co": "High levels reduce oxygen delivery to the body."
+    }
+  },
+  "briefing": {
+    "greetings": {
+      "lateNight": "Late Night Check-in",
+      "morning": "Good Morning, here's your air quality briefing",
+      "afternoon": "Good Afternoon, here's your air quality briefing",
+      "evening": "Good Evening, here's your air quality briefing"
+    },
+    "streak": "🔥 {{streak}}-day streak",
+    "yesterdaySummary": "Yesterday's Summary:",
+    "todayOutlook": "Today's Outlook:",
+    "healthTip": "Health Tip:",
+    "summaries": {
+      "same": "Same as yesterday's average.",
+      "worse": "Worse than yesterday's average ({{avg}}).",
+      "better": "Better than yesterday's average ({{avg}})."
+    },
+    "outlooks": {
+      "stable": "AQI is relatively stable today.",
+      "downward": "AQI is trending downward — expect improvement this afternoon.",
+      "upward": "AQI is trending upward — it may get worse."
+    },
+    "tips": {
+      "enjoy": "Enjoy the day!",
+      "good": "Great day for outdoor exercise!",
+      "moderate": "Acceptable air quality. Unusually sensitive individuals should consider limiting prolonged outdoor exertion.",
+      "sensitive": "Members of sensitive groups may experience health effects. General public is less likely to be affected.",
+      "unhealthy": "Consider wearing an N95 mask outdoors. Everyone may begin to experience health effects.",
+      "hazardous": "Avoid prolonged or heavy exertion outdoors. Consider wearing an N95 mask."
+    }
+  },
+  "alerts": {
+    "title": "Alerts & Notifications",
+    "subtitle": "Health warnings based on safe pollutant thresholds",
+    "enable": "Enable Desktop Notifications",
+    "enableDesc": "Enable notifications to receive real-time pollution alerts.",
+    "exposureTimer": "Exposure Timer",
+    "estimatedNote": "Estimated from recent AQI trends.",
+    "lowConfidence": "Warnings based on low-confidence data",
+    "safeLimits": "Air quality is within safer limits right now. Keep monitoring for changes.",
+    "warnings": {
+      "pm25": "PM2.5 is high. Wear a certified mask and avoid heavy outdoor exercise.",
+      "pm10": "PM10 is elevated. Keep windows closed during peak traffic hours.",
+      "no2": "NO2 levels are unsafe. Reduce roadside exposure if possible.",
+      "ozone": "Ozone levels are high. Limit outdoor activity during peak sunlight hours.",
+      "aqi": "AQI suggests unhealthy conditions. Avoid outdoor activities today."
+    },
+    "alertTitle": "Pollution Alert"
+  },
+  "healthAdvisory": {
+    "title": "Health Advisory Hub",
+    "subtitle": "How current air quality impacts your organs, and recommended steps to protect yourself.",
+    "organSubtitle": "Organ-Specific Impacts",
+    "tailoredSubtitle": "Tailored Health Recommendations",
+    "organs": {
+      "lungs": {
+        "title": "Lungs",
+        "impact": "Fine particles inflame airways, triggering asthma, bronchitis, and long-term capacity reduction."
+      },
+      "heart": {
+        "title": "Heart",
+        "impact": "Microscopic pollutants pass into blood, causing inflammation, arterial stiffness, and clotting risk."
+      },
+      "skin": {
+        "title": "Skin",
+        "impact": "Smog and soot block pores, leading to oxidative stress, moisture loss, and premature aging."
+      },
+      "eyes": {
+        "title": "Eyes",
+        "impact": "Gaseous pollutants like ozone and nitrogen dioxide cause burning sensations, redness, and dry eyes."
+      },
+      "brain": {
+        "title": "Brain",
+        "impact": "Pollutant exposure is linked to cognitive fog, headaches, reduced concentration, and long-term neurological decline."
+      },
+      "immune": {
+        "title": "Immune System",
+        "impact": "Chronic exposure weakens immune response, increasing susceptibility to respiratory infections and slower recovery times."
+      }
+    },
+    "audiences": {
+      "general": {
+        "label": "General Public",
+        "desc": "Advisories and tips for healthy adults with no pre-existing conditions."
+      },
+      "sensitive": {
+        "label": "Sensitive Groups",
+        "desc": "Essential guidance for individuals with asthma, heart conditions, or allergies."
+      },
+      "vulnerable": {
+        "label": "Children & Elderly",
+        "desc": "Protective actions tailored for developing lungs and older age groups."
+      }
+    },
+    "tips": {
+      "general": {
+        "mask": {
+          "title": "Wear a Mask",
+          "detail": "Use an N95/N99 mask during peak traffic hours or when AQI exceeds 150."
+        },
+        "ventilation": {
+          "title": "Monitor Ventilation",
+          "detail": "Keep windows closed when local AQI is high; open them during clean wind hours."
+        },
+        "exercise": {
+          "title": "Optimize Exercise",
+          "detail": "Shift intense cardio sessions indoors if the AQI rises above 100."
+        }
+      },
+      "sensitive": {
+        "inhaler": {
+          "title": "Rescue Inhaler",
+          "detail": "Keep prescribed quick-relief medication handy at all times when outdoors."
+        },
+        "purifier": {
+          "title": "Run Air Purifiers",
+          "detail": "Keep HEPA filters active in your bedroom and workspace to reduce indoor triggers."
+        },
+        "limit": {
+          "title": "Limit Exposure",
+          "detail": "Avoid walking near main roads during peak congestion and early mornings."
+        }
+      },
+      "vulnerable": {
+        "walks": {
+          "title": "Avoid Morning Walks",
+          "detail": "Air pollutants settle close to the ground in the early morning; walk in the afternoon instead."
+        },
+        "diet": {
+          "title": "Nutritious Diet",
+          "detail": "Consume foods rich in Vitamin C, E, and Omega-3 to help combat system-wide oxidative stress."
+        },
+        "play": {
+          "title": "Indoor Play",
+          "detail": "Keep kids active with creative indoor activities instead of playing outdoors when AQI exceeds 100."
+        }
+      }
+    }
+  },
+  "locationMap": {
+    "title": "Location-Based Tracking",
+    "subtitle": "Nearby pollution intensity map and hotspots",
+    "hideWind": "Hide Wind Overlay",
+    "showWind": "Show Wind Overlay",
+    "windLegend": "Wind Legend:",
+    "windLegendDesc": "Arrows indicate the direction wind is blowing.",
+    "windInsight": "Wind blowing {{direction}} at {{speed}} km/h — pollution patterns may shift in this direction.",
+    "hotspots": "Most Polluted Areas Near You"
+  },
+  "communityHub": {
+    "title": "Community Contribution",
+    "subtitle": "Report local pollution issues with evidence and crowd voting",
+    "placeholderTitle": "Issue title (e.g., Garbage burning)",
+    "placeholderDesc": "Describe location and issue details",
+    "submit": "Submit Report",
+    "noReports": "No reports yet. Be the first to raise an issue.",
+    "voted": "Voted",
+    "upvote": "Upvote",
+    "timelineCreated": "Created",
+    "timelineVerified": "Community verified",
+    "timelineAddressed": "Addressed"
+  },
+  "historicalAnalysis": {
+    "loading": "Crunching 3 years of historical AQI data...",
+    "error": "Error: {{error}}",
+    "title": "Long-Term Climate & Pollution Trends",
+    "subtitle": "Showing 3 years of daily max AQI severity for {{city}}",
+    "avgAqi": "Overall Average AQI",
+    "daysRecorded": "Days Recorded",
+    "heatmapTitle": "Daily Severity Calendar",
+    "yourArea": "your area"
+  },
+  "analyticsInsights": {
+    "title": "Data Analytics & Insights",
+    "subtitle": "Weekly/monthly outlook and simple trend-based AQI prediction",
+    "weeklyAvg": "Weekly Avg AQI",
+    "monthlyAvg": "Monthly Avg AQI",
+    "predicted": "Predicted Next-Day AQI",
+    "shortTerm": "Short-Term AQI Pattern ({{range}}h)"
+  },
+  "scenarioSimulator": {
+    "title": "Scenario Simulator",
+    "subtitle": "Adjust sliders or pick a preset to see how interventions could improve AQI across cities.",
+    "presetsTitle": "Intervention presets",
+    "slidersTitle": "Pollutant reduction sliders",
+    "pm25": "Reduce PM2.5",
+    "no2": "Reduce NO₂",
+    "o3": "Reduce Ozone",
+    "currentAqi": "Current AQI",
+    "estimatedAqi": "Estimated AQI",
+    "compareCities": "Compare with other cities:",
+    "compareResultsTitle": "City simulation results",
+    "loading": "Loading {{city}}…",
+    "error": "⚠️ Could not fetch {{city}} data.",
+    "better": "−{{pct}}% better",
+    "worse": "+{{pct}}% worse",
+    "noChange": "No change",
+    "now": "Now",
+    "simulated": "Simulated",
+    "tablePollutant": "Pollutant",
+    "tableBefore": "Before",
+    "tableAfter": "After",
+    "sliderCurrent": "Current: {{val}} {{unit}}",
+    "sliderTarget": "Target: {{val}} {{unit}}",
+    "pm25Label": "PM2.5",
+    "no2Label": "NO₂",
+    "o3Label": "Ozone",
+    "presets": {
+      "traffic": {
+        "label": "Traffic Control",
+        "description": "Odd-even driving, EV mandates"
+      },
+      "industrial": {
+        "label": "Industrial Limits",
+        "description": "Stricter stack emission caps"
+      },
+      "green": {
+        "label": "Green Cover",
+        "description": "Urban forestry & park expansion"
+      },
+      "cleanFuel": {
+        "label": "Clean Fuel Switch",
+        "description": "Replace petrol/diesel with CNG/EV"
+      },
+      "combined": {
+        "label": "Combined Policy",
+        "description": "All interventions together"
+      }
+    }
+  }
+}
