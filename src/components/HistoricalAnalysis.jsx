@@ -21,18 +21,20 @@ export default function HistoricalAnalysis({ position }) {
   }, [data]);
 
   useEffect(() => {
-    // Initialize web worker
-    workerRef.current = new Worker(new URL('../workers/historicalDataWorker.js', import.meta.url), {
-      type: 'module'
-    });
+    try {
+      // Initialize web worker
+      workerRef.current = new Worker(new URL('../workers/historicalDataWorker.js', import.meta.url), {
+        type: 'module'
+      });
 
-    workerRef.current.onmessage = (e) => {
-      if (e.data.error) {
-        setError(e.data.error);
-        setLoading(false);
-      } else {
-        setData(e.data);
-        setLoading(false);
+      workerRef.current.onmessage = (e) => {
+        if (e.data.error) {
+          setError(e.data.error);
+          setLoading(false);
+        } else {
+          setData(e.data);
+          setLoading(false);
+        }
       };
     } catch (err) {
       console.error('Failed to initialize historical data worker:', err);
