@@ -654,6 +654,30 @@ a {
   flex-wrap: wrap;
 }
 
+@media (max-width: 640px) {
+  .dashboard-header-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .dashboard-header-row>div:first-child {
+    flex: none;
+    /* stop the flex-basis:0 squeeze */
+    width: 100%;
+  }
+
+  .dashboard-header-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .export-report-button,
+  .share-aqi-button {
+    flex: 1 1 auto;
+    /* let the two buttons share the row evenly */
+  }
+}
+
 .range-switch {
   display: inline-flex;
   border: 1px solid var(--line);
@@ -3801,7 +3825,7 @@ a {
 }
 
 
-   /* AQI Share Card Styling  */
+/* AQI Share Card Styling  */
 
 .share-card-container {
   position: fixed;
@@ -4773,10 +4797,10 @@ a {
 }
 
 .getting-started-section h3 {
-    font-size: 2.1rem;
-    font-weight: 700;
-    margin-bottom: 0;
-    color: var(--text-primary);
+  font-size: 2.1rem;
+  font-weight: 700;
+  margin-bottom: 0;
+  color: var(--text-primary);
 }
 
 .getting-started-list {
@@ -4808,9 +4832,9 @@ a {
   border-bottom: 1px solid var(--line);
 }
 
-.getting-started-section{
-    margin:0;
-    padding:0;
+.getting-started-section {
+  margin: 0;
+  padding: 0;
 }
 
 .guide-tab {
@@ -4840,53 +4864,53 @@ a {
    Platform Overview
 ========================================================== */
 
-.overview-content{
-    display:flex;
-    flex-direction:column;
-    gap:0;
+.overview-content {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
 }
 
-.overview-item{
-    padding:1.25rem 0;
-    border-bottom:1px solid var(--line);
+.overview-item {
+  padding: 1.25rem 0;
+  border-bottom: 1px solid var(--line);
 }
 
-.overview-item:last-child{
-    border-bottom:none;
+.overview-item:last-child {
+  border-bottom: none;
 }
 
-.overview-item h4{
-    margin:0 0 .45rem;
-    font-size:1.2rem;
-    font-weight:700;
-    color:var(--ink);
+.overview-item h4 {
+  margin: 0 0 .45rem;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--ink);
 }
 
-.overview-item p{
-    margin:0;
-    color:var(--muted);
-    line-height:1.7;
-    max-width:100%;
+.overview-item p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.7;
+  max-width: 100%;
 }
 
 /* Remove all old card/grid styles */
 .overview-grid,
 .overview-card,
-.overview-icon{
-    display:none;
+.overview-icon {
+  display: none;
 }
 
-@media (max-width:768px){
-    .overview-item{
-        padding:1rem 0;
-    }
+@media (max-width:768px) {
+  .overview-item {
+    padding: 1rem 0;
+  }
 
-    .overview-item h4{
-        font-size:1.05rem;
-    }
+  .overview-item h4 {
+    font-size: 1.05rem;
+  }
 
-    .overview-item p{
-        font-size:.95rem;
-        line-height:1.6;
-    }
+  .overview-item p {
+    font-size: .95rem;
+    line-height: 1.6;
+  }
 }

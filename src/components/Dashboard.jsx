@@ -209,300 +209,285 @@ export default function Dashboard({
 
   return (
     <>
-    <section data-testid="dashboard" className="panel dashboard" ref={reportRef}>
-      <MorningBriefing 
-        current={current} 
-        trend={trend} 
-        showTrigger={showBriefingTrigger}
-        onDismiss={() => setIsBriefingDismissed(true)} 
-      />
-      <div className="panel-head" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.75rem', flexWrap: 'wrap' }}>
-          <div style={{ minWidth: 0, flex: 1 }}>
-            <h2>Real-Time Pollution Dashboard</h2>
-            <p>
-              Live readings for {cityName}
-              {isFallback && (
-                <span className="fallback-badge" style={{
-                  marginLeft: '0.75rem',
-                  padding: '0.2rem 0.5rem',
-                  backgroundColor: '#d97706',
-                  color: '#fff',
-                  borderRadius: '4px',
-                  fontSize: '0.75rem',
-                  fontWeight: 'bold',
-                  display: 'inline-block',
-                  verticalAlign: 'middle'
-                }}>
-                  Showing Cached Reading
-                </span>
-              )}
+      <section data-testid="dashboard" className="panel dashboard" ref={reportRef}>
+        <MorningBriefing current={current} trend={trend} />
+        <div className="panel-head" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+          <div className="dashboard-header-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.75rem', flexWrap: 'wrap' }}>
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <h2>Real-Time Pollution Dashboard</h2>
+              <p>
+                Live readings for {cityName}
+                {isFallback && (
+                  <span className="fallback-badge" style={{
+                    marginLeft: '0.75rem',
+                    padding: '0.2rem 0.5rem',
+                    backgroundColor: '#d97706',
+                    color: '#fff',
+                    borderRadius: '4px',
+                    fontSize: '0.75rem',
+                    fontWeight: 'bold',
+                    display: 'inline-block',
+                    verticalAlign: 'middle'
+                  }}>
+                    Showing Cached Reading
+                  </span>
+                )}
+              </p>
+            </div>
+            <div className="dashboard-header-actions" style={{ display: 'flex', gap: '0.5rem', flexShrink: 0, flexWrap: 'wrap' }} data-html2canvas-ignore="true">
+              <button
+                type="button"
+                className="export-report-button"
+                onClick={exportReportAsPDF}
+                disabled={isExporting}
+                data-html2canvas-ignore="true"
+                aria-label={isExporting ? 'Generating PDF, please wait' : 'Export dashboard report as PDF'}
+                style={{ flexShrink: 0 }}
+              >
+                {isExporting ? "Generating PDF..." : "Export Report as PDF"}
+              </button>
+              <button
+                type="button"
+                className="share-aqi-button"
+                onClick={shareAQICard}
+                disabled={isSharing}
+                data-html2canvas-ignore="true"
+                aria-label={isSharing ? 'Generating share card, please wait' : 'Share AQI as image'}
+                style={{ flexShrink: 0 }}
+              >
+                {isSharing ? "Generating..." : "Share AQI"}
+              </button>
+            </div>
+          </div>
+          <div className="dashboard-tools">
+            <div data-testid="time-range-selector" className="range-switch" role="group" aria-label="Select time range">
+              {[6, 12, 24].map((range) => (
+                <button
+                  key={range}
+                  type="button"
+                  className={timeRange === range ? 'active' : ''}
+                  onClick={() => onTimeRangeChange(range)}
+                  aria-label={`Show last ${range} hours`}
+                  aria-pressed={timeRange === range}
+                >
+                  {range}h
+                </button>
+              ))}
+            </div>
+            <p className="dashboard-meta">
+              {isRefreshing ? 'Updating...' : `Updated ${lastUpdated ? new Date(lastUpdated).toLocaleTimeString() : 'just now'}`}
             </p>
           </div>
-          <div style={{ display: 'flex', gap: '0.5rem', flexShrink: 0, flexWrap: 'wrap', alignItems: 'center' }} data-html2canvas-ignore="true">
-            {isBriefingDismissed && (
-              <button
-                type="button"
-                onClick={handleShowBriefing}
-                style={{ background: 'none', border: 'none', color: 'var(--primary-color, #0d9488)', textDecoration: 'underline', cursor: 'pointer', fontSize: '0.9rem', padding: '0.2rem 0.5rem', fontWeight: '500' }}
-                aria-label="Show Morning Briefing"
-              >
-                Show Briefing
-              </button>
+        </div>
+
+        <div className="kpi-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(min(300px, 100%), 1fr))' }}>
+          <article className="kpi-card aqi">
+            <h3>US AQI</h3>
+            <div data-testid="aqi-value" className="kpi-value" style={{ color: aqiBand.color }}>
+              {current.us_aqi}
+            </div>
+            <p data-testid="aqi-band-label">{aqiBand.label}</p>
+            {aqiTrend && (
+              <div style={{ fontSize: "0.95rem", fontWeight: "600", color: aqiTrend.color, marginTop: "0.5rem", marginBottom: "0.5rem" }}>
+                {aqiTrend.label}
+              </div>
             )}
-            <button
-              type="button"
-              className="export-report-button"
-              onClick={exportReportAsPDF}
-              disabled={isExporting}
-              data-html2canvas-ignore="true"
-              aria-label={isExporting ? 'Generating PDF, please wait' : 'Export dashboard report as PDF'}
-              style={{ flexShrink: 0 }}
-            >
-              {isExporting ? "Generating PDF..." : "Export Report as PDF"}
-            </button>
-            <button
-              type="button"
-              className="share-aqi-button"
-              onClick={shareAQICard}
-              disabled={isSharing}
-              data-html2canvas-ignore="true"
-              aria-label={isSharing ? 'Generating share card, please wait' : 'Share AQI as image'}
-              style={{ flexShrink: 0 }}
-            >
-              {isSharing ? "Generating..." : "Share AQI"}
-            </button>
-          </div>
+            <span className={`confidence-badge confidence-${confidenceScore?.toLowerCase()}`}>
+              {confidenceScore} ({dataCompleteness}% data)
+            </span>
+          </article>
+
+          <article className="kpi-card chart-card" style={{ display: 'flex', flexDirection: 'column' }}>
+            <h3>Pollutant Health Speedometer</h3>
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>
+              Relative magnitude vs. WHO guidelines. Larger segments indicate higher severity.
+            </p>
+            <div style={{ flex: 1, minHeight: '200px' }} role="img" aria-label="Pollutant health speedometer donut chart showing real-time values vs WHO guidelines">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={pollutants}
+                    dataKey="ratio"
+                    nameKey="name"
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={60}
+                    outerRadius={90}
+                    paddingAngle={5}
+                    label={({ name }) => name}
+                    labelLine={false}
+                  >
+                    {pollutants.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip content={<CustomTooltip />} />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          </article>
         </div>
-        <div className="dashboard-tools">
-          <div data-testid="time-range-selector" className="range-switch" role="group" aria-label="Select time range">
-            {[6, 12, 24].map((range) => (
-              <button
-                key={range}
-                type="button"
-                className={timeRange === range ? 'active' : ''}
-                onClick={() => onTimeRangeChange(range)}
-                aria-label={`Show last ${range} hours`}
-                aria-pressed={timeRange === range}
+
+        <div data-testid="pollutants-grid" className="pollutants-grid">
+          {pollutants.map((p) => {
+            const pct = Math.round((p.value / p.limit) * 100);
+            const status =
+              pct >= 100
+                ? { label: 'HIGH', bg: '#fee2e2', color: '#ef4444' }
+                : pct >= 50
+                  ? { label: 'CAUTION', bg: '#fff7ed', color: '#f97316' }
+                  : { label: 'SAFE', bg: '#f0fdf4', color: '#22c55e' };
+
+            return (
+              <article
+                key={p.name}
+                data-testid={`pollutant-${p.name.toLowerCase().replace('.', '_')}`}
+                className="pollutant-card"
+                style={{ borderLeft: `4px solid ${p.color}` }}
               >
-                {range}h
-              </button>
-            ))}
-          </div>
-          <p className="dashboard-meta">
-            {isRefreshing ? 'Updating...' : `Updated ${lastUpdated ? new Date(lastUpdated).toLocaleTimeString() : 'just now'}`}
-          </p>
+                <div className="pollutant-card-header">
+                  <h4>{p.name}</h4>
+                  <span
+                    className="pollutant-status-pill"
+                    style={{ backgroundColor: status.bg, color: status.color }}
+                  >
+                    <span style={{
+                      width: '7px', height: '7px',
+                      borderRadius: '50%',
+                      backgroundColor: status.color,
+                      display: 'inline-block'
+                    }} />
+                    {status.label}
+                  </span>
+                </div>
+
+                <div className="pollutant-value-container">
+                  <span className="pollutant-value" style={{ color: p.color }}>{p.value}</span>
+                  <span className="pollutant-unit">µg/m³</span>
+                </div>
+
+                <div className="pollutant-meta-info">
+                  <span className="pollutant-limit">WHO Limit: {p.limit} µg/m³</span>
+                  <span className="pollutant-percent" style={{ color: p.color }}>{pct}%</span>
+                </div>
+
+                <div className="pollutant-progress-track">
+                  <div
+                    className="pollutant-progress-fill"
+                    style={{
+                      width: `${Math.min(pct, 100)}%`,
+                      backgroundColor: p.color
+                    }}
+                  />
+                </div>
+              </article>
+            );
+          })}
         </div>
-      </div>
 
-      <div className="kpi-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(min(300px, 100%), 1fr))' }}>
-        <article className="kpi-card aqi">
-          <h3>US AQI</h3>
-          <div data-testid="aqi-value" className="kpi-value" style={{ color: aqiBand.color }}>
-            {current.us_aqi}
-          </div>
-          <p data-testid="aqi-band-label">{aqiBand.label}</p>
-          {aqiTrend && (
-            <div style={{ fontSize: "0.95rem", fontWeight: "600", color: aqiTrend.color, marginTop: "0.5rem", marginBottom: "0.5rem" }}>
-              {aqiTrend.label}
+        <div className="chart-grid">
+          <article className="chart-card">
+            <h3>AQI Trend ({timeRange}h)</h3>
+            <div data-testid="aqi-trend-chart">
+              <ResponsiveContainer width="100%" height={280}>
+                <LineChart data={chartData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#d7e6e1" />
+                  <XAxis dataKey="label" minTickGap={28} />
+                  <YAxis />
+                  <Tooltip />
+                  <Line type="monotone" dataKey="us_aqi" stroke="#0d9488" strokeWidth={3} dot={false} />
+                </LineChart>
+              </ResponsiveContainer>
             </div>
-          )}
-          <span className={`confidence-badge confidence-${confidenceScore?.toLowerCase()}`}>
-            {confidenceScore} ({dataCompleteness}% data)
-          </span>
-        </article>
+          </article>
 
-        <article className="kpi-card chart-card" style={{ display: 'flex', flexDirection: 'column' }}>
-          <h3>Pollutant Health Speedometer</h3>
-          <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>
-            Relative magnitude vs. WHO guidelines. Larger segments indicate higher severity.
-          </p>
-          <div style={{ flex: 1, minHeight: '200px' }} role="img" aria-label="Pollutant health speedometer donut chart showing real-time values vs WHO guidelines">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={pollutants}
-                  dataKey="ratio"
-                  nameKey="name"
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={90}
-                  paddingAngle={5}
-                  label={({ name }) => name}
-                  labelLine={false}
-                >
-                  {pollutants.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip content={<CustomTooltip />} />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-        </article>
-      </div>
-
-      <div data-testid="pollutants-grid" className="pollutants-grid">
-        {pollutants.map((p) => {
-          const pct = Math.round((p.value / p.limit) * 100);
-          const status =
-            pct >= 100
-              ? { label: 'HIGH', bg: '#fee2e2', color: '#ef4444' }
-              : pct >= 50
-              ? { label: 'CAUTION', bg: '#fff7ed', color: '#f97316' }
-              : { label: 'SAFE', bg: '#f0fdf4', color: '#22c55e' };
-
-          return (
-            <article
-              key={p.name}
-              data-testid={`pollutant-${p.name.toLowerCase().replace('.', '_')}`}
-              className="pollutant-card"
-              style={{ borderLeft: `4px solid ${p.color}` }}
-            >
-              <div className="pollutant-card-header">
-                <h4>{p.name}</h4>
-                <span
-                  className="pollutant-status-pill"
-                  style={{ backgroundColor: status.bg, color: status.color }}
-                >
-                  <span style={{
-                    width: '7px', height: '7px',
-                    borderRadius: '50%',
-                    backgroundColor: status.color,
-                    display: 'inline-block'
-                  }} />
-                  {status.label}
-                </span>
-              </div>
-
-              <div className="pollutant-value-container">
-                <span className="pollutant-value" style={{ color: p.color }}>{p.value}</span>
-                <span className="pollutant-unit">µg/m³</span>
-              </div>
-
-              <div className="pollutant-meta-info">
-                <span className="pollutant-limit">WHO Limit: {p.limit} µg/m³</span>
-                <span className="pollutant-percent" style={{ color: p.color }}>{pct}%</span>
-              </div>
-
-              <div className="pollutant-progress-track">
-                <div
-                  className="pollutant-progress-fill"
-                  style={{
-                    width: `${Math.min(pct, 100)}%`,
-                    backgroundColor: p.color
-                  }}
-                />
-              </div>
-            </article>
-          );
-        })}
-      </div>
-
-      <div className="chart-grid">
-        <article className="chart-card">
-          <h3>AQI Trend ({timeRange}h)</h3>
-          <div data-testid="aqi-trend-chart">
+          <article data-testid="city-comparisons" className="chart-card">
+            <h3>City-Wise AQI Comparison</h3>
             <ResponsiveContainer width="100%" height={280}>
-              <LineChart data={chartData}>
+              <BarChart data={cityComparisons} layout="vertical" margin={{ left: 30 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#d7e6e1" />
-                <XAxis dataKey="label" minTickGap={28} />
-                <YAxis />
+                <XAxis type="number" />
+                <YAxis type="category" dataKey="city" width={90} />
                 <Tooltip />
-                <Line type="monotone" dataKey="us_aqi" stroke="#0d9488" strokeWidth={3} dot={false} />
-              </LineChart>
+                <Bar dataKey="aqi" fill="#f97316" radius={[0, 12, 12, 0]} />
+              </BarChart>
             </ResponsiveContainer>
-          </div>
-        </article>
+            <ul style={{ display: 'none' }}>
+              {cityComparisons && cityComparisons.map((c, i) => (
+                <li key={i} data-testid="city-comparison-item">{c.city}: {c.aqi}</li>
+              ))}
+            </ul>
+          </article>
+        </div>
+      </section>
 
-        <article data-testid="city-comparisons" className="chart-card">
-          <h3>City-Wise AQI Comparison</h3>
-          <ResponsiveContainer width="100%" height={280}>
-            <BarChart data={cityComparisons} layout="vertical" margin={{ left: 30 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#d7e6e1" />
-              <XAxis type="number" />
-              <YAxis type="category" dataKey="city" width={90} />
-              <Tooltip />
-              <Bar dataKey="aqi" fill="#f97316" radius={[0, 12, 12, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-          <ul style={{ display: 'none' }}>
-            {cityComparisons && cityComparisons.map((c, i) => (
-              <li key={i} data-testid="city-comparison-item">{c.city}: {c.aqi}</li>
-            ))}
-          </ul>
-        </article>
-      </div>
-    </section>
-
-    {/* Hidden AQI Share Card — captured by html2canvas */}
-    <div
-      ref={shareCardRef}
-      aria-hidden="true"
-      className="share-card-container"
-      style={{
-        borderColor: `${aqiBand.color}44`,
-      }}
-    >
-      {/* Header */}
-      <div className="share-card-header">
-        <span className="share-card-badge">POLLUTION CONTROL HUB</span>
-        <span className="share-card-date">
-          {new Date().toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}
-        </span>
-      </div>
-
-      <h2 className="share-card-city">
-        {cityName}
-      </h2>
-
-      {/* Hero AQI Box */}
-      <div className="share-card-hero">
-        <div className="share-card-hero-left">
-          <span className="share-card-hero-sub">AIR QUALITY INDEX</span>
-          <span className="share-card-hero-value" style={{ color: aqiBand.color }}>
-            {current.us_aqi}
+      {/* Hidden AQI Share Card — captured by html2canvas */}
+      <div
+        ref={shareCardRef}
+        aria-hidden="true"
+        className="share-card-container"
+        style={{
+          borderColor: `${aqiBand.color}44`,
+        }}
+      >
+        {/* Header */}
+        <div className="share-card-header">
+          <span className="share-card-badge">POLLUTION CONTROL HUB</span>
+          <span className="share-card-date">
+            {new Date().toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}
           </span>
         </div>
-        <div className="share-card-hero-pill" style={{ background: aqiBand.color }}>
-          {aqiBand.label}
+
+        <h2 className="share-card-city">
+          {cityName}
+        </h2>
+
+        {/* Hero AQI Box */}
+        <div className="share-card-hero">
+          <div className="share-card-hero-left">
+            <span className="share-card-hero-sub">AIR QUALITY INDEX</span>
+            <span className="share-card-hero-value" style={{ color: aqiBand.color }}>
+              {current.us_aqi}
+            </span>
+          </div>
+          <div className="share-card-hero-pill" style={{ background: aqiBand.color }}>
+            {aqiBand.label}
+          </div>
+        </div>
+
+        {/* Pollutant Metric Grid Tiles */}
+        <div className="share-card-grid">
+          {[
+            { label: 'PM2.5', value: current.pm2_5, limit: 15 },
+            { label: 'PM10', value: current.pm10, limit: 45 },
+            { label: 'NO₂', value: current.nitrogen_dioxide, limit: 25 },
+          ].map(({ label, value, limit }) => {
+            const color = getPollutantColor(value, limit);
+            return (
+              <div
+                key={label}
+                className="share-card-tile"
+                style={{
+                  borderColor: `${color}66`,
+                  borderTop: `3px solid ${color}`
+                }}
+              >
+                <div className="share-card-tile-label">{label}</div>
+                <div className="share-card-tile-value" style={{ color }}>
+                  {value !== undefined ? Number(value).toFixed(1) : '—'}
+                </div>
+                <div className="share-card-tile-unit">µg/m³</div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Footer Branding */}
+        <div className="share-card-footer">
+          <span>🌍 Live Air Quality Status</span>
+          <span>pollution-control-hub.vercel.app</span>
         </div>
       </div>
-
-      {/* Pollutant Metric Grid Tiles */}
-      <div className="share-card-grid">
-        {[
-          { label: 'PM2.5', value: current.pm2_5, limit: 15 },
-          { label: 'PM10',  value: current.pm10, limit: 45 },
-          { label: 'NO₂',   value: current.nitrogen_dioxide, limit: 25 },
-        ].map(({ label, value, limit }) => {
-          const color = getPollutantColor(value, limit);
-          return (
-            <div
-              key={label}
-              className="share-card-tile"
-              style={{
-                borderColor: `${color}66`,
-                borderTop: `3px solid ${color}`
-              }}
-            >
-              <div className="share-card-tile-label">{label}</div>
-              <div className="share-card-tile-value" style={{ color }}>
-                {value !== undefined ? Number(value).toFixed(1) : '—'}
-              </div>
-              <div className="share-card-tile-unit">µg/m³</div>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Footer Branding */}
-      <div className="share-card-footer">
-        <span>🌍 Live Air Quality Status</span>
-        <span>pollution-control-hub.vercel.app</span>
-      </div>
-    </div>
 
     </>
   );
