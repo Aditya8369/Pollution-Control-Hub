@@ -4936,3 +4936,83 @@ a {
     line-height: 1.6;
   }
 }
+
+/* ============================================================
+   Alert History (AlertsPanel)
+   ============================================================ */
+.alert-history {
+  margin-top: var(--sp-4, 1.5rem);
+  border-top: 1px solid var(--line);
+  padding-top: var(--sp-3, 1rem);
+}
+
+.alert-history-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--sp-2, 0.75rem);
+}
+
+.alert-history-head h3 {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.alert-history-clear {
+  background: none;
+  border: 1px solid var(--line);
+  border-radius: var(--r-md, 0.5rem);
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 0.78rem;
+  padding: 0.25rem 0.6rem;
+  transition: color 0.15s, border-color 0.15s;
+}
+
+.alert-history-clear:hover {
+  border-color: var(--brand);
+  color: var(--brand);
+}
+
+.alert-history-empty {
+  font-size: 0.85rem;
+  color: var(--muted);
+  margin: 0;
+}
+
+.alert-history-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-height: 14rem;
+  overflow-y: auto;
+}
+
+.alert-history-item {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md, 0.5rem);
+  padding: 0.5rem 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.alert-history-meta {
+  font-size: 0.75rem;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.alert-history-warning {
+  font-size: 0.82rem;
+  color: var(--ink);
+  line-height: 1.45;
+}
