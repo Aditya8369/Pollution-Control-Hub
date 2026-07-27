@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 
 const STORAGE_KEY = 'pollution-community-reports';
 const VOTES_STORAGE_KEY = 'pollution-community-voted-ids';
-const VOTE_THRESHOLD = 5; 
+const VOTE_THRESHOLD = 5;
 const X_DAYS = 7;
 const MAX_IMAGE_SIZE_BYTES = 500 * 1024; // 500 KB
 const STORAGE_WARN_THRESHOLD = 5 * 1024 * 1024; // 5 MB warning
@@ -78,7 +78,7 @@ export default function CommunityHub() {
         // Remove oldest/lowest-vote reports until write succeeds
         const sorted = [...reports].sort((a, b) => {
           if (a.votes !== b.votes) return a.votes - b.votes;
-      // @ts-ignore
+          // @ts-ignore
           return new Date(a.createdAt) - new Date(b.createdAt);
         });
 
@@ -107,7 +107,7 @@ export default function CommunityHub() {
   }, [votedIds]);
 
   /** @param {any} event */
-    const onSubmit = (event) => {
+  const onSubmit = (event) => {
     event.preventDefault();
     if (!form.title.trim() || !form.description.trim()) return;
 
@@ -118,9 +118,9 @@ export default function CommunityHub() {
       image: form.image,
       votes: 0,
       createdAt: new Date().toISOString(),
-      status:"Pending",
+      status: "Pending",
       verifiedAt: "",
-      moderationNotes:"",
+      moderationNotes: "",
     };
 
     setReports((prev) => [newReport, ...prev]);
@@ -129,7 +129,7 @@ export default function CommunityHub() {
   };
 
   /** @param {any} event */
-    const uploadImage = async (event) => {
+  const uploadImage = async (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -160,7 +160,7 @@ export default function CommunityHub() {
   };
 
   /** @param {any} id */
-    const vote = (id) => {
+  const vote = (id) => {
     if (votedIds.has(id)) return;
 
     setReports((prev) =>
@@ -169,9 +169,9 @@ export default function CommunityHub() {
 
         const nextVotes = report.votes + 1;
         const createdDate = new Date(report.createdAt);
-      // @ts-ignore
+        // @ts-ignore
         const ageInDays = (new Date() - createdDate) / (1000 * 60 * 60 * 24);
-        
+
         let updatedStatus = report.status;
         let verifiedAtTimestamp = report.verifiedAt;
         let notes = report.moderationNotes;
@@ -182,9 +182,9 @@ export default function CommunityHub() {
           notes = "Automatically verified via community consensus upvotes.";
         }
 
-        return { 
-          ...report, 
-          votes: nextVotes, 
+        return {
+          ...report,
+          votes: nextVotes,
           status: updatedStatus,
           verifiedAt: verifiedAtTimestamp,
           moderationNotes: notes
@@ -244,7 +244,7 @@ export default function CommunityHub() {
 
       <div className="report-feed">
         {filteredReports.length === 0 ? (
-          <p>No reports yet. Be the first to raise an issue.</p>
+          <p className="report-feed-empty">No reports yet. Be the first to raise an issue.</p>
         ) : (
           filteredReports.map((report) => (
             <article className="report-card" key={report.id}>
