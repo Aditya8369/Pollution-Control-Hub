@@ -5,105 +5,72 @@ describe("MultiLevelCache", () => {
   let cache;
 
   beforeEach(() => {
-    localStorage.clear();
-    cache = new MultiLevelCache("test-cache", 1000);
+    // Set a small maxEntries (3) for LRU testing
+    cache = new MultiLevelCache("test-cache", 1000, 3);
     vi.restoreAllMocks();
   });
 
   afterEach(() => {
-    localStorage.clear();
     vi.restoreAllMocks();
   });
 
   it("retrieves data from memory cache", () => {
     const data = { aqi: 50 };
-
     cache.set("city", data);
-
     expect(cache.get("city")).toEqual(data);
-  });
-
-  it("retrieves data from localStorage when memory cache is empty", () => {
-    const entry = {
-      data: { aqi: 75 },
-      expiresAt: Date.now() + 5000,
-    };
-
-    localStorage.setItem(
-      "test-cache:city",
-      JSON.stringify(entry)
-    );
-
-    expect(cache.get("city")).toEqual(entry.data);
-
-    // should backfill L1 cache
-    expect(cache.memoryCache.size).toBe(1);
   });
 
   it("returns null when cache entry has expired in memory", () => {
     const now = Date.now();
-
     vi.spyOn(Date, "now").mockReturnValue(now);
 
     cache.set("city", { aqi: 90 }, 100);
 
     vi.spyOn(Date, "now").mockReturnValue(now + 200);
-
     expect(cache.get("city")).toBeNull();
-  });
-
-  it("returns null when localStorage entry has expired", () => {
-    const expired = {
-      data: { aqi: 80 },
-      expiresAt: Date.now() - 1000,
-    };
-
-    localStorage.setItem(
-      "test-cache:city",
-      JSON.stringify(expired)
-    );
-
-    expect(cache.get("city")).toBeNull();
-    expect(localStorage.getItem("test-cache:city")).toBeNull();
   });
 
   it("returns null on cache miss", () => {
     expect(cache.get("unknown")).toBeNull();
   });
 
-  it("returns fallback data", () => {
-    const data = { aqi: 120 };
+  it("evicts least recently used item when maxEntries is exceeded", () => {
+    cache.set("city1", { aqi: 10 });
+    cache.set("city2", { aqi: 20 });
+    cache.set("city3", { aqi: 30 });
 
-    cache.set("city", data);
+    // Access city1 to make it most recently used
+    cache.get("city1");
 
-    expect(cache.getFallback("city")).toEqual(data);
+    // Add 4th item, exceeding maxEntries (3)
+    // The least recently used is now city2
+    cache.set("city4", { aqi: 40 });
+
+    expect(cache.get("city1")).toEqual({ aqi: 10 }); // Kept (recently used)
+    expect(cache.get("city2")).toBeNull();           // Evicted (least recently used)
+    expect(cache.get("city3")).toEqual({ aqi: 30 }); // Kept
+    expect(cache.get("city4")).toEqual({ aqi: 40 }); // Kept (newest)
   });
 
-  it("returns null when fallback does not exist", () => {
-    expect(cache.getFallback("missing")).toBeNull();
+  it("refreshes LRU order when overwriting an existing key", () => {
+    cache.set("city1", { aqi: 10 });
+    cache.set("city2", { aqi: 20 });
+    cache.set("city3", { aqi: 30 });
+
+    // Update city1 to make it most recently used
+    cache.set("city1", { aqi: 15 });
+
+    // Add 4th item, exceeding maxEntries (3)
+    // The least recently used is now city2
+    cache.set("city4", { aqi: 40 });
+
+    expect(cache.get("city1")).toEqual({ aqi: 15 }); // Kept (recently updated)
+    expect(cache.get("city2")).toBeNull();           // Evicted
+    expect(cache.get("city3")).toEqual({ aqi: 30 }); // Kept
+    expect(cache.get("city4")).toEqual({ aqi: 40 }); // Kept
   });
 
-  it("persists data to memory and localStorage", () => {
-    const data = { aqi: 60 };
-
-    cache.set("city", data);
-
-    expect(cache.memoryCache.size).toBe(1);
-
-    const stored = JSON.parse(
-      localStorage.getItem("test-cache:city")
-    );
-
-    expect(stored.data).toEqual(data);
-
-    const fallback = JSON.parse(
-      localStorage.getItem("test-cache:fallback:city")
-    );
-
-    expect(fallback).toEqual(data);
-  });
-
-  it("clears memory and localStorage", () => {
+  it("clears memory cache", () => {
     cache.set("city1", { aqi: 50 });
     cache.set("city2", { aqi: 60 });
 
@@ -112,57 +79,6 @@ describe("MultiLevelCache", () => {
     cache.clear();
 
     expect(cache.memoryCache.size).toBe(0);
-
-    expect(localStorage.getItem("test-cache:city1")).toBeNull();
-    expect(localStorage.getItem("test-cache:city2")).toBeNull();
-    expect(localStorage.getItem("test-cache:fallback:city1")).toBeNull();
-    expect(localStorage.getItem("test-cache:fallback:city2")).toBeNull();
-  });
-
-  it("handles localStorage getItem errors gracefully", () => {
-    vi.spyOn(Storage.prototype, "getItem").mockImplementation(() => {
-      throw new Error("Storage read failed");
-    });
-
-    expect(() => cache.get("city")).not.toThrow();
-    expect(cache.get("city")).toBeNull();
-  });
-
-  it("handles localStorage setItem errors gracefully", () => {
-    vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
-      const err = new DOMException("Storage write failed", "QuotaExceededError");
-      throw err;
-    });
-
-    expect(() =>
-      cache.set("city", { aqi: 100 })
-    ).not.toThrow();
-  });
-
-  it("handles localStorage removeItem errors during clear()", () => {
-    cache.set("city", { aqi: 50 });
-
-    vi.spyOn(Storage.prototype, "removeItem").mockImplementation(() => {
-      throw new Error("Storage remove failed");
-    });
-
-    expect(() => cache.clear()).not.toThrow();
-  });
-
-  it("handles malformed JSON in localStorage", () => {
-    localStorage.setItem("test-cache:city", "invalid-json");
-
-    expect(() => cache.get("city")).not.toThrow();
-    expect(cache.get("city")).toBeNull();
-  });
-
-  it("handles malformed fallback JSON", () => {
-    localStorage.setItem(
-      "test-cache:fallback:city",
-      "invalid-json"
-    );
-
-    expect(() => cache.getFallback("city")).not.toThrow();
-    expect(cache.getFallback("city")).toBeNull();
+    expect(cache.get("city1")).toBeNull();
   });
 });

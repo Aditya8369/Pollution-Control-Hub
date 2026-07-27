@@ -1,8 +1,7 @@
 /**
  * MultiLevelCache
  *
- * L1: In-Memory Map (fastest, cleared on page refresh)
- * L2: LocalStorage (persists across reloads, limited capacity)
+ * In-Memory LRU Cache
  */
 export let cacheWarningShown = false;
 
@@ -19,63 +18,8 @@ export class MultiLevelCache {
   }
 
   /** @param {any} key */
-    _getKey(key) {
+  _getKey(key) {
     return `${this.namespace}:${key}`;
-  }
-
-  /** @param {any} key */
-    _getFallbackKey(key) {
-    return `${this.namespace}:fallback:${key}`;
-  }
-
-  /** @param {any} key */
-    _readStorage(key) {
-    try {
-      const raw = localStorage.getItem(key);
-      return raw ? JSON.parse(raw) : null;
-    } catch (e) {
-      console.warn('Failed to read from localStorage cache:', e);
-      return null;
-    }
-  }
-
-  /**
-     * @param {any} key
-     * @param {any} value
-     * @param {any} errorMessage
-     */
-    _writeStorage(
-    key,
-    value,
-    errorMessage = 'Failed to write to localStorage cache.'
-  ) {
-    try {
-      localStorage.setItem(key, JSON.stringify(value));
-    } catch (error) {
-      if (
-        error instanceof DOMException &&
-        (
-          error.name === "QuotaExceededError" ||
-          error.name === "NS_ERROR_DOM_QUOTA_REACHED"
-        )
-      ) {
-        if (!cacheWarningShown) {
-          cacheWarningShown = true;
-          console.warn("[cache] Storage is full. Data is being cached in memory.");
-        }
-      } else {
-        throw error;
-      }
-    }
-  }
-
-  /** @param {any} key */
-    _removeStorage(key) {
-    try {
-      localStorage.removeItem(key);
-    } catch (e) {
-      console.warn('Failed to remove from localStorage cache:', e);
-    }
   }
 
   _evictIfNeeded() {
@@ -88,48 +32,32 @@ export class MultiLevelCache {
   }
 
   /** @param {any} key */
-    get(key) {
+  get(key) {
     const fullKey = this._getKey(key);
     const now = Date.now();
 
-    // 1. Check L1 Cache
-    const l1Entry = this.memoryCache.get(fullKey);
+    const entry = this.memoryCache.get(fullKey);
 
-    if (l1Entry) {
-      if (now < l1Entry.expiresAt) {
-        return l1Entry.data;
+    if (entry) {
+      if (now < entry.expiresAt) {
+        // Refresh insertion order for LRU
+        this.memoryCache.delete(fullKey);
+        this.memoryCache.set(fullKey, entry);
+        return entry.data;
       }
 
       this.memoryCache.delete(fullKey);
     }
 
-    // 2. Check L2 Cache
-    const l2Entry = this._readStorage(fullKey);
-
-    if (l2Entry) {
-      if (now < l2Entry.expiresAt) {
-        // Backfill L1 Cache
-        this.memoryCache.set(fullKey, l2Entry);
-        return l2Entry.data;
-      }
-
-      this._removeStorage(fullKey);
-    }
-
     return null;
   }
 
-  /** @param {any} key */
-    getFallback(key) {
-    return this._readStorage(this._getFallbackKey(key));
-  }
-
   /**
-     * @param {any} key
-     * @param {any} data
-     * @param {any} ttlMs
-     */
-    set(key, data, ttlMs = this.defaultTTL) {
+   * @param {any} key
+   * @param {any} data
+   * @param {any} ttlMs
+   */
+  set(key, data, ttlMs = this.defaultTTL) {
     const fullKey = this._getKey(key);
     const expiresAt = Date.now() + ttlMs;
 
@@ -138,48 +66,24 @@ export class MultiLevelCache {
       expiresAt,
     };
 
-    // Evict oldest entry if cache limit is reached
-    this._evictIfNeeded();
+    // If updating existing key, remove it first to refresh LRU order
+    // and avoid unnecessary eviction
+    if (this.memoryCache.has(fullKey)) {
+      this.memoryCache.delete(fullKey);
+    } else {
+      this._evictIfNeeded();
+    }
 
-    // Store in L1 cache
     this.memoryCache.set(fullKey, entry);
-
-    // 2. Set L2
-    this._writeStorage(
-      fullKey,
-      entry,
-      'Failed to write to localStorage cache. Storage might be full:'
-    );
-
-    this._writeStorage(
-      this._getFallbackKey(key),
-      data,
-      'Failed to write to localStorage cache. Storage might be full:'
-    );
   }
 
   clear() {
     this.memoryCache.clear();
-
-    try {
-      const keysToRemove = [];
-
-      for (let i = 0; i < localStorage.length; i++) {
-        const key = localStorage.key(i);
-
-        if (key && key.startsWith(this.namespace)) {
-          keysToRemove.push(key);
-        }
-      }
-
-      keysToRemove.forEach((key) => this._removeStorage(key));
-    } catch (e) {
-      console.warn('Failed to clear localStorage cache:', e);
-    }
   }
 }
 
 export const aqiCache = new MultiLevelCache(
   'aqi-cache',
-  5 * 60 * 1000
+  5 * 60 * 1000,
+  500
 );

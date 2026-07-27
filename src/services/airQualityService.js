@@ -1,13 +1,7 @@
 import { CITY_COORDINATES } from '../constants/cities';
 import { aqiCache } from '../lib/cache';
 import { cacheStore } from '../utils/cacheStore';
-import { LRUCache } from 'lru-cache';
 import ApiWorker from '../workers/apiWorker?worker';
-
-export const airQualityCache = new LRUCache({
-  max: 500,
-  ttl: 1000 * 60 * 5,
-});
 
 const BASE_URL = 'https://air-quality-api.open-meteo.com/v1/air-quality';
 
@@ -171,20 +165,7 @@ function computeConfidence(hourly, times) {
 export async function fetchAirQualityByCoords(lat, lon, signal, skipGrid = false) {
   const cacheKey = `coords-${lat.toFixed(4)},${lon.toFixed(4)}`;
 
-  const getFallbackData = () => {
-    const fallbackData = aqiCache.getFallback(cacheKey);
-    if (fallbackData) {
-      return {
-        ...fallbackData,
-        isFallback: true
-      };
-    }
-    return null;
-  };
-
   if (!navigator.onLine) {
-    const fallback = getFallbackData();
-    if (fallback) return fallback;
     throw new Error("You're offline. Please reconnect to view air quality data.");
   }
   if (!isValidCoord(lat, lon)) throw new Error('Invalid coordinates provided.');
@@ -303,11 +284,6 @@ export async function fetchAirQualityByCoords(lat, lon, signal, skipGrid = false
   }
 
   if (!data) {
-    const fallback = getFallbackData();
-    if (fallback) {
-      console.warn("API call failed after max retries. Using fallback cached data.", lastError);
-      return fallback;
-    }
     throw lastError || new Error('Failed to fetch live AQI data.');
   }
   const hourly = data.hourly || {};
@@ -348,7 +324,7 @@ export async function fetchAirQualityByCoords(lat, lon, signal, skipGrid = false
     dataCompleteness
   };
 
-  airQualityCache.set(cacheKey, result);
+  aqiCache.set(cacheKey, result);
   return result;
 }
 
