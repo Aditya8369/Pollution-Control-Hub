@@ -1,5 +1,4 @@
 import { CITY_COORDINATES } from '../constants/cities';
-import { aqiCache } from '../lib/cache';
 import { cacheStore } from '../utils/cacheStore';
 import ApiWorker from '../workers/apiWorker?worker';
 
@@ -102,8 +101,8 @@ async function fetchGridPointAqi(lat, lon, signal) {
  */
 export async function fetchLocalGrid(lat, lon, topN = 6, signal) {
   const cacheKey = `grid-${lat.toFixed(1)},${lon.toFixed(1)}`;
-  const cached = aqiCache.get(cacheKey);
-  if (cached) return cached;
+  const cached = await cacheStore.get(cacheKey);
+  if (cached && cached.data) return cached.data;
 
   const gridOffsets = [-1, 0, 1].flatMap((dy) =>
     [-1, 0, 1]
@@ -131,7 +130,7 @@ export async function fetchLocalGrid(lat, lon, topN = 6, signal) {
     .sort((a, b) => b.aqi - a.aqi)
     .slice(0, topN);
 
-  aqiCache.set(cacheKey, points);
+  cacheStore.set(cacheKey, points);
   return points;
 }
 
@@ -170,8 +169,8 @@ export async function fetchAirQualityByCoords(lat, lon, signal, skipGrid = false
   }
   if (!isValidCoord(lat, lon)) throw new Error('Invalid coordinates provided.');
 
-  const cached = aqiCache.get(cacheKey);
-  if (cached) return cached;
+  const cached = await cacheStore.get(cacheKey);
+  if (cached && cached.data) return cached.data;
 
   const today = new Date();
   const yesterday = new Date(today);
@@ -324,7 +323,7 @@ export async function fetchAirQualityByCoords(lat, lon, signal, skipGrid = false
     dataCompleteness
   };
 
-  aqiCache.set(cacheKey, result);
+  cacheStore.set(cacheKey, result);
   return result;
 }
 

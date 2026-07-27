@@ -81,9 +81,3 @@ export class MultiLevelCache {
     this.memoryCache.clear();
   }
 }
-
-export const aqiCache = new MultiLevelCache(
-  'aqi-cache',
-  5 * 60 * 1000,
-  500
-);
