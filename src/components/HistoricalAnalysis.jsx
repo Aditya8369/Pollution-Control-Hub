@@ -33,8 +33,12 @@ export default function HistoricalAnalysis({ position }) {
       } else {
         setData(e.data);
         setLoading(false);
-      }
-    };
+      };
+    } catch (err) {
+      console.error('Failed to initialize historical data worker:', err);
+      setError('Historical data processing is unavailable in this environment.');
+      setLoading(false);
+    }
 
     return () => {
       workerRef.current?.terminate();
@@ -50,10 +54,15 @@ export default function HistoricalAnalysis({ position }) {
         setError(null);
         // Fetch last 3 years of data
         const rawData = await fetchHistoricalData(position.lat, position.lon, 3);
-        
-        if (active && workerRef.current) {
-          // Offload processing to worker
-          workerRef.current.postMessage(rawData);
+
+        if (active) {
+          if (workerRef.current) {
+            // Offload processing to worker
+            workerRef.current.postMessage(rawData);
+          } else {
+            setError('Historical data processing is unavailable.');
+            setLoading(false);
+          }
         }
       } catch (err) {
         if (active) {
