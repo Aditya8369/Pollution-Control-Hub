@@ -27,6 +27,28 @@ const defaultIcon = new L.Icon({
   shadowSize: [41, 41],
 });
 
+const HISTORY_STORAGE_KEY = "commute-route-history";
+const SAVED_LOCATIONS_KEY = "commute-saved-locations";
+const MAX_HISTORY = 10;
+
+function readRouteHistory() {
+  try {
+    const raw = localStorage.getItem(HISTORY_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+function readSavedLocations() {
+  try {
+    const raw = localStorage.getItem(SAVED_LOCATIONS_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
 const Commute = () => {
   const [origin, setOrigin] = useState("");
   const [destination, setDestination] = useState("");
@@ -36,6 +58,9 @@ const Commute = () => {
   const [routeLine, setRouteLine] = useState(null);
   const [mapCenter, setMapCenter] = useState([28.6139, 77.209]);
   const [routeStats, setRouteStats] = useState(null);
+  const [routeHistory, setRouteHistory] = useState(() => readRouteHistory());
+  const [savedLocations, setSavedLocations] = useState(() => readSavedLocations());
+  const [newLocationLabel, setNewLocationLabel] = useState("");
 
   const handleGetLocation = () => {
     if (!navigator.geolocation) {
@@ -106,6 +131,15 @@ const Commute = () => {
         distance: cleanest.distance,
         pm25: cleanest.pm25,
       });
+      setRouteHistory((prev) => {
+        const entry = { origin, destination, timestamp: new Date().toISOString() };
+        const deduped = prev.filter(
+          (item) => !(item.origin === origin && item.destination === destination)
+        );
+        const updated = [entry, ...deduped].slice(0, MAX_HISTORY);
+        localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(updated));
+        return updated;
+      });
     } catch (error) {
       alert(
         "Error calculating route. Ensure the locations are spelled correctly.",
@@ -114,6 +148,38 @@ const Commute = () => {
     } finally {
       setIsCalculating(false);
     }
+  };
+  const applyHistoryEntry = (entry) => {
+    setOrigin(entry.origin);
+    setDestination(entry.destination);
+  };
+
+  const saveLocation = (value) => {
+    const label = newLocationLabel.trim();
+    if (!label || !value.trim()) return;
+
+    setSavedLocations((prev) => {
+      const deduped = prev.filter(
+        (loc) => loc.label.toLowerCase() !== label.toLowerCase()
+      );
+      const updated = [...deduped, { id: crypto.randomUUID(), label, value: value.trim() }];
+      localStorage.setItem(SAVED_LOCATIONS_KEY, JSON.stringify(updated));
+      return updated;
+    });
+    setNewLocationLabel("");
+  };
+
+  const deleteSavedLocation = (id) => {
+    setSavedLocations((prev) => {
+      const updated = prev.filter((loc) => loc.id !== id);
+      localStorage.setItem(SAVED_LOCATIONS_KEY, JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  const applySavedLocation = (value, field) => {
+    if (field === "origin") setOrigin(value);
+    else setDestination(value);
   };
   return (
     <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "0 1rem" }}>
@@ -124,6 +190,41 @@ const Commute = () => {
 
         <div className="commute-layout">
           <div className="commute-sidebar">
+            {savedLocations.length > 0 && (
+              <div className="commute-saved-locations">
+                <label>Saved Locations</label>
+                <div className="commute-chip-row">
+                  {savedLocations.map((loc) => (
+                    <span key={loc.id} className="commute-chip-group">
+                      <button
+                        type="button"
+                        className="saved-location-chip"
+                        onClick={() => applySavedLocation(loc.value, "origin")}
+                        title={`Set as Starting Point: ${loc.value}`}
+                      >
+                        {loc.label}
+                      </button>
+                      <button
+                        type="button"
+                        className="saved-location-chip saved-location-chip--dest"
+                        onClick={() => applySavedLocation(loc.value, "destination")}
+                        title={`Set as Destination: ${loc.value}`}
+                      >
+                        → Dest
+                      </button>
+                      <button
+                        type="button"
+                        className="saved-location-remove"
+                        onClick={() => deleteSavedLocation(loc.id)}
+                        aria-label={`Remove saved location ${loc.label}`}
+                      >
+                        ×
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
             <form onSubmit={handleRouteSearch} className="commute-form">
               <div className="form-group">
                 <div
@@ -173,6 +274,34 @@ const Commute = () => {
                 />
               </div>
 
+              <div className="form-group commute-save-location">
+                <label>Save current locations for quick access</label>
+                <div className="commute-save-row">
+                  <input
+                    type="text"
+                    value={newLocationLabel}
+                    onChange={(e) => setNewLocationLabel(e.target.value)}
+                    placeholder='Label (e.g. "Home")'
+                  />
+                  <button
+                    type="button"
+                    className="commute-save-btn"
+                    onClick={() => saveLocation(origin)}
+                    disabled={!origin.trim() || !newLocationLabel.trim()}
+                  >
+                    Save Start
+                  </button>
+                  <button
+                    type="button"
+                    className="commute-save-btn"
+                    onClick={() => saveLocation(destination)}
+                    disabled={!destination.trim() || !newLocationLabel.trim()}
+                  >
+                    Save Destination
+                  </button>
+                </div>
+              </div>
+
               <button
                 type="submit"
                 disabled={isCalculating}
@@ -191,6 +320,24 @@ const Commute = () => {
                 <p>
                   Avg PM2.5: <strong>{routeStats.pm25} µg/m³</strong>
                 </p>
+              </div>
+            )}
+            {routeHistory.length > 0 && (
+              <div className="commute-history">
+                <h3>Recent Routes</h3>
+                <ul className="commute-history-list">
+                  {routeHistory.map((entry, index) => (
+                    <li key={`${entry.timestamp}-${index}`}>
+                      <button
+                        type="button"
+                        className="commute-history-item"
+                        onClick={() => applyHistoryEntry(entry)}
+                      >
+                        {entry.origin} → {entry.destination}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
               </div>
             )}
           </div>

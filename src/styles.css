@@ -4729,6 +4729,7 @@ a {
   padding: 1.5rem;
   height: fit-content;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  color: #111827;
 }
 
 .commute-form .form-group {
@@ -4801,6 +4802,14 @@ a {
   font-weight: 600;
 }
 
+.commute-stats p {
+  color: #111827;
+}
+
+.commute-stats strong {
+  color: #0f766e;
+}
+
 .commute-map-container {
   height: 500px;
   border-radius: 0.75rem;
@@ -4808,6 +4817,126 @@ a {
   border: 2px solid #e5e7eb;
   background-color: #f9fafb;
   z-index: 1;
+}
+
+.commute-saved-locations {
+  margin-bottom: 1.25rem;
+}
+
+.commute-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.commute-chip-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.saved-location-chip {
+  padding: 0.4rem 0.75rem;
+  border: 1px solid #ccfbf1;
+  background-color: #f0fdfa;
+  color: #0f766e;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.saved-location-chip--dest {
+  background-color: #ffffff;
+  border-style: dashed;
+}
+
+.saved-location-chip:hover {
+  background-color: #ccfbf1;
+}
+
+.saved-location-remove {
+  border: none;
+  background: none;
+  color: #9ca3af;
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1;
+  padding: 0 0.25rem;
+}
+
+.saved-location-remove:hover {
+  color: #ef4444;
+}
+
+.commute-save-row {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.commute-save-row input {
+  flex: 1 1 140px;
+}
+
+.commute-history {
+  margin-top: 1.5rem;
+}
+
+.commute-history h3 {
+  color: #0f766e;
+  margin-bottom: 0.5rem;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.commute-history-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.commute-history-item {
+  width: 100%;
+  text-align: left;
+  padding: 0.6rem 0.9rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+  background-color: #ffffff;
+  color: #111827;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.commute-history-item:hover {
+  background-color: #f0fdfa;
+  border-color: #ccfbf1;
+}
+
+.commute-save-btn {
+  padding: 0.5rem 0.9rem;
+  border: 1px solid #0d9488;
+  background-color: #ffffff;
+  color: #0d9488;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.commute-save-btn:hover:not(:disabled) {
+  background-color: #0d9488;
+  color: #ffffff;
+}
+
+.commute-save-btn:disabled {
+  border-color: #9ca3af;
+  color: #9ca3af;
+  cursor: not-allowed;
 }
 
 /* ==========================================================
