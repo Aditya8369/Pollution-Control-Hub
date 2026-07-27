@@ -143,18 +143,81 @@ function GettingStarted() {
 </section>
         )}
 
-        {["aqi", "pollutants", "health", "faq"].includes(activeTab) && (
-        <section className="getting-started-section">
-          <div className="overview-content">
-            <div className="overview-item">
-              <p>
-                This section of the Getting Started guide is coming soon.
-                We&apos;re working on it — check back shortly!
-              </p>
-            </div>
+        {activeTab === "aqi" && (
+<section className="getting-started-section">
+  <div className="overview-content">
+    <div className="overview-item">
+      <h4>01. What is the AQI?</h4>
+      <p>
+        The Air Quality Index (AQI) is a single number that summarizes how
+        clean or polluted the air is, making it easy to understand what the
+        pollution measurements around you actually mean.
+      </p>
+    </div>
+
+    <div className="overview-item">
+      <h4>02. How the scale works</h4>
+      <p>
+        The AQI runs from 0 upward, divided into ranges from Good to
+        Hazardous. Lower numbers mean cleaner air; higher numbers mean
+        greater health risk, especially for sensitive groups.
+      </p>
+
+      <div className="calendar-legend" style={{ marginTop: "12px" }}>
+        <div className="calendar-legend-grid">
+          <div className="calendar-legend-item">
+            <span className="calendar-legend-color" style={{ backgroundColor: "#1f9d55" }}></span>
+            <span>0–50 · Good</span>
           </div>
-        </section>
-        )}
+          <div className="calendar-legend-item">
+            <span className="calendar-legend-color" style={{ backgroundColor: "#f59e0b" }}></span>
+            <span>51–100 · Moderate</span>
+          </div>
+          <div className="calendar-legend-item">
+            <span className="calendar-legend-color" style={{ backgroundColor: "#f97316" }}></span>
+            <span>101–150 · Unhealthy (Sensitive)</span>
+          </div>
+          <div className="calendar-legend-item">
+            <span className="calendar-legend-color" style={{ backgroundColor: "#ef4444" }}></span>
+            <span>151–200 · Unhealthy</span>
+          </div>
+          <div className="calendar-legend-item">
+            <span className="calendar-legend-color" style={{ backgroundColor: "#b91c1c" }}></span>
+            <span>201–300 · Very Unhealthy</span>
+          </div>
+          <div className="calendar-legend-item">
+            <span className="calendar-legend-color" style={{ backgroundColor: "#7f1d1d" }}></span>
+            <span>301+ · Hazardous</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div className="overview-item">
+      <h4>03. Where you'll see it in this app</h4>
+      <p>
+        AQI values and their colors show up across the platform — on your
+        Home dashboard, in History trends, and in the Commute planner —
+        using this same scale, so you can read them consistently everywhere.
+      </p>
+    </div>
+
+  </div>
+</section>
+)}
+
+{["pollutants", "health", "faq"].includes(activeTab) && (
+<section className="getting-started-section">
+  <div className="overview-content">
+    <div className="overview-item">
+      <p>
+        This section of the Getting Started guide is coming soon.
+        We're working on it — check back shortly!
+      </p>
+    </div>
+  </div>
+</section>
+)}
       </div>
     </section>
   );
