@@ -55,9 +55,9 @@ const Commute = () => {
   const [isCalculating, setIsCalculating] = useState(false);
   const [isLocating, setIsLocating] = useState(false);
 
-  const [routeLine, setRouteLine] = useState(null);
+  const [routes, setRoutes] = useState([]);
+  const [activeRouteIndex, setActiveRouteIndex] = useState(0);
   const [mapCenter, setMapCenter] = useState([28.6139, 77.209]);
-  const [routeStats, setRouteStats] = useState(null);
   const [routeHistory, setRouteHistory] = useState(() => readRouteHistory());
   const [savedLocations, setSavedLocations] = useState(() => readSavedLocations());
   const [newLocationLabel, setNewLocationLabel] = useState("");
@@ -119,18 +119,16 @@ const Commute = () => {
 
     try {
       const routeResults = await calculateCleanRoute(origin, destination);
-      const cleanest = routeResults.cleanestRoute;
-      const leafletCoords = cleanest.geometry.map((coord) => [
-        coord[1],
-        coord[0],
-      ]);
+      const allRoutesData = routeResults.allRoutes.map(r => ({
+        ...r,
+        leafletCoords: r.geometry.map((coord) => [coord[1], coord[0]])
+      }));
 
-      setRouteLine(leafletCoords);
-      setMapCenter(leafletCoords[0]);
-      setRouteStats({
-        distance: cleanest.distance,
-        pm25: cleanest.pm25,
-      });
+      setRoutes(allRoutesData);
+      setActiveRouteIndex(0); // Cleanest route is first
+      if (allRoutesData.length > 0) {
+        setMapCenter(allRoutesData[0].leafletCoords[0]);
+      }
       setRouteHistory((prev) => {
         const entry = { origin, destination, timestamp: new Date().toISOString() };
         const deduped = prev.filter(
@@ -311,15 +309,53 @@ const Commute = () => {
               </button>
             </form>
 
-            {routeStats && (
-              <div className="commute-stats">
-                <h3>Route Selected</h3>
-                <p>
-                  Distance: <strong>{routeStats.distance} km</strong>
-                </p>
-                <p>
-                  Avg PM2.5: <strong>{routeStats.pm25} µg/m³</strong>
-                </p>
+            {routes.length > 0 && (
+              <div className="commute-options">
+                <h3>Route Options</h3>
+                <div className="commute-route-list">
+                  {routes.map((route, idx) => {
+                    const isActive = idx === activeRouteIndex;
+                    const isCleanest = idx === 0;
+                    return (
+                      <button
+                        key={idx}
+                        type="button"
+                        className={`commute-route-option ${isActive ? 'active' : ''}`}
+                        onClick={() => setActiveRouteIndex(idx)}
+                        style={{
+                          display: 'block',
+                          width: '100%',
+                          textAlign: 'left',
+                          padding: '1rem',
+                          marginBottom: '0.75rem',
+                          borderRadius: '0.5rem',
+                          border: `2px solid ${isActive ? '#0d9488' : '#e5e7eb'}`,
+                          background: isActive ? '#f0fdfa' : '#ffffff',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s ease-in-out'
+                        }}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                          <strong style={{ fontSize: '1.1rem', color: isActive ? '#0f766e' : '#374151' }}>
+                            Route {idx + 1}
+                          </strong>
+                          {isCleanest && (
+                            <span style={{ background: '#10b981', color: 'white', padding: '0.2rem 0.5rem', borderRadius: '1rem', fontSize: '0.75rem', fontWeight: 'bold' }}>
+                              Cleanest
+                            </span>
+                          )}
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', color: '#4b5563' }}>
+                          <span>⏱ {route.duration} min</span>
+                          <span>📏 {route.distance} km</span>
+                          <span style={{ color: isCleanest ? '#059669' : '#b45309', fontWeight: '600' }}>
+                            ☁️ {route.pm25} µg/m³
+                          </span>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             )}
             {routeHistory.length > 0 && (
@@ -353,16 +389,16 @@ const Commute = () => {
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
               />
-              {routeLine && (
+              {routes.length > 0 && (
                 <>
-                  <Marker position={routeLine[0]} icon={defaultIcon}>
+                  <Marker position={routes[0].leafletCoords[0]} icon={defaultIcon}>
                     <Popup>
                       <strong>Start:</strong> {origin}
                     </Popup>
                   </Marker>
 
                   <Marker
-                    position={routeLine[routeLine.length - 1]}
+                    position={routes[0].leafletCoords[routes[0].leafletCoords.length - 1]}
                     icon={defaultIcon}
                   >
                     <Popup>
@@ -370,12 +406,34 @@ const Commute = () => {
                     </Popup>
                   </Marker>
 
-                  <Polyline
-                    positions={routeLine}
-                    color="#0d9488"
-                    weight={6}
-                    opacity={0.8}
-                  />
+                  {/* Render inactive routes first so they appear underneath */}
+                  {routes.map((route, idx) => {
+                    if (idx === activeRouteIndex) return null;
+                    const colors = ['#0d9488', '#3b82f6', '#8b5cf6', '#f59e0b', '#ec4899'];
+                    return (
+                      <Polyline
+                        key={`inactive-${idx}`}
+                        positions={route.leafletCoords}
+                        color={colors[idx % colors.length]}
+                        weight={4}
+                        opacity={0.4}
+                      />
+                    );
+                  })}
+
+                  {/* Render active route last so it appears on top */}
+                  {routes[activeRouteIndex] && (() => {
+                    const colors = ['#0d9488', '#3b82f6', '#8b5cf6', '#f59e0b', '#ec4899'];
+                    return (
+                      <Polyline
+                        key={`active-${activeRouteIndex}`}
+                        positions={routes[activeRouteIndex].leafletCoords}
+                        color={colors[activeRouteIndex % colors.length]}
+                        weight={7}
+                        opacity={1.0}
+                      />
+                    );
+                  })()}
                 </>
               )}
             </MapContainer>
