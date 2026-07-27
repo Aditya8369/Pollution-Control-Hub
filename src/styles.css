@@ -1369,6 +1369,17 @@ a {
   font-size: 0.92rem;
 }
 
+.report-feed-empty {
+  text-align: center;
+  color: var(--muted);
+  padding: var(--sp-6) var(--sp-4);
+  font-size: 0.92rem;
+  line-height: 1.5;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  box-sizing: border-box;
+}
+
 .timeline-workflow {
   margin-top: var(--sp-3);
   display: flex;
@@ -4651,6 +4662,11 @@ a {
 
   .sim-preset-card {
     padding: var(--sp-3);
+  }
+
+  .report-feed-empty {
+    padding: var(--sp-4) var(--sp-3);
+    font-size: 0.85rem;
   }
 }
 
