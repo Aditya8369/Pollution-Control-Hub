@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { SAFE_LIMITS } from "../constants/cities";
 import { fetchAirQualityByCoords, getAQIBand } from "../services/airQualityService";
+import { cacheStore } from "../utils/cacheStore";
 import LocationSearch from "./LocationSearch";
 
 const STORAGE_KEY = "pollution-hub-compare-cities";
@@ -55,9 +56,12 @@ export default function CityCompare() {
     setLoading(true);
 
     Promise.all(
-      selectedCities.map((city) =>
-        fetchAirQualityByCoords(city.lat, city.lon, undefined, true).catch(() => null)
-      )
+      selectedCities.map((city) => {
+        const key = `aqi_compare_${city.lat}_${city.lon}`;
+        return cacheStore.deduplicate(key, () =>
+          fetchAirQualityByCoords(city.lat, city.lon, undefined, true)
+        ).catch(() => null);
+      })
     ).then((results) => {
       if (isMounted) {
         setCitiesData(results);
