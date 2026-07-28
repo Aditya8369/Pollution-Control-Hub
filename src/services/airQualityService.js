@@ -21,10 +21,14 @@ function getCurrentHourIndex(times, utcOffsetSeconds = 0) {
   const nowInLocation = new Date(Date.now() + utcOffsetSeconds * 1000);
   const currentHour = nowInLocation.getUTCHours();
 
-  const index = times.findLastIndex((isoTime) => {
-    const hour = parseInt(isoTime.slice(11, 13), 10);
-    return hour === currentHour;
-  });
+  let index = -1;
+  for (let i = times.length - 1; i >= 0; i--) {
+    const hour = parseInt(times[i].slice(11, 13), 10);
+    if (hour === currentHour) {
+      index = i;
+      break;
+    }
+  }
 
   return index === -1 ? 0 : index;
 }
