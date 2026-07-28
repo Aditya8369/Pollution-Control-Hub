@@ -59,6 +59,7 @@ export default function CommunityHub() {
   });
   const [fileInputKey, setFileInputKey] = useState(Date.now());
   const [uploadError, setUploadError] = useState('');
+  const [isProcessingImage, setIsProcessingImage] = useState(false);
 
   useEffect(() => {
     try {
@@ -134,27 +135,35 @@ export default function CommunityHub() {
     if (!file) return;
 
     setUploadError('');
-
-    if (file.size > MAX_IMAGE_SIZE_BYTES) {
-      setUploadError(
-        `Image too large (${(file.size / 1024 / 1024).toFixed(1)} MB). Maximum is 500 KB.`
-      );
-      event.target.value = '';
-      setFileInputKey(Date.now());
-      return;
-    }
+    setIsProcessingImage(true);
 
     const reader = new FileReader();
     reader.onload = async () => {
       try {
         const compressed = await compressImage(String(reader.result));
-        setForm((prev) => ({ ...prev, image: compressed }));
+        
+        // Calculate size of the compressed image in bytes from the base64 string
+        const base64Str = compressed.split(',')[1];
+        const compressedSize = Math.round((base64Str.length * 3) / 4) - (base64Str.endsWith('==') ? 2 : base64Str.endsWith('=') ? 1 : 0);
+
+        if (compressedSize > MAX_IMAGE_SIZE_BYTES) {
+          setUploadError(
+            `Image too large (${(compressedSize / 1024 / 1024).toFixed(1)} MB). Maximum is 500 KB.`
+          );
+          event.target.value = '';
+          setFileInputKey(Date.now());
+        } else {
+          setForm((prev) => ({ ...prev, image: compressed }));
+        }
       } catch {
         setUploadError('Failed to process image. Please try again.');
+      } finally {
+        setIsProcessingImage(false);
       }
     };
     reader.onerror = () => {
       setUploadError('Failed to read image file. Please try again.');
+      setIsProcessingImage(false);
     };
     reader.readAsDataURL(file);
   };
@@ -220,9 +229,24 @@ export default function CommunityHub() {
           placeholder="Describe location and issue details"
           onChange={(event) => setForm((prev) => ({ ...prev, description: event.target.value }))}
         />
-        <input key={fileInputKey} type="file" accept="image/jpeg,image/png,image/webp" onChange={uploadImage} style={{ width: '100%' }} />
+        <input
+          key={fileInputKey}
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          onChange={uploadImage}
+          style={{ width: '100%' }}
+          disabled={isProcessingImage}
+        />
+        {isProcessingImage && (
+          <p className="upload-processing" role="status" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span className="live-dot active" aria-hidden="true"></span>
+            Processing image...
+          </p>
+        )}
         {uploadError && <p className="upload-error">{uploadError}</p>}
-        <button type="submit">Submit Report</button>
+        <button type="submit" disabled={isProcessingImage}>
+          {isProcessingImage ? 'Processing image…' : 'Submit Report'}
+        </button>
       </form>
 
       <div className="filter-tabs" style={{ display: 'flex', gap: '8px', margin: '15px 0' }}>
