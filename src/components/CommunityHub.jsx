@@ -79,24 +79,34 @@ export default function CommunityHub() {
       if (e.name === 'QuotaExceededError' || e.code === 22) {
         logger.error('localStorage quota exceeded, pruning oldest reports');
         const sorted = [...reports].sort((a, b) => {
-          if (a.votes !== b.votes) return a.votes - b.votes;
-          return new Date(a.createdAt) - new Date(b.createdAt);
-        });
+  if (a.votes !== b.votes) return a.votes - b.votes;
+  return new Date(a.createdAt) - new Date(b.createdAt);
+});
 
-        let pruned = [...reports];
-        while (pruned.length > 0) {
-          try {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(pruned));
-            setReports(pruned);
-            break;
-          } catch {
-            pruned.shift();
-          }
-        }
+// Remove reports based on priority while preserving the original
+// newest-first order used by the UI.
+let removalCandidates = [...sorted];
+let pruned = [...reports];
 
-        if (pruned.length === 0) {
-          logger.error('All community reports pruned, localStorage quota still exceeded');
-        }
+while (pruned.length > 0) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(pruned));
+    setReports(pruned);
+    break;
+  } catch {
+    const idToRemove = removalCandidates.shift()?.id;
+
+    if (!idToRemove) {
+      break;
+    }
+
+    pruned = pruned.filter(report => report.id !== idToRemove);
+  }
+}
+
+if (pruned.length === 0) {
+  logger.error('All community reports pruned, localStorage quota still exceeded');
+}
       } else {
         throw e;
       }
