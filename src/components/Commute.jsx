@@ -55,9 +55,11 @@ const Commute = () => {
   const [isCalculating, setIsCalculating] = useState(false);
   const [isLocating, setIsLocating] = useState(false);
 
-  const [routeLine, setRouteLine] = useState(null);
+  const [routes, setRoutes] = useState([]);
+  const [selectedRouteIndex, setSelectedRouteIndex] = useState(0);
   const [mapCenter, setMapCenter] = useState([28.6139, 77.209]);
-  const [routeStats, setRouteStats] = useState(null);
+  
+  const ROUTE_COLORS = ["#0d9488", "#3b82f6", "#eab308", "#8b5cf6", "#f97316"];
   const [routeHistory, setRouteHistory] = useState(() => readRouteHistory());
   const [savedLocations, setSavedLocations] = useState(() => readSavedLocations());
   const [newLocationLabel, setNewLocationLabel] = useState("");
@@ -119,18 +121,15 @@ const Commute = () => {
 
     try {
       const routeResults = await calculateCleanRoute(origin, destination);
-      const cleanest = routeResults.cleanestRoute;
-      const leafletCoords = cleanest.geometry.map((coord) => [
-        coord[1],
-        coord[0],
-      ]);
+      const allRoutesFormatted = routeResults.allRoutes.map(route => ({
+        ...route,
+        leafletCoords: route.geometry.map((coord) => [coord[1], coord[0]])
+      }));
 
-      setRouteLine(leafletCoords);
-      setMapCenter(leafletCoords[0]);
-      setRouteStats({
-        distance: cleanest.distance,
-        pm25: cleanest.pm25,
-      });
+      setRoutes(allRoutesFormatted);
+      setSelectedRouteIndex(0);
+      setMapCenter(allRoutesFormatted[0].leafletCoords[0]);
+      
       setRouteHistory((prev) => {
         const entry = { origin, destination, timestamp: new Date().toISOString() };
         const deduped = prev.filter(
@@ -311,15 +310,61 @@ const Commute = () => {
               </button>
             </form>
 
-            {routeStats && (
-              <div className="commute-stats">
-                <h3>Route Selected</h3>
-                <p>
-                  Distance: <strong>{routeStats.distance} km</strong>
-                </p>
-                <p>
-                  Avg PM2.5: <strong>{routeStats.pm25} µg/m³</strong>
-                </p>
+            {routes.length > 0 && (
+              <div className="commute-routes-comparison" style={{ marginTop: '1rem' }}>
+                <h3>Available Routes</h3>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                  {routes.map((route, index) => {
+                    const isSelected = selectedRouteIndex === index;
+                    const routeColor = ROUTE_COLORS[index % ROUTE_COLORS.length];
+                    return (
+                      <div
+                        key={index}
+                        onClick={() => setSelectedRouteIndex(index)}
+                        style={{
+                          border: `2px solid ${isSelected ? routeColor : '#e5e7eb'}`,
+                          backgroundColor: isSelected ? `${routeColor}10` : '#ffffff',
+                          padding: '1rem',
+                          borderRadius: '8px',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s ease-in-out',
+                        }}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                          <h4 style={{ margin: 0, color: '#1f2937' }}>
+                            Route {index + 1}
+                          </h4>
+                          {index === 0 && (
+                            <span style={{ 
+                              backgroundColor: '#10b981', 
+                              color: 'white', 
+                              padding: '0.25rem 0.5rem', 
+                              borderRadius: '9999px', 
+                              fontSize: '0.75rem',
+                              fontWeight: '600'
+                            }}>
+                              ⭐ Cleanest Recommended
+                            </span>
+                          )}
+                        </div>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.5rem', fontSize: '0.875rem' }}>
+                          <div>
+                            <span style={{ color: '#6b7280', display: 'block' }}>Distance</span>
+                            <strong>{route.distance} km</strong>
+                          </div>
+                          <div>
+                            <span style={{ color: '#6b7280', display: 'block' }}>Duration</span>
+                            <strong>{route.duration} mins</strong>
+                          </div>
+                          <div>
+                            <span style={{ color: '#6b7280', display: 'block' }}>PM2.5</span>
+                            <strong>{route.pm25} µg/m³</strong>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             )}
             {routeHistory.length > 0 && (
@@ -353,16 +398,16 @@ const Commute = () => {
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
               />
-              {routeLine && (
+              {routes.length > 0 && (
                 <>
-                  <Marker position={routeLine[0]} icon={defaultIcon}>
+                  <Marker position={routes[0].leafletCoords[0]} icon={defaultIcon}>
                     <Popup>
                       <strong>Start:</strong> {origin}
                     </Popup>
                   </Marker>
 
                   <Marker
-                    position={routeLine[routeLine.length - 1]}
+                    position={routes[0].leafletCoords[routes[0].leafletCoords.length - 1]}
                     icon={defaultIcon}
                   >
                     <Popup>
@@ -370,12 +415,33 @@ const Commute = () => {
                     </Popup>
                   </Marker>
 
-                  <Polyline
-                    positions={routeLine}
-                    color="#0d9488"
-                    weight={6}
-                    opacity={0.8}
-                  />
+                  {/* Render unselected routes first so selected route renders on top */}
+                  {routes.map((route, index) => {
+                    if (index === selectedRouteIndex) return null;
+                    return (
+                      <Polyline
+                        key={`route-${index}`}
+                        positions={route.leafletCoords}
+                        color={ROUTE_COLORS[index % ROUTE_COLORS.length]}
+                        weight={4}
+                        opacity={0.5}
+                        eventHandlers={{
+                          click: () => setSelectedRouteIndex(index),
+                        }}
+                      />
+                    );
+                  })}
+                  
+                  {/* Render selected route */}
+                  {routes[selectedRouteIndex] && (
+                    <Polyline
+                      key={`route-${selectedRouteIndex}-selected`}
+                      positions={routes[selectedRouteIndex].leafletCoords}
+                      color={ROUTE_COLORS[selectedRouteIndex % ROUTE_COLORS.length]}
+                      weight={8}
+                      opacity={1}
+                    />
+                  )}
                 </>
               )}
             </MapContainer>
