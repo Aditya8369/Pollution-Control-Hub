@@ -206,7 +206,87 @@ function GettingStarted() {
 </section>
 )}
 
-{["pollutants", "health", "faq"].includes(activeTab) && (
+{activeTab === "pollutants" && (
+<section className="getting-started-section">
+  <div className="overview-content">
+    <div className="overview-item">
+      <h4>01. PM2.5 — Fine Particulate Matter</h4>
+      <p>
+        Fine particles can penetrate lungs and enter the bloodstream, making
+        PM2.5 one of the most harmful pollutants to human health.
+      </p>
+      <p>
+        <strong>Common sources:</strong> vehicle exhaust, industrial
+        emissions, and burning of fuels such as wood or coal.
+      </p>
+    </div>
+
+    <div className="overview-item">
+      <h4>02. PM10 — Coarse Particulate Matter</h4>
+      <p>
+        Coarse particles can irritate airways and cause coughing. They are
+        larger than PM2.5 but still small enough to be inhaled.
+      </p>
+      <p>
+        <strong>Common sources:</strong> dust, construction sites, pollen,
+        and road traffic.
+      </p>
+    </div>
+
+    <div className="overview-item">
+      <h4>03. NO₂ — Nitrogen Dioxide</h4>
+      <p>
+        NO₂ may irritate airways and aggravate respiratory diseases such as
+        asthma.
+      </p>
+      <p>
+        <strong>Common sources:</strong> vehicle traffic and combustion of
+        fossil fuels in engines and power plants.
+      </p>
+    </div>
+
+    <div className="overview-item">
+      <h4>04. SO₂ — Sulfur Dioxide</h4>
+      <p>
+        SO₂ can irritate the respiratory system and contributes to the
+        formation of acid rain and fine particulate pollution.
+      </p>
+      <p>
+        <strong>Common sources:</strong> industrial activity and the burning
+        of sulfur-containing fossil fuels such as coal and oil.
+      </p>
+    </div>
+
+    <div className="overview-item">
+      <h4>05. CO — Carbon Monoxide</h4>
+      <p>
+        High levels of CO reduce oxygen delivery to the body, which can be
+        dangerous in enclosed or heavily trafficked areas.
+      </p>
+      <p>
+        <strong>Common sources:</strong> incomplete combustion from vehicles,
+        generators, and heating appliances.
+      </p>
+    </div>
+
+    <div className="overview-item">
+      <h4>06. O₃ — Ground-level Ozone</h4>
+      <p>
+        Ground-level ozone can trigger asthma and reduce lung function. Unlike
+        the ozone layer above us, this ozone forms close to the ground and is
+        harmful to breathe.
+      </p>
+      <p>
+        <strong>Common sources:</strong> a secondary pollutant formed when
+        vehicle and industrial emissions react in sunlight.
+      </p>
+    </div>
+
+  </div>
+</section>
+)}
+
+{["health", "faq"].includes(activeTab) && (
 <section className="getting-started-section">
   <div className="overview-content">
     <div className="overview-item">
