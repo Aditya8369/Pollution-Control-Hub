@@ -446,11 +446,11 @@ export default function App() {
       ? "dark"
       : "light";
   });
-  const [timeRange, setTimeRange] = useState(() => {
+const [timeRange, setTimeRange] = useState(() => {
     const saved = localStorage.getItem("timeRange");
     return saved ? Number(saved) : 24;
   });
-
+  const [osThemeSuggestion, setOsThemeSuggestion] = useState(null);
   const debounceRef = useRef(null);
   const geoRequestId = useRef(0);
   const scrollAnchorRef = useRef(null);
@@ -514,13 +514,15 @@ export default function App() {
 
     const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
 
-    const handleOsThemeChange = (e) => {
+const handleOsThemeChange = (e) => {
       const hasManualPreference = localStorage.getItem(THEME_STORAGE_KEY);
+      const newSystemTheme = e.matches ? "dark" : "light";
       if (!hasManualPreference) {
-        setTheme(e.matches ? "dark" : "light");
+        setTheme(newSystemTheme);
+      } else if (newSystemTheme !== theme) {
+        setOsThemeSuggestion(newSystemTheme);
       }
     };
-
     mediaQuery.addEventListener("change", handleOsThemeChange);
     return () => mediaQuery.removeEventListener("change", handleOsThemeChange);
   }, []);
@@ -655,10 +657,18 @@ export default function App() {
     [trend, current],
   );
 
-  const toggleTheme = () => {
+const toggleTheme = () => {
     setTheme((prev) => (prev === "dark" ? "light" : "dark"));
   };
 
+  const acceptOsThemeSuggestion = () => {
+    setTheme(osThemeSuggestion);
+    setOsThemeSuggestion(null);
+  };
+
+  const dismissOsThemeSuggestion = () => {
+    setOsThemeSuggestion(null);
+  };
   const refreshNow = useCallback(async () => {
     if (isRefreshing) return;
     mutateAqi();
@@ -748,8 +758,18 @@ export default function App() {
           )}
 
           {error && <p className="error-banner">{error}</p>}
-          {persistenceWarning && <p className="error-banner">{persistenceWarning}</p>}
-          {activeSection === "home" && current && (
+{persistenceWarning && <p className="error-banner">{persistenceWarning}</p>}
+          {osThemeSuggestion && (
+            <div className="location-notice" role="status">
+              <p>System theme changed. Switch to match?</p>
+              <button type="button" onClick={acceptOsThemeSuggestion}>
+                Yes
+              </button>
+              <button type="button" onClick={dismissOsThemeSuggestion}>
+                No
+              </button>
+            </div>
+          )}          {activeSection === "home" && current && (
             <div key="dashboard-grid" className="content-grid">
               <Dashboard
                 cityName={position.cityName}
