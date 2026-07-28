@@ -39,6 +39,39 @@ const DEFAULT_POSITION = {
 const THEME_STORAGE_KEY = "pollution-hub-theme";
 const AUTO_REFRESH_SECONDS = 180;
 
+// Nominatim's usage policy allows at most 1 request per second, so we track
+// the last call time here and space out requests if needed.
+let lastGeocodeRequestAt = 0;
+
+async function reverseGeocodeCity(lat, lon) {
+  // Round coordinates so tiny GPS jitter reuses the same cache entry
+  // instead of triggering a new network request every time.
+  const cacheKey = `geocode-${lat.toFixed(2)},${lon.toFixed(2)}`;
+  const cached = await cacheStore.get(cacheKey);
+  if (cached && cached.data) return cached.data;
+
+  const elapsed = Date.now() - lastGeocodeRequestAt;
+  if (elapsed < 1100) {
+    await new Promise((resolve) => setTimeout(resolve, 1100 - elapsed));
+  }
+  lastGeocodeRequestAt = Date.now();
+
+  const response = await fetch(
+    `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`,
+  );
+  const data = await response.json();
+  const address = data?.address || {};
+  const cityName =
+    address.city ||
+    address.town ||
+    address.village ||
+    address.suburb ||
+    data?.display_name?.split(",")[0] ||
+    "Your Current Location";
+
+  cacheStore.set(cacheKey, cityName);
+  return cityName;
+}
 /** @param {any} params */
 function Hero({ cityName }) {
   return (
@@ -446,11 +479,11 @@ export default function App() {
       ? "dark"
       : "light";
   });
-  const [timeRange, setTimeRange] = useState(() => {
+const [timeRange, setTimeRange] = useState(() => {
     const saved = localStorage.getItem("timeRange");
     return saved ? Number(saved) : 24;
   });
-
+  const [osThemeSuggestion, setOsThemeSuggestion] = useState(null);
   const debounceRef = useRef(null);
   const geoRequestId = useRef(0);
   const scrollAnchorRef = useRef(null);
@@ -514,13 +547,15 @@ export default function App() {
 
     const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
 
-    const handleOsThemeChange = (e) => {
+const handleOsThemeChange = (e) => {
       const hasManualPreference = localStorage.getItem(THEME_STORAGE_KEY);
+      const newSystemTheme = e.matches ? "dark" : "light";
       if (!hasManualPreference) {
-        setTheme(e.matches ? "dark" : "light");
+        setTheme(newSystemTheme);
+      } else if (newSystemTheme !== theme) {
+        setOsThemeSuggestion(newSystemTheme);
       }
     };
-
     mediaQuery.addEventListener("change", handleOsThemeChange);
     return () => mediaQuery.removeEventListener("change", handleOsThemeChange);
   }, []);
@@ -537,18 +572,25 @@ export default function App() {
       return;
     }
 
-    navigator.geolocation.getCurrentPosition(
-      (coords) => {
+navigator.geolocation.getCurrentPosition(
+      async (coords) => {
         if (requestId !== geoRequestId.current) return;
+        const lat = Number(coords.coords.latitude.toFixed(4));
+        const lon = Number(coords.coords.longitude.toFixed(4));
+
         setLocationNotice("");
-        setPosition({
-          lat: Number(coords.coords.latitude.toFixed(4)),
-          lon: Number(coords.coords.longitude.toFixed(4)),
-          cityName: "Your Current Location",
-        });
+        setPosition({ lat, lon, cityName: "Your Current Location" });
         setDetecting(false);
-      },
-      (error) => {
+
+        try {
+          const cityName = await reverseGeocodeCity(lat, lon);
+          if (requestId === geoRequestId.current) {
+            setPosition({ lat, lon, cityName });
+          }
+        } catch (err) {
+          console.warn("Reverse geocoding failed, keeping generic label.", err);
+        }
+      },      (error) => {
         if (requestId !== geoRequestId.current) return;
         console.warn("Geolocation is unavailable. Using the fallback location.");
 
@@ -655,10 +697,18 @@ export default function App() {
     [trend, current],
   );
 
-  const toggleTheme = () => {
+const toggleTheme = () => {
     setTheme((prev) => (prev === "dark" ? "light" : "dark"));
   };
 
+  const acceptOsThemeSuggestion = () => {
+    setTheme(osThemeSuggestion);
+    setOsThemeSuggestion(null);
+  };
+
+  const dismissOsThemeSuggestion = () => {
+    setOsThemeSuggestion(null);
+  };
   const refreshNow = useCallback(async () => {
     if (isRefreshing) return;
     mutateAqi();
@@ -667,8 +717,14 @@ export default function App() {
     setRefreshCountdown(AUTO_REFRESH_SECONDS);
   }, [isRefreshing, mutateAqi, mutateCities, mutateWind]);
 
-  useEffect(() => {
-    const handleOnline = () => refreshNow();
+useEffect(() => {
+    const handleOnline = () => {
+      // Wipe any cached AQI/city/wind data so refreshNow() below is forced
+      // to fetch fresh data instead of serving stale results that were
+      // cached before we went offline.
+      cacheStore.invalidate();
+      refreshNow();
+    };
 
     window.addEventListener("online", handleOnline);
 
@@ -676,7 +732,6 @@ export default function App() {
       window.removeEventListener("online", handleOnline);
     };
   }, []);
-
   useEffect(() => {
     eventBus.on("TOGGLE_THEME", toggleTheme);
     eventBus.on("FORCE_REFRESH", refreshNow);
@@ -748,8 +803,18 @@ export default function App() {
           )}
 
           {error && <p className="error-banner">{error}</p>}
-          {persistenceWarning && <p className="error-banner">{persistenceWarning}</p>}
-          {activeSection === "home" && current && (
+{persistenceWarning && <p className="error-banner">{persistenceWarning}</p>}
+          {osThemeSuggestion && (
+            <div className="location-notice" role="status">
+              <p>System theme changed. Switch to match?</p>
+              <button type="button" onClick={acceptOsThemeSuggestion}>
+                Yes
+              </button>
+              <button type="button" onClick={dismissOsThemeSuggestion}>
+                No
+              </button>
+            </div>
+          )}          {activeSection === "home" && current && (
             <div key="dashboard-grid" className="content-grid">
               <Dashboard
                 cityName={position.cityName}
