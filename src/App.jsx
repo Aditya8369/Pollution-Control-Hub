@@ -39,6 +39,39 @@ const DEFAULT_POSITION = {
 const THEME_STORAGE_KEY = "pollution-hub-theme";
 const AUTO_REFRESH_SECONDS = 180;
 
+// Nominatim's usage policy allows at most 1 request per second, so we track
+// the last call time here and space out requests if needed.
+let lastGeocodeRequestAt = 0;
+
+async function reverseGeocodeCity(lat, lon) {
+  // Round coordinates so tiny GPS jitter reuses the same cache entry
+  // instead of triggering a new network request every time.
+  const cacheKey = `geocode-${lat.toFixed(2)},${lon.toFixed(2)}`;
+  const cached = await cacheStore.get(cacheKey);
+  if (cached && cached.data) return cached.data;
+
+  const elapsed = Date.now() - lastGeocodeRequestAt;
+  if (elapsed < 1100) {
+    await new Promise((resolve) => setTimeout(resolve, 1100 - elapsed));
+  }
+  lastGeocodeRequestAt = Date.now();
+
+  const response = await fetch(
+    `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`,
+  );
+  const data = await response.json();
+  const address = data?.address || {};
+  const cityName =
+    address.city ||
+    address.town ||
+    address.village ||
+    address.suburb ||
+    data?.display_name?.split(",")[0] ||
+    "Your Current Location";
+
+  cacheStore.set(cacheKey, cityName);
+  return cityName;
+}
 /** @param {any} params */
 function Hero({ cityName }) {
   return (
@@ -537,18 +570,25 @@ export default function App() {
       return;
     }
 
-    navigator.geolocation.getCurrentPosition(
-      (coords) => {
+navigator.geolocation.getCurrentPosition(
+      async (coords) => {
         if (requestId !== geoRequestId.current) return;
+        const lat = Number(coords.coords.latitude.toFixed(4));
+        const lon = Number(coords.coords.longitude.toFixed(4));
+
         setLocationNotice("");
-        setPosition({
-          lat: Number(coords.coords.latitude.toFixed(4)),
-          lon: Number(coords.coords.longitude.toFixed(4)),
-          cityName: "Your Current Location",
-        });
+        setPosition({ lat, lon, cityName: "Your Current Location" });
         setDetecting(false);
-      },
-      (error) => {
+
+        try {
+          const cityName = await reverseGeocodeCity(lat, lon);
+          if (requestId === geoRequestId.current) {
+            setPosition({ lat, lon, cityName });
+          }
+        } catch (err) {
+          console.warn("Reverse geocoding failed, keeping generic label.", err);
+        }
+      },      (error) => {
         if (requestId !== geoRequestId.current) return;
         console.warn("Geolocation is unavailable. Using the fallback location.");
 
