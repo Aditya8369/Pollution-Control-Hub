@@ -4352,6 +4352,24 @@ a {
     font-size: 1.4rem;
   }
 
+  .analytics-kpis p {
+    font-size: 1.4rem;
+  }
+
+  .calendar-legend-grid {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+  }
+
+  .calendar-legend-item {
+    min-width: 0;
+  }
+
+  .calendar-legend-item span:last-child {
+    overflow-wrap: break-word;
+    word-break: break-word;
+  }
+
   .sim-presets {
     grid-template-columns: 1fr;
     gap: var(--sp-3);
@@ -5161,4 +5179,3 @@ a {
   color: var(--ink);
   line-height: 1.45;
 }
-
