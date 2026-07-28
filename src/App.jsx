@@ -667,8 +667,14 @@ export default function App() {
     setRefreshCountdown(AUTO_REFRESH_SECONDS);
   }, [isRefreshing, mutateAqi, mutateCities, mutateWind]);
 
-  useEffect(() => {
-    const handleOnline = () => refreshNow();
+useEffect(() => {
+    const handleOnline = () => {
+      // Wipe any cached AQI/city/wind data so refreshNow() below is forced
+      // to fetch fresh data instead of serving stale results that were
+      // cached before we went offline.
+      cacheStore.invalidate();
+      refreshNow();
+    };
 
     window.addEventListener("online", handleOnline);
 
@@ -676,7 +682,6 @@ export default function App() {
       window.removeEventListener("online", handleOnline);
     };
   }, []);
-
   useEffect(() => {
     eventBus.on("TOGGLE_THEME", toggleTheme);
     eventBus.on("FORCE_REFRESH", refreshNow);
