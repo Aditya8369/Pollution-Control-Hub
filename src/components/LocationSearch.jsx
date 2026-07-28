@@ -233,6 +233,7 @@ export default function LocationSearch({ onLocationSelected, initialCityName }) 
                   onClick={() => handleSelect(item)}
                   role="option"
                   aria-selected={activeIndex === index}
+                  data-testid="location-suggestion"
                 >
                   <svg
                     className="recent-icon"
@@ -262,6 +263,7 @@ export default function LocationSearch({ onLocationSelected, initialCityName }) 
                   onClick={() => handleSelect(item)}
                   role="option"
                   aria-selected={activeIndex === index}
+                  data-testid="location-suggestion"
                 >
                   <svg
                     className="location-icon"

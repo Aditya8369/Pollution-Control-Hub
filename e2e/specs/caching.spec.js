@@ -67,9 +67,8 @@ test.describe('API request deduplication (SWR cache)', () => {
     const initialCount = requests.length;
 
     await page.getByRole('button', { name: 'Refresh Now' }).click();
-    await page.waitForTimeout(1_500);
 
-    expect(requests.length).toBeGreaterThan(initialCount);
+    await expect.poll(() => requests.length, { timeout: 10_000 }).toBeGreaterThan(initialCount);
   });
 
   test('navigating between sections does not re-fetch AQI data', async ({ page, isMobile }) => {

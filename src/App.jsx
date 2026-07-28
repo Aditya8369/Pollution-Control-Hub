@@ -711,6 +711,7 @@ const toggleTheme = () => {
   };
   const refreshNow = useCallback(async () => {
     if (isRefreshing) return;
+    await cacheStore.invalidate();
     mutateAqi();
     mutateCities();
     mutateWind();
