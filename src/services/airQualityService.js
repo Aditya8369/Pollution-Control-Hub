@@ -305,7 +305,7 @@ export async function fetchAirQualityByCoords(lat, lon, signal, skipGrid = false
     us_aqi: Math.round(hourly.us_aqi?.[idx] ?? 0)
   };
 
-  const startIndex = idx - 23;
+  const startIndex = Math.max(0, idx - 23);
 
   const trend = times
     .slice(startIndex, idx + 1)
