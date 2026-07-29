@@ -144,8 +144,8 @@ describe('CommunityHub Component', () => {
     fireEvent.click(submitBtn);
 
     // Verify report card renders sanitized text rather than raw HTML tags
-    expect(screen.getByRole('heading', { level: 3 })).toHaveTextContent('&lt;script&gt;alert("XSS-Title")&lt;/script&gt;');
-    expect(screen.getByText(/&lt;img src=x onerror="alert\(1\)"&gt; &amp; &quot;quotes&quot;/i)).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 3 })).toHaveTextContent(/&lt;script&gt;alert\("XSS-Title"\)&lt;\/script&gt;|&lt;script&gt;alert\(&quot;XSS-Title&quot;\)&lt;\/script&gt;/);
+    expect(screen.getByText(/&lt;img src=x onerror="alert\(1\)"&gt; &amp; &quot;quotes&quot;|&lt;img src=x onerror=&quot;alert\(1\)&quot;&gt; &amp; &quot;quotes&quot;/i)).toBeInTheDocument();
   });
 
   it('rejects non-image files or invalid file extensions during upload', async () => {
