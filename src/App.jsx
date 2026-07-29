@@ -503,7 +503,7 @@ const [timeRange, setTimeRange] = useState(() => {
         "Offline caching is unavailable — your data may not persist between sessions."
       );
     });
-    return unsubscribe;
+    return () => { unsubscribe(); };
   }, []);
 
 
@@ -723,7 +723,7 @@ useEffect(() => {
       // Wipe any cached AQI/city/wind data so refreshNow() below is forced
       // to fetch fresh data instead of serving stale results that were
       // cached before we went offline.
-      cacheStore.invalidate();
+      cacheStore.invalidate(undefined);
       refreshNow();
     };
 
