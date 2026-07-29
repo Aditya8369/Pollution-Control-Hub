@@ -5451,3 +5451,38 @@ a {
     grid-template-columns: 1fr;
   }
 }
+
+/* Transport Mode Selector in Clean Commute Planner */
+.mode-selector-group {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.35rem;
+}
+
+.mode-chip-btn {
+  flex: 1;
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--r-sm, 6px);
+  border: 1px solid var(--line, #cbd5e1);
+  background: var(--card-bg, #ffffff);
+  color: var(--ink, #1e293b);
+  font-size: 0.88rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: center;
+}
+
+.mode-chip-btn:hover {
+  background: color-mix(in srgb, var(--accent, #0d9488) 12%, transparent);
+  border-color: var(--accent, #0d9488);
+}
+
+.mode-chip-btn.active {
+  background: var(--accent, #0d9488);
+  color: #ffffff;
+  border-color: var(--accent, #0d9488);
+  font-weight: 600;
+  box-shadow: 0 2px 4px rgba(13, 148, 136, 0.25);
+}
+
