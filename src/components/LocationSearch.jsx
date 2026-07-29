@@ -140,7 +140,7 @@ export default function LocationSearch({ onLocationSelected, initialCityName }) 
 
       setSuggestions(results);
       setIsLoading(false);
-    }, 500);
+    }, 300);
   };
 
   /** @param {any} e */

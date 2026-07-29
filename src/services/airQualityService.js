@@ -305,7 +305,7 @@ export async function fetchAirQualityByCoords(lat, lon, signal, skipGrid = false
     us_aqi: Math.round(hourly.us_aqi?.[idx] ?? 0)
   };
 
-  const startIndex = idx - 23;
+  const startIndex = Math.max(0, idx - 23);
 
   const trend = times
     .slice(startIndex, idx + 1)
@@ -531,4 +531,111 @@ export function estimateAQI(pm25, pm10, no2, o3, co) {
   ];
   return Math.max(...scores);
 }
+
+/**
+ * @param {any} code
+ */
+export function getWeatherDetails(code) {
+  switch (code) {
+    case 0:
+      return { label: 'Clear sky', icon: '☀️' };
+    case 1:
+    case 2:
+      return { label: 'Partly cloudy', icon: '⛅' };
+    case 3:
+      return { label: 'Overcast', icon: '☁️' };
+    case 45:
+    case 48:
+      return { label: 'Fog', icon: '🌫️' };
+    case 51:
+    case 53:
+    case 55:
+    case 56:
+    case 57:
+      return { label: 'Drizzle', icon: '🌦️' };
+    case 61:
+    case 63:
+    case 65:
+    case 66:
+    case 67:
+    case 80:
+    case 81:
+    case 82:
+      return { label: 'Rain', icon: '🌧️' };
+    case 71:
+    case 73:
+    case 75:
+    case 77:
+    case 85:
+    case 86:
+      return { label: 'Snow', icon: '❄️' };
+    case 95:
+    case 96:
+    case 99:
+      return { label: 'Thunderstorm', icon: '⛈️' };
+    default:
+      return { label: 'Clear sky', icon: '☀️' };
+  }
+}
+
+/**
+ * @param {any} lat
+ * @param {any} lon
+ * @param {any} [signal]
+ */
+export async function fetch7DayForecast(lat, lon, signal) {
+  if (!isValidCoord(lat, lon)) throw new Error('Invalid coordinates.');
+
+  const aqiUrl = `${BASE_URL}?latitude=${lat}&longitude=${lon}&hourly=us_aqi&timezone=auto&forecast_days=7`;
+  const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=weather_code&timezone=auto&forecast_days=7`;
+
+  const [aqiRes, weatherRes] = await Promise.all([
+    fetch(aqiUrl, { signal }),
+    fetch(weatherUrl, { signal })
+  ]);
+
+  if (!aqiRes.ok || !weatherRes.ok) {
+    throw new Error('Failed to fetch 7-day forecast.');
+  }
+
+  const aqiData = await aqiRes.json();
+  const weatherData = await weatherRes.json();
+
+  const times = aqiData.hourly?.time || [];
+  const aqiValues = aqiData.hourly?.us_aqi || [];
+
+  const dailyAqi = new Map();
+  for (let i = 0; i < times.length; i++) {
+    const time = times[i];
+    if (!time) continue;
+    const dateStr = time.split('T')[0];
+    const val = aqiValues[i];
+    if (val == null) continue;
+
+    if (!dailyAqi.has(dateStr)) {
+      dailyAqi.set(dateStr, { sum: 0, count: 0, max: -Infinity });
+    }
+    const stats = dailyAqi.get(dateStr);
+    stats.sum += val;
+    stats.count += 1;
+    if (val > stats.max) stats.max = val;
+  }
+
+  const dailyForecast = [];
+  const weatherCodes = weatherData.daily?.weather_code || [];
+  const weatherTimes = weatherData.daily?.time || [];
+
+  dailyAqi.forEach((stats, dateStr) => {
+    const wIdx = weatherTimes.indexOf(dateStr);
+    const code = wIdx !== -1 ? weatherCodes[wIdx] : 0;
+    dailyForecast.push({
+      date: dateStr,
+      aqi: stats.max !== -Infinity ? Math.round(stats.max) : (stats.count > 0 ? Math.round(stats.sum / stats.count) : 0),
+      weatherCode: code
+    });
+  });
+
+  return dailyForecast;
+}
+
 

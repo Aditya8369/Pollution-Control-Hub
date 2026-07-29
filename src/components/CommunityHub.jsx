@@ -131,16 +131,39 @@ export default function CommunityHub() {
     );
   };
 
+  /** @param {string} str */
+  const sanitizeText = (str) => {
+    return str
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#x27;');
+  };
+
   /** @param {any} event */
   const onSubmit = (event) => {
     event.preventDefault();
-    if (!form.title.trim() || !form.description.trim()) return;
+    const cleanTitle = form.title.trim();
+    const cleanDescription = form.description.trim();
+    if (!cleanTitle || !cleanDescription) return;
+
+    // Validate image data URL scheme if present
+    let safeImage = '';
+    if (form.image) {
+      if (/^data:image\/(jpeg|png|webp);base64,/.test(form.image)) {
+        safeImage = form.image;
+      } else {
+        setUploadError('Invalid image format detected.');
+        return;
+      }
+    }
 
     const newReport = {
       id: crypto.randomUUID(),
-      title: form.title.trim(),
-      description: form.description.trim(),
-      image: form.image,
+      title: sanitizeText(cleanTitle),
+      description: sanitizeText(cleanDescription),
+      image: safeImage,
       votes: 0,
       createdAt: new Date().toISOString(),
       status: "Pending",
@@ -164,6 +187,15 @@ export default function CommunityHub() {
     const file = event.target.files?.[0];
     if (!file) return;
 
+    // Validate file type
+    const validTypes = ['image/jpeg', 'image/png', 'image/webp'];
+    if (!validTypes.includes(file.type)) {
+      setUploadError('Only JPEG, PNG, and WebP images are allowed.');
+      event.target.value = '';
+      setFileInputKey(Date.now());
+      return;
+    }
+
     setUploadError('');
     setIsProcessingImage(true);
 
@@ -172,6 +204,14 @@ export default function CommunityHub() {
       try {
         const compressed = await compressImage(String(reader.result));
         
+        // Ensure result has valid image data URI prefix
+        if (!/^data:image\/(jpeg|png|webp);base64,/.test(compressed)) {
+          setUploadError('Invalid image data generated. Please upload a valid image file.');
+          event.target.value = '';
+          setFileInputKey(Date.now());
+          return;
+        }
+
         // Calculate size of the compressed image in bytes from the base64 string
         const base64Str = compressed.split(',')[1];
         const compressedSize = Math.round((base64Str.length * 3) / 4) - (base64Str.endsWith('==') ? 2 : base64Str.endsWith('=') ? 1 : 0);
@@ -309,49 +349,48 @@ export default function CommunityHub() {
           <button
             key={statusOption}
             type="button"
+            className={filter === statusOption ? 'active' : ''}
             onClick={() => setFilter(statusOption)}
-            style={{
-              padding: '6px 12px',
-              cursor: 'pointer',
-              fontWeight: filter === statusOption ? 'bold' : 'normal'
-            }}
           >
             {statusOption}
           </button>
         ))}
       </div>
 
-      <div className="report-feed">
+      <div className="reports-list" style={{ display: 'grid', gap: '15px' }}>
         {filteredReports.length === 0 ? (
-          <p className="report-feed-empty">No reports yet. Be the first to raise an issue.</p>
+          <p className="no-reports">No reports found for "{filter}".</p>
         ) : (
-          filteredReports.map((report) => (
-            <article className="report-card" key={report.id}>
-              <div className="report-head">
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <h3>{report.title}</h3>
-                  <span className="status-badge" style={{ fontSize: '0.8rem', padding: '2px 6px', border: '1px solid #ccc', borderRadius: '4px' }}>
+          filteredReports.map((report) => {
+            const isVoted = votedIds.has(report.id);
+            return (
+              <div key={report.id} className="report-card" style={{ border: '1px solid var(--line)', padding: '15px', borderRadius: '8px', background: 'var(--card)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                  <h3 style={{ margin: 0, fontSize: '1.1rem' }}>{report.title}</h3>
+                  <span className={`status-badge ${report.status.toLowerCase().replace(/[^a-z]/g, '')}`} style={{ fontSize: '0.8rem', padding: '2px 8px', borderRadius: '12px', background: report.status.startsWith('Verified') ? '#dcfce7' : '#fef3c7', color: report.status.startsWith('Verified') ? '#166534' : '#92400e' }}>
                     {report.status}
                   </span>
                 </div>
-                <button onClick={() => vote(report.id)} type="button" disabled={votedIds.has(report.id)}>
-                  {votedIds.has(report.id) ? 'Voted' : 'Upvote'} ({report.votes})
-                </button>
+                <p style={{ margin: '0 0 10px 0', color: 'var(--muted)', fontSize: '0.95rem' }}>{report.description}</p>
+                {report.image && (
+                  <div style={{ marginBottom: '10px' }}>
+                    <img src={report.image} alt={report.title} style={{ maxWidth: '100%', maxHeight: '200px', borderRadius: '6px', objectFit: 'cover' }} />
+                  </div>
+                )}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.85rem', color: 'var(--muted)' }}>
+                  <span>Votes: {report.votes}</span>
+                  <button
+                    type="button"
+                    onClick={() => vote(report.id)}
+                    disabled={isVoted}
+                    style={{ padding: '4px 12px', cursor: isVoted ? 'default' : 'pointer' }}
+                  >
+                    {isVoted ? 'Voted' : 'Upvote (+1)'}
+                  </button>
+                </div>
               </div>
-              <p>{report.description}</p>
-              {report.image && <img src={report.image} alt={report.title} />}
-
-              <div className="timeline-workflow" style={{ marginTop: '12px', fontSize: '0.8rem', color: '#666' }}>
-                <span>Created</span>
-                <span style={{ color: report.status.startsWith('Verified') || report.status === 'Addressed' ? '#000' : '#ccc' }}>
-                  {" → "}Community verified
-                </span>
-                <span style={{ color: report.status === 'Addressed' ? '#000' : '#ccc' }}>
-                  {" → "}Addressed
-                </span>
-              </div>
-            </article>
-          ))
+            );
+          })
         )}
       </div>
     </section>
