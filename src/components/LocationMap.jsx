@@ -28,12 +28,12 @@ export default function LocationMap({ center, nearbyPoints, confidenceScore, win
           <p>Nearby pollution intensity map and hotspots</p>
         </div>
         {windData && (
-          <button 
-            type="button" 
+          <button
+            type="button"
             onClick={() => setShowWind(!showWind)}
-            style={{ 
-              fontSize: '0.85rem', 
-              padding: '0.5rem 1rem', 
+            style={{
+              fontSize: '0.85rem',
+              padding: '0.5rem 1rem',
               flexShrink: 0,
               backgroundColor: showWind ? '#ef4444' : '#3b82f6',
               color: 'white',
@@ -57,6 +57,21 @@ export default function LocationMap({ center, nearbyPoints, confidenceScore, win
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
+
+          {center && center.lat && center.lon && (
+            <CircleMarker
+              center={[center.lat, center.lon]}
+              radius={8}
+              pathOptions={{
+                fillColor: '#1e90ff',
+                color: '#ffffff',
+                fillOpacity: 1,
+                weight: 2
+              }}
+            >
+              <Popup>Your Location</Popup>
+            </CircleMarker>
+          )}
 
           {nearbyPoints.map((point) => (
             <CircleMarker
@@ -88,7 +103,7 @@ export default function LocationMap({ center, nearbyPoints, confidenceScore, win
       {showWind && windData && (
         <div className="wind-insight" style={{ padding: '1rem', backgroundColor: 'var(--bg-card-alt, #f8fafc)', borderRadius: '0.5rem', marginTop: '1rem', borderLeft: '4px solid #3b82f6' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="2" style={{ width: '20px', height: '20px', transform: 'rotate(180deg)', flexShrink: 0 }}><path d="M12 2v20M12 22l-4-4M12 22l4-4"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="2" style={{ width: '20px', height: '20px', transform: 'rotate(180deg)', flexShrink: 0 }}><path d="M12 2v20M12 22l-4-4M12 22l4-4" /></svg>
             <strong>Wind Legend:</strong>
             <span style={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>Arrows indicate the direction wind is blowing.</span>
           </div>
