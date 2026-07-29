@@ -107,16 +107,39 @@ export default function CommunityHub() {
     localStorage.setItem(VOTES_STORAGE_KEY, JSON.stringify([...votedIds]));
   }, [votedIds]);
 
+  /** @param {string} str */
+  const sanitizeText = (str) => {
+    return str
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#x27;');
+  };
+
   /** @param {any} event */
   const onSubmit = (event) => {
     event.preventDefault();
-    if (!form.title.trim() || !form.description.trim()) return;
+    const cleanTitle = form.title.trim();
+    const cleanDescription = form.description.trim();
+    if (!cleanTitle || !cleanDescription) return;
+
+    // Validate image data URL scheme if present
+    let safeImage = '';
+    if (form.image) {
+      if (/^data:image\/(jpeg|png|webp);base64,/.test(form.image)) {
+        safeImage = form.image;
+      } else {
+        setUploadError('Invalid image format detected.');
+        return;
+      }
+    }
 
     const newReport = {
       id: crypto.randomUUID(),
-      title: form.title.trim(),
-      description: form.description.trim(),
-      image: form.image,
+      title: sanitizeText(cleanTitle),
+      description: sanitizeText(cleanDescription),
+      image: safeImage,
       votes: 0,
       createdAt: new Date().toISOString(),
       status: "Pending",
@@ -134,6 +157,15 @@ export default function CommunityHub() {
     const file = event.target.files?.[0];
     if (!file) return;
 
+    // Validate file type
+    const validTypes = ['image/jpeg', 'image/png', 'image/webp'];
+    if (!validTypes.includes(file.type)) {
+      setUploadError('Only JPEG, PNG, and WebP images are allowed.');
+      event.target.value = '';
+      setFileInputKey(Date.now());
+      return;
+    }
+
     setUploadError('');
     setIsProcessingImage(true);
 
@@ -142,6 +174,14 @@ export default function CommunityHub() {
       try {
         const compressed = await compressImage(String(reader.result));
         
+        // Ensure result has valid image data URI prefix
+        if (!/^data:image\/(jpeg|png|webp);base64,/.test(compressed)) {
+          setUploadError('Invalid image data generated. Please upload a valid image file.');
+          event.target.value = '';
+          setFileInputKey(Date.now());
+          return;
+        }
+
         // Calculate size of the compressed image in bytes from the base64 string
         const base64Str = compressed.split(',')[1];
         const compressedSize = Math.round((base64Str.length * 3) / 4) - (base64Str.endsWith('==') ? 2 : base64Str.endsWith('=') ? 1 : 0);
@@ -284,7 +324,9 @@ export default function CommunityHub() {
                 </button>
               </div>
               <p>{report.description}</p>
-              {report.image && <img src={report.image} alt={report.title} />}
+              {report.image && /^data:image\/(jpeg|png|webp);base64,/.test(report.image) && (
+                <img src={report.image} alt={report.title} />
+              )}
 
               <div className="timeline-workflow" style={{ marginTop: '12px', fontSize: '0.8rem', color: '#666' }}>
                 <span>Created</span>
