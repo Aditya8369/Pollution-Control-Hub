@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { eventBus } from '../core/events';
 
 const STORAGE_KEY = 'pollution-community-reports';
 const VOTES_STORAGE_KEY = 'pollution-community-voted-ids';
@@ -60,6 +61,8 @@ export default function CommunityHub() {
   const [fileInputKey, setFileInputKey] = useState(Date.now());
   const [uploadError, setUploadError] = useState('');
   const [isProcessingImage, setIsProcessingImage] = useState(false);
+  const [locationCoords, setLocationCoords] = useState(null);
+  const [locationStatus, setLocationStatus] = useState('idle');
 
   useEffect(() => {
     try {
@@ -107,6 +110,27 @@ export default function CommunityHub() {
     localStorage.setItem(VOTES_STORAGE_KEY, JSON.stringify([...votedIds]));
   }, [votedIds]);
 
+  const handleGetLocation = () => {
+    if (!navigator.geolocation) {
+      setLocationStatus('error');
+      return;
+    }
+    setLocationStatus('locating');
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setLocationCoords({
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+        });
+        setLocationStatus('success');
+      },
+      () => {
+        setLocationCoords(null);
+        setLocationStatus('error');
+      }
+    );
+  };
+
   /** @param {any} event */
   const onSubmit = (event) => {
     event.preventDefault();
@@ -122,11 +146,17 @@ export default function CommunityHub() {
       status: "Pending",
       verifiedAt: "",
       moderationNotes: "",
+      latitude: locationCoords ? locationCoords.latitude : null,
+      longitude: locationCoords ? locationCoords.longitude : null,
     };
 
     setReports((prev) => [newReport, ...prev]);
     setForm({ title: '', description: '', image: '' });
     setFileInputKey(Date.now());
+    setLocationCoords(null);
+    setLocationStatus('idle');
+
+    eventBus.emit('COMMUNITY_REPORT_SUBMITTED', newReport);
   };
 
   /** @param {any} event */
@@ -244,6 +274,31 @@ export default function CommunityHub() {
           </p>
         )}
         {uploadError && <p className="upload-error">{uploadError}</p>}
+        <div className="location-action-group" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.25rem' }}>
+          <button
+            type="button"
+            className="btn-secondary text-sm"
+            onClick={handleGetLocation}
+            disabled={locationStatus === 'locating'}
+            style={{
+              padding: '0.4rem 0.8rem',
+              whiteSpace: 'nowrap',
+              fontSize: '0.85rem'
+            }}
+          >
+            {locationStatus === 'locating' ? 'Locating...' : 'Use Current Location'}
+          </button>
+          {locationStatus === 'success' && (
+            <span className="location-status-text" style={{ fontSize: '0.85rem', color: '#16a34a', fontWeight: '500' }}>
+              Location attached
+            </span>
+          )}
+          {locationStatus === 'error' && (
+            <span className="location-status-text" style={{ fontSize: '0.85rem', color: '#ef4444', fontWeight: '500' }}>
+              Unable to retrieve location
+            </span>
+          )}
+        </div>
         <button type="submit" disabled={isProcessingImage}>
           {isProcessingImage ? 'Processing image…' : 'Submit Report'}
         </button>
