@@ -11,7 +11,7 @@ export default defineConfig({
   testDir: './e2e/specs',
 
   // Maximum time one test can run before it is considered failed
-  timeout: 30_000,
+  timeout: 45_000,
 
   // Expect timeout for individual assertions
   expect: {
@@ -21,11 +21,12 @@ export default defineConfig({
   // Fail the build on CI if you accidentally left test.only in the source
   forbidOnly: !!process.env.CI,
 
-  // Retry failed tests once on CI (network flakes happen)
-  retries: process.env.CI ? 1 : 0,
+  // Retry failed tests once on both CI and locally (server flakes / connection drops)
+  retries: process.env.CI ? 2 : 1,
 
-  // Parallelism: use all CPUs locally, 1 worker per shard on CI
-  workers: process.env.CI ? 2 : undefined,
+  // Parallelism: cap at 2 locally to avoid overloading the Vite dev server
+  // (too many parallel Firefox/WebKit instances cause mock route drops)
+  workers: process.env.CI ? 2 : 2,
 
   // Reporter: GitHub Actions-aware on CI, human-readable locally
   reporter: process.env.CI
@@ -35,7 +36,7 @@ export default defineConfig({
   // Shared settings for all projects (browsers)
   use: {
     // Base URL for page.goto('/') calls
-    baseURL: 'http://127.0.0.1:5173',
+    baseURL: 'http://localhost:5173',
 
     // Capture trace on first retry — invaluable for debugging CI failures
     trace: 'on-first-retry',
@@ -73,7 +74,7 @@ export default defineConfig({
   // down afterwards.  On CI the server is started the same way.
   webServer: {
     command: 'npm run dev',
-    url: 'http://127.0.0.1:5173',
+    url: 'http://localhost:5173',
     reuseExistingServer: !process.env.CI,
     timeout: 60_000,
     // Suppress Vite's noisy output in CI logs

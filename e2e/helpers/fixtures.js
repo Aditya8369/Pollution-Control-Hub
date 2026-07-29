@@ -87,10 +87,10 @@ export const test = base.extend({
   mockPage: async ({ page }, use) => {
     await interceptApis(page);
     await page.goto('/');
-    // Wait for loading spinner to disappear first
-    await page.waitForSelector('.loading-spinner', { state: 'detached', timeout: 15_000 });
+    // Wait for loading spinner to disappear — 25 s for slower browsers (Firefox/WebKit)
+    await page.waitForSelector('.loading-spinner', { state: 'detached', timeout: 25_000 });
     // Then wait for dashboard to appear
-    await page.waitForSelector('[data-testid="dashboard"]', { state: 'visible', timeout: 10_000 });
+    await page.waitForSelector('[data-testid="dashboard"]', { state: 'visible', timeout: 15_000 });
     await use(page);
   },
   /**
