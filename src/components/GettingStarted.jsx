@@ -286,17 +286,62 @@ function GettingStarted() {
 </section>
 )}
 
-{["health", "faq"].includes(activeTab) && (
-<section className="getting-started-section">
-  <div className="overview-content">
-    <div className="overview-item">
-      <p>
-        This section of the Getting Started guide is coming soon.
-        We're working on it — check back shortly!
-      </p>
+{activeTab === "health" && (
+  <section className="getting-started-section">
+    <div className="overview-content">
+
+      <div className="overview-item">
+        <h4>01. How air pollution affects health</h4>
+        <p>
+          Poor air quality can irritate the eyes, nose, and throat, worsen
+          breathing problems, and increase the risk of heart and lung diseases,
+          especially during prolonged exposure.
+        </p>
+      </div>
+
+      <div className="overview-item">
+        <h4>02. Who is most at risk?</h4>
+        <p>
+          Children, older adults, pregnant individuals, and people with asthma,
+          heart disease, or other respiratory conditions are more sensitive to
+          polluted air and should take extra precautions.
+        </p>
+      </div>
+
+      <div className="overview-item">
+        <h4>03. How to protect yourself</h4>
+        <p>
+          Check the AQI before going outdoors, reduce strenuous outdoor
+          activities on unhealthy days, keep windows closed when pollution is
+          high, and consider wearing a well-fitted mask if exposure is
+          unavoidable.
+        </p>
+      </div>
+
+      <div className="overview-item">
+        <h4>04. Important reminder</h4>
+        <p>
+          Pollution Control Hub provides environmental information to help you
+          make informed decisions. It is not a substitute for professional
+          medical advice or emergency healthcare.
+        </p>
+      </div>
+
     </div>
-  </div>
-</section>
+  </section>
+)}
+
+{activeTab === "faq" && (
+  <section className="getting-started-section">
+    <div className="overview-content">
+      <div className="overview-item">
+        <p>
+          This section of the Getting Started guide is coming soon.
+          We're working on it — check back shortly!
+        </p>
+      </div>
+    </div>
+  </section>
 )}
       </div>
     </section>
