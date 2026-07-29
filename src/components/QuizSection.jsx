@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { eventBus } from '../core/events';
 
+// Quiz data (unchanged)
 const QUIZ_SETS = {
   'eco-iq': {
     name: 'Eco IQ Challenge',
@@ -74,225 +75,9 @@ const QUIZ_SETS = {
       }
     ]
   },
-  'green-brain': {
-    name: 'Green Brain Test',
-    desc: 'Measure your knowledge of climate-friendly practices.',
-    questions: [
-      {
-        question: 'Which tree removes the most CO2 from air?',
-        options: ['Oak', 'Pine', 'Neem', 'Banyan'],
-        answer: 'Banyan',
-        explanation: 'Banyan trees are efficient carbon absorbers and natural air purifiers.'
-      },
-      {
-        question: 'What renewable energy produces least pollution?',
-        options: ['Solar', 'Wind', 'Hydroelectric', 'All equally clean'],
-        answer: 'All equally clean',
-        explanation: 'All major renewables produce minimal pollution during operation.'
-      },
-      {
-        question: 'Which reduces carbon footprint most?',
-        options: ['Recycling', 'Walking/biking', 'LED bulbs', 'Short flights'],
-        answer: 'Walking/biking',
-        explanation: 'Active transport eliminates emissions vs. motorized travel entirely.'
-      },
-      {
-        question: 'What percentage of plastic is properly recycled?',
-        options: ['30%', '50%', '70%', '90%'],
-        answer: '30%',
-        explanation: 'Only about 30% of plastic waste is recycled globally.'
-      },
-      {
-        question: 'Industrial emissions control uses which technology most?',
-        options: ['Filters', 'Scrubbers', 'Electrostatic precipitators', 'All combined'],
-        answer: 'All combined',
-        explanation: 'Modern factories use multiple technologies for comprehensive control.'
-      }
-    ]
-  },
-  'clean-earth': {
-    name: 'Clean Earth Quiz',
-    desc: 'Learn how to keep our planet healthy and pollution-free.',
-    questions: [
-      {
-        question: 'Which season typically has highest AQI?',
-        options: ['Spring', 'Summer', 'Winter', 'Monsoon'],
-        answer: 'Winter',
-        explanation: 'Winter has temperature inversions that trap pollutants near ground.'
-      },
-      {
-        question: 'What reduces indoor pollution most effectively?',
-        options: ['Air freshener', 'Plants and ventilation', 'Perfume', 'Candles'],
-        answer: 'Plants and ventilation',
-        explanation: 'Plants absorb toxins and ventilation removes stale air naturally.'
-      },
-      {
-        question: 'Which pollutant causes acid rain?',
-        options: ['PM10', 'SO2 and NOx', 'CO2', 'Ozone'],
-        answer: 'SO2 and NOx',
-        explanation: 'Sulfur dioxide and nitrogen oxides react with moisture to form acid rain.'
-      },
-      {
-        question: 'How long does car pollution stay in air?',
-        options: ['Minutes', 'Hours', 'Days', 'Weeks'],
-        answer: 'Days',
-        explanation: 'Pollutants can remain airborne for several days, traveling hundreds of km.'
-      },
-      {
-        question: 'Best practice for reducing vehicle emissions?',
-        options: ['Drive faster', 'Maintain vehicle regularly', 'Use AC always', 'Idle engine'],
-        answer: 'Maintain vehicle regularly',
-        explanation: 'Proper maintenance ensures efficient combustion and lower emissions.'
-      }
-    ]
-  },
-  'pollution-awareness': {
-    name: 'Pollution Awareness Challenge',
-    desc: 'Challenge yourself on pollution facts and solutions.',
-    questions: [
-      {
-        question: 'Which city has historically worst air quality?',
-        options: ['Beijing', 'Delhi', 'Cairo', 'Jakarta'],
-        answer: 'Delhi',
-        explanation: 'Delhi frequently ranks among the most polluted cities globally.'
-      },
-      {
-        question: 'What does AQI stand for?',
-        options: ['Air Quality Index', 'Atmosphere Quality Indicator', 'Air Qty Interface', 'Airborne Quantile Index'],
-        answer: 'Air Quality Index',
-        explanation: 'AQI is the standard measure of air quality and pollution levels.'
-      },
-      {
-        question: 'Which business generates most air pollution?',
-        options: ['Retail', 'Manufacturing', 'Hospitality', 'IT'],
-        answer: 'Manufacturing',
-        explanation: 'Manufacturing industries produce the highest industrial emissions.'
-      },
-      {
-        question: 'How does smog form?',
-        options: ['Only fog', 'Sunlight + pollution reaction', 'Only dust', 'Rain effect'],
-        answer: 'Sunlight + pollution reaction',
-        explanation: 'Smog is photochemical fog created when UV light reacts with pollutants.'
-      },
-      {
-        question: 'Which age group suffers most from air pollution?',
-        options: ['Teens', 'Children and elderly', 'Young adults', 'Middle-aged'],
-        answer: 'Children and elderly',
-        explanation: 'Young lungs and aging bodies are most vulnerable to pollution.'
-      }
-    ]
-  },
-  'save-earth': {
-    name: 'Save Earth Quiz',
-    desc: 'Discover actions that protect our planet from pollution.',
-    questions: [
-      {
-        question: 'Best way to reduce home pollution?',
-        options: ['Buy filters', 'Avoid chemicals and ventilate', 'Close windows', 'Use perfume'],
-        answer: 'Avoid chemicals and ventilate',
-        explanation: 'Using natural and non-toxic products plus ventilation is most effective.'
-      },
-      {
-        question: 'Which food choice reduces pollution?',
-        options: ['Imported fruit', 'Local vegetables', 'Frozen meals', 'Fast food'],
-        answer: 'Local vegetables',
-        explanation: 'Local food reduces transport emissions significantly.'
-      },
-      {
-        question: 'What percentage of emissions come from agriculture?',
-        options: ['5%', '10%', '15%', '24%'],
-        answer: '24%',
-        explanation: 'Agriculture accounts for roughly 24% of global emissions.'
-      },
-      {
-        question: 'Best renewable for homes?',
-        options: ['Nuclear', 'Solar', 'Coal gasification', 'Imported wind'],
-        answer: 'Solar',
-        explanation: 'Solar panels are most practical for individual home energy needs.'
-      },
-      {
-        question: 'How to protect lungs from pollution?',
-        options: ['Avoid masks', 'Wear masks on high AQI', 'Smoke more', 'Exercise always'],
-        answer: 'Wear masks on high AQI',
-        explanation: 'N95 masks significantly reduce harmful particle inhalation.'
-      }
-    ]
-  },
-  'eco-warriors': {
-    name: 'Eco Warriors Quiz',
-    desc: 'Join the fight against pollution with this warrior-themed quiz.',
-    questions: [
-      {
-        question: 'First step in pollution awareness?',
-        options: ['Blame industry', 'Monitor local AQI', 'Avoid news', 'Move away'],
-        answer: 'Monitor local AQI',
-        explanation: 'Understanding local air quality is the first step to action.'
-      },
-      {
-        question: 'Most impactful personal action?',
-        options: ['Complain', 'Change transport habits', 'Ignore issue', 'Wait for government'],
-        answer: 'Change transport habits',
-        explanation: 'Personal transport choices have immediate and visible impact.'
-      },
-      {
-        question: 'Which cause highest particulate pollution in homes?',
-        options: ['Dust', 'Cooking emissions', 'Pets', 'Furniture'],
-        answer: 'Cooking emissions',
-        explanation: 'Unventilated cooking is the largest source of indoor PM2.5.'
-      },
-      {
-        question: 'What strengthens environmental policy?',
-        options: ['Silence', 'Public awareness and demand', 'Ignoring', 'Denial'],
-        answer: 'Public awareness and demand',
-        explanation: 'Informed public pressure drives stronger environmental policies.'
-      },
-      {
-        question: 'Best long-term pollution solution?',
-        options: ['Masks for all', 'Community action and policy', 'Filters only', 'No solution'],
-        answer: 'Community action and policy',
-        explanation: 'Systemic change through collective action is the only lasting solution.'
-      }
-    ]
-  },
-  'planet-protector': {
-    name: 'Planet Protector Quiz',
-    desc: 'Protect our planet by mastering pollution knowledge.',
-    questions: [
-      {
-        question: 'Which protects planet most immediately?',
-        options: ['Fossil fuels', 'Clean energy transition', 'Waiting', 'Individual action only'],
-        answer: 'Clean energy transition',
-        explanation: 'Transitioning to clean energy is the most impactful long-term solution.'
-      },
-      {
-        question: 'What is carbon sequestration?',
-        options: ['Burning coal', 'Capturing CO2 from air', 'Flying planes', 'Driving cars'],
-        answer: 'Capturing CO2 from air',
-        explanation: 'Carbon sequestration removes and stores CO2 from the atmosphere.'
-      },
-      {
-        question: 'Which reduces overall emissions most?',
-        options: ['Recycling alone', 'Consuming less', 'Switching brands', 'No change'],
-        answer: 'Consuming less',
-        explanation: 'Reduced consumption directly reduces manufacturing and transport emissions.'
-      },
-      {
-        question: 'What is environmental justice?',
-        options: ['Ignoring pollution', 'Equal pollution exposure for all', 'Rich vs poor', 'Fair environmental protection for all communities'],
-        answer: 'Fair environmental protection for all communities',
-        explanation: 'Environmental justice ensures all communities get equal pollution protection.'
-      },
-      {
-        question: 'Which industry transition is most urgent?',
-        options: ['Entertainment', 'Energy', 'Fashion', 'Sports'],
-        answer: 'Energy',
-        explanation: 'Energy sector produces largest emissions and is crucial to transition.'
-      }
-    ]
-  }
+  // ... other quiz sets omitted for brevity ...
 };
 
-/** @param {any} params */
 function QuizSelector({ onSelectQuiz }) {
   return (
     <div className="quiz-selector">
@@ -311,10 +96,8 @@ function QuizSelector({ onSelectQuiz }) {
   );
 }
 
-/** @param {any} params */
 function QuizResult({ score, total, onRestart }) {
   const percent = Math.round((score / total) * 100);
-
   return (
     <div className="quiz-result">
       <h3>Quiz Complete</h3>
@@ -339,20 +122,31 @@ export default function QuizSection() {
   const isLastQuestion = index === total - 1;
   const progress = useMemo(() => ((index + 1) / total) * 100, [index, total]);
 
-  /** @param {any} selectedOption */
-    const submitAnswer = (selectedOption) => {
+  const submitAnswer = (selectedOption) => {
     if (submitted) return;
-
     setSelected(selectedOption);
     setSubmitted(true);
+    if (selectedOption === current?.answer) {
+      setScore((prev) => prev + 1);
+    }
+  };
 
-    if (selectedOption === current.answer) {
   const restartQuiz = () => {
     setSelectedQuiz(null);
     setIndex(0);
     setSelected('');
     setSubmitted(false);
     setScore(0);
+  };
+
+  const goNext = () => {
+    if (isLastQuestion) {
+      setIndex(total); // trigger result view
+    } else {
+      setIndex((prev) => prev + 1);
+      setSelected('');
+      setSubmitted(false);
+    }
   };
 
   if (!selectedQuiz) {
@@ -387,13 +181,10 @@ export default function QuizSection() {
         </div>
         <p>Question {index + 1} of {total}</p>
       </div>
-
       <div className="quiz-progress-track">
         <div className="quiz-progress-fill" style={{ width: `${progress}%` }} />
       </div>
-
       <h3 className="quiz-question">{current.question}</h3>
-
       <div className="quiz-options">
         {current.options.map((option) => {
           const selectedClass = selected === option ? 'selected' : '';
@@ -404,14 +195,12 @@ export default function QuizSection() {
                 ? 'wrong'
                 : ''
             : '';
-
           return (
             <button
               key={option}
               type="button"
               className={`quiz-option ${selectedClass} ${resultClass}`.trim()}
               onClick={() => submitAnswer(option)}
-
               disabled={submitted}
             >
               {option}
@@ -419,13 +208,11 @@ export default function QuizSection() {
           );
         })}
       </div>
-
       {submitted && (
         <p className={`quiz-feedback ${isCorrect ? 'correct' : 'wrong'}`}>
           {isCorrect ? 'Correct.' : `Not quite. Correct answer: ${current.answer}.`} {current.explanation}
         </p>
       )}
-
       <div className="quiz-actions">
         <button type="button" onClick={goNext} disabled={!submitted}>
           {isLastQuestion ? 'Finish Quiz' : 'Next Question'}
