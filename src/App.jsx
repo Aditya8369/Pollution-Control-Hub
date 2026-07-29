@@ -819,6 +819,8 @@ useEffect(() => {
             <div key="dashboard-grid" className="content-grid">
               <Dashboard
                 cityName={position.cityName}
+                lat={position.lat}
+                lon={position.lon}
                 current={current}
                 trend={trend}
                 cityComparisons={cityComparisons}
