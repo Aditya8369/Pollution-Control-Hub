@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 import CalendarHeatmap from './CalendarHeatmap';
-import { fetchHistoricalData } from '../services/historicalDataService';
+import { fetchHistoricalData, formatHistoricalCSV } from '../services/historicalDataService';
 
 /** @param {any} params */
 export default function HistoricalAnalysis({ position }) {
@@ -10,8 +12,10 @@ export default function HistoricalAnalysis({ position }) {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [dateError, setDateError] = useState('');
+  const [isExportingPDF, setIsExportingPDF] = useState(false);
   
   const workerRef = useRef(null);
+  const containerRef = useRef(null);
 
   useEffect(() => {
     if (data && data.daily && data.daily.length > 0) {
@@ -86,6 +90,37 @@ export default function HistoricalAnalysis({ position }) {
   const minDate = data?.daily?.[0]?.date || '';
   const maxDate = data?.daily?.[data.daily.length - 1]?.date || '';
 
+  const handleExportPDF = async () => {
+    if (!containerRef.current || !data) return;
+    if (new Date(startDate) > new Date(endDate)) {
+      setDateError('Start date cannot be after end date.');
+      return;
+    }
+    setDateError('');
+
+    try {
+      setIsExportingPDF(true);
+      const canvas = await html2canvas(containerRef.current, {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        ignoreElements: (el) => el.getAttribute('data-html2canvas-ignore') === 'true'
+      });
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+
+      const cityName = position?.cityName ? position.cityName.replace(/[^a-z0-9]/gi, '_').toLowerCase() : 'historical';
+      pdf.save(`${cityName}_pollution_history_${startDate}_to_${endDate}.pdf`);
+    } catch (err) {
+      console.error('Failed to export PDF:', err);
+    } finally {
+      setIsExportingPDF(false);
+    }
+  };
+
   const handleExportCSV = () => {
     if (!data || !data.daily) return;
     if (new Date(startDate) > new Date(endDate)) {
@@ -94,22 +129,7 @@ export default function HistoricalAnalysis({ position }) {
     }
     setDateError('');
 
-    const filtered = data.daily
-      .filter(day => day.date >= startDate && day.date <= endDate)
-      .sort((a, b) => a.date.localeCompare(b.date));
-
-    const headers = ['Date', 'AQI', 'PM2.5', 'PM10', 'NO2', 'Ozone', 'CO'];
-    const rows = filtered.map(day => [
-      day.date,
-      day.maxAqi,
-      day.pm25 !== null && day.pm25 !== undefined ? day.pm25 : '',
-      day.pm10 !== null && day.pm10 !== undefined ? day.pm10 : '',
-      day.no2 !== null && day.no2 !== undefined ? day.no2 : '',
-      day.ozone !== null && day.ozone !== undefined ? day.ozone : '',
-      day.co !== null && day.co !== undefined ? day.co : ''
-    ]);
-
-    const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+    const csvContent = formatHistoricalCSV(data.daily, startDate, endDate);
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     
@@ -179,7 +199,7 @@ export default function HistoricalAnalysis({ position }) {
   if (!data) return null;
 
   return (
-    <div data-testid="historical-analysis" className="historical-analysis-container section-card">
+    <div data-testid="historical-analysis" ref={containerRef} className="historical-analysis-container section-card">
       <header style={{ marginBottom: '1.5rem' }}>
         <h2 style={{ fontSize: '1.4rem', fontWeight: 600, margin: '0 0 0.25rem' }}>Long-Term Climate & Pollution Trends</h2>
         <p style={{ fontSize: '0.88rem', opacity: 0.8, margin: 0 }}>
@@ -187,7 +207,7 @@ export default function HistoricalAnalysis({ position }) {
         </p>
       </header>
 
-      <div className="export-controls-section" style={{
+      <div className="export-controls-section" data-html2canvas-ignore="true" style={{
         marginBottom: '2rem',
         padding: '1.25rem',
         borderRadius: 'var(--r-sm, 10px)',
@@ -239,6 +259,32 @@ export default function HistoricalAnalysis({ position }) {
             />
           </div>
           <div style={{ display: 'flex', gap: '0.5rem', flex: '1 1 auto', flexWrap: 'wrap' }}>
+            <button
+              onClick={handleExportPDF}
+              disabled={isExportingPDF}
+              type="button"
+              style={{
+                padding: '0.5rem 1rem',
+                fontSize: '0.9rem',
+                fontWeight: 500,
+                cursor: isExportingPDF ? 'not-allowed' : 'pointer',
+                borderRadius: '6px',
+                background: 'var(--brand, #0d9488)',
+                color: '#ffffff',
+                border: 'none',
+                height: '38px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontFamily: 'inherit',
+                opacity: isExportingPDF ? 0.7 : 1,
+                transition: 'background 0.2s'
+              }}
+              onMouseOver={(e) => { if (!isExportingPDF) e.currentTarget.style.background = 'var(--brand-strong, #0b7d73)'; }}
+              onMouseOut={(e) => { if (!isExportingPDF) e.currentTarget.style.background = 'var(--brand, #0d9488)'; }}
+            >
+              {isExportingPDF ? 'Exporting PDF...' : 'Export PDF'}
+            </button>
             <button
               onClick={handleExportCSV}
               type="button"
