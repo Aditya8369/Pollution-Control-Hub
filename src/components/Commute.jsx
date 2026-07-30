@@ -55,6 +55,7 @@ const Commute = () => {
   const [mode, setMode] = useState("driving");
   const [isCalculating, setIsCalculating] = useState(false);
   const [isLocating, setIsLocating] = useState(false);
+  const [geoError, setGeoError] = useState(null);
 
   const [routeLine, setRouteLine] = useState(null);
   const [mapCenter, setMapCenter] = useState([28.6139, 77.209]);
@@ -64,8 +65,10 @@ const Commute = () => {
   const [newLocationLabel, setNewLocationLabel] = useState("");
 
   const handleGetLocation = () => {
+    setGeoError(null);
+
     if (!navigator.geolocation) {
-      alert("Geolocation is not supported by your browser.");
+      setGeoError("Geolocation is not supported by your browser.");
       return;
     }
 
@@ -85,6 +88,9 @@ const Commute = () => {
           const response = await fetch(
             `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`,
           );
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
           const data = await response.json();
 
           if (data && data.display_name) {
@@ -94,23 +100,23 @@ const Commute = () => {
               .join(",");
             setOrigin(shortAddress);
           } else {
-            setOrigin(`${latitude}, ${longitude}`);
+            setOrigin("Location unavailable");
+            setGeoError("Location details unavailable for coordinates.");
           }
         } catch (error) {
           console.error("Reverse geocoding failed:", error);
-          setOrigin(`${latitude}, ${longitude}`);
+          setOrigin("Location unavailable");
+          setGeoError("Failed to fetch address details. Displaying placeholder.");
         } finally {
           setIsLocating(false);
         }
       },
       (error) => {
-        alert(
-          "Unable to retrieve your location. Please check your browser permissions.",
-        );
         console.error("Error getting location:", error);
+        setGeoError("Unable to retrieve location. Check browser permissions.");
         setIsLocating(false);
       },
-      options, // Pass options here
+      options,
     );
   };
 
@@ -192,6 +198,41 @@ const Commute = () => {
         <h2 className="commute-title" style={{ marginTop: 0 }}>
           Clean Route Planner
         </h2>
+
+        {geoError && (
+          <div
+            className="commute-error-banner"
+            role="alert"
+            style={{
+              backgroundColor: "#fff7ed",
+              border: "1px solid #fdba74",
+              color: "#c2410c",
+              padding: "0.75rem 1rem",
+              borderRadius: "0.5rem",
+              marginBottom: "1.5rem",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              fontSize: "0.9rem"
+            }}
+          >
+            <span>⚠️ <strong>Reverse Geocoding Notice:</strong> {geoError}</span>
+            <button
+              type="button"
+              onClick={() => setGeoError(null)}
+              style={{
+                background: "none",
+                border: "none",
+                color: "#c2410c",
+                fontWeight: "bold",
+                cursor: "pointer",
+                paddingLeft: "1rem"
+              }}
+            >
+              ×
+            </button>
+          </div>
+        )}
 
         <div className="commute-layout">
           <div className="commute-sidebar">
