@@ -2914,6 +2914,33 @@ a {
   font-size: 0.9rem;
 }
 
+.location-search-error-item {
+  padding: var(--sp-4);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--sp-2);
+  text-align: center;
+  color: var(--danger-text);
+  font-size: 0.9rem;
+}
+
+.location-search-retry-btn {
+  padding: 0.35rem 0.85rem;
+  background: var(--danger);
+  color: white;
+  border: none;
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 500;
+  transition: opacity 200ms var(--ease);
+}
+
+.location-search-retry-btn:hover {
+  opacity: 0.9;
+}
+
 .location-search-item {
   display: flex;
   align-items: center;
