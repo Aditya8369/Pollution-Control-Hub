@@ -52,8 +52,10 @@ function readSavedLocations() {
 const Commute = () => {
   const [origin, setOrigin] = useState("");
   const [destination, setDestination] = useState("");
+  const [mode, setMode] = useState("driving");
   const [isCalculating, setIsCalculating] = useState(false);
   const [isLocating, setIsLocating] = useState(false);
+  const [geoError, setGeoError] = useState(null);
 
   const [routeLine, setRouteLine] = useState(null);
   const [mapCenter, setMapCenter] = useState([28.6139, 77.209]);
@@ -63,8 +65,10 @@ const Commute = () => {
   const [newLocationLabel, setNewLocationLabel] = useState("");
 
   const handleGetLocation = () => {
+    setGeoError(null);
+
     if (!navigator.geolocation) {
-      alert("Geolocation is not supported by your browser.");
+      setGeoError("Geolocation is not supported by your browser.");
       return;
     }
 
@@ -84,6 +88,9 @@ const Commute = () => {
           const response = await fetch(
             `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`,
           );
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
           const data = await response.json();
 
           if (data && data.display_name) {
@@ -93,23 +100,23 @@ const Commute = () => {
               .join(",");
             setOrigin(shortAddress);
           } else {
-            setOrigin(`${latitude}, ${longitude}`);
+            setOrigin("Location unavailable");
+            setGeoError("Location details unavailable for coordinates.");
           }
         } catch (error) {
           console.error("Reverse geocoding failed:", error);
-          setOrigin(`${latitude}, ${longitude}`);
+          setOrigin("Location unavailable");
+          setGeoError("Failed to fetch address details. Displaying placeholder.");
         } finally {
           setIsLocating(false);
         }
       },
       (error) => {
-        alert(
-          "Unable to retrieve your location. Please check your browser permissions.",
-        );
         console.error("Error getting location:", error);
+        setGeoError("Unable to retrieve location. Check browser permissions.");
         setIsLocating(false);
       },
-      options, // Pass options here
+      options,
     );
   };
 
@@ -118,7 +125,7 @@ const Commute = () => {
     setIsCalculating(true);
 
     try {
-      const routeResults = await calculateCleanRoute(origin, destination);
+      const routeResults = await calculateCleanRoute(origin, destination, mode);
       const cleanest = routeResults.cleanestRoute;
       const leafletCoords = cleanest.geometry.map((coord) => [
         coord[1],
@@ -129,7 +136,11 @@ const Commute = () => {
       setMapCenter(leafletCoords[0]);
       setRouteStats({
         distance: cleanest.distance,
+        duration: cleanest.duration,
         pm25: cleanest.pm25,
+        inhaledDose: cleanest.inhaledDose,
+        mode: cleanest.mode,
+        multiplier: cleanest.multiplier,
       });
       setRouteHistory((prev) => {
         const entry = { origin, destination, timestamp: new Date().toISOString() };
@@ -187,6 +198,41 @@ const Commute = () => {
         <h2 className="commute-title" style={{ marginTop: 0 }}>
           Clean Route Planner
         </h2>
+
+        {geoError && (
+          <div
+            className="commute-error-banner"
+            role="alert"
+            style={{
+              backgroundColor: "#fff7ed",
+              border: "1px solid #fdba74",
+              color: "#c2410c",
+              padding: "0.75rem 1rem",
+              borderRadius: "0.5rem",
+              marginBottom: "1.5rem",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              fontSize: "0.9rem"
+            }}
+          >
+            <span>⚠️ <strong>Reverse Geocoding Notice:</strong> {geoError}</span>
+            <button
+              type="button"
+              onClick={() => setGeoError(null)}
+              style={{
+                background: "none",
+                border: "none",
+                color: "#c2410c",
+                fontWeight: "bold",
+                cursor: "pointer",
+                paddingLeft: "1rem"
+              }}
+            >
+              ×
+            </button>
+          </div>
+        )}
 
         <div className="commute-layout">
           <div className="commute-sidebar">
@@ -274,6 +320,33 @@ const Commute = () => {
                 />
               </div>
 
+              <div className="form-group">
+                <label>Transport Mode</label>
+                <div className="mode-selector-group" role="group" aria-label="Transport Mode">
+                  <button
+                    type="button"
+                    className={`mode-chip-btn ${mode === "driving" ? "active" : ""}`}
+                    onClick={() => setMode("driving")}
+                  >
+                    Driving
+                  </button>
+                  <button
+                    type="button"
+                    className={`mode-chip-btn ${mode === "biking" ? "active" : ""}`}
+                    onClick={() => setMode("biking")}
+                  >
+                    Cycling
+                  </button>
+                  <button
+                    type="button"
+                    className={`mode-chip-btn ${mode === "foot" ? "active" : ""}`}
+                    onClick={() => setMode("foot")}
+                  >
+                    Walking
+                  </button>
+                </div>
+              </div>
+
               <div className="form-group commute-save-location">
                 <label>Save current locations for quick access</label>
                 <div className="commute-save-row">
@@ -315,10 +388,19 @@ const Commute = () => {
               <div className="commute-stats">
                 <h3>Route Selected</h3>
                 <p>
+                  Mode: <strong style={{ textTransform: "capitalize" }}>{routeStats.mode}</strong>
+                </p>
+                <p>
                   Distance: <strong>{routeStats.distance} km</strong>
                 </p>
                 <p>
+                  Est. Time: <strong>{routeStats.duration} mins</strong>
+                </p>
+                <p>
                   Avg PM2.5: <strong>{routeStats.pm25} µg/m³</strong>
+                </p>
+                <p>
+                  Inhaled PM2.5 Dose: <strong>{routeStats.inhaledDose} µg</strong>
                 </p>
               </div>
             )}

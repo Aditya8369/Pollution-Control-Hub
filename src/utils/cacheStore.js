@@ -77,6 +77,10 @@ async function cleanupExpiredEntries() {
     }
   }
 
+  if (typeof indexedDB === 'undefined') {
+    return;
+  }
+
   try {
     const store = await getObjectStore('readwrite');
     const index = store.index('timestamp');
@@ -112,6 +116,10 @@ export const cacheStore = {
   get: async function (key) {
     if (memoryCache.has(key)) {
       return memoryCache.get(key);
+    }
+
+    if (typeof indexedDB === 'undefined') {
+      return null;
     }
 
     try {
@@ -151,6 +159,10 @@ export const cacheStore = {
 
     memoryCache.set(key, entry);
 
+    if (typeof indexedDB === 'undefined') {
+      return;
+    }
+
     try {
       await executeStoreOperation(
         'readwrite',
@@ -162,10 +174,13 @@ export const cacheStore = {
     }
   },
 
-  /** @param {any} key */
   async invalidate(key) {
     if (key) {
       memoryCache.delete(key);
+
+      if (typeof indexedDB === 'undefined') {
+        return;
+      }
 
       try {
         await executeStoreOperation(
@@ -178,6 +193,10 @@ export const cacheStore = {
       }
     } else {
       memoryCache.clear();
+
+      if (typeof indexedDB === 'undefined') {
+        return;
+      }
 
       try {
         await executeStoreOperation(

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { eventBus } from '../core/events';
 
 const STORAGE_KEY = 'pollution-community-reports';
 const VOTES_STORAGE_KEY = 'pollution-community-voted-ids';
@@ -60,6 +61,8 @@ export default function CommunityHub() {
   const [fileInputKey, setFileInputKey] = useState(Date.now());
   const [uploadError, setUploadError] = useState('');
   const [isProcessingImage, setIsProcessingImage] = useState(false);
+  const [locationCoords, setLocationCoords] = useState(null);
+  const [locationStatus, setLocationStatus] = useState('idle');
 
   useEffect(() => {
     try {
@@ -107,6 +110,27 @@ export default function CommunityHub() {
     localStorage.setItem(VOTES_STORAGE_KEY, JSON.stringify([...votedIds]));
   }, [votedIds]);
 
+  const handleGetLocation = () => {
+    if (!navigator.geolocation) {
+      setLocationStatus('error');
+      return;
+    }
+    setLocationStatus('locating');
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setLocationCoords({
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+        });
+        setLocationStatus('success');
+      },
+      () => {
+        setLocationCoords(null);
+        setLocationStatus('error');
+      }
+    );
+  };
+
   /** @param {string} str */
   const sanitizeText = (str) => {
     return str
@@ -145,11 +169,17 @@ export default function CommunityHub() {
       status: "Pending",
       verifiedAt: "",
       moderationNotes: "",
+      latitude: locationCoords ? locationCoords.latitude : null,
+      longitude: locationCoords ? locationCoords.longitude : null,
     };
 
     setReports((prev) => [newReport, ...prev]);
     setForm({ title: '', description: '', image: '' });
     setFileInputKey(Date.now());
+    setLocationCoords(null);
+    setLocationStatus('idle');
+
+    eventBus.emit('COMMUNITY_REPORT_SUBMITTED', newReport);
   };
 
   /** @param {any} event */
@@ -284,6 +314,31 @@ export default function CommunityHub() {
           </p>
         )}
         {uploadError && <p className="upload-error">{uploadError}</p>}
+        <div className="location-action-group" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.25rem' }}>
+          <button
+            type="button"
+            className="btn-secondary text-sm"
+            onClick={handleGetLocation}
+            disabled={locationStatus === 'locating'}
+            style={{
+              padding: '0.4rem 0.8rem',
+              whiteSpace: 'nowrap',
+              fontSize: '0.85rem'
+            }}
+          >
+            {locationStatus === 'locating' ? 'Locating...' : 'Use Current Location'}
+          </button>
+          {locationStatus === 'success' && (
+            <span className="location-status-text" style={{ fontSize: '0.85rem', color: '#16a34a', fontWeight: '500' }}>
+              Location attached
+            </span>
+          )}
+          {locationStatus === 'error' && (
+            <span className="location-status-text" style={{ fontSize: '0.85rem', color: '#ef4444', fontWeight: '500' }}>
+              Unable to retrieve location
+            </span>
+          )}
+        </div>
         <button type="submit" disabled={isProcessingImage}>
           {isProcessingImage ? 'Processing image…' : 'Submit Report'}
         </button>
@@ -294,51 +349,48 @@ export default function CommunityHub() {
           <button
             key={statusOption}
             type="button"
+            className={filter === statusOption ? 'active' : ''}
             onClick={() => setFilter(statusOption)}
-            style={{
-              padding: '6px 12px',
-              cursor: 'pointer',
-              fontWeight: filter === statusOption ? 'bold' : 'normal'
-            }}
           >
             {statusOption}
           </button>
         ))}
       </div>
 
-      <div className="report-feed">
+      <div className="reports-list" style={{ display: 'grid', gap: '15px' }}>
         {filteredReports.length === 0 ? (
-          <p className="report-feed-empty">No reports yet. Be the first to raise an issue.</p>
+          <p className="no-reports">No reports found for "{filter}".</p>
         ) : (
-          filteredReports.map((report) => (
-            <article className="report-card" key={report.id}>
-              <div className="report-head">
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <h3>{report.title}</h3>
-                  <span className="status-badge" style={{ fontSize: '0.8rem', padding: '2px 6px', border: '1px solid #ccc', borderRadius: '4px' }}>
+          filteredReports.map((report) => {
+            const isVoted = votedIds.has(report.id);
+            return (
+              <div key={report.id} className="report-card" style={{ border: '1px solid var(--line)', padding: '15px', borderRadius: '8px', background: 'var(--card)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                  <h3 style={{ margin: 0, fontSize: '1.1rem' }}>{report.title}</h3>
+                  <span className={`status-badge ${report.status.toLowerCase().replace(/[^a-z]/g, '')}`} style={{ fontSize: '0.8rem', padding: '2px 8px', borderRadius: '12px', background: report.status.startsWith('Verified') ? '#dcfce7' : '#fef3c7', color: report.status.startsWith('Verified') ? '#166534' : '#92400e' }}>
                     {report.status}
                   </span>
                 </div>
-                <button onClick={() => vote(report.id)} type="button" disabled={votedIds.has(report.id)}>
-                  {votedIds.has(report.id) ? 'Voted' : 'Upvote'} ({report.votes})
-                </button>
+                <p style={{ margin: '0 0 10px 0', color: 'var(--muted)', fontSize: '0.95rem' }}>{report.description}</p>
+                {report.image && (
+                  <div style={{ marginBottom: '10px' }}>
+                    <img src={report.image} alt={report.title} style={{ maxWidth: '100%', maxHeight: '200px', borderRadius: '6px', objectFit: 'cover' }} />
+                  </div>
+                )}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.85rem', color: 'var(--muted)' }}>
+                  <span>Votes: {report.votes}</span>
+                  <button
+                    type="button"
+                    onClick={() => vote(report.id)}
+                    disabled={isVoted}
+                    style={{ padding: '4px 12px', cursor: isVoted ? 'default' : 'pointer' }}
+                  >
+                    {isVoted ? 'Voted' : 'Upvote (+1)'}
+                  </button>
+                </div>
               </div>
-              <p>{report.description}</p>
-              {report.image && /^data:image\/(jpeg|png|webp);base64,/.test(report.image) && (
-                <img src={report.image} alt={report.title} />
-              )}
-
-              <div className="timeline-workflow" style={{ marginTop: '12px', fontSize: '0.8rem', color: '#666' }}>
-                <span>Created</span>
-                <span style={{ color: report.status.startsWith('Verified') || report.status === 'Addressed' ? '#000' : '#ccc' }}>
-                  {" → "}Community verified
-                </span>
-                <span style={{ color: report.status === 'Addressed' ? '#000' : '#ccc' }}>
-                  {" → "}Addressed
-                </span>
-              </div>
-            </article>
-          ))
+            );
+          })
         )}
       </div>
     </section>

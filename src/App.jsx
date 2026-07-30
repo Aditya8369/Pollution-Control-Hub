@@ -21,6 +21,7 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import Commute from "./components/Commute";
 import GettingStarted from "./components/GettingStarted";
 import CityCompare from "./components/CityCompare";
+import SunSafetyDashboard from "./components/SunSafetyDashboard";
 import {
   estimateWeeklyMonthlyAverages,
   fetchAirQualityByCoords,
@@ -59,6 +60,9 @@ async function reverseGeocodeCity(lat, lon) {
   const response = await fetch(
     `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`,
   );
+  if (!response.ok) {
+    throw new Error(`Reverse geocoding failed with status: ${response.status}`);
+  }
   const data = await response.json();
   const address = data?.address || {};
   const cityName =
@@ -848,7 +852,7 @@ useEffect(() => {
               />
 
               <HealthAdvisory />
-
+              <SunSafetyDashboard />
               <SolutionsAwareness />
 
               <AnalyticsInsights

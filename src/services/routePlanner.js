@@ -31,13 +31,41 @@ const getSegmentPollution = async (lon, lat) => {
   return data.current.pm2_5;
 };
 
+const MODE_PROFILES = {
+  driving: {
+    label: "Driving",
+    speedKmH: 35,
+    respirationRateLmin: 8,
+    cabinFilterFactor: 0.7,
+    multiplier: 1.0,
+  },
+  biking: {
+    label: "Cycling",
+    speedKmH: 15,
+    respirationRateLmin: 35,
+    cabinFilterFactor: 1.0,
+    multiplier: 3.5,
+  },
+  foot: {
+    label: "Walking",
+    speedKmH: 4.8,
+    respirationRateLmin: 20,
+    cabinFilterFactor: 1.0,
+    multiplier: 2.2,
+  },
+};
+
 // 3. Main Function: Calculate the Cleanest Route
 /**
- * @param {any} originText
- * @param {any} destinationText
+ * @param {string} originText
+ * @param {string} destinationText
+ * @param {'driving' | 'biking' | 'foot'} [mode="driving"]
  */
-export const calculateCleanRoute = async (originText, destinationText) => {
+export const calculateCleanRoute = async (originText, destinationText, mode = "driving") => {
   try {
+    const activeMode = MODE_PROFILES[mode] ? mode : "driving";
+    const modeConfig = MODE_PROFILES[activeMode];
+
     // Step A: Convert user input into map coordinates
     const originCoords = await geocodeLocation(originText);
     const destCoords = await geocodeLocation(destinationText);
@@ -85,15 +113,28 @@ export const calculateCleanRoute = async (originText, destinationText) => {
         }
       }
 
-      const avgPm25 = (totalPm / checkpoints.length).toFixed(1);
-      // @ts-ignore
-      const exposureScore = route.distance * avgPm25;
+      const avgPm25 = parseFloat((totalPm / checkpoints.length).toFixed(1));
+      const distanceKm = route.distance / 1000;
+      
+      // Calculate mode-specific duration based on realistic mode speeds
+      const modeDurationMins = Math.max(1, Math.round((distanceKm / modeConfig.speedKmH) * 60));
+      
+      // Inhaled PM2.5 dosage (µg) = Concentration * Cabin/Outdoor Factor * Duration (hrs) * Respiration Rate (m³/hr)
+      const durationHours = modeDurationMins / 60;
+      const respirationRateM3H = (modeConfig.respirationRateLmin * 60) / 1000;
+      const inhaledDoseUg = (avgPm25 * modeConfig.cabinFilterFactor * durationHours * respirationRateM3H).toFixed(1);
+
+      // Score used for route sorting
+      const exposureScore = distanceKm * avgPm25 * modeConfig.multiplier;
 
       evaluatedRoutes.push({
         geometry: coordinates,
-        distance: (route.distance / 1000).toFixed(2),
-        duration: (route.duration / 60).toFixed(0),
-        pm25: avgPm25,
+        distance: distanceKm.toFixed(2),
+        duration: String(modeDurationMins),
+        pm25: avgPm25.toFixed(1),
+        inhaledDose: inhaledDoseUg,
+        mode: activeMode,
+        multiplier: modeConfig.multiplier,
         exposureScore: exposureScore,
         highestPm: maxPm.toFixed(1),
         lowestPm: minPm.toFixed(1),
