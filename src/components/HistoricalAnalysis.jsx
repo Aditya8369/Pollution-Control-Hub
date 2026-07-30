@@ -90,8 +90,8 @@ export default function HistoricalAnalysis({ position }) {
   const minDate = data?.daily?.[0]?.date || '';
   const maxDate = data?.daily?.[data.daily.length - 1]?.date || '';
 
-  const handleExportPDF = async () => {
-    if (!containerRef.current || !data) return;
+  const handleExportPDF = () => {
+    if (!data || !data.daily) return;
     if (new Date(startDate) > new Date(endDate)) {
       setDateError('Start date cannot be after end date.');
       return;
@@ -100,22 +100,206 @@ export default function HistoricalAnalysis({ position }) {
 
     try {
       setIsExportingPDF(true);
-      const canvas = await html2canvas(containerRef.current, {
-        scale: 2,
-        useCORS: true,
-        logging: false,
-        ignoreElements: (el) => el.getAttribute('data-html2canvas-ignore') === 'true'
-      });
-      const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF('p', 'mm', 'a4');
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
 
-      const cityName = position?.cityName ? position.cityName.replace(/[^a-z0-9]/gi, '_').toLowerCase() : 'historical';
-      pdf.save(`${cityName}_pollution_history_${startDate}_to_${endDate}.pdf`);
+      const filtered = data.daily
+        .filter(d => d.date >= startDate && d.date <= endDate)
+        .sort((a, b) => a.date.localeCompare(b.date));
+
+      const daysAnalysed = filtered.length;
+      if (daysAnalysed === 0) return;
+
+      const aqis = filtered
+        .map(d => (d.maxAqi != null ? d.maxAqi : d.aqi))
+        .filter(v => v != null && !isNaN(v));
+
+      const avgAqi = aqis.length > 0 ? Math.round(aqis.reduce((a, b) => a + b, 0) / aqis.length) : '-';
+      const minAqi = aqis.length > 0 ? Math.min(...aqis) : '-';
+      const maxAqi = aqis.length > 0 ? Math.max(...aqis) : '-';
+
+      const highestDay = filtered.find(d => (d.maxAqi != null ? d.maxAqi : d.aqi) === maxAqi);
+      const lowestDay = filtered.find(d => (d.maxAqi != null ? d.maxAqi : d.aqi) === minAqi);
+
+      const calcAvg = (key) => {
+        const vals = filtered.map(d => d[key]).filter(v => typeof v === 'number' && !isNaN(v));
+        return vals.length > 0 ? (vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(1) : 'N/A';
+      };
+
+      const avgPm25 = calcAvg('pm25');
+      const avgPm10 = calcAvg('pm10');
+      const avgNo2 = calcAvg('no2');
+      const avgOzone = calcAvg('ozone');
+      const avgCo = calcAvg('co');
+
+      let goodDays = 0, moderateDays = 0, poorDays = 0, veryPoorDays = 0, hazardousDays = 0;
+      filtered.forEach(d => {
+        const val = d.maxAqi != null ? d.maxAqi : d.aqi;
+        if (val <= 50) goodDays++;
+        else if (val <= 100) moderateDays++;
+        else if (val <= 200) poorDays++;
+        else if (val <= 300) veryPoorDays++;
+        else hazardousDays++;
+      });
+
+      // Deterministic rule-based observations
+      const categories = [
+        { name: 'Good', count: goodDays },
+        { name: 'Moderate', count: moderateDays },
+        { name: 'Poor', count: poorDays },
+        { name: 'Very Poor', count: veryPoorDays },
+        { name: 'Hazardous', count: hazardousDays },
+      ];
+      const predominant = categories.reduce((prev, curr) => (curr.count > prev.count ? curr : prev), categories[0]);
+
+      const observations = [];
+      observations.push(`Air quality remained predominantly ${predominant.name} during the selected reporting period.`);
+      if (highestDay) {
+        observations.push(`Peak pollution occurred on ${highestDay.date} with an AQI of ${maxAqi}.`);
+      }
+      if (avgPm25 !== 'N/A') {
+        observations.push(`PM2.5 recorded the highest average concentration among the monitored pollutants.`);
+      }
+      if (hazardousDays === 0) {
+        observations.push(`No Hazardous AQI levels were observed during the reporting period.`);
+      } else {
+        observations.push(`${hazardousDays} Hazardous AQI level(s) were observed during the reporting period.`);
+      }
+
+      // Generate report using jsPDF
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const margin = 18; // 18mm margin
+      let y = 20;
+
+      // Header Banner
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(18);
+      pdf.setTextColor(13, 148, 136); // #0d9488 brand teal
+      pdf.text('Pollution Control Hub', pageWidth / 2, y, { align: 'center' });
+      y += 7;
+
+      pdf.setFontSize(12);
+      pdf.setTextColor(30, 41, 59); // slate-800
+      pdf.text('Historical Air Quality Report', pageWidth / 2, y, { align: 'center' });
+      y += 9;
+
+      pdf.setDrawColor(203, 213, 225); // slate-300
+      pdf.setLineWidth(0.5);
+      pdf.line(margin, y, pageWidth - margin, y);
+      y += 8; // generous spacing after header before first section
+
+      // Helper function for section headers
+      const addSectionHeader = (title) => {
+        pdf.setFont('helvetica', 'bold');
+        pdf.setFontSize(11.5);
+        pdf.setTextColor(13, 148, 136);
+        pdf.text(title, margin, y);
+        y += 4;
+        pdf.setDrawColor(226, 232, 240); // slate-200
+        pdf.setLineWidth(0.3);
+        pdf.line(margin, y, pageWidth - margin, y);
+        y += 7; // spacing after heading before content
+      };
+
+      // Two-column stat row printing helper
+      const labelX = margin;
+      const valueX = margin + 55; // 55mm offset for perfectly aligned colon and values
+
+      const addStatRow = (label, val) => {
+        pdf.setFont('helvetica', 'normal');
+        pdf.setFontSize(9.5);
+        pdf.setTextColor(71, 85, 105); // slate-600 label
+        pdf.text(label, labelX, y);
+        pdf.setFont('helvetica', 'bold');
+        pdf.setTextColor(15, 23, 42); // slate-900 value
+        pdf.text(`:  ${val}`, valueX, y);
+        y += 5.5;
+      };
+
+      // 1. Location Section
+      addSectionHeader('Location');
+      const locName = position?.cityName ? position.cityName : null;
+      if (locName) {
+        pdf.setFont('helvetica', 'bold');
+        pdf.setFontSize(11);
+        pdf.setTextColor(15, 23, 42);
+        pdf.text(locName, margin, y);
+        y += 6;
+      }
+      if (position?.lat != null && position?.lon != null) {
+        addStatRow('Latitude', position.lat.toFixed(4));
+        addStatRow('Longitude', position.lon.toFixed(4));
+      }
+      y += 6; // spacing between major sections
+
+      // 2. Reporting Period Section
+      addSectionHeader('Reporting Period');
+      addStatRow('From', startDate);
+      addStatRow('To', endDate);
+      y += 6;
+
+      // 3. Summary Statistics Section
+      addSectionHeader('Summary Statistics');
+      addStatRow('Days Analysed', String(daysAnalysed));
+      y += 2.5;
+      addStatRow('Average AQI', String(avgAqi));
+      addStatRow('Minimum AQI', String(minAqi));
+      addStatRow('Maximum AQI', String(maxAqi));
+      y += 2.5;
+      addStatRow('Average PM2.5', `${avgPm25} µg/m³`);
+      addStatRow('Average PM10', `${avgPm10} µg/m³`);
+      addStatRow('Average NO₂', `${avgNo2} µg/m³`);
+      addStatRow('Average Ozone', `${avgOzone} µg/m³`);
+      addStatRow('Average CO', `${avgCo} µg/m³`);
+      y += 6;
+
+      // 4. Air Quality Overview Section
+      addSectionHeader('Air Quality Overview');
+      addStatRow('Good Days', String(goodDays));
+      addStatRow('Moderate Days', String(moderateDays));
+      addStatRow('Poor Days', String(poorDays));
+      addStatRow('Very Poor Days', String(veryPoorDays));
+      addStatRow('Hazardous Days', String(hazardousDays));
+      y += 2.5;
+      if (highestDay) {
+        addStatRow('Highest AQI Date', `${highestDay.date} (AQI ${maxAqi})`);
+      }
+      if (lowestDay) {
+        addStatRow('Lowest AQI Date', `${lowestDay.date} (AQI ${minAqi})`);
+      }
+      y += 6;
+
+      // 5. Environmental Summary Section
+      addSectionHeader('Environmental Summary');
+      pdf.setFont('helvetica', 'normal');
+      pdf.setFontSize(9.5);
+      pdf.setTextColor(51, 65, 85);
+
+      observations.forEach((obs) => {
+        const lines = pdf.splitTextToSize(`• ${obs}`, pageWidth - margin * 2);
+        pdf.text(lines, margin, y);
+        y += lines.length * 5 + 3.5; // spacing between observations
+      });
+      y += 4;
+
+      // 6. Footer Section
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      pdf.setDrawColor(203, 213, 225);
+      pdf.setLineWidth(0.4);
+      pdf.line(margin, pageHeight - 20, pageWidth - margin, pageHeight - 20);
+
+      pdf.setFont('helvetica', 'normal');
+      pdf.setFontSize(8.5);
+      pdf.setTextColor(100, 116, 139);
+
+      const now = new Date();
+      const formattedNow = `${now.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}, ${now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+      pdf.text(`Generated on: ${formattedNow}`, margin, pageHeight - 11);
+      pdf.text('Generated by Pollution Control Hub', pageWidth - margin, pageHeight - 11, { align: 'right' });
+
+      const cityNameStr = position?.cityName ? position.cityName.replace(/[^a-z0-9]/gi, '_').toLowerCase() : 'historical';
+      pdf.save(`${cityNameStr}_pollution_history_${startDate}_to_${endDate}.pdf`);
     } catch (err) {
-      console.error('Failed to export PDF:', err);
+      console.error('Failed to generate PDF report:', err);
     } finally {
       setIsExportingPDF(false);
     }

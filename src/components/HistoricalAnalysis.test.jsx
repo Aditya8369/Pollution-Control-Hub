@@ -20,13 +20,24 @@ vi.mock('html2canvas', () => ({
   }),
 }));
 
+const mockPdfSave = vi.fn();
+const mockPdfText = vi.fn();
+
 vi.mock('jspdf', () => ({
   default: class MockjsPDF {
     constructor() {
       this.internal = { pageSize: { getWidth: () => 210, getHeight: () => 297 } };
     }
-    addImage() {}
-    save() {}
+    setFont() { return this; }
+    setFontSize() { return this; }
+    setTextColor() { return this; }
+    setDrawColor() { return this; }
+    setLineWidth() { return this; }
+    splitTextToSize(text) { return [text]; }
+    text(...args) { mockPdfText(...args); return this; }
+    line() { return this; }
+    addImage() { return this; }
+    save(...args) { mockPdfSave(...args); return this; }
   },
 }));
 
@@ -44,7 +55,8 @@ describe('HistoricalAnalysis Component - Export PDF & CSV', () => {
   };
 
   beforeEach(() => {
-    vi.restoreAllMocks();
+    mockPdfSave.mockClear();
+    mockPdfText.mockClear();
 
     // Mock web worker
     globalThis.Worker = class MockWorker {
@@ -84,7 +96,7 @@ describe('HistoricalAnalysis Component - Export PDF & CSV', () => {
     fireEvent.click(pdfBtn);
 
     await waitFor(() => {
-      expect(pdfBtn).toBeInTheDocument();
+      expect(mockPdfSave).toHaveBeenCalled();
     });
   });
 
