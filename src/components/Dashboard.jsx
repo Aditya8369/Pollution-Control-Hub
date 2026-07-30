@@ -1,6 +1,8 @@
 import {
   LineChart,
   Line,
+  AreaChart,
+  Area,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -16,7 +18,7 @@ import { useRef, useState, useEffect } from "react";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 import { useSWR } from "../hooks/useSWR";
-import { getAQIBand, getPollutantColor, fetch7DayForecast, getWeatherDetails } from "../services/airQualityService";
+import { getAQIBand, getPollutantColor, get7DayForecast, fetch7DayForecast, getWeatherDetails } from "../services/airQualityService";
 import MorningBriefing from "./MorningBriefing";
 import { eventBus } from "../core/events";
 
@@ -77,7 +79,7 @@ export default function Dashboard({
     data: forecastData,
     error: forecastError,
     mutate: mutateForecast
-  } = useSWR(forecastKey, () => fetch7DayForecast(lat, lon), { ttl: 60 * 60 * 1000 });
+  } = useSWR(forecastKey, () => get7DayForecast(lat, lon), { ttl: 60 * 60 * 1000 });
 
   const [animateForecast, setAnimateForecast] = useState(false);
 
@@ -485,6 +487,56 @@ export default function Dashboard({
               <div style={{ padding: '2rem', textAlign: 'center', opacity: 0.7 }}>
                 <span className="live-dot active" style={{ display: 'inline-block', marginRight: '0.5rem' }}></span>
                 Loading 7-day forecast...
+              </div>
+            )}
+            {forecastData && forecastData.length > 0 && (
+              <div data-testid="7-day-forecast-chart" style={{ marginTop: '1rem', marginBottom: '1.5rem' }}>
+                <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '0.95rem', color: 'var(--muted)', fontWeight: '600' }}>
+                  7-Day Predictive AQI Trend & Confidence Bounds
+                </h4>
+                <ResponsiveContainer width="100%" height={260}>
+                  <AreaChart
+                    data={forecastData.map((d) => ({
+                      ...d,
+                      label: new Date(d.date).toLocaleDateString(undefined, {
+                        weekday: 'short',
+                        month: 'short',
+                        day: 'numeric',
+                        timeZone: 'UTC'
+                      }),
+                    }))}
+                    margin={{ top: 10, right: 20, left: 0, bottom: 0 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" stroke="#d7e6e1" />
+                    <XAxis dataKey="label" />
+                    <YAxis />
+                    <Tooltip
+                      formatter={(val, name) => {
+                        if (name === "Confidence Range") {
+                          const tuple = Array.isArray(val) ? val : [val, val];
+                          return [`${tuple[0]} – ${tuple[1]} AQI`, 'Confidence Bounds'];
+                        }
+                        return [`${val} AQI`, 'Predicted AQI'];
+                      }}
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="confidenceRange"
+                      stroke="none"
+                      fill="#0d9488"
+                      fillOpacity={0.18}
+                      name="Confidence Range"
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="aqi"
+                      stroke="#0d9488"
+                      strokeWidth={3}
+                      dot={{ r: 4, fill: "#0d9488" }}
+                      name="Predicted AQI"
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
               </div>
             )}
             {forecastData && (

@@ -109,3 +109,54 @@ describe('fetchAirQualityByCoords - trend slicing', () => {
     expect(result.trend[23].time).toBe(`${todayStr}T23:00`);
   });
 });
+
+describe('get7DayForecast', () => {
+  beforeEach(async () => {
+    await cacheStore.invalidate();
+    vi.restoreAllMocks();
+  });
+
+  it('retrieves 7-day forecast with confidence bounds', async () => {
+    const { get7DayForecast } = await import('../services/airQualityService');
+    const mockAqi = {
+      hourly: {
+        time: Array.from({ length: 168 }, (_, i) => `2026-07-${String(Math.floor(i / 24) + 1).padStart(2, '0')}T${String(i % 24).padStart(2, '0')}:00`),
+        us_aqi: Array.from({ length: 168 }, () => 100),
+      },
+    };
+    const mockWeather = {
+      daily: {
+        time: ['2026-07-01', '2026-07-02', '2026-07-03', '2026-07-04', '2026-07-05', '2026-07-06', '2026-07-07'],
+        weather_code: [0, 1, 2, 3, 45, 61, 80],
+      },
+    };
+
+    vi.stubGlobal('fetch', vi.fn().mockImplementation(async (url) => {
+      if (url.includes('daily=weather_code')) {
+        return { ok: true, json: async () => mockWeather };
+      }
+      return { ok: true, json: async () => mockAqi };
+    }));
+
+    const forecast = await get7DayForecast(28.6139, 77.2090);
+    expect(forecast.length).toBeGreaterThan(0);
+    const day = forecast[0];
+    expect(day.date).toBeDefined();
+    expect(day.aqi).toBe(100);
+    expect(day.predictedAQI).toBe(100);
+    expect(typeof day.lowerBound).toBe('number');
+    expect(typeof day.upperBound).toBe('number');
+    expect(day.lowerBound).toBeLessThanOrEqual(day.aqi);
+    expect(day.upperBound).toBeGreaterThanOrEqual(day.aqi);
+    expect(Array.isArray(day.confidenceRange)).toBe(true);
+  });
+
+  it('throws an error if API request fails', async () => {
+    const { get7DayForecast } = await import('../services/airQualityService');
+    vi.stubGlobal('fetch', vi.fn().mockImplementation(async () => ({
+      ok: false,
+    })));
+
+    await expect(get7DayForecast(28.6139, 77.2090)).rejects.toThrow('Failed to fetch 7-day forecast.');
+  });
+});
