@@ -435,9 +435,13 @@ export default function QuizSection() {
         <div className="quiz-progress-fill" style={{ width: `${progress}%` }} />
       </div>
 
-      <h3 className="quiz-question">{current.question}</h3>
+      <h3 id="quiz-question-heading" className="quiz-question">{current.question}</h3>
 
-      <div className="quiz-options">
+      <div
+        className="quiz-options"
+        role="radiogroup"
+        aria-labelledby="quiz-question-heading"
+      >
         {current.options.map((option) => {
           const selectedClass = selected === option ? 'selected' : '';
           const resultClass = submitted
@@ -452,6 +456,9 @@ export default function QuizSection() {
             <button
               key={option}
               type="button"
+              role="radio"
+              aria-checked={selected === option}
+              aria-disabled={submitted || isVerifying}
               className={`quiz-option ${selectedClass} ${resultClass}`.trim()}
               onClick={() => submitAnswer(option)}
               disabled={submitted || isVerifying}
