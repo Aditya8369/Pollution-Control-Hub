@@ -9,9 +9,9 @@ export const CITY_COORDINATES = [
 ];
 
 export const SAFE_LIMITS = {
-  pm2_5: 35,
-  pm10: 60,
+  pm2_5: 15,
+  pm10: 45,
   carbon_monoxide: 4000,
-  nitrogen_dioxide: 80,
+  nitrogen_dioxide: 25,
   ozone: 100
 };

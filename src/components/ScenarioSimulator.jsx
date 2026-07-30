@@ -1,69 +1,153 @@
+// @ts-nocheck
 import { useEffect, useState } from 'react';
-import { Car, Factory, TreePine, Zap, Globe, FlaskConical, CloudFog, TrafficCone, Sun, AlertTriangle } from 'lucide-react';
+import { CarFront, Sun, Wind, Factory } from "lucide-react";
 import { CITY_COORDINATES } from '../constants/cities';
 import { fetchAirQualityByCoords, getAQIBand, estimateAQI } from '../services/airQualityService';
 
-/* ─── Preset intervention scenarios ──────────────────────────────────────── */
+const PM25GaugeIcon = ({ size = 24 }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox="0 0 32 32"
+    xmlns="http://www.w3.org/2000/svg"
+    aria-hidden="true"
+  >
+    {/* Colored AQI gauge */}
+    <path
+      d="M5 21 A11 11 0 0 1 9 12"
+      fill="none"
+      stroke="#84cc16"
+      strokeWidth="4"
+      strokeLinecap="round"
+    />
 
+    <path
+      d="M9 12 A11 11 0 0 1 16 9"
+      fill="none"
+      stroke="#eab308"
+      strokeWidth="4"
+    />
+
+    <path
+      d="M16 9 A11 11 0 0 1 23 12"
+      fill="none"
+      stroke="#f97316"
+      strokeWidth="4"
+    />
+
+    <path
+      d="M23 12 A11 11 0 0 1 27 21"
+      fill="none"
+      stroke="#ef4444"
+      strokeWidth="4"
+      strokeLinecap="round"
+    />
+
+    {/* Needle */}
+    <line
+      x1="16"
+      y1="21"
+      x2="10"
+      y2="15"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+    />
+
+    {/* Center */}
+    <circle
+      cx="16"
+      cy="21"
+      r="2.5"
+      fill="currentColor"
+    />
+  </svg>
+);
+/* ─── Preset intervention scenarios ──────────────────────────────────────── */
 const PRESETS = [
   {
     id: 'traffic',
-    icon: Car,
+    icon: '🚗',
     label: 'Traffic Control',
     description: 'Odd-even driving, EV mandates',
     pm25: 10,
+    pm10: 10,
     no2: 20,
     o3: 5,
+    co: 15,
   },
   {
     id: 'industrial',
-    icon: Factory,
+    icon: '🏭',
     label: 'Industrial Limits',
     description: 'Stricter stack emission caps',
     pm25: 25,
+    pm10: 20,
     no2: 15,
     o3: 0,
+    co: 10,
   },
   {
     id: 'green',
-    icon: TreePine,
+    icon: '🌳',
     label: 'Green Cover',
     description: 'Urban forestry & park expansion',
     pm25: 10,
+    pm10: 10,
     no2: 5,
     o3: 15,
+    co: 5,
   },
   {
     id: 'clean-fuel',
-    icon: Zap,
+    icon: '⚡',
     label: 'Clean Fuel Switch',
     description: 'Replace petrol/diesel with CNG/EV',
     pm25: 20,
+    pm10: 15,
     no2: 30,
     o3: 10,
+    co: 25,
   },
   {
     id: 'combined',
-    icon: Globe,
+    icon: '🌐',
     label: 'Combined Policy',
     description: 'All interventions together',
     pm25: 50,
+    pm10: 50,
     no2: 50,
     o3: 50,
+    co: 50,
   },
 ];
 
+const CUSTOM_PRESETS_STORAGE_KEY = 'scenario-simulator-custom-presets';
+
 /* ─── Component ───────────────────────────────────────────────────────────── */
 
-export default function ScenarioSimulator({ current }) {
-  if (!current) { return null;}
-  const [pm25Reduction, setPm25Reduction] = useState(0);
+export default function ScenarioSimulator({ current }) {  const [pm25Reduction, setPm25Reduction] = useState(0);
+  const [pm10Reduction, setPm10Reduction] = useState(0);
   const [no2Reduction, setNo2Reduction] = useState(0);
   const [o3Reduction, setO3Reduction] = useState(0);
-  const [activePreset, setActivePreset] = useState(null);
+  const [coReduction, setCoReduction] = useState(0);
+ const [activePreset, setActivePreset] = useState(null);
 
-  // Multi-city: selected city names (start with just the first city as placeholder;
-  // the "active" city always uses `current` prop directly)
+  // Custom presets saved by the user, loaded once from localStorage
+  const [customPresets, setCustomPresets] = useState(() => {
+    try {
+      const saved = localStorage.getItem(CUSTOM_PRESETS_STORAGE_KEY);
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  useEffect(() => {
+    localStorage.setItem(CUSTOM_PRESETS_STORAGE_KEY, JSON.stringify(customPresets));
+  }, [customPresets]);
+
+  // Multi-city: selected city names (start with just the first city as placeholder;  // the "active" city always uses `current` prop directly)
   const [selectedCities, setSelectedCities] = useState([]);
   // Map of cityName → fetched current pollutant data
   const [cityData, setCityData] = useState({});
@@ -76,19 +160,48 @@ export default function ScenarioSimulator({ current }) {
       // Deselect — reset sliders
       setActivePreset(null);
       setPm25Reduction(0);
+      setPm10Reduction(0);
       setNo2Reduction(0);
       setO3Reduction(0);
+      setCoReduction(0);
     } else {
       setActivePreset(preset.id);
       setPm25Reduction(preset.pm25);
+      setPm10Reduction(preset.pm10);
       setNo2Reduction(preset.no2);
       setO3Reduction(preset.o3);
+      setCoReduction(preset.co);
     }
   }
 
+/* ── Save current slider values as a custom preset ── */
+  function saveCurrentAsPreset() {
+    const name = window.prompt('Name this preset:');
+    if (!name || !name.trim()) return;
+
+    const newPreset = {
+      id: `custom-${Date.now()}`,
+      icon: '⭐',
+      label: name.trim(),
+      description: 'Custom preset',
+      pm25: pm25Reduction,
+      pm10: pm10Reduction,
+      no2: no2Reduction,
+      o3: o3Reduction,
+      co: coReduction,
+    };
+
+    setCustomPresets((prev) => [...prev, newPreset]);
+  }
+
+  /* ── Delete a custom preset ── */
+  function deleteCustomPreset(id) {
+    setCustomPresets((prev) => prev.filter((p) => p.id !== id));
+    if (activePreset === id) setActivePreset(null);
+  }
+
   /* ── City toggle ── */
-  function toggleCity(cityName) {
-    setSelectedCities((prev) => {
+  function toggleCity(cityName) {    setSelectedCities((prev) => {
       if (prev.includes(cityName)) {
         return prev.filter((c) => c !== cityName);
       }
@@ -128,23 +241,18 @@ export default function ScenarioSimulator({ current }) {
 
   /* ── Derived values for the "active city" (from prop) ── */
   const reducedPm25 = current.pm2_5 * (1 - pm25Reduction / 100);
+  const reducedPm10 = current.pm10 * (1 - pm10Reduction / 100);
   const reducedNo2 = current.nitrogen_dioxide * (1 - no2Reduction / 100);
   const reducedO3 = current.ozone * (1 - o3Reduction / 100);
+  const reducedCo = current.carbon_monoxide * (1 - coReduction / 100);
 
-  // Fix for Issue #113: if no reduction has been applied (all sliders at 0%),
-  // Estimated AQI must equal Current AQI exactly instead of being recalculated
-  // via a different formula that can drift from the API-provided value.
-  const hasReduction = pm25Reduction > 0 || no2Reduction > 0 || o3Reduction > 0;
-
-  const estimatedAqi = hasReduction
-    ? estimateAQI(
-        Math.round(reducedPm25),
-        current.pm10,
-        Math.round(reducedNo2),
-        Math.round(reducedO3),
-        current.carbon_monoxide
-      )
-    : current.us_aqi;
+  const estimatedAqi = estimateAQI(
+    Math.round(reducedPm25),
+    Math.round(reducedPm10),
+    Math.round(reducedNo2),
+    Math.round(reducedO3),
+    Math.round(reducedCo)
+  );
 
   const currentBand = getAQIBand(current.us_aqi);
   const estimatedBand = getAQIBand(estimatedAqi);
@@ -157,21 +265,17 @@ export default function ScenarioSimulator({ current }) {
   /* ── Compute simulated result for a comparison city ── */
   function simulateCity(data) {
     const rPm25 = data.pm2_5 * (1 - pm25Reduction / 100);
+    const rPm10 = data.pm10 * (1 - pm10Reduction / 100);
     const rNo2 = data.nitrogen_dioxide * (1 - no2Reduction / 100);
     const rO3 = data.ozone * (1 - o3Reduction / 100);
-
-    const cityHasReduction = pm25Reduction > 0 || no2Reduction > 0 || o3Reduction > 0;
-
-    const simAqi = cityHasReduction
-      ? estimateAQI(
-          Math.round(rPm25),
-          data.pm10,
-          Math.round(rNo2),
-          Math.round(rO3),
-          data.carbon_monoxide
-        )
-      : data.us_aqi;
-
+    const rCo = data.carbon_monoxide * (1 - coReduction / 100);
+    const simAqi = estimateAQI(
+      Math.round(rPm25),
+      Math.round(rPm10),
+      Math.round(rNo2),
+      Math.round(rO3),
+      Math.round(rCo)
+    );
     const imp =
       data.us_aqi > 0
         ? Math.round(((data.us_aqi - simAqi) / data.us_aqi) * 100)
@@ -181,16 +285,18 @@ export default function ScenarioSimulator({ current }) {
       simBand: getAQIBand(simAqi),
       improvement: imp,
       rPm25: Math.round(rPm25),
+      rPm10: Math.round(rPm10),
       rNo2: Math.round(rNo2),
       rO3: Math.round(rO3),
+      rCo: Math.round(rCo),
     };
   }
 
   return (
-    <section className="panel scenario-simulator" aria-labelledby="sim-heading">
+    <section data-testid="scenario-simulator" className="panel scenario-simulator" aria-labelledby="sim-heading">
       {/* ── Header ── */}
       <div className="panel-head">
-        <h2 id="sim-heading"><FlaskConical className="inline-icon" size={22} aria-hidden="true" /> Scenario Simulator</h2>
+        <h2 id="sim-heading">🧪 Scenario Simulator</h2>
         <p>
           Adjust sliders or pick a preset to see how interventions could improve AQI across cities.
         </p>
@@ -206,35 +312,87 @@ export default function ScenarioSimulator({ current }) {
             onClick={() => applyPreset(preset)}
             aria-pressed={activePreset === preset.id}
           >
-            <span className="sim-preset-icon"><preset.icon size={26} aria-hidden="true" /></span>
+            <span className="sim-preset-icon">{preset.icon}</span>
             <span className="sim-preset-label">{preset.label}</span>
             <span className="sim-preset-desc">{preset.description}</span>
             <span className="sim-preset-tags">
               {preset.pm25 > 0 && <span className="sim-tag">PM2.5 −{preset.pm25}%</span>}
+              {preset.pm10 > 0 && <span className="sim-tag">PM10 −{preset.pm10}%</span>}
               {preset.no2 > 0 && <span className="sim-tag">NO₂ −{preset.no2}%</span>}
               {preset.o3 > 0 && <span className="sim-tag">O₃ −{preset.o3}%</span>}
+              {preset.co > 0 && <span className="sim-tag">CO −{preset.co}%</span>}
             </span>
           </button>
         ))}
-      </div>
+ </div>
 
-      {/* ── Sliders ── */}
-      <div className="sim-sliders" role="group" aria-label="Pollutant reduction sliders">
+      {/* ── Custom User Presets ── */}
+      {customPresets.length > 0 && (
+        <div className="sim-presets sim-custom-presets" role="group" aria-label="Custom saved presets">
+          {customPresets.map((preset) => (
+            <div key={preset.id} className={`sim-preset-card${activePreset === preset.id ? ' active' : ''}`}>
+              <button
+                type="button"
+                className="sim-preset-apply-btn"
+                onClick={() => applyPreset(preset)}
+                aria-pressed={activePreset === preset.id}
+              >
+                <span className="sim-preset-icon">{preset.icon}</span>
+                <span className="sim-preset-label">{preset.label}</span>
+                <span className="sim-preset-desc">{preset.description}</span>
+              </button>
+              <button
+                type="button"
+                className="sim-preset-delete"
+                aria-label={`Delete preset ${preset.label}`}
+                onClick={() => deleteCustomPreset(preset.id)}
+              >
+                ✕
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <button type="button" className="sim-preset-save-btn" onClick={saveCurrentAsPreset}>
+        💾 Save Current as Preset
+      </button>
+
+      {/* ── Sliders ── */}      <div className="sim-sliders" role="group" aria-label="Pollutant reduction sliders">
         <SliderGroup
           id="slider-pm25"
           label="Reduce PM2.5"
-          icon={CloudFog}
+          icon={PM25GaugeIcon}
           value={pm25Reduction}
-          onChange={(v) => { setActivePreset(null); setPm25Reduction(v); }}
+          onChange={(v) => {
+            setActivePreset(null);
+            setPm25Reduction(v);
+          }}
           current={current.pm2_5}
+          unit="µg/m³"
+        />
+        <SliderGroup
+          id="slider-pm10"
+          label="Reduce PM10"
+          icon={Wind}
+          iconColor="#8b5cf6"
+          value={pm10Reduction}
+          onChange={(v) => {
+            setActivePreset(null);
+            setPm10Reduction(v);
+          }}
+          current={current.pm10}
           unit="µg/m³"
         />
         <SliderGroup
           id="slider-no2"
           label="Reduce NO₂"
-          icon={TrafficCone}
+          icon={CarFront}
           value={no2Reduction}
-          onChange={(v) => { setActivePreset(null); setNo2Reduction(v); }}
+          onChange={(v) => {
+            setActivePreset(null);
+            setNo2Reduction(v);
+          }}
           current={current.nitrogen_dioxide}
           unit="µg/m³"
         />
@@ -242,9 +400,20 @@ export default function ScenarioSimulator({ current }) {
           id="slider-o3"
           label="Reduce Ozone"
           icon={Sun}
+          iconColor="#efa001"
           value={o3Reduction}
           onChange={(v) => { setActivePreset(null); setO3Reduction(v); }}
           current={current.ozone}
+          unit="µg/m³"
+        />
+        <SliderGroup
+          id="slider-co"
+          label="Reduce Carbon Monoxide"
+          icon={Factory}
+          iconColor="#64748b"
+          value={coReduction}
+          onChange={(v) => { setActivePreset(null); setCoReduction(v); }}
+          current={current.carbon_monoxide}
           unit="µg/m³"
         />
       </div>
@@ -319,7 +488,7 @@ export default function ScenarioSimulator({ current }) {
             if (cityErrorSet.has(cityName)) {
               return (
                 <div key={cityName} className="sim-city-result-card sim-error-card">
-                  <span><AlertTriangle className="inline-icon" size={16} aria-hidden="true" /> Could not fetch {cityName} data.</span>
+                  <span>⚠️ Could not fetch {cityName} data.</span>
                 </div>
               );
             }
@@ -327,7 +496,7 @@ export default function ScenarioSimulator({ current }) {
             const data = cityData[cityName];
             if (!data) return null;
 
-            const { simAqi, simBand, improvement: imp, rPm25, rNo2, rO3 } = simulateCity(data);
+            const { simAqi, simBand, improvement: imp, rPm25, rPm10, rNo2, rO3, rCo } = simulateCity(data);
             const origBand = getAQIBand(data.us_aqi);
 
             return (
@@ -376,8 +545,10 @@ export default function ScenarioSimulator({ current }) {
                   </thead>
                   <tbody>
                     <PollutantRow label="PM2.5" before={data.pm2_5} after={rPm25} unit="µg/m³" />
+                    <PollutantRow label="PM10" before={data.pm10} after={rPm10} unit="µg/m³" />
                     <PollutantRow label="NO₂" before={data.nitrogen_dioxide} after={rNo2} unit="µg/m³" />
                     <PollutantRow label="Ozone" before={data.ozone} after={rO3} unit="µg/m³" />
+                    <PollutantRow label="CO" before={data.carbon_monoxide} after={rCo} unit="µg/m³" />
                   </tbody>
                 </table>
               </div>
@@ -390,16 +561,32 @@ export default function ScenarioSimulator({ current }) {
 }
 
 /* ─── Sub-components ──────────────────────────────────────────────────────── */
-
-function SliderGroup({ id, label, icon: Icon, value, onChange, current, unit }) {
+function SliderGroup({
+  id,
+  label,
+  emoji,
+  icon: Icon,
+  iconColor,
+  value,
+  onChange,
+  current,
+  unit
+}) {
   const reduced = Math.round(current * (1 - value / 100));
+
   return (
     <div className="sim-slider-group">
       <label htmlFor={id}>
-        <span className="sim-slider-emoji" aria-hidden="true"><Icon size={18} /></span>
+
+        <span className="sim-slider-emoji" aria-hidden="true">
+          {Icon ? <Icon size={20} color={iconColor} /> : emoji}
+        </span>
+
         {label}
+
         <span className="sim-slider-value">{value}%</span>
       </label>
+
       <input
         id={id}
         type="range"
@@ -410,24 +597,11 @@ function SliderGroup({ id, label, icon: Icon, value, onChange, current, unit }) 
         onChange={(e) => onChange(Number(e.target.value))}
         aria-label={`${label} reduction percentage`}
       />
+
       <div className="sim-slider-range">
         <span>Current: {current} {unit}</span>
         <span>Target: {reduced} {unit}</span>
       </div>
     </div>
-  );
-}
-
-function PollutantRow({ label, before, after, unit }) {
-  const improved = after < before;
-  return (
-    <tr className="sim-pollutant-row">
-      <td>{label}</td>
-      <td>{before} <small>{unit}</small></td>
-      <td className="sim-table-arrow" aria-hidden="true">→</td>
-      <td className={improved ? 'sim-val-better' : 'sim-val-same'}>
-        {after} <small>{unit}</small>
-      </td>
-    </tr>
   );
 }

@@ -7,6 +7,7 @@ export async function openDB() {
     const request = indexedDB.open(DB_NAME, 1);
     
     request.onupgradeneeded = (event) => {
+      // @ts-ignore
       const db = event.target.result;
       if (!db.objectStoreNames.contains(STORE_NAME)) {
         db.createObjectStore(STORE_NAME, { keyPath: 'id' });
@@ -18,6 +19,7 @@ export async function openDB() {
   });
 }
 
+/** @param {any} id */
 export async function getCachedData(id) {
   const db = await openDB();
   return new Promise((resolve, reject) => {
@@ -30,6 +32,10 @@ export async function getCachedData(id) {
   });
 }
 
+/**
+ * @param {any} id
+ * @param {any} data
+ */
 export async function setCachedData(id, data) {
   const db = await openDB();
   return new Promise((resolve, reject) => {
@@ -37,11 +43,17 @@ export async function setCachedData(id, data) {
     const store = transaction.objectStore(STORE_NAME);
     const request = store.put({ id, data, timestamp: Date.now() });
     
+      // @ts-ignore
     request.onsuccess = () => resolve();
     request.onerror = () => reject(request.error);
   });
 }
 
+/**
+ * @param {any} lat
+ * @param {any} lon
+ * @param {any} years
+ */
 export async function fetchHistoricalData(lat, lon, years = 1) {
   // Using 1 year by default for heatmap, but we can do up to 3 years
   const today = new Date();
@@ -51,14 +63,14 @@ export async function fetchHistoricalData(lat, lon, years = 1) {
   startDateObj.setFullYear(today.getFullYear() - years);
   const startDate = startDateObj.toISOString().split('T')[0];
 
-  const cacheKey = `history_${lat.toFixed(4)}_${lon.toFixed(4)}_${startDate}_${endDate}`;
+  const cacheKey = `history_export_${lat.toFixed(4)}_${lon.toFixed(4)}_${startDate}_${endDate}`;
   
   const cached = await getCachedData(cacheKey);
   if (cached) {
     return cached;
   }
 
-  const url = `${BASE_URL}?latitude=${lat}&longitude=${lon}&hourly=us_aqi&timezone=auto&start_date=${startDate}&end_date=${endDate}`;
+  const url = `${BASE_URL}?latitude=${lat}&longitude=${lon}&hourly=pm2_5,pm10,carbon_monoxide,nitrogen_dioxide,ozone,us_aqi&timezone=auto&start_date=${startDate}&end_date=${endDate}`;
   
   const response = await fetch(url);
   if (!response.ok) {

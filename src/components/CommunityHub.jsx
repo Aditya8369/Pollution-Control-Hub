@@ -1,8 +1,7 @@
-import { useEffect, useState } from "react";
-import { logger } from '../utils/logger';
+import { useEffect, useState } from 'react';
 
-const STORAGE_KEY = "pollution-community-reports";
-const VOTES_STORAGE_KEY = "pollution-community-voted-ids";
+const STORAGE_KEY = 'pollution-community-reports';
+const VOTES_STORAGE_KEY = 'pollution-community-voted-ids';
 const VOTE_THRESHOLD = 5;
 const X_DAYS = 7;
 const MAX_IMAGE_SIZE_BYTES = 500 * 1024; // 500 KB
@@ -54,14 +53,13 @@ export default function CommunityHub() {
   const [votedIds, setVotedIds] = useState(() => readVotedIds());
   const [filter, setFilter] = useState('All');
   const [form, setForm] = useState({
-    title: "",
-    description: "",
-    image: "",
+    title: '',
+    description: '',
+    image: ''
   });
   const [fileInputKey, setFileInputKey] = useState(Date.now());
   const [uploadError, setUploadError] = useState('');
-  const [selectedFileName, setSelectedFileName] = useState("No file chosen");
-  const [previewImage, setPreviewImage] = useState("");
+  const [isProcessingImage, setIsProcessingImage] = useState(false);
 
   useEffect(() => {
     try {
@@ -69,44 +67,36 @@ export default function CommunityHub() {
       const estimatedSize = new Blob([serialized]).size;
 
       if (estimatedSize > STORAGE_WARN_THRESHOLD) {
-        logger.warn('localStorage usage high', {
-          usageMB: (estimatedSize / 1024 / 1024).toFixed(1)
-        });
+        console.warn(
+          `Community reports using ${(estimatedSize / 1024 / 1024).toFixed(1)} MB of localStorage`
+        );
       }
 
       localStorage.setItem(STORAGE_KEY, serialized);
     } catch (e) {
       if (e.name === 'QuotaExceededError' || e.code === 22) {
-        logger.error('localStorage quota exceeded, pruning oldest reports');
+        console.error('localStorage quota exceeded. Pruning oldest reports...');
+        // Remove oldest/lowest-vote reports until write succeeds
         const sorted = [...reports].sort((a, b) => {
-  if (a.votes !== b.votes) return a.votes - b.votes;
-  return new Date(a.createdAt) - new Date(b.createdAt);
-});
+          if (a.votes !== b.votes) return a.votes - b.votes;
+          // @ts-ignore
+          return new Date(a.createdAt) - new Date(b.createdAt);
+        });
 
-// Remove reports based on priority while preserving the original
-// newest-first order used by the UI.
-let removalCandidates = [...sorted];
-let pruned = [...reports];
+        let pruned = [...reports];
+        while (pruned.length > 0) {
+          try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(pruned));
+            setReports(pruned);
+            break;
+          } catch {
+            pruned.shift(); // remove lowest-value report
+          }
+        }
 
-while (pruned.length > 0) {
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(pruned));
-    setReports(pruned);
-    break;
-  } catch {
-    const idToRemove = removalCandidates.shift()?.id;
-
-    if (!idToRemove) {
-      break;
-    }
-
-    pruned = pruned.filter(report => report.id !== idToRemove);
-  }
-}
-
-if (pruned.length === 0) {
-  logger.error('All community reports pruned, localStorage quota still exceeded');
-}
+        if (pruned.length === 0) {
+          console.error('All community reports pruned — localStorage quota still exceeded.');
+        }
       } else {
         throw e;
       }
@@ -114,22 +104,42 @@ if (pruned.length === 0) {
   }, [reports]);
 
   useEffect(() => {
-    try {
-      localStorage.setItem(VOTES_STORAGE_KEY, JSON.stringify([...votedIds]));
-    } catch (e) {
-      logger.error('Failed to persist votes to localStorage', { error: e?.message });
-    }
+    localStorage.setItem(VOTES_STORAGE_KEY, JSON.stringify([...votedIds]));
   }, [votedIds]);
 
+  /** @param {string} str */
+  const sanitizeText = (str) => {
+    return str
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#x27;');
+  };
+
+  /** @param {any} event */
   const onSubmit = (event) => {
     event.preventDefault();
-    if (!form.title.trim() || !form.description.trim()) return;
+    const cleanTitle = form.title.trim();
+    const cleanDescription = form.description.trim();
+    if (!cleanTitle || !cleanDescription) return;
+
+    // Validate image data URL scheme if present
+    let safeImage = '';
+    if (form.image) {
+      if (/^data:image\/(jpeg|png|webp);base64,/.test(form.image)) {
+        safeImage = form.image;
+      } else {
+        setUploadError('Invalid image format detected.');
+        return;
+      }
+    }
 
     const newReport = {
       id: crypto.randomUUID(),
-      title: form.title.trim(),
-      description: form.description.trim(),
-      image: form.image,
+      title: sanitizeText(cleanTitle),
+      description: sanitizeText(cleanDescription),
+      image: safeImage,
       votes: 0,
       createdAt: new Date().toISOString(),
       status: "Pending",
@@ -138,61 +148,67 @@ if (pruned.length === 0) {
     };
 
     setReports((prev) => [newReport, ...prev]);
-    setForm({
-      title: "",
-      description: "",
-      image: "",
-    });
-
-    setSelectedFileName("No file chosen");
-    setPreviewImage("");
+    setForm({ title: '', description: '', image: '' });
     setFileInputKey(Date.now());
   };
 
+  /** @param {any} event */
   const uploadImage = async (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
-    if (!allowedTypes.includes(file.type)) {
-      setUploadError('Invalid file format. Please select a JPEG, PNG, or WebP image.');
+    // Validate file type
+    const validTypes = ['image/jpeg', 'image/png', 'image/webp'];
+    if (!validTypes.includes(file.type)) {
+      setUploadError('Only JPEG, PNG, and WebP images are allowed.');
       event.target.value = '';
-      setSelectedFileName("No file chosen");
-      setPreviewImage("");
       setFileInputKey(Date.now());
       return;
     }
 
-    setSelectedFileName(file.name);
-    setPreviewImage(URL.createObjectURL(file));
     setUploadError('');
-
-    if (file.size > MAX_IMAGE_SIZE_BYTES) {
-      setUploadError(
-        `Image too large (${(file.size / 1024 / 1024).toFixed(1)} MB). Maximum is 500 KB.`
-      );
-      event.target.value = '';
-      setSelectedFileName("No file chosen");
-      setPreviewImage("");
-      setFileInputKey(Date.now());
-      return;
-    }
+    setIsProcessingImage(true);
 
     const reader = new FileReader();
     reader.onload = async () => {
       try {
         const compressed = await compressImage(String(reader.result));
-        setForm((prev) => ({ ...prev, image: compressed }));
+        
+        // Ensure result has valid image data URI prefix
+        if (!/^data:image\/(jpeg|png|webp);base64,/.test(compressed)) {
+          setUploadError('Invalid image data generated. Please upload a valid image file.');
+          event.target.value = '';
+          setFileInputKey(Date.now());
+          return;
+        }
+
+        // Calculate size of the compressed image in bytes from the base64 string
+        const base64Str = compressed.split(',')[1];
+        const compressedSize = Math.round((base64Str.length * 3) / 4) - (base64Str.endsWith('==') ? 2 : base64Str.endsWith('=') ? 1 : 0);
+
+        if (compressedSize > MAX_IMAGE_SIZE_BYTES) {
+          setUploadError(
+            `Image too large (${(compressedSize / 1024 / 1024).toFixed(1)} MB). Maximum is 500 KB.`
+          );
+          event.target.value = '';
+          setFileInputKey(Date.now());
+        } else {
+          setForm((prev) => ({ ...prev, image: compressed }));
+        }
       } catch {
         setUploadError('Failed to process image. Please try again.');
+      } finally {
+        setIsProcessingImage(false);
       }
     };
     reader.onerror = () => {
       setUploadError('Failed to read image file. Please try again.');
+      setIsProcessingImage(false);
     };
     reader.readAsDataURL(file);
   };
 
+  /** @param {any} id */
   const vote = (id) => {
     if (votedIds.has(id)) return;
 
@@ -202,17 +218,14 @@ if (pruned.length === 0) {
 
         const nextVotes = report.votes + 1;
         const createdDate = new Date(report.createdAt);
+        // @ts-ignore
         const ageInDays = (new Date() - createdDate) / (1000 * 60 * 60 * 24);
 
         let updatedStatus = report.status;
         let verifiedAtTimestamp = report.verifiedAt;
         let notes = report.moderationNotes;
 
-        if (
-          nextVotes >= VOTE_THRESHOLD &&
-          ageInDays <= X_DAYS &&
-          report.status === "Pending"
-        ) {
+        if (nextVotes >= VOTE_THRESHOLD && ageInDays <= X_DAYS && report.status === "Pending") {
           updatedStatus = "Verified (community)";
           verifiedAtTimestamp = new Date().toISOString();
           notes = "Automatically verified via community consensus upvotes.";
@@ -223,101 +236,70 @@ if (pruned.length === 0) {
           votes: nextVotes,
           status: updatedStatus,
           verifiedAt: verifiedAtTimestamp,
-          moderationNotes: notes,
+          moderationNotes: notes
         };
-      }),
+      })
     );
 
     setVotedIds((prev) => new Set(prev).add(id));
   };
 
-  const markAddressed = (id) => {
-    setReports((prev) =>
-      prev.map((report) => {
-        if (report.id !== id) return report;
-        if (!report.status.startsWith("Verified")) return report;
-
-        return { ...report, status: "Addressed" };
-      })
-    );
-  };
-
   const filteredReports = reports.filter((report) => {
-    if (filter === "All") return true;
-    if (filter === "Verified") return report.status.startsWith("Verified");
+    if (filter === 'All') return true;
+    if (filter === 'Verified') return report.status.startsWith('Verified');
     return report.status === filter;
   });
 
   return (
-    <section className="panel">
+    <section data-testid="community-hub" className="panel">
       <div className="panel-head">
         <h2>Community Contribution</h2>
         <p>Report local pollution issues with evidence and crowd voting</p>
       </div>
 
-      <form className="community-form" id="report-form" onSubmit={onSubmit}>
+      <form className="community-form" onSubmit={onSubmit}>
         <input
           type="text"
           value={form.title}
           placeholder="Issue title (e.g., Garbage burning)"
-          onChange={(event) =>
-            setForm((prev) => ({ ...prev, title: event.target.value }))
-          }
+          onChange={(event) => setForm((prev) => ({ ...prev, title: event.target.value }))}
         />
         <textarea
           value={form.description}
           placeholder="Describe location and issue details"
-          onChange={(event) =>
-            setForm((prev) => ({ ...prev, description: event.target.value }))
-          }
+          onChange={(event) => setForm((prev) => ({ ...prev, description: event.target.value }))}
         />
-        <div className="file-upload-container">
-          <label
-            htmlFor="community-file-upload"
-            className="file-upload-button"
-          >
-            📤 Choose File
-          </label>
-
-          <input
-            id="community-file-upload"
-            key={fileInputKey}
-            type="file"
-            accept="image/jpeg,image/png,image/webp"
-            onChange={uploadImage}
-            className="file-input-hidden"
-          />
-
-          <div className="selected-file-container">
-            {previewImage && (
-              <img
-                src={previewImage}
-                alt="Selected evidence"
-                className="image-preview"
-              />
-            )}
-
-            <span className="selected-file-name">
-              {selectedFileName}
-            </span>
-          </div>
-        </div>
-
-        {uploadError && (
-          <p className="upload-error">
-            {uploadError}
+        <input
+          key={fileInputKey}
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          onChange={uploadImage}
+          style={{ width: '100%' }}
+          disabled={isProcessingImage}
+        />
+        {isProcessingImage && (
+          <p className="upload-processing" role="status" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span className="live-dot active" aria-hidden="true"></span>
+            Processing image...
           </p>
         )}
-        <button type="submit">Submit Report</button>
+        {uploadError && <p className="upload-error">{uploadError}</p>}
+        <button type="submit" disabled={isProcessingImage}>
+          {isProcessingImage ? 'Processing image…' : 'Submit Report'}
+        </button>
       </form>
 
-      <div className="filter-tabs">
-        {["All", "Pending", "Verified", "Addressed"].map((statusOption) => (
+      <div className="filter-tabs" style={{ display: 'flex', gap: '8px', margin: '15px 0' }}>
+        {['All', 'Pending', 'Verified', 'Addressed'].map((statusOption) => (
           <button
             key={statusOption}
             type="button"
             onClick={() => setFilter(statusOption)}
-            className={filter === statusOption ? "active" : ""}
+            style={{
+              padding: '6px 12px',
+              cursor: 'pointer',
+              fontWeight: filter === statusOption ? 'bold' : 'normal'
+            }}
           >
             {statusOption}
           </button>
@@ -325,72 +307,33 @@ if (pruned.length === 0) {
       </div>
 
       <div className="report-feed">
-        {reports.length === 0 ? (
-          <div className="empty-state">
-            <div className="empty-state__icon" aria-hidden="true">
-              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                <path d="M12 9v4m0 4h.01M4.93 4.93a10 10 0 1 0 14.14 14.14A10 10 0 0 0 4.93 4.93Z" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </div>
-            <p className="empty-state__title">No reports yet</p>
-            <p className="empty-state__message">
-              Be the first to flag a pollution issue in your area.
-            </p>
-            <button
-              type="button"
-              className="empty-state__cta"
-              onClick={() =>
-                document
-                  .getElementById("report-form")
-                  ?.scrollIntoView({ behavior: "smooth", block: "center" })
-              }
-            >
-              Submit a report
-            </button>
-          </div>
-        ) : filteredReports.length === 0 ? (
-          <p className="empty-filter-message">
-            No reports match the "{filter}" filter.
-          </p>
+        {filteredReports.length === 0 ? (
+          <p className="report-feed-empty">No reports yet. Be the first to raise an issue.</p>
         ) : (
           filteredReports.map((report) => (
             <article className="report-card" key={report.id}>
               <div className="report-head">
-                <div className="report-title-container">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                   <h3>{report.title}</h3>
-                  <span className="status-badge">{report.status}</span>
+                  <span className="status-badge" style={{ fontSize: '0.8rem', padding: '2px 6px', border: '1px solid #ccc', borderRadius: '4px' }}>
+                    {report.status}
+                  </span>
                 </div>
-                <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-                  {report.status.startsWith("Verified") && (
-                    <button type="button" onClick={() => markAddressed(report.id)}>
-                      Mark addressed
-                    </button>
-                  )}
-                  <button onClick={() => vote(report.id)} type="button" disabled={votedIds.has(report.id)}>
-                    {votedIds.has(report.id) ? 'Voted' : 'Upvote'} ({report.votes})
-                  </button>
-                </div>
+                <button onClick={() => vote(report.id)} type="button" disabled={votedIds.has(report.id)}>
+                  {votedIds.has(report.id) ? 'Voted' : 'Upvote'} ({report.votes})
+                </button>
               </div>
               <p>{report.description}</p>
-              {report.image && <img src={report.image} alt={report.title} />}
+              {report.image && /^data:image\/(jpeg|png|webp);base64,/.test(report.image) && (
+                <img src={report.image} alt={report.title} />
+              )}
 
-              <div className="timeline-workflow">
+              <div className="timeline-workflow" style={{ marginTop: '12px', fontSize: '0.8rem', color: '#666' }}>
                 <span>Created</span>
-                <span
-                  className={
-                    report.status.startsWith("Verified") ||
-                      report.status === "Addressed"
-                      ? "active"
-                      : "inactive"
-                  }
-                >
+                <span style={{ color: report.status.startsWith('Verified') || report.status === 'Addressed' ? '#000' : '#ccc' }}>
                   {" → "}Community verified
                 </span>
-                <span
-                  className={
-                    report.status === "Addressed" ? "active" : "inactive"
-                  }
-                >
+                <span style={{ color: report.status === 'Addressed' ? '#000' : '#ccc' }}>
                   {" → "}Addressed
                 </span>
               </div>

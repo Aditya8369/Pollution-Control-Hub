@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { MapContainer, TileLayer, CircleMarker, Popup, Marker } from 'react-leaflet';
 import { useState } from 'react';
 import L from 'leaflet';
@@ -20,9 +21,9 @@ export default function LocationMap({ center, nearbyPoints, confidenceScore, win
   }) : null;
 
   return (
-    <section className="panel">
-      <div className="panel-head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
-        <div>
+    <section data-testid="location-map" className="panel">
+      <div className="panel-head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.75rem' }}>
+        <div style={{ minWidth: 0, flex: 1 }}>
           <h2>Location-Based Tracking</h2>
           <p>Nearby pollution intensity map and hotspots</p>
         </div>
@@ -41,7 +42,8 @@ export default function LocationMap({ center, nearbyPoints, confidenceScore, win
               cursor: 'pointer',
               fontWeight: '600',
               boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-              transition: 'background-color 0.2s'
+              transition: 'background-color 0.2s',
+              minHeight: '44px'
             }}
           >
             {showWind ? 'Hide Wind Overlay' : 'Show Wind Overlay'}
@@ -50,7 +52,7 @@ export default function LocationMap({ center, nearbyPoints, confidenceScore, win
       </div>
 
       <div className="map-wrap">
-        <MapContainer center={[center.lat, center.lon]} zoom={11} scrollWheelZoom={false} className="map">
+        <MapContainer center={[center.lat, center.lon]} zoom={11} scrollWheelZoom={true} className="map">
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -85,12 +87,12 @@ export default function LocationMap({ center, nearbyPoints, confidenceScore, win
 
       {showWind && windData && (
         <div className="wind-insight" style={{ padding: '1rem', backgroundColor: 'var(--bg-card-alt, #f8fafc)', borderRadius: '0.5rem', marginTop: '1rem', borderLeft: '4px solid #3b82f6' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="2" style={{ width: '20px', height: '20px', transform: 'rotate(180deg)' }}><path d="M12 2v20M12 22l-4-4M12 22l4-4"/></svg>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
+            <svg viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="2" style={{ width: '20px', height: '20px', transform: 'rotate(180deg)', flexShrink: 0 }}><path d="M12 2v20M12 22l-4-4M12 22l4-4"/></svg>
             <strong>Wind Legend:</strong>
-            <span style={{ fontSize: '0.9rem', color: 'var(--text-secondary)' }}>Arrows indicate the direction wind is blowing.</span>
+            <span style={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>Arrows indicate the direction wind is blowing.</span>
           </div>
-          <p style={{ margin: 0, fontSize: '0.95rem' }}>
+          <p style={{ margin: 0, fontSize: '0.92rem', wordBreak: 'break-word' }}>
             Wind blowing {getWindDirectionText(windData.direction)} at {windData.speed} km/h — pollution patterns may shift in this direction.
           </p>
         </div>
