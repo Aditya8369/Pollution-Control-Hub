@@ -21,6 +21,7 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import Commute from "./components/Commute";
 import GettingStarted from "./components/GettingStarted";
 import CityCompare from "./components/CityCompare";
+import SunSafetyDashboard from "./components/SunSafetyDashboard";
 import {
   estimateWeeklyMonthlyAverages,
   fetchAirQualityByCoords,
@@ -848,7 +849,7 @@ useEffect(() => {
               />
 
               <HealthAdvisory />
-
+              <SunSafetyDashboard />
               <SolutionsAwareness />
 
               <AnalyticsInsights
