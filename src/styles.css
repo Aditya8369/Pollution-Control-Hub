@@ -1095,7 +1095,8 @@ a {
   .panel:last-child,
   .scenario-simulator,
   .content-grid>*:nth-child(4),
-  .content-grid>*:nth-child(5) {
+  .content-grid>*:nth-child(5),
+  .content-grid>*:nth-child(6) {
     grid-column: span 2;
   }
 }
@@ -5452,37 +5453,423 @@ a {
   }
 }
 
-/* Transport Mode Selector in Clean Commute Planner */
-.mode-selector-group {
+/* ============================================================
+   Solutions & Awareness — dedicated styles
+   ============================================================ */
+.sa-col-header {
   display: flex;
-  gap: 0.5rem;
-  margin-top: 0.35rem;
+  flex-direction: column;
+  gap: 0.2rem;
+  margin-bottom: var(--sp-3);
 }
 
-.mode-chip-btn {
-  flex: 1;
-  padding: 0.5rem 0.75rem;
-  border-radius: var(--r-sm, 6px);
-  border: 1px solid var(--line, #cbd5e1);
-  background: var(--card-bg, #ffffff);
-  color: var(--ink, #1e293b);
-  font-size: 0.88rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  text-align: center;
+.sa-subtext {
+  display: block;
+  color: var(--muted);
+  font-size: 0.78rem;
 }
 
-.mode-chip-btn:hover {
-  background: color-mix(in srgb, var(--accent, #0d9488) 12%, transparent);
-  border-color: var(--accent, #0d9488);
+/* --- Quick Tips --- */
+.sa-tips-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  margin-top: var(--sp-2);
 }
 
-.mode-chip-btn.active {
-  background: var(--accent, #0d9488);
-  color: #ffffff;
-  border-color: var(--accent, #0d9488);
+.sa-tip-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  padding: var(--sp-3) var(--sp-4);
+  box-shadow: var(--shadow-sm);
+  transition: transform 200ms var(--ease), box-shadow 200ms var(--ease), border-color 200ms var(--ease);
+}
+
+.sa-tip-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--brand);
+}
+
+.sa-tip-card-header {
+  margin-bottom: var(--sp-2);
+}
+
+.sa-tip-category-badge {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--brand);
+  background: color-mix(in srgb, var(--brand) 12%, transparent);
+  border-radius: 999px;
+  padding: 0.2rem 0.6rem;
+}
+
+.sa-tip-title {
+  font-family: "Fraunces", serif;
+  font-size: 1rem;
   font-weight: 600;
-  box-shadow: 0 2px 4px rgba(13, 148, 136, 0.25);
+  color: var(--ink);
+  margin-bottom: var(--sp-1);
 }
 
+.sa-tip-description {
+  color: var(--muted);
+  font-size: 0.86rem;
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.sa-tip-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: var(--sp-2);
+}
+
+.sa-tip-action-btn {
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 700;
+  border-radius: 999px;
+  padding: 0.3rem 0.75rem;
+  cursor: pointer;
+  transition: all 180ms var(--ease);
+}
+
+.sa-tip-action-btn:hover {
+  border-color: var(--brand);
+  color: var(--brand);
+}
+
+.sa-tip-action-btn.sa-tip-btn-active {
+  background: color-mix(in srgb, var(--brand) 14%, var(--card));
+  border-color: var(--brand);
+  color: var(--brand);
+}
+
+/* --- Government Policies (compact accordion) --- */
+.sa-policy-accordion {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  margin-top: var(--sp-2);
+}
+
+.sa-policy-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  overflow: hidden;
+  transition: border-color 200ms var(--ease), box-shadow 200ms var(--ease);
+}
+
+.sa-policy-card:hover {
+  border-color: var(--sky);
+}
+
+.sa-policy-card.sa-policy-card-expanded {
+  border-color: var(--brand);
+  box-shadow: var(--shadow-sm);
+}
+
+.sa-policy-header-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  background: transparent;
+  border: none;
+  padding: var(--sp-3) var(--sp-4);
+  font: inherit;
+  cursor: pointer;
+  text-align: left;
+  color: var(--ink);
+}
+
+.sa-policy-title {
+  font-weight: 700;
+  font-size: 0.92rem;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+.sa-policy-chevron {
+  flex-shrink: 0;
+  font-size: 0.7rem;
+  color: var(--muted);
+  transition: transform 200ms var(--ease);
+}
+
+.sa-policy-chevron.sa-chevron-rotated {
+  transform: rotate(180deg);
+  color: var(--brand);
+}
+
+.sa-policy-body {
+  padding: 0 var(--sp-4) var(--sp-4);
+  border-top: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  font-size: 0.86rem;
+}
+
+.sa-policy-desc {
+  color: var(--muted);
+  padding-top: var(--sp-3);
+}
+
+.sa-policy-detail-block strong {
+  display: block;
+  color: var(--brand);
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 0.2rem;
+}
+
+.sa-policy-detail-block p {
+  color: var(--ink);
+  line-height: 1.5;
+}
+
+.sa-policy-learn-more-link {
+  align-self: flex-start;
+  color: var(--sky);
+  font-weight: 700;
+  font-size: 0.82rem;
+  text-decoration: none;
+}
+
+.sa-policy-learn-more-link:hover {
+  text-decoration: underline;
+}
+
+/* --- Educational Reads --- */
+.sa-reads-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  margin-top: var(--sp-2);
+}
+
+.sa-read-card-btn {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+  width: 100%;
+  text-align: left;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  padding: var(--sp-3) var(--sp-4);
+  font: inherit;
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  transition: transform 200ms var(--ease), box-shadow 200ms var(--ease), border-color 200ms var(--ease);
+}
+
+.sa-read-card-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--sky);
+}
+
+.sa-read-meta {
+  display: flex;
+  gap: var(--sp-2);
+  align-items: center;
+}
+
+.sa-read-source-tag,
+.sa-read-time-tag {
+  font-size: 0.7rem;
+  font-weight: 700;
+  border-radius: 999px;
+  padding: 0.15rem 0.55rem;
+}
+
+.sa-read-source-tag {
+  background: color-mix(in srgb, var(--sky) 14%, transparent);
+  color: var(--sky);
+}
+
+.sa-read-time-tag {
+  color: var(--muted);
+}
+
+.sa-read-title {
+  font-family: "Fraunces", serif;
+  font-size: 0.98rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.sa-read-snippet {
+  color: var(--muted);
+  font-size: 0.84rem;
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.sa-read-cta-text {
+  margin-top: var(--sp-1);
+  color: var(--brand);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+/* --- Article Modal --- */
+.sa-article-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--sp-4);
+  z-index: 1000;
+}
+
+.sa-article-modal-content {
+  position: relative;
+  width: min(560px, 100%);
+  max-height: 85vh;
+  overflow-y: auto;
+  background: var(--card);
+  border-radius: var(--r-lg);
+  padding: var(--sp-6);
+  box-shadow: var(--shadow-lg);
+}
+
+.sa-article-modal-close-btn {
+  position: absolute;
+  top: var(--sp-3);
+  right: var(--sp-3);
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.sa-article-modal-close-btn:hover {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+.sa-article-modal-header {
+  margin-bottom: var(--sp-4);
+  padding-right: var(--sp-6);
+}
+
+.sa-article-modal-title {
+  font-size: 1.25rem;
+  margin-top: var(--sp-2);
+}
+
+.sa-article-modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+}
+
+.sa-modal-section h4 {
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  margin-bottom: var(--sp-1);
+}
+
+.sa-modal-section p {
+  color: var(--ink);
+  line-height: 1.6;
+  font-size: 0.92rem;
+}
+
+.sa-modal-key-takeaway {
+  background: color-mix(in srgb, var(--brand) 10%, var(--card));
+  border-left: 4px solid var(--brand);
+  border-radius: 0 var(--r-sm) var(--r-sm) 0;
+  padding: var(--sp-3) var(--sp-4);
+}
+
+.sa-article-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--sp-3);
+  margin-top: var(--sp-5);
+}
+
+.sa-modal-btn-secondary {
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--muted);
+  border-radius: var(--r-sm);
+  padding: 0.6rem 1.1rem;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.sa-modal-btn-primary {
+  border: none;
+  background: linear-gradient(120deg, var(--brand), var(--sky));
+  color: white;
+  border-radius: var(--r-sm);
+  padding: 0.6rem 1.1rem;
+  font: inherit;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+/* --- Mobile --- */
+@media (max-width: 768px) {
+
+  .sa-tip-card,
+  .sa-read-card-btn {
+    padding: var(--sp-3);
+  }
+
+  .sa-policy-header-btn {
+    padding: var(--sp-3);
+  }
+
+  .sa-policy-body {
+    padding: 0 var(--sp-3) var(--sp-3);
+  }
+
+  .sa-article-modal-content {
+    padding: var(--sp-4);
+    width: 94vw;
+    max-height: 90vh;
+  }
+
+  .sa-article-modal-footer {
+    flex-direction: column;
+  }
+
+  .sa-modal-btn-secondary,
+  .sa-modal-btn-primary {
+    width: 100%;
+    text-align: center;
+  }
+}

@@ -14,9 +14,9 @@ vi.mock('../workers/apiWorker?worker', () => {
 
 describe('fetchAirQualityByCoords - trend slicing', () => {
   beforeEach(async () => {
-    // @ts-ignore
-    if (cacheStore.memoryStore) cacheStore.memoryStore.clear();
+    await cacheStore.invalidate();
     vi.restoreAllMocks();
+    vi.useRealTimers();
   });
 
   it('bounds startIndex to 0 when idx < 23', async () => {
@@ -49,7 +49,8 @@ describe('fetchAirQualityByCoords - trend slicing', () => {
     // Mock real Date.now() hour matching times[5] (5 AM UTC)
     const mockNow = new Date();
     mockNow.setUTCHours(5, 15, 0, 0);
-    vi.spyOn(Date, 'now').mockReturnValue(mockNow.getTime());
+    vi.useFakeTimers();
+    vi.setSystemTime(mockNow);
 
     const result = await fetchAirQualityByCoords(28.6139, 77.2090, null, true);
 
@@ -66,9 +67,10 @@ describe('fetchAirQualityByCoords - trend slicing', () => {
   it('correctly slices up to 24 hours of trend when idx >= 23', async () => {
     vi.stubGlobal('navigator', { webdriver: true, onLine: true });
 
-    // Mock Date.now() to hour 23 UTC
-    const mockNow = new Date('2026-07-28T23:15:00Z');
-    vi.spyOn(Date, 'now').mockReturnValue(mockNow.getTime());
+    // Mock system time to hour 23 UTC
+    const mockNow = new Date(Date.UTC(2026, 6, 28, 23, 15, 0));
+    vi.useFakeTimers();
+    vi.setSystemTime(mockNow);
 
     const fetchSpy = vi.fn().mockImplementation(async (url) => {
       // Parse start_date and end_date from requested URL
