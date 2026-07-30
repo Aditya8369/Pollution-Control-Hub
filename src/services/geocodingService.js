@@ -47,7 +47,7 @@ export async function searchLocations(query, count = 5) {
       return formattedResults;
     } catch (error) {
       console.error('Error fetching location data:', error);
-      return [];
+      throw error;
     }
   });
 }

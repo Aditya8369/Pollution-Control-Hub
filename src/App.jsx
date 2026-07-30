@@ -60,6 +60,9 @@ async function reverseGeocodeCity(lat, lon) {
   const response = await fetch(
     `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`,
   );
+  if (!response.ok) {
+    throw new Error(`Reverse geocoding failed with status: ${response.status}`);
+  }
   const data = await response.json();
   const address = data?.address || {};
   const cityName =
