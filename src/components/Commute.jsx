@@ -52,6 +52,7 @@ function readSavedLocations() {
 const Commute = () => {
   const [origin, setOrigin] = useState("");
   const [destination, setDestination] = useState("");
+  const [mode, setMode] = useState("driving");
   const [isCalculating, setIsCalculating] = useState(false);
   const [isLocating, setIsLocating] = useState(false);
 
@@ -118,7 +119,7 @@ const Commute = () => {
     setIsCalculating(true);
 
     try {
-      const routeResults = await calculateCleanRoute(origin, destination);
+      const routeResults = await calculateCleanRoute(origin, destination, mode);
       const cleanest = routeResults.cleanestRoute;
       const leafletCoords = cleanest.geometry.map((coord) => [
         coord[1],
@@ -129,7 +130,11 @@ const Commute = () => {
       setMapCenter(leafletCoords[0]);
       setRouteStats({
         distance: cleanest.distance,
+        duration: cleanest.duration,
         pm25: cleanest.pm25,
+        inhaledDose: cleanest.inhaledDose,
+        mode: cleanest.mode,
+        multiplier: cleanest.multiplier,
       });
       setRouteHistory((prev) => {
         const entry = { origin, destination, timestamp: new Date().toISOString() };
@@ -274,6 +279,33 @@ const Commute = () => {
                 />
               </div>
 
+              <div className="form-group">
+                <label>Transport Mode</label>
+                <div className="mode-selector-group" role="group" aria-label="Transport Mode">
+                  <button
+                    type="button"
+                    className={`mode-chip-btn ${mode === "driving" ? "active" : ""}`}
+                    onClick={() => setMode("driving")}
+                  >
+                    Driving
+                  </button>
+                  <button
+                    type="button"
+                    className={`mode-chip-btn ${mode === "biking" ? "active" : ""}`}
+                    onClick={() => setMode("biking")}
+                  >
+                    Cycling
+                  </button>
+                  <button
+                    type="button"
+                    className={`mode-chip-btn ${mode === "foot" ? "active" : ""}`}
+                    onClick={() => setMode("foot")}
+                  >
+                    Walking
+                  </button>
+                </div>
+              </div>
+
               <div className="form-group commute-save-location">
                 <label>Save current locations for quick access</label>
                 <div className="commute-save-row">
@@ -315,10 +347,19 @@ const Commute = () => {
               <div className="commute-stats">
                 <h3>Route Selected</h3>
                 <p>
+                  Mode: <strong style={{ textTransform: "capitalize" }}>{routeStats.mode}</strong>
+                </p>
+                <p>
                   Distance: <strong>{routeStats.distance} km</strong>
                 </p>
                 <p>
+                  Est. Time: <strong>{routeStats.duration} mins</strong>
+                </p>
+                <p>
                   Avg PM2.5: <strong>{routeStats.pm25} µg/m³</strong>
+                </p>
+                <p>
+                  Inhaled PM2.5 Dose: <strong>{routeStats.inhaledDose} µg</strong>
                 </p>
               </div>
             )}
