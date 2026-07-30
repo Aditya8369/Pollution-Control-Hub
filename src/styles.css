@@ -5873,3 +5873,222 @@ a {
     text-align: center;
   }
 }
+/* =========================================================
+   Sun Safety & UV Health Advisor
+   ========================================================= */
+
+.sun-safety-dashboard {
+  grid-column: 1 / -1;
+  overflow: hidden;
+}
+
+.sun-safety-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.sun-safety-header > div {
+  flex: 1;
+  min-width: 240px;
+}
+
+.sun-safety-header h2 {
+  margin-bottom: 0.5rem;
+}
+
+.sun-safety-header p {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+/* Check Sun Safety button */
+
+.sun-safety-button {
+  border: none;
+  border-radius: 999px;
+  padding: 0.8rem 1.25rem;
+  background: linear-gradient(120deg, #f59e0b, #f97316);
+  color: #fff;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    opacity 0.2s ease;
+  box-shadow: 0 6px 18px rgba(249, 115, 22, 0.2);
+}
+
+.sun-safety-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 22px rgba(249, 115, 22, 0.3);
+}
+
+.sun-safety-button:active {
+  transform: translateY(0);
+}
+
+.sun-safety-button:focus-visible {
+  outline: 3px solid rgba(245, 158, 11, 0.35);
+  outline-offset: 3px;
+}
+
+/* Environmental metric cards */
+
+.sun-safety-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.sun-safety-card {
+  padding: 1.25rem;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  transition:
+    transform 0.2s ease,
+    border-color 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.sun-safety-card:hover {
+  transform: translateY(-3px);
+  border-color: rgba(245, 158, 11, 0.55);
+  box-shadow: var(--shadow-sm);
+}
+
+.sun-safety-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  margin-bottom: 1rem;
+  border-radius: 12px;
+  background: rgba(245, 158, 11, 0.12);
+  font-size: 1.35rem;
+}
+
+.sun-safety-card h3 {
+  margin: 0 0 0.6rem;
+  font-size: 0.95rem;
+  color: var(--muted);
+}
+
+.sun-safety-value,
+.sun-safety-risk {
+  margin-bottom: 0.35rem;
+  font-size: clamp(1.7rem, 3vw, 2.3rem);
+  line-height: 1;
+  font-weight: 800;
+  color: var(--ink);
+}
+
+.sun-safety-card p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
+/* UV risk card */
+
+.sun-safety-risk {
+  color: #f97316;
+}
+
+.sun-safety-card:last-child {
+  border-top: 3px solid #f97316;
+}
+
+/* Recommendations */
+
+.sun-safety-recommendations {
+  margin-top: 1.25rem;
+  padding: 1.25rem 1.4rem;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  border-radius: var(--r-md);
+  background: rgba(245, 158, 11, 0.06);
+}
+
+.sun-safety-recommendations h3 {
+  margin: 0 0 1rem;
+  color: var(--ink);
+}
+
+.sun-safety-recommendations ul {
+  display: grid;
+  gap: 0.7rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sun-safety-recommendations li {
+  position: relative;
+  padding-left: 1.6rem;
+  color: var(--ink);
+  line-height: 1.55;
+}
+
+.sun-safety-recommendations li::before {
+  content: "✓";
+  position: absolute;
+  left: 0;
+  top: 0;
+  color: #f59e0b;
+  font-weight: 800;
+}
+
+.sun-safety-disclaimer {
+  margin: 1.2rem 0 0;
+  padding-top: 1rem;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+
+/* Tablet */
+
+@media (max-width: 1000px) {
+  .sun-safety-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Mobile */
+
+@media (max-width: 600px) {
+  .sun-safety-dashboard {
+    padding: 1.1rem;
+  }
+
+  .sun-safety-header {
+    align-items: stretch;
+  }
+
+  .sun-safety-button {
+    width: 100%;
+    white-space: normal;
+  }
+
+  .sun-safety-metrics {
+    grid-template-columns: 1fr;
+  }
+
+  .sun-safety-card {
+    padding: 1rem;
+  }
+
+  .sun-safety-recommendations {
+    padding: 1rem;
+  }
+}
