@@ -103,6 +103,7 @@ export default function Dashboard({
   const reportRef = useRef(null);
   const shareCardRef = useRef(null);
   const [isExporting, setIsExporting] = useState(false);
+  const [exportError, setExportError] = useState(null);
   const [isSharing, setIsSharing] = useState(false);
   
   const [isBriefingDismissed, setIsBriefingDismissed] = useState(false);
@@ -115,6 +116,7 @@ export default function Dashboard({
 
   const exportReportAsPDF = async () => {
     if (!reportRef.current || isExporting) return;
+    setExportError(null);
     try {
       setIsExporting(true);
       const canvas = await html2canvas(reportRef.current, {
@@ -143,7 +145,7 @@ export default function Dashboard({
       pdf.save(`${safeCityName}-air-quality-report.pdf`);
     } catch (error) {
       console.error("PDF export failed:", error);
-      alert("Unable to export the PDF. Please try again.");
+      setExportError(error?.message || "Failed to generate PDF. Please try again.");
     } finally {
       setIsExporting(false);
     }
@@ -246,6 +248,61 @@ export default function Dashboard({
     <>
       <section data-testid="dashboard" className="panel dashboard" ref={reportRef}>
         <MorningBriefing current={current} trend={trend} />
+        
+        {exportError && (
+          <div
+            className="pdf-export-error-toast"
+            role="alert"
+            style={{
+              backgroundColor: "#fef2f2",
+              border: "1px solid #fca5a5",
+              color: "#991b1b",
+              padding: "0.85rem 1.25rem",
+              borderRadius: "0.5rem",
+              marginBottom: "1rem",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              gap: "1rem"
+            }}
+          >
+            <div>
+              <strong>PDF Export Failed:</strong> {exportError}
+            </div>
+            <div style={{ display: "flex", gap: "0.5rem" }}>
+              <button
+                type="button"
+                onClick={exportReportAsPDF}
+                style={{
+                  backgroundColor: "#dc2626",
+                  color: "#ffffff",
+                  border: "none",
+                  padding: "0.4rem 0.8rem",
+                  borderRadius: "0.375rem",
+                  cursor: "pointer",
+                  fontWeight: "600"
+                }}
+              >
+                Retry
+              </button>
+              <button
+                type="button"
+                onClick={() => setExportError(null)}
+                style={{
+                  backgroundColor: "transparent",
+                  color: "#991b1b",
+                  border: "1px solid #fca5a5",
+                  padding: "0.4rem 0.8rem",
+                  borderRadius: "0.375rem",
+                  cursor: "pointer"
+                }}
+              >
+                Dismiss
+              </button>
+            </div>
+          </div>
+        )}
+
         <div className="panel-head" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
           <div className="dashboard-header-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.75rem', flexWrap: 'wrap' }}>
             <div style={{ minWidth: 0, flex: 1 }}>
@@ -641,7 +698,6 @@ export default function Dashboard({
           <span>pollution-control-hub.vercel.app</span>
         </div>
       </div>
-
     </>
   );
 }
