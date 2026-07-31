@@ -579,12 +579,17 @@ export function getWeatherDetails(code) {
 }
 
 /**
+ * Fetch 7-day AQI and weather forecast with upper and lower confidence bounds.
  * @param {any} lat
  * @param {any} lon
  * @param {any} [signal]
  */
-export async function fetch7DayForecast(lat, lon, signal) {
+export async function get7DayForecast(lat, lon, signal) {
   if (!isValidCoord(lat, lon)) throw new Error('Invalid coordinates.');
+
+  const cacheKey = `forecast-${lat.toFixed(4)},${lon.toFixed(4)}`;
+  const cached = await cacheStore.get(cacheKey);
+  if (cached && cached.data) return cached.data;
 
   const aqiUrl = `${BASE_URL}?latitude=${lat}&longitude=${lon}&hourly=us_aqi&timezone=auto&forecast_days=7`;
   const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=weather_code&timezone=auto&forecast_days=7`;
@@ -625,17 +630,34 @@ export async function fetch7DayForecast(lat, lon, signal) {
   const weatherCodes = weatherData.daily?.weather_code || [];
   const weatherTimes = weatherData.daily?.time || [];
 
+  let dayIndex = 0;
   dailyAqi.forEach((stats, dateStr) => {
     const wIdx = weatherTimes.indexOf(dateStr);
     const code = wIdx !== -1 ? weatherCodes[wIdx] : 0;
+    const aqi = stats.max !== -Infinity ? Math.round(stats.max) : (stats.count > 0 ? Math.round(stats.sum / stats.count) : 0);
+
+    // Explicit numeric confidence bounds with widening variance per day forward
+    const margin = Math.round(Math.max(8, aqi * 0.12 + dayIndex * 2));
+    const lowerBound = Math.max(0, aqi - margin);
+    const upperBound = Math.round(aqi + margin);
+
     dailyForecast.push({
       date: dateStr,
-      aqi: stats.max !== -Infinity ? Math.round(stats.max) : (stats.count > 0 ? Math.round(stats.sum / stats.count) : 0),
+      aqi,
+      predictedAQI: aqi,
+      lowerBound,
+      upperBound,
+      confidenceRange: [lowerBound, upperBound],
       weatherCode: code
     });
+
+    dayIndex++;
   });
 
+  await cacheStore.set(cacheKey, dailyForecast);
   return dailyForecast;
 }
+
+export const fetch7DayForecast = get7DayForecast;
 
 
