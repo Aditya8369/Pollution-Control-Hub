@@ -1,6 +1,6 @@
-// @ts-nocheck
 import React, { useState, useEffect } from "react";
 import { calculateCleanRoute } from "../services/routePlanner";
+import { getAQIBand } from "../services/airQualityService";
 import {
   MapContainer,
   TileLayer,
@@ -8,6 +8,18 @@ import {
   Marker,
   Popup,
 } from "react-leaflet";
+
+const LEGEND_ITEMS = [
+  { range: "0–50", aqi: 25 },
+  { range: "51–100", aqi: 75 },
+  { range: "101–150", aqi: 125 },
+  { range: "151–200", aqi: 175 },
+  { range: "201–300", aqi: 250 },
+  { range: "301+", aqi: 350 },
+].map((item) => ({
+  range: item.range,
+  ...getAQIBand(item.aqi),
+}));
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 
@@ -58,6 +70,8 @@ const Commute = () => {
   const [geoError, setGeoError] = useState(null);
 
   const [routeLine, setRouteLine] = useState(null);
+  const [routeSegments, setRouteSegments] = useState([]);
+  const [searchId, setSearchId] = useState(0);
   const [mapCenter, setMapCenter] = useState([28.6139, 77.209]);
   const [routeStats, setRouteStats] = useState(null);
   const [routeHistory, setRouteHistory] = useState(() => readRouteHistory());
@@ -133,6 +147,8 @@ const Commute = () => {
       ]);
 
       setRouteLine(leafletCoords);
+      setRouteSegments(cleanest.segments || []);
+      setSearchId((prev) => prev + 1);
       setMapCenter(leafletCoords[0]);
       setRouteStats({
         distance: cleanest.distance,
@@ -424,7 +440,7 @@ const Commute = () => {
             )}
           </div>
 
-          <div className="commute-map-container">
+          <div className="commute-map-container" style={{ position: "relative" }}>
             <MapContainer
               key={`${mapCenter[0]}-${mapCenter[1]}`}
               center={mapCenter}
@@ -452,15 +468,84 @@ const Commute = () => {
                     </Popup>
                   </Marker>
 
-                  <Polyline
-                    positions={routeLine}
-                    color="#0d9488"
-                    weight={6}
-                    opacity={0.8}
-                  />
+                  {routeSegments.length > 0 ? (
+                    routeSegments.map((seg, index) => {
+                      const band = getAQIBand(seg.aqi);
+                      const startPt = seg.coordinates[0] ? seg.coordinates[0].join("-") : index;
+                      const segKey = `route-${searchId}-seg-${index}-aqi-${seg.aqi}-${startPt}`;
+
+                      return (
+                        <Polyline
+                          key={segKey}
+                          positions={seg.coordinates}
+                          color={band.color}
+                          weight={6}
+                          opacity={0.85}
+                        >
+                          <Popup>
+                            <div>
+                              <strong>Route Segment {index + 1}</strong>
+                              <br />
+                              AQI: {seg.aqi} — {band.label}
+                              <br />
+                              PM2.5: {seg.pm25} µg/m³
+                            </div>
+                          </Popup>
+                        </Polyline>
+                      );
+                    })
+                  ) : (
+                    <Polyline
+                      positions={routeLine}
+                      color="#0d9488"
+                      weight={6}
+                      opacity={0.8}
+                    />
+                  )}
                 </>
               )}
             </MapContainer>
+
+            {/* Compact AQI Route Legend */}
+            <div
+              className="route-aqi-legend"
+              data-testid="route-aqi-legend"
+              style={{
+                position: "absolute",
+                bottom: "1rem",
+                right: "1rem",
+                backgroundColor: "rgba(255, 255, 255, 0.95)",
+                backdropFilter: "blur(4px)",
+                border: "1px solid #e2e8f0",
+                borderRadius: "0.5rem",
+                padding: "0.6rem 0.8rem",
+                boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+                zIndex: 1000,
+                fontSize: "0.8rem",
+                color: "#1e293b",
+                fontFamily: "inherit"
+              }}
+            >
+              <div style={{ fontWeight: "700", marginBottom: "0.4rem", color: "#0f172a" }}>
+                Route AQI Legend
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: "0.25rem" }}>
+                {LEGEND_ITEMS.map((item, idx) => (
+                  <div key={`legend-item-${idx}`} style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
+                    <span
+                      style={{
+                        display: "inline-block",
+                        width: "10px",
+                        height: "10px",
+                        borderRadius: "50%",
+                        backgroundColor: item.color,
+                      }}
+                    ></span>
+                    <span>{item.label} ({item.range})</span>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       </div>
