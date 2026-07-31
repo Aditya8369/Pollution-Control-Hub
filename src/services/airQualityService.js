@@ -260,7 +260,7 @@ export async function fetchAirQualityByCoords(lat, lon, signal, skipGrid = false
   const startDate = yesterday.toISOString().split('T')[0];
   const endDate = today.toISOString().split('T')[0];
 
-  const url = `${BASE_URL}?latitude=${lat}&longitude=${lon}&hourly=pm2_5,pm10,carbon_monoxide,nitrogen_dioxide,ozone,us_aqi&timezone=auto&start_date=${startDate}&end_date=${endDate}`;
+  const url = `${BASE_URL}?latitude=${lat}&longitude=${lon}&hourly=pm2_5,pm10,carbon_monoxide,nitrogen_dioxide,sulphur_dioxide,ozone,us_aqi&timezone=auto&start_date=${startDate}&end_date=${endDate}`;
 
   /**
    * Internal worker execution helper.
@@ -379,6 +379,7 @@ export async function fetchAirQualityByCoords(lat, lon, signal, skipGrid = false
     pm10: Math.round(hourly.pm10?.[idx] ?? 0),
     carbon_monoxide: Math.round(hourly.carbon_monoxide?.[idx] ?? 0),
     nitrogen_dioxide: Math.round(hourly.nitrogen_dioxide?.[idx] ?? 0),
+    sulfur_dioxide: Math.round(hourly.sulfur_dioxide?.[idx] ?? hourly.sulphur_dioxide?.[idx] ?? 0),
     ozone: Math.round(hourly.ozone?.[idx] ?? 0),
     us_aqi: Math.round(hourly.us_aqi?.[idx] ?? 0)
   };
