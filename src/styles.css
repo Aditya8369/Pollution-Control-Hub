@@ -6393,3 +6393,37 @@ a {
 .river-modal-actions {
   margin-top: var(--sp-4);
 }
+
+/* ============================================================
+   Solutions & Awareness Layout & Header Styling (Fixes #399)
+   ============================================================ */
+.solutions-three-col {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5rem;
+  align-items: start;
+}
+
+.solutions-col-header,
+.sa-col-header {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-bottom: var(--sp-3, 1rem);
+}
+
+.solutions-col-header h3,
+.sa-col-header h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.solutions-subtext,
+.sa-subtext {
+  display: block;
+  font-size: 0.78rem;
+  color: var(--muted);
+  font-weight: 400;
+}
