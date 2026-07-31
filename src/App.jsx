@@ -30,6 +30,7 @@ import {
   fetchWindData,
 } from "./services/airQualityService";
 import { eventBus } from "./core/events";
+import RiverOriginGame from "./components/RiverOriginGame";
 
 const DEFAULT_POSITION = {
   lat: 28.6139,
@@ -887,6 +888,7 @@ export default function App() {
               <div className="content-grid game-layout">
                 <AqiMissionGame current={current} />
                 <HotspotScoutGame nearbyPoints={nearbyPoints} />
+                <RiverOriginGame />
               </div>
             )}
 

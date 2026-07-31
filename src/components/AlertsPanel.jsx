@@ -1,8 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { SAFE_LIMITS } from '../constants/cities';
+import { useLocalStorageSet } from '../hooks/useLocalStorageSet';
 
 const HISTORY_KEY = 'aqi-alert-history';
 const MAX_HISTORY = 50;
+const HAZARDOUS_AQI_THRESHOLD = 200;
+const PUSH_ALERTS_KEY = 'push-alerts-enabled';
+const PUSH_ALERTS_FLAG = 'enabled';
 
 /** @param {any} current */
 function buildWarnings(current) {
@@ -16,7 +20,7 @@ function buildWarnings(current) {
 }
 
 /** @param {any} params */
-export default function AlertsPanel({ cityName, current, confidenceScore , exposureEstimate}) {
+export default function AlertsPanel({ cityName, current, confidenceScore, exposureEstimate }) {
   const [permission, setPermission] = useState(
     'Notification' in window ? Notification.permission : 'denied'
   );
@@ -30,10 +34,15 @@ export default function AlertsPanel({ cityName, current, confidenceScore , expos
     }
   });
 
+  // Persist alert toggle state via the existing useLocalStorageSet hook.
+  // The set contains PUSH_ALERTS_FLAG ('enabled') when alerts are on.
+  const { has: hasAlertFlag, toggle: toggleAlertFlag } = useLocalStorageSet(PUSH_ALERTS_KEY);
+  const alertsEnabled = hasAlertFlag(PUSH_ALERTS_FLAG);
+
   // Separate ref for history deduplication — does not affect notification behavior
   const lastHistorySignature = useRef('');
 
-  if (!current) {return null;}
+  if (!current) { return null; }
   const warnings = useMemo(() => buildWarnings(current), [current]);
   const lastNotified = useRef('');
 
@@ -69,18 +78,20 @@ export default function AlertsPanel({ cityName, current, confidenceScore , expos
       });
     }
 
-    const sendNotification = () => {
-      new Notification('Pollution Alert', {
-        body: `${cityName}: AQI ${current.us_aqi}. ${warnings[0]}`
+    // Browser push notification: only fire when permission is granted,
+    // alerts are enabled by the user, and AQI exceeds the hazardous threshold.
+    // Deduplication is enforced via lastNotified ref (same signature = no repeat).
+    if (
+      permission === 'granted' &&
+      alertsEnabled &&
+      current.us_aqi > HAZARDOUS_AQI_THRESHOLD
+    ) {
+      new Notification('⚠️ Hazardous Pollution Alert', {
+        body: `${cityName}: AQI ${current.us_aqi} — ${warnings[0]}`,
       });
       lastNotified.current = signature;
-    };
-
-    if (permission === 'granted') {
-      sendNotification();
-      return;
     }
-  }, [warnings, cityName, current.us_aqi, permission]);
+  }, [warnings, cityName, current.us_aqi, permission, alertsEnabled]);
 
   const requestNotificationPermission = () => {
     if (!('Notification' in window)) return;
@@ -107,7 +118,7 @@ export default function AlertsPanel({ cityName, current, confidenceScore , expos
 
       {permission === 'default' && (
         <div style={{ marginBottom: '1rem', padding: '1rem', backgroundColor: 'var(--card-bg, #f8fafc)', borderRadius: '0.5rem', border: '1px solid var(--border-color, #e2e8f0)' }}>
-          <button 
+          <button
             type="button"
             onClick={requestNotificationPermission}
             style={{ padding: '0.5rem 1rem', cursor: 'pointer', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '4px', fontWeight: '500' }}
@@ -120,11 +131,35 @@ export default function AlertsPanel({ cityName, current, confidenceScore , expos
         </div>
       )}
 
+      {/* Pollution alerts toggle — only shown when notification permission is granted */}
+      {permission === 'granted' && (
+        <div style={{ marginBottom: '1rem', padding: '0.75rem 1rem', backgroundColor: 'var(--card-bg, #f8fafc)', borderRadius: '0.5rem', border: '1px solid var(--border-color, #e2e8f0)', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <label
+            htmlFor="push-alerts-toggle"
+            style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', cursor: 'pointer', fontSize: '0.9rem', color: 'var(--text-primary, #1e293b)', userSelect: 'none' }}
+          >
+            <input
+              id="push-alerts-toggle"
+              type="checkbox"
+              checked={alertsEnabled}
+              onChange={() => toggleAlertFlag(PUSH_ALERTS_FLAG)}
+              style={{ width: '1rem', height: '1rem', cursor: 'pointer', accentColor: '#3b82f6' }}
+            />
+            <span>
+              <strong>Hazardous Pollution Alerts</strong>
+              <span style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary, #64748b)' }}>
+                Receive a browser notification when AQI exceeds {HAZARDOUS_AQI_THRESHOLD} (hazardous level)
+              </span>
+            </span>
+          </label>
+        </div>
+      )}
+
       {exposureEstimate && (
         <div className="exposure-card">
           <h3>Exposure Timer</h3>
 
-         <p className="exposure-message">
+          <p className="exposure-message">
             {exposureEstimate.message}
           </p>
 
