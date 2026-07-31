@@ -4,10 +4,12 @@ import ApiWorker from '../workers/apiWorker?worker';
 
 const BASE_URL = 'https://air-quality-api.open-meteo.com/v1/air-quality';
 
-// Historical data contains multiple days, so findLastIndex() - ensures we use today's reading instead of yesterday's.
 /**
- * @param {any} times
- * @param {any} utcOffsetSeconds
+ * Calculates the current hour index from an array of timestamps using the location's UTC offset.
+ *
+ * @param {string[]} times - Array of ISO timestamp strings (e.g. "2026-03-31T14:00").
+ * @param {number} [utcOffsetSeconds=0] - The UTC offset in seconds for the queried location.
+ * @returns {number} The array index corresponding to the current hour in the local timezone, or 0 if not found.
  */
 function getCurrentHourIndex(times, utcOffsetSeconds = 0) {
   // Current time in the queried location's timezone
@@ -26,9 +28,23 @@ function getCurrentHourIndex(times, utcOffsetSeconds = 0) {
   return index === -1 ? 0 : index;
 }
 
+/**
+ * Object defining AQI qualitative bands with labels and hex colors.
+ * @typedef {Object} AQIBand
+ * @property {string} label - Descriptive classification (e.g., 'Good', 'Moderate', 'Hazardous').
+ * @property {string} color - Hexadecimal color code representing the category severity.
+ */
 
-
-/** @param {any} value */
+/**
+ * Maps a numerical US AQI value to its corresponding qualitative category label and hex color code.
+ *
+ * @param {number} value - The numerical US AQI score (0 to 500+).
+ * @returns {AQIBand} An object containing the descriptive category label and matching hex color string.
+ *
+ * @example
+ * const band = getAQIBand(42);
+ * // Returns { label: 'Good', color: '#1f9d55' }
+ */
 export function getAQIBand(value) {
   if (value <= 50) return { label: 'Good', color: '#1f9d55' };
   if (value <= 100) return { label: 'Moderate', color: '#f59e0b' };
@@ -39,8 +55,15 @@ export function getAQIBand(value) {
 }
 
 /**
- * @param {any} value
- * @param {any} limit
+ * Determines a color indicator for a specific pollutant level based on its safety threshold limit ratio.
+ *
+ * @param {number} value - Current measured pollutant concentration.
+ * @param {number} limit - Safe standard limit threshold concentration.
+ * @returns {string} Hexadecimal color code representing the ratio severity.
+ *
+ * @example
+ * const color = getPollutantColor(25, 50);
+ * // Returns '#1f9d55' (Good)
  */
 export function getPollutantColor(value, limit) {
   const ratio = value / limit;
@@ -64,11 +87,12 @@ const DIRECTION_LABELS = {
   '1,-1': 'South-East zone'
 };
 
-
-
 /**
- * @param {any} lat
- * @param {any} lon
+ * Validates whether latitude and longitude numbers lie within valid geographic ranges.
+ *
+ * @param {number} lat - Latitude in degrees (-90 to 90).
+ * @param {number} lon - Longitude in degrees (-180 to 180).
+ * @returns {boolean} True if coordinates are valid numbers within geographical limits.
  */
 function isValidCoord(lat, lon) {
   return (
@@ -79,9 +103,12 @@ function isValidCoord(lat, lon) {
 }
 
 /**
- * @param {any} lat
- * @param {any} lon
- * @param {any} signal
+ * Fetches AQI data for a single geographic grid point coordinate.
+ *
+ * @param {number} lat - Latitude.
+ * @param {number} lon - Longitude.
+ * @param {AbortSignal} [signal] - Optional signal to abort the fetch request.
+ * @returns {Promise<number|null>} Calculated AQI rounded to nearest integer, or null on error.
  */
 async function fetchGridPointAqi(lat, lon, signal) {
   if (!isValidCoord(lat, lon)) return null;
@@ -98,10 +125,26 @@ async function fetchGridPointAqi(lat, lon, signal) {
 }
 
 /**
- * @param {any} lat
- * @param {any} lon
- * @param {any} topN
- * @param {any} signal
+ * Representation of a surrounding grid point.
+ * @typedef {Object} GridPoint
+ * @property {string} id - Unique identifier string for the grid point.
+ * @property {number} lat - Latitude coordinate.
+ * @property {number} lon - Longitude coordinate.
+ * @property {number} aqi - Numerical US AQI level.
+ * @property {string} areaName - Cardinal directional zone description relative to origin.
+ */
+
+/**
+ * Fetches AQI data for surrounding grid coordinates around a central location.
+ *
+ * @param {number} lat - Center latitude.
+ * @param {number} lon - Center longitude.
+ * @param {number} [topN=6] - Maximum number of top AQI points to return.
+ * @param {AbortSignal} [signal] - Optional signal to abort network requests.
+ * @returns {Promise<GridPoint[]>} Array of top surrounding grid points sorted by highest AQI.
+ *
+ * @example
+ * const localGrid = await fetchLocalGrid(19.0760, 72.8777, 4);
  */
 export async function fetchLocalGrid(lat, lon, topN = 6, signal) {
   const cacheKey = `grid-${lat.toFixed(1)},${lon.toFixed(1)}`;
@@ -139,8 +182,11 @@ export async function fetchLocalGrid(lat, lon, topN = 6, signal) {
 }
 
 /**
- * @param {any} hourly
- * @param {any} times
+ * Evaluates dataset completeness and quality metrics to yield a confidence rating score.
+ *
+ * @param {Object} hourly - Object containing array streams for various pollutants.
+ * @param {string[]} times - Hourly time sequence strings array.
+ * @returns {{ confidenceScore: ('High'|'Medium'|'Low'), dataCompleteness: number }} Confidence classification and completeness percentage.
  */
 function computeConfidence(hourly, times) {
   const POLLUTANT_FIELDS = ['pm2_5', 'pm10', 'carbon_monoxide', 'nitrogen_dioxide', 'ozone', 'us_aqi'];
@@ -160,10 +206,40 @@ function computeConfidence(hourly, times) {
 }
 
 /**
- * @param {any} lat
- * @param {any} lon
- * @param {any} signal
- * @param {any} skipGrid
+ * Air Quality metrics record for a single point in time.
+ * @typedef {Object} CurrentAQIData
+ * @property {string} time - Time corresponding to measurements.
+ * @property {number} pm2_5 - Fine particulate concentration (PM2.5).
+ * @property {number} pm10 - Coarse particulate concentration (PM10).
+ * @property {number} carbon_monoxide - CO level concentration.
+ * @property {number} nitrogen_dioxide - NO2 level concentration.
+ * @property {number} ozone - O3 level concentration.
+ * @property {number} us_aqi - Aggregate US AQI score.
+ */
+
+/**
+ * Comprehensive air quality result payload.
+ * @typedef {Object} AQIFetchResult
+ * @property {CurrentAQIData} current - Most recent hour's pollutant readings.
+ * @property {Array<{time: string, pm2_5: number, pm10: number, us_aqi: number}>} trend - Past 24 hours historical trend readings.
+ * @property {GridPoint[]} nearbyPoints - Surrounding regional spatial grid metrics.
+ * @property {'High'|'Medium'|'Low'} confidenceScore - Confidence rating based on available data completeness.
+ * @property {number} dataCompleteness - Completeness percentage score (0 to 100).
+ */
+
+/**
+ * Fetches current and historical air quality data by geographical coordinates.
+ *
+ * @param {number} lat - Latitude coordinate.
+ * @param {number} lon - Longitude coordinate.
+ * @param {AbortSignal} [signal] - Optional signal to handle request cancellation.
+ * @param {boolean} [skipGrid=false] - When set to true, disables surrounding spatial grid requests.
+ * @returns {Promise<AQIFetchResult>} Full air quality details including trend and spatial analysis.
+ * @throws {Error} Throws error when offline, coordinates are invalid, or API requests fail.
+ *
+ * @example
+ * const data = await fetchAirQualityByCoords(19.0760, 72.8777);
+ * console.log(data.current.us_aqi);
  */
 export async function fetchAirQualityByCoords(lat, lon, signal, skipGrid = false) {
   const cacheKey = `coords-${lat.toFixed(4)},${lon.toFixed(4)}`;
@@ -187,9 +263,11 @@ export async function fetchAirQualityByCoords(lat, lon, signal, skipGrid = false
   const url = `${BASE_URL}?latitude=${lat}&longitude=${lon}&hourly=pm2_5,pm10,carbon_monoxide,nitrogen_dioxide,ozone,us_aqi&timezone=auto&start_date=${startDate}&end_date=${endDate}`;
 
   /**
-     * @param {any} workerUrl
-     * @param {any} workerSignal
-     */
+   * Internal worker execution helper.
+   * @param {string} workerUrl - Endpoint target URL.
+   * @param {AbortSignal} [workerSignal] - Cancellation listener signal.
+   * @returns {Promise<any>} Raw web worker output payload.
+   */
   const fetchWithWorker = (workerUrl, workerSignal) => {
     return new Promise((resolve, reject) => {
       const worker = new ApiWorker();
@@ -332,9 +410,23 @@ export async function fetchAirQualityByCoords(lat, lon, signal, skipGrid = false
 }
 
 /**
- * @param {any} lat
- * @param {any} lon
- * @param {any} signal
+ * Wind data speed and direction details.
+ * @typedef {Object} WindData
+ * @property {number} speed - Wind speed in km/h.
+ * @property {number} direction - Wind direction angle in degrees (0–360).
+ */
+
+/**
+ * Fetches current wind metrics for given coordinates.
+ *
+ * @param {number} lat - Latitude.
+ * @param {number} lon - Longitude.
+ * @param {AbortSignal} [signal] - Optional cancellation signal.
+ * @returns {Promise<WindData|null>} Object containing wind speed and direction, or null if invalid/failed.
+ * @throws {DOMException} Throws AbortError if signal is triggered.
+ *
+ * @example
+ * const wind = await fetchWindData(19.0760, 72.8777);
  */
 export async function fetchWindData(lat, lon, signal) {
   if (!isValidCoord(lat, lon)) return null;
@@ -353,7 +445,25 @@ export async function fetchWindData(lat, lon, signal) {
   }
 }
 
-/** @param {any} signal */
+/**
+ * Individual city metrics comparison summary object.
+ * @typedef {Object} CityComparison
+ * @property {string} city - City name string.
+ * @property {number} aqi - US AQI score.
+ * @property {number} pm2_5 - Fine PM2.5 particle level.
+ * @property {number} pm10 - Coarse PM10 particle level.
+ */
+
+/**
+ * Fetches AQI indices for predefined major global/national cities for comparison.
+ *
+ * @param {AbortSignal} [signal] - Optional request cancellation signal.
+ * @returns {Promise<CityComparison[]>} Sorted list of city comparison objects in descending order of AQI.
+ * @throws {DOMException} Throws AbortError if aborted during execution.
+ *
+ * @example
+ * const comparisons = await fetchCityComparisons();
+ */
 export async function fetchCityComparisons(signal) {
   const cityData = await Promise.all(
     CITY_COORDINATES.map(async (city) => {
@@ -382,7 +492,23 @@ export async function fetchCityComparisons(signal) {
   return cityData.sort((a, b) => b.aqi - a.aqi);
 }
 
-/** @param {any} trend */
+/**
+ * Estimated AQI projection averages over upcoming timeframes.
+ * @typedef {Object} EstimatedAverages
+ * @property {number} weekly - Estimated 7-day average AQI.
+ * @property {number} monthly - Estimated 30-day average AQI.
+ * @property {number} prediction - Short-term predicted trend projection AQI.
+ */
+
+/**
+ * Estimates future weekly/monthly average trends using recent 24-hour historical readings.
+ *
+ * @param {Array<{us_aqi: number}>} trend - Historical hourly trend array.
+ * @returns {EstimatedAverages} Object containing calculated weekly, monthly, and overall predicted AQI estimations.
+ *
+ * @example
+ * const estimates = estimateWeeklyMonthlyAverages([{ us_aqi: 100 }, { us_aqi: 110 }]);
+ */
 export function estimateWeeklyMonthlyAverages(trend) {
   const dayAverage = trend.reduce((acc, item) => acc + item.us_aqi, 0) / (trend.length || 1);
   const weekly = Math.round(dayAverage * 1.05);
@@ -396,9 +522,22 @@ export function estimateWeeklyMonthlyAverages(trend) {
 }
 
 /**
- * @param {any} trend
- * @param {any} currentAQI
- * @param {any} threshold
+ * Exposure assessment response object.
+ * @typedef {Object} ExposureAssessment
+ * @property {string} message - Human-readable guidance message.
+ * @property {boolean} estimated - Boolean flag confirming value is an estimated calculation.
+ */
+
+/**
+ * Estimates safe exposure time remaining before air pollution crosses a safety threshold based on recent rate of change.
+ *
+ * @param {Array<{us_aqi: number}>} trend - Recent trend historical records array.
+ * @param {number} currentAQI - Current local US AQI level.
+ * @param {number} [threshold=120] - Target unsafe threshold cut-off value.
+ * @returns {ExposureAssessment|null} Exposure recommendation message object or null if trend is empty.
+ *
+ * @example
+ * const exposure = estimateExposureTime(trendData, 95, 120);
  */
 export function estimateExposureTime(trend, currentAQI, threshold = 120) {
 
@@ -456,8 +595,23 @@ export function estimateExposureTime(trend, currentAQI, threshold = 120) {
 /* ─── AQI sub-index breakpoints (US EPA standard) ─────────────────────────── */
 
 /**
- * @param {any} concentration
- * @param {any} breakpoints
+ * Breakpoint boundary structure definition for calculating AQI sub-indices.
+ * @typedef {Object} Breakpoint
+ * @property {number} cLow - Low concentration limit.
+ * @property {number} cHigh - High concentration limit.
+ * @property {number} iLow - Low AQI score index boundary.
+ * @property {number} iHigh - High AQI score index boundary.
+ */
+
+/**
+ * Calculates a specific pollutant sub-index score using standard US EPA breakpoint formulas.
+ *
+ * @param {number} concentration - Measured pollutant concentration level.
+ * @param {Breakpoint[]} breakpoints - Standard EPA concentration-to-index lookup array.
+ * @returns {number} Interpolated sub-index score integer value (0 to 500).
+ *
+ * @example
+ * const subAqiScore = subAqi(24.5, BP_PM25);
  */
 export function subAqi(concentration, breakpoints) {
   for (const bp of breakpoints) {
@@ -470,6 +624,7 @@ export function subAqi(concentration, breakpoints) {
   return concentration > breakpoints[breakpoints.length - 1].cHigh ? 500 : 0;
 }
 
+/** @type {Breakpoint[]} Standard US EPA PM2.5 breakpoints */
 export const BP_PM25 = [
   { cLow: 0, cHigh: 12.0, iLow: 0, iHigh: 50 },
   { cLow: 12.1, cHigh: 35.4, iLow: 51, iHigh: 100 },
@@ -479,6 +634,7 @@ export const BP_PM25 = [
   { cLow: 250.5, cHigh: 500.4, iLow: 301, iHigh: 500 },
 ];
 
+/** @type {Breakpoint[]} Standard US EPA PM10 breakpoints */
 export const BP_PM10 = [
   { cLow: 0, cHigh: 54, iLow: 0, iHigh: 50 },
   { cLow: 55, cHigh: 154, iLow: 51, iHigh: 100 },
@@ -488,6 +644,7 @@ export const BP_PM10 = [
   { cLow: 425, cHigh: 604, iLow: 301, iHigh: 500 },
 ];
 
+/** @type {Breakpoint[]} Standard US EPA NO2 breakpoints */
 export const BP_NO2 = [
   { cLow: 0, cHigh: 100, iLow: 0, iHigh: 50 },
   { cLow: 101, cHigh: 188, iLow: 51, iHigh: 100 },
@@ -497,6 +654,7 @@ export const BP_NO2 = [
   { cLow: 2349, cHigh: 3852, iLow: 301, iHigh: 500 },
 ];
 
+/** @type {Breakpoint[]} Standard US EPA Ozone (O3) breakpoints */
 export const BP_O3 = [
   { cLow: 0, cHigh: 116, iLow: 0, iHigh: 50 },
   { cLow: 117, cHigh: 147, iLow: 51, iHigh: 100 },
@@ -505,6 +663,7 @@ export const BP_O3 = [
   { cLow: 226, cHigh: 733, iLow: 201, iHigh: 300 },
 ];
 
+/** @type {Breakpoint[]} Standard US EPA Carbon Monoxide (CO) breakpoints */
 export const BP_CO = [
   { cLow: 0, cHigh: 4700, iLow: 0, iHigh: 50 },
   { cLow: 4701, cHigh: 9800, iLow: 51, iHigh: 100 },
@@ -515,11 +674,17 @@ export const BP_CO = [
 ];
 
 /**
- * @param {any} pm25
- * @param {any} pm10
- * @param {any} no2
- * @param {any} o3
- * @param {any} co
+ * Calculates overall US AQI score by finding the maximum sub-index across individual pollutant concentrations.
+ *
+ * @param {number} pm25 - PM2.5 concentration level.
+ * @param {number} pm10 - PM10 concentration level.
+ * @param {number} no2 - Nitrogen Dioxide (NO2) concentration level.
+ * @param {number} o3 - Ozone (O3) concentration level.
+ * @param {number} co - Carbon Monoxide (CO) concentration level.
+ * @returns {number} The governing overall US AQI score.
+ *
+ * @example
+ * const overallAQI = estimateAQI(15.2, 45, 12, 30, 400);
  */
 export function estimateAQI(pm25, pm10, no2, o3, co) {
   const scores = [
@@ -533,7 +698,21 @@ export function estimateAQI(pm25, pm10, no2, o3, co) {
 }
 
 /**
- * @param {any} code
+ * Weather details descriptor object.
+ * @typedef {Object} WeatherDetails
+ * @property {string} label - Readable weather condition string (e.g., 'Clear sky', 'Thunderstorm').
+ * @property {string} icon - Emoji icon character representing the weather state.
+ */
+
+/**
+ * Maps standard WMO Weather Interpretation Codes to readable descriptions and emoji visual icons.
+ *
+ * @param {number} code - WMO weather interpretation code.
+ * @returns {WeatherDetails} Label and icon representation object.
+ *
+ * @example
+ * const weather = getWeatherDetails(0);
+ * // Returns { label: 'Clear sky', icon: '☀️' }
  */
 export function getWeatherDetails(code) {
   switch (code) {
@@ -579,10 +758,28 @@ export function getWeatherDetails(code) {
 }
 
 /**
- * Fetch 7-day AQI and weather forecast with upper and lower confidence bounds.
- * @param {any} lat
- * @param {any} lon
- * @param {any} [signal]
+ * Daily forecast item with AQI bounds and weather codes.
+ * @typedef {Object} ForecastDay
+ * @property {string} date - Date ISO string format (YYYY-MM-DD).
+ * @property {number} aqi - Max or average calculated AQI for the day.
+ * @property {number} predictedAQI - Target predicted AQI value.
+ * @property {number} lowerBound - Estimated lower confidence bound.
+ * @property {number} upperBound - Estimated upper confidence bound.
+ * @property {[number, number]} confidenceRange - Array containing [lowerBound, upperBound].
+ * @property {number} weatherCode - WMO weather code for the day.
+ */
+
+/**
+ * Fetches 7-day AQI and weather forecast with calculated confidence boundaries.
+ *
+ * @param {number} lat - Latitude coordinate.
+ * @param {number} lon - Longitude coordinate.
+ * @param {AbortSignal} [signal] - Optional request cancellation signal.
+ * @returns {Promise<ForecastDay[]>} Array of 7 daily forecast objects containing predictive confidence boundaries and weather codes.
+ * @throws {Error} Throws error if coordinates are invalid or endpoint requests fail.
+ *
+ * @example
+ * const forecast = await get7DayForecast(19.0760, 72.8777);
  */
 export async function get7DayForecast(lat, lon, signal) {
   if (!isValidCoord(lat, lon)) throw new Error('Invalid coordinates.');
@@ -659,5 +856,3 @@ export async function get7DayForecast(lat, lon, signal) {
 }
 
 export const fetch7DayForecast = get7DayForecast;
-
-
