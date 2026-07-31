@@ -445,6 +445,24 @@ export async function fetchWindData(lat, lon, signal) {
   }
 }
 
+export async function fetchSunSafetyData(lat, lon, signal) {
+  if (!isValidCoord(lat, lon)) return null;
+  const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,apparent_temperature,uv_index`;
+  try {
+    const response = await fetch(url, { signal });
+    if (!response.ok) return null;
+    const data = await response.json();
+    return {
+      temperature: Math.round(data.current.temperature_2m),
+      feelsLike: Math.round(data.current.apparent_temperature),
+      uvIndex: Math.round(data.current.uv_index),
+    };
+  } catch (err) {
+    if (err.name === 'AbortError') throw err;
+    return null;
+  }
+}
+
 /**
  * Individual city metrics comparison summary object.
  * @typedef {Object} CityComparison

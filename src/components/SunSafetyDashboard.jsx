@@ -1,10 +1,5 @@
-import { useState } from "react";
-
-const mockSunSafetyData = {
-  temperature: 34,
-  feelsLike: 38,
-  uvIndex: 8,
-};
+import { useState, useEffect } from "react";
+import { fetchSunSafetyData } from "../services/airQualityService";
 
 function getUVRisk(uvIndex) {
   if (uvIndex <= 2) return "Low";
@@ -51,13 +46,50 @@ function getRecommendations(uvIndex, temperature) {
   return recommendations;
 }
 
-export default function SunSafetyDashboard() {
+export default function SunSafetyDashboard({ lat, lon }) {
   const [showSafetyDetails, setShowSafetyDetails] = useState(false);
+  const [sunData, setSunData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
 
-  const { temperature, feelsLike, uvIndex } = mockSunSafetyData;
+  useEffect(() => {
+    if (typeof lat !== "number" || typeof lon !== "number") return;
 
-  const riskLevel = getUVRisk(uvIndex);
-  const recommendations = getRecommendations(uvIndex, temperature);
+    let isMounted = true;
+    const controller = new AbortController();
+    setLoading(true);
+    setError(false);
+
+    fetchSunSafetyData(lat, lon, controller.signal)
+      .then((result) => {
+        if (!isMounted) return;
+        if (result) {
+          setSunData(result);
+        } else {
+          setError(true);
+        }
+        setLoading(false);
+      })
+      .catch(() => {
+        if (isMounted) {
+          setError(true);
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      isMounted = false;
+      controller.abort();
+    };
+  }, [lat, lon]);
+
+  const temperature = sunData?.temperature ?? null;
+  const feelsLike = sunData?.feelsLike ?? null;
+  const uvIndex = sunData?.uvIndex ?? null;
+
+  const riskLevel = uvIndex !== null ? getUVRisk(uvIndex) : null;
+  const recommendations =
+    uvIndex !== null ? getRecommendations(uvIndex, temperature) : [];
 
   return (
     <section className="panel sun-safety-dashboard">
@@ -84,50 +116,67 @@ export default function SunSafetyDashboard() {
 
       {showSafetyDetails && (
         <>
-          <div className="sun-safety-metrics">
-            <article className="sun-safety-card">
-              <span className="sun-safety-icon">🌡️</span>
-              <h3>Temperature</h3>
-              <div className="sun-safety-value">{temperature}°C</div>
-              <p>Current temperature</p>
-            </article>
+          {loading && (
+            <div className="sun-safety-loading">
+              <div className="loading-spinner" />
+              <p>Fetching live UV and weather data...</p>
+            </div>
+          )}
 
-            <article className="sun-safety-card">
-              <span className="sun-safety-icon">☀️</span>
-              <h3>Feels Like</h3>
-              <div className="sun-safety-value">{feelsLike}°C</div>
-              <p>Perceived outdoor temperature</p>
-            </article>
-
-            <article className="sun-safety-card">
-              <span className="sun-safety-icon">🔆</span>
-              <h3>UV Index</h3>
-              <div className="sun-safety-value">{uvIndex}</div>
-              <p>Current UV exposure level</p>
-            </article>
-
-            <article className="sun-safety-card">
-              <span className="sun-safety-icon">🛡️</span>
-              <h3>Risk Level</h3>
-              <div className="sun-safety-risk">{riskLevel}</div>
-              <p>Based on today's UV index</p>
-            </article>
-          </div>
-
-          <div className="sun-safety-recommendations">
-            <h3>Recommended Precautions</h3>
-
-            <ul>
-              {recommendations.map((recommendation) => (
-                <li key={recommendation}>{recommendation}</li>
-              ))}
-            </ul>
-
+          {!loading && error && (
             <p className="sun-safety-disclaimer">
-              General environmental health guidance only. Follow local health
-              advice when conditions are severe.
+              Unable to load live UV and weather data right now. Please try again later.
             </p>
-          </div>
+          )}
+
+          {!loading && !error && sunData && (
+            <>
+              <div className="sun-safety-metrics">
+                <article className="sun-safety-card">
+                  <span className="sun-safety-icon">🌡️</span>
+                  <h3>Temperature</h3>
+                  <div className="sun-safety-value">{temperature}°C</div>
+                  <p>Current temperature</p>
+                </article>
+
+                <article className="sun-safety-card">
+                  <span className="sun-safety-icon">☀️</span>
+                  <h3>Feels Like</h3>
+                  <div className="sun-safety-value">{feelsLike}°C</div>
+                  <p>Perceived outdoor temperature</p>
+                </article>
+
+                <article className="sun-safety-card">
+                  <span className="sun-safety-icon">🔆</span>
+                  <h3>UV Index</h3>
+                  <div className="sun-safety-value">{uvIndex}</div>
+                  <p>Current UV exposure level</p>
+                </article>
+
+                <article className="sun-safety-card">
+                  <span className="sun-safety-icon">🛡️</span>
+                  <h3>Risk Level</h3>
+                  <div className="sun-safety-risk">{riskLevel}</div>
+                  <p>Based on today's UV index</p>
+                </article>
+              </div>
+
+              <div className="sun-safety-recommendations">
+                <h3>Recommended Precautions</h3>
+
+                <ul>
+                  {recommendations.map((recommendation) => (
+                    <li key={recommendation}>{recommendation}</li>
+                  ))}
+                </ul>
+
+                <p className="sun-safety-disclaimer">
+                  General environmental health guidance only. Follow local health
+                  advice when conditions are severe.
+                </p>
+              </div>
+            </>
+          )}
         </>
       )}
     </section>
