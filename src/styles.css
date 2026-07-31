@@ -5209,6 +5209,84 @@ a {
   line-height: 1.45;
 }
 
+/* ============================================================
+   Hotspot Scout Game — round controls & game-over modal
+   ============================================================ */
+.hotspot-next-btn {
+  margin-top: var(--sp-3);
+  border: none;
+  border-radius: var(--r-sm);
+  background: linear-gradient(120deg, var(--brand), var(--sky));
+  color: white;
+  padding: 0.6rem 1.2rem;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 180ms var(--ease), filter 180ms var(--ease);
+}
+
+.hotspot-next-btn:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.08);
+}
+
+.hotspot-option:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.hotspot-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.hotspot-modal {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  padding: var(--sp-6);
+  text-align: center;
+  box-shadow: var(--shadow-lg);
+  max-width: 320px;
+  width: 90%;
+}
+
+.hotspot-modal h3 {
+  font-family: "Fraunces", serif;
+  margin-bottom: var(--sp-3);
+}
+
+.hotspot-modal p {
+  margin-bottom: var(--sp-2);
+  color: var(--muted);
+}
+
+.hotspot-modal-actions {
+  margin-top: var(--sp-4);
+}
+
+.hotspot-reset-btn {
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--muted);
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 0.35rem 0.8rem;
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  transition: all 180ms var(--ease);
+}
+
+.hotspot-reset-btn:hover {
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
 
 /* ============================================================
    Multi-City AQI Comparison (Compare tab)
@@ -5900,6 +5978,7 @@ a {
     text-align: center;
   }
 }
+
 /* =========================================================
    Sun Safety & UV Health Advisor
    ========================================================= */
@@ -5917,7 +5996,7 @@ a {
   flex-wrap: wrap;
 }
 
-.sun-safety-header > div {
+.sun-safety-header>div {
   flex: 1;
   min-width: 240px;
 }

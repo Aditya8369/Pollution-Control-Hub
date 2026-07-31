@@ -1,28 +1,39 @@
 import { useState, useEffect } from "react";
-import { shuffleArray, getHighestAQI } from "./hotspotGameUtils";
+import { shuffleArray, getHighestAQI, getHighScore, saveHighScore } from "./hotspotGameUtils";
 
 /** @param {any} params */
 function HotspotScoutGame({ nearbyPoints }) {
+
+  const TOTAL_ROUNDS = 5;
 
   const [score, setScore] = useState(0);
   const [streak, setStreak] = useState(0);
   const [selected, setSelected] = useState(null);
   const [round, setRound] = useState([]);
+  const [roundNumber, setRoundNumber] = useState(1);
+  const [gameOver, setGameOver] = useState(false);
+  const [highScore, setHighScore] = useState(() => getHighScore());
 
   const generateRound = () => {
     const shuffled = shuffleArray(nearbyPoints);
 
     setRound(shuffled.slice(0, 4));
+    setSelected(null);
   };
 
   useEffect(() => {
     if (nearbyPoints.length >= 4) {
+      setScore(0);
+      setStreak(0);
+      setRoundNumber(1);
+      setGameOver(false);
       generateRound();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [nearbyPoints]);
 
   /** @param {any} spot */
-    const handleSelect = (spot) => {
+  const handleSelect = (spot) => {
     if (round.length === 0) return;
 
     const winner = getHighestAQI(round);
@@ -37,20 +48,51 @@ function HotspotScoutGame({ nearbyPoints }) {
     setSelected(winner);
   };
 
+  const handleNextRound = () => {
+    if (roundNumber >= TOTAL_ROUNDS) {
+      const updatedHighScore = saveHighScore(score);
+      setHighScore(updatedHighScore);
+      setGameOver(true);
+      return;
+    }
+    setRoundNumber(prev => prev + 1);
+    generateRound();
+  };
+
+  const handlePlayAgain = () => {
+    setScore(0);
+    setStreak(0);
+    setRoundNumber(1);
+    setGameOver(false);
+    generateRound();
+  };
+
 
   return (
     <div className="hotspot-game">
       <h2>Hotspot Scout Game</h2>
 
-      <p>Score: {score}</p>
-      <p>Streak: {streak}</p>
+      <div className="score-board">
+        <span>Score: {score}</span>
+        <span>Streak: {streak}</span>
+        <span>Round: {roundNumber}/{TOTAL_ROUNDS}</span>
+        <span>High Score: {highScore}</span>
+        <button
+          type="button"
+          className="hotspot-reset-btn"
+          onClick={handlePlayAgain}
+        >
+          Reset
+        </button>
+      </div>
 
       <div className="hotspot-options">
-        {round.map((spot, index) => (
+        {round.map((spot) => (
           <button
-            key={index}
+            key={spot.areaName}
             className="hotspot-option"
             onClick={() => handleSelect(spot)}
+            disabled={!!selected}
           >
             {spot.areaName}
           </button>
@@ -58,8 +100,32 @@ function HotspotScoutGame({ nearbyPoints }) {
       </div>
 
       {selected && (
-        <div style={{ marginTop: "20px" }}>
-          Highest AQI: <strong>{selected.name}</strong> ({selected.aqi})
+        <>
+          <div style={{ marginTop: "20px" }}>
+            Highest AQI: <strong>{selected.name}</strong> ({selected.aqi})
+          </div>
+          <button
+            type="button"
+            className="hotspot-next-btn"
+            onClick={handleNextRound}
+          >
+            {roundNumber >= TOTAL_ROUNDS ? "See Results" : "Next Round"}
+          </button>
+        </>
+      )}
+
+      {gameOver && (
+        <div className="hotspot-modal-overlay">
+          <div className="hotspot-modal">
+            <h3>Game Over!</h3>
+            <p>Final Score: <strong>{score}</strong> / {TOTAL_ROUNDS}</p>
+            <p>High Score: <strong>{highScore}</strong></p>
+            <div className="hotspot-modal-actions">
+              <button type="button" className="btn-primary" onClick={handlePlayAgain}>
+                Play Again
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
