@@ -91,9 +91,11 @@ body {
   line-height: 1.55;
   color: var(--ink);
   background:
-    radial-gradient(circle at 8% 15%,
+    radial-gradient(
+      circle at 8% 15%,
       rgba(13, 148, 136, 0.14),
-      transparent 32%),
+      transparent 32%
+    ),
     radial-gradient(circle at 92% 8%, rgba(249, 115, 22, 0.1), transparent 30%),
     linear-gradient(180deg, #f7faf9 0%, #eef2f1 100%);
   transition:
@@ -105,9 +107,11 @@ body {
 :root[data-theme="dark"] body {
   background:
     radial-gradient(circle at 6% 12%, rgba(45, 212, 191, 0.1), transparent 34%),
-    radial-gradient(circle at 90% 6%,
+    radial-gradient(
+      circle at 90% 6%,
       rgba(251, 146, 60, 0.08),
-      transparent 32%),
+      transparent 32%
+    ),
     linear-gradient(180deg, #05080f 0%, #0a1018 100%);
 }
 
@@ -143,7 +147,6 @@ a {
 }
 
 @media (prefers-reduced-motion: reduce) {
-
   *,
   *::before,
   *::after {
@@ -270,18 +273,22 @@ a {
   content: "";
   position: absolute;
   inset: 0;
-  background: radial-gradient(circle at 88% 100%,
-      rgba(249, 115, 22, 0.55),
-      transparent 55%);
+  background: radial-gradient(
+    circle at 88% 100%,
+    rgba(249, 115, 22, 0.55),
+    transparent 55%
+  );
   pointer-events: none;
 }
 
 .hero-overlay {
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg,
-      rgba(15, 23, 42, 0),
-      rgba(15, 23, 42, 0.35));
+  background: linear-gradient(
+    180deg,
+    rgba(15, 23, 42, 0),
+    rgba(15, 23, 42, 0.35)
+  );
 }
 
 .hero-content {
@@ -458,6 +465,62 @@ a {
 .theme-toggle-inline:hover {
   transform: translateY(-2px);
   box-shadow: var(--shadow-md);
+}
+
+.alerts-toggle-inline {
+  position: relative;
+  width: 76px;
+  height: 38px;
+  border-radius: 999px;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  overflow: hidden;
+  transition: 0.35s;
+  background: linear-gradient(180deg, #f1f5f9, #e2e8f0);
+  box-shadow:
+    inset 0 2px 6px rgba(255, 255, 255, 0.8),
+    inset 0 -2px 5px rgba(0, 0, 0, 0.08),
+    0 4px 12px rgba(0, 0, 0, 0.18);
+  flex-shrink: 0;
+}
+
+.alerts-toggle-inline.on {
+  background: linear-gradient(180deg, #1d4ed8, #3b82f6);
+}
+
+.alerts-toggle-inline:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.alerts-toggle-inline .toggle-thumb {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: 0.35s;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.25);
+}
+
+.alerts-toggle-inline.on .toggle-thumb {
+  transform: translateX(38px);
+}
+
+.bell-icon {
+  width: 20px;
+  height: 20px;
+  color: #64748b;
+}
+
+.alerts-toggle-inline.on .bell-icon {
+  color: #1d4ed8;
 }
 
 /* ============================================================
@@ -683,7 +746,7 @@ a {
     align-items: stretch;
   }
 
-  .dashboard-header-row>div:first-child {
+  .dashboard-header-row > div:first-child {
     flex: none;
     /* stop the flex-basis:0 squeeze */
     width: 100%;
@@ -827,7 +890,9 @@ a {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
   overflow: hidden;
 }
 
@@ -1094,15 +1159,15 @@ a {
   .dashboard,
   .panel:last-child,
   .scenario-simulator,
-  .content-grid>*:nth-child(4),
-  .content-grid>*:nth-child(5),
-  .content-grid>*:nth-child(6) {
+  .content-grid > *:nth-child(4),
+  .content-grid > *:nth-child(5),
+  .content-grid > *:nth-child(6) {
     grid-column: span 2;
   }
 }
 
 /* subtle vertical dividers between the 3 columns for extra clarity */
-.three-col>div+div {
+.three-col > div + div {
   border-left: 1px solid var(--line);
   padding-left: var(--sp-5);
 }
@@ -1781,7 +1846,7 @@ a {
   margin-bottom: var(--sp-2);
 }
 
-.quiz-selector>p {
+.quiz-selector > p {
   color: var(--muted);
   margin-bottom: var(--sp-5);
 }
@@ -2832,7 +2897,6 @@ a {
   color: var(--card);
 }
 
-
 /* ==========================================================================
    Location Search (Autocomplete)
    ========================================================================== */
@@ -3053,16 +3117,20 @@ a {
 
 .mission-select-card.active {
   border-color: var(--brand);
-  background: linear-gradient(140deg,
-      rgba(13, 148, 136, 0.08),
-      rgba(2, 132, 199, 0.04));
+  background: linear-gradient(
+    140deg,
+    rgba(13, 148, 136, 0.08),
+    rgba(2, 132, 199, 0.04)
+  );
   box-shadow: 0 0 0 2px var(--brand);
 }
 
 :root[data-theme="dark"] .mission-select-card.active {
-  background: linear-gradient(140deg,
-      rgba(34, 211, 238, 0.12),
-      rgba(56, 189, 248, 0.06));
+  background: linear-gradient(
+    140deg,
+    rgba(34, 211, 238, 0.12),
+    rgba(56, 189, 248, 0.06)
+  );
 }
 
 .mission-icon-lg {
@@ -3418,16 +3486,20 @@ a {
 
 .policy-card.deployed {
   border-color: var(--brand);
-  background: linear-gradient(140deg,
-      rgba(13, 148, 136, 0.05),
-      rgba(2, 132, 199, 0.02));
+  background: linear-gradient(
+    140deg,
+    rgba(13, 148, 136, 0.05),
+    rgba(2, 132, 199, 0.02)
+  );
   box-shadow: 0 0 0 2px var(--brand);
 }
 
 :root[data-theme="dark"] .policy-card.deployed {
-  background: linear-gradient(140deg,
-      rgba(34, 211, 238, 0.08),
-      rgba(56, 189, 248, 0.04));
+  background: linear-gradient(
+    140deg,
+    rgba(34, 211, 238, 0.08),
+    rgba(56, 189, 248, 0.04)
+  );
 }
 
 .policy-card:disabled {
@@ -3886,7 +3958,6 @@ a {
   opacity: 0.65;
 }
 
-
 /* AQI Share Card Styling  */
 
 .share-card-container {
@@ -3897,7 +3968,11 @@ a {
   background: linear-gradient(145deg, #0f172a 0%, #1e293b 100%);
   border-radius: 22px;
   padding: 24px;
-  font-family: 'Space Grotesk', system-ui, -apple-system, sans-serif;
+  font-family:
+    "Space Grotesk",
+    system-ui,
+    -apple-system,
+    sans-serif;
   color: #f8fafc;
   box-sizing: border-box;
   border: 1.5px solid #334155;
@@ -3918,8 +3993,6 @@ a {
   color: #38bdf8;
   text-transform: uppercase;
 }
-
-
 
 .share-card-date {
   font-size: 12px;
@@ -3984,7 +4057,6 @@ a {
   margin-top: 12px;
 }
 
-
 .share-card-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -4032,13 +4104,10 @@ a {
   color: #64748b;
 }
 
-
-
 /* ============================================================
    Mobile History/Calendar Overflow Fix v2 (mobile only)
    ============================================================ */
 @media (max-width: 640px) {
-
   /* THE key fix: force the grid track itself to shrink,
      not just its children */
   .content-grid {
@@ -4047,7 +4116,7 @@ a {
 
   .history-layout,
   .panel,
-  .content-grid>* {
+  .content-grid > * {
     min-width: 0;
     max-width: 100%;
   }
@@ -4272,7 +4341,7 @@ a {
     grid-template-columns: 1fr;
   }
 
-  .three-col>div+div {
+  .three-col > div + div {
     border-left: none;
     padding-left: 0;
     border-top: 1px solid var(--line);
@@ -4972,7 +5041,9 @@ a {
   font-weight: 600;
   font-size: 0.85rem;
   cursor: pointer;
-  transition: background-color 0.2s, color 0.2s;
+  transition:
+    background-color 0.2s,
+    color 0.2s;
 }
 
 .commute-save-btn:hover:not(:disabled) {
@@ -5094,7 +5165,7 @@ a {
 }
 
 .overview-item h4 {
-  margin: 0 0 .45rem;
+  margin: 0 0 0.45rem;
   font-size: 1.2rem;
   font-weight: 700;
   color: var(--ink);
@@ -5114,7 +5185,7 @@ a {
   display: none;
 }
 
-@media (max-width:768px) {
+@media (max-width: 768px) {
   .overview-item {
     padding: 1rem 0;
   }
@@ -5124,7 +5195,7 @@ a {
   }
 
   .overview-item p {
-    font-size: .95rem;
+    font-size: 0.95rem;
     line-height: 1.6;
   }
 }
@@ -5160,7 +5231,9 @@ a {
   cursor: pointer;
   font-size: 0.78rem;
   padding: 0.25rem 0.6rem;
-  transition: color 0.15s, border-color 0.15s;
+  transition:
+    color 0.15s,
+    border-color 0.15s;
 }
 
 .alert-history-clear:hover {
@@ -5222,7 +5295,9 @@ a {
   font: inherit;
   font-weight: 700;
   cursor: pointer;
-  transition: transform 180ms var(--ease), filter 180ms var(--ease);
+  transition:
+    transform 180ms var(--ease),
+    filter 180ms var(--ease);
 }
 
 .hotspot-next-btn:hover {
@@ -5286,7 +5361,6 @@ a {
   border-color: var(--danger);
   color: var(--danger);
 }
-
 
 /* ============================================================
    Multi-City AQI Comparison (Compare tab)
@@ -5366,7 +5440,9 @@ a {
 
 .compare-card.winner-card {
   border-color: var(--brand);
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--brand) 25%, transparent), var(--shadow-md);
+  box-shadow:
+    0 0 0 2px color-mix(in srgb, var(--brand) 25%, transparent),
+    var(--shadow-md);
 }
 
 /* Reserved badge row so all cards line up even without a badge */
@@ -5588,7 +5664,10 @@ a {
   border-radius: var(--r-md);
   padding: var(--sp-3) var(--sp-4);
   box-shadow: var(--shadow-sm);
-  transition: transform 200ms var(--ease), box-shadow 200ms var(--ease), border-color 200ms var(--ease);
+  transition:
+    transform 200ms var(--ease),
+    box-shadow 200ms var(--ease),
+    border-color 200ms var(--ease);
 }
 
 .sa-tip-card:hover {
@@ -5674,7 +5753,9 @@ a {
   border: 1px solid var(--line);
   border-radius: var(--r-md);
   overflow: hidden;
-  transition: border-color 200ms var(--ease), box-shadow 200ms var(--ease);
+  transition:
+    border-color 200ms var(--ease),
+    box-shadow 200ms var(--ease);
 }
 
 .sa-policy-card:hover {
@@ -5781,7 +5862,10 @@ a {
   font: inherit;
   cursor: pointer;
   box-shadow: var(--shadow-sm);
-  transition: transform 200ms var(--ease), box-shadow 200ms var(--ease), border-color 200ms var(--ease);
+  transition:
+    transform 200ms var(--ease),
+    box-shadow 200ms var(--ease),
+    border-color 200ms var(--ease);
 }
 
 .sa-read-card-btn:hover {
@@ -5948,7 +6032,6 @@ a {
 
 /* --- Mobile --- */
 @media (max-width: 768px) {
-
   .sa-tip-card,
   .sa-read-card-btn {
     padding: var(--sp-3);
@@ -5996,7 +6079,7 @@ a {
   flex-wrap: wrap;
 }
 
-.sun-safety-header>div {
+.sun-safety-header > div {
   flex: 1;
   min-width: 240px;
 }
@@ -6325,7 +6408,6 @@ a {
 }
 
 @keyframes river-shake {
-
   0%,
   100% {
     transform: translateX(0);
@@ -6431,4 +6513,4 @@ a {
   font-size: 0.78rem;
   color: var(--muted);
   font-weight: 400;
-}
+}
