@@ -853,7 +853,7 @@ export default function App() {
                 />
 
                 <HealthAdvisory />
-                <SunSafetyDashboard />
+                <SunSafetyDashboard lat={position.lat} lon={position.lon} />
                 <SolutionsAwareness />
 
                 <AnalyticsInsights
