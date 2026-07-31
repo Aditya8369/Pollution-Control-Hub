@@ -6397,6 +6397,11 @@ a {
 /* ============================================================
    Solutions & Awareness Layout & Header Styling (Fixes #399)
    ============================================================ */
+.solutions-awareness-section {
+  grid-column: 1 / -1;
+  width: 100%;
+}
+
 .solutions-three-col {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
