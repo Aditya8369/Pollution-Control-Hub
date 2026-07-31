@@ -30,6 +30,7 @@ import {
   fetchWindData,
 } from "./services/airQualityService";
 import { eventBus } from "./core/events";
+import RiverOriginGame from "./components/RiverOriginGame";
 
 const DEFAULT_POSITION = {
   lat: 28.6139,
@@ -483,7 +484,7 @@ export default function App() {
       ? "dark"
       : "light";
   });
-const [timeRange, setTimeRange] = useState(() => {
+  const [timeRange, setTimeRange] = useState(() => {
     const saved = localStorage.getItem("timeRange");
     return saved ? Number(saved) : 24;
   });
@@ -551,7 +552,7 @@ const [timeRange, setTimeRange] = useState(() => {
 
     const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
 
-const handleOsThemeChange = (e) => {
+    const handleOsThemeChange = (e) => {
       const hasManualPreference = localStorage.getItem(THEME_STORAGE_KEY);
       const newSystemTheme = e.matches ? "dark" : "light";
       if (!hasManualPreference) {
@@ -576,7 +577,7 @@ const handleOsThemeChange = (e) => {
       return;
     }
 
-navigator.geolocation.getCurrentPosition(
+    navigator.geolocation.getCurrentPosition(
       async (coords) => {
         if (requestId !== geoRequestId.current) return;
         const lat = Number(coords.coords.latitude.toFixed(4));
@@ -594,13 +595,13 @@ navigator.geolocation.getCurrentPosition(
         } catch (err) {
           console.warn("Reverse geocoding failed, keeping generic label.", err);
         }
-      },      (error) => {
+      }, (error) => {
         if (requestId !== geoRequestId.current) return;
         console.warn("Geolocation is unavailable. Using the fallback location.");
 
-            if (import.meta.env.DEV) {
-              console.debug("Geolocation fallback diagnostics:", error);
-            }
+        if (import.meta.env.DEV) {
+          console.debug("Geolocation fallback diagnostics:", error);
+        }
         setLocationNotice(
           "Couldn't detect your location — showing Delhi for now.",
         );
@@ -701,7 +702,7 @@ navigator.geolocation.getCurrentPosition(
     [trend, current],
   );
 
-const toggleTheme = () => {
+  const toggleTheme = () => {
     setTheme((prev) => (prev === "dark" ? "light" : "dark"));
   };
 
@@ -722,7 +723,7 @@ const toggleTheme = () => {
     setRefreshCountdown(AUTO_REFRESH_SECONDS);
   }, [isRefreshing, mutateAqi, mutateCities, mutateWind]);
 
-useEffect(() => {
+  useEffect(() => {
     const handleOnline = () => {
       // Wipe any cached AQI/city/wind data so refreshNow() below is forced
       // to fetch fresh data instead of serving stale results that were
@@ -760,147 +761,148 @@ useEffect(() => {
       />
       <div id="main-content">
 
-      {loading && !error ? (
-        <>
-          <div role="status" aria-live="polite" aria-label="Loading">
-            <div className="loading-spinner"></div>
-            <span className="sr-only">Loading…</span>
-          </div>
-          <h1 className="loading-title text-3xl">
-            Preparing live pollution intelligence...
-          </h1>
-
-          <Hero cityName={position.cityName} />
-          <div ref={scrollAnchorRef} aria-hidden="true" />
-          {activeSection === "home" && (
-            <div
-              key="skeleton-grid"
-              className="content-grid"
-              style={{ marginTop: "var(--sp-4)" }}
-            >
-              <SkeletonDashboard />
+        {loading && !error ? (
+          <>
+            <div role="status" aria-live="polite" aria-label="Loading">
+              <div className="loading-spinner"></div>
+              <span className="sr-only">Loading…</span>
             </div>
-          )}
-        </>
-      ) : (
-        <>
-          <Hero cityName={position.cityName} />
-          <div ref={scrollAnchorRef} aria-hidden="true" />
+            <h1 className="loading-title text-3xl">
+              Preparing live pollution intelligence...
+            </h1>
 
-          {activeSection === "home" && (
-            <AppControls
-              selectedCity={selectedCity}
-              onCityChange={handleLocationSelected}
-              isRefreshing={isRefreshing}
-              refreshCountdown={refreshCountdown}
-              lastUpdated={lastUpdated}
-              detecting={detecting}
-            />
-          )}
+            <Hero cityName={position.cityName} />
+            <div ref={scrollAnchorRef} aria-hidden="true" />
+            {activeSection === "home" && (
+              <div
+                key="skeleton-grid"
+                className="content-grid"
+                style={{ marginTop: "var(--sp-4)" }}
+              >
+                <SkeletonDashboard />
+              </div>
+            )}
+          </>
+        ) : (
+          <>
+            <Hero cityName={position.cityName} />
+            <div ref={scrollAnchorRef} aria-hidden="true" />
 
-          {locationNotice && selectedCity === "auto" && (
-            <div className="location-notice" role="status">
-              <p>{locationNotice}</p>
-              <button type="button" onClick={() => setLocationNotice("")}>
-                Dismiss
-              </button>
-            </div>
-          )}
-
-          {error && <p className="error-banner">{error}</p>}
-{persistenceWarning && <p className="error-banner">{persistenceWarning}</p>}
-          {osThemeSuggestion && (
-            <div className="location-notice" role="status">
-              <p>System theme changed. Switch to match?</p>
-              <button type="button" onClick={acceptOsThemeSuggestion}>
-                Yes
-              </button>
-              <button type="button" onClick={dismissOsThemeSuggestion}>
-                No
-              </button>
-            </div>
-          )}          {activeSection === "home" && current && (
-            <div key="dashboard-grid" className="content-grid">
-              <Dashboard
-                cityName={position.cityName}
-                lat={position.lat}
-                lon={position.lon}
-                current={current}
-                trend={trend}
-                cityComparisons={cityComparisons}
-                timeRange={timeRange}
-                onTimeRangeChange={setTimeRange}
-                lastUpdated={lastUpdated}
+            {activeSection === "home" && (
+              <AppControls
+                selectedCity={selectedCity}
+                onCityChange={handleLocationSelected}
                 isRefreshing={isRefreshing}
-                confidenceScore={confidenceScore}
-                dataCompleteness={dataCompleteness}
+                refreshCountdown={refreshCountdown}
+                lastUpdated={lastUpdated}
+                detecting={detecting}
               />
+            )}
 
-              <LocationMap
-                center={position}
-                nearbyPoints={nearbyPoints}
-                confidenceScore={confidenceScore}
-                windData={windData}
-              />
+            {locationNotice && selectedCity === "auto" && (
+              <div className="location-notice" role="status">
+                <p>{locationNotice}</p>
+                <button type="button" onClick={() => setLocationNotice("")}>
+                  Dismiss
+                </button>
+              </div>
+            )}
 
-              <AlertsPanel
-                cityName={position.cityName}
-                current={current}
-                confidenceScore={confidenceScore}
-                dataCompleteness={dataCompleteness}
-                exposureEstimate={exposureEstimate}
-              />
+            {error && <p className="error-banner">{error}</p>}
+            {persistenceWarning && <p className="error-banner">{persistenceWarning}</p>}
+            {osThemeSuggestion && (
+              <div className="location-notice" role="status">
+                <p>System theme changed. Switch to match?</p>
+                <button type="button" onClick={acceptOsThemeSuggestion}>
+                  Yes
+                </button>
+                <button type="button" onClick={dismissOsThemeSuggestion}>
+                  No
+                </button>
+              </div>
+            )}          {activeSection === "home" && current && (
+              <div key="dashboard-grid" className="content-grid">
+                <Dashboard
+                  cityName={position.cityName}
+                  lat={position.lat}
+                  lon={position.lon}
+                  current={current}
+                  trend={trend}
+                  cityComparisons={cityComparisons}
+                  timeRange={timeRange}
+                  onTimeRangeChange={setTimeRange}
+                  lastUpdated={lastUpdated}
+                  isRefreshing={isRefreshing}
+                  confidenceScore={confidenceScore}
+                  dataCompleteness={dataCompleteness}
+                />
 
-              <HealthAdvisory />
-              <SunSafetyDashboard />
-              <SolutionsAwareness />
+                <LocationMap
+                  center={position}
+                  nearbyPoints={nearbyPoints}
+                  confidenceScore={confidenceScore}
+                  windData={windData}
+                />
 
-              <AnalyticsInsights
-                analytics={analytics}
-                trend={trend}
-                timeRange={timeRange}
-              />
+                <AlertsPanel
+                  cityName={position.cityName}
+                  current={current}
+                  confidenceScore={confidenceScore}
+                  dataCompleteness={dataCompleteness}
+                  exposureEstimate={exposureEstimate}
+                />
 
-              <ScenarioSimulator current={current} />
-            </div>
-          )}
+                <HealthAdvisory />
+                <SunSafetyDashboard />
+                <SolutionsAwareness />
 
-          {activeSection === "community" && (
-            <div className="content-grid community-layout">
-              <CommunityHub />
-            </div>
-          )}
+                <AnalyticsInsights
+                  analytics={analytics}
+                  trend={trend}
+                  timeRange={timeRange}
+                />
 
-          {activeSection === "history" && (
-            <div className="content-grid history-layout">
-              <HistoricalAnalysis position={position} />
-            </div>
-          )}
+                <ScenarioSimulator current={current} />
+              </div>
+            )}
 
-          {activeSection === "quiz" && (
-            <div className="content-grid quiz-layout">
-              <QuizSection />
-            </div>
-          )}
+            {activeSection === "community" && (
+              <div className="content-grid community-layout">
+                <CommunityHub />
+              </div>
+            )}
 
-          {activeSection === "game" && (
-            <div className="content-grid game-layout">
-              <AqiMissionGame current={current} />
-              <HotspotScoutGame nearbyPoints={nearbyPoints} />
-            </div>
-          )}
+            {activeSection === "history" && (
+              <div className="content-grid history-layout">
+                <HistoricalAnalysis position={position} />
+              </div>
+            )}
 
-          {activeSection === "getting-started" && (
-            <div className="content-grid getting-started-layout">
-              <GettingStarted />
-            </div>
-          )}
+            {activeSection === "quiz" && (
+              <div className="content-grid quiz-layout">
+                <QuizSection />
+              </div>
+            )}
 
-          {activeSection === "Commute" && <Commute />}
-          {activeSection === "Compare" && <CityCompare />}
-          <Footer />
-        </>
-      )}
+            {activeSection === "game" && (
+              <div className="content-grid game-layout">
+                <AqiMissionGame current={current} />
+                <HotspotScoutGame nearbyPoints={nearbyPoints} />
+                <RiverOriginGame />
+              </div>
+            )}
+
+            {activeSection === "getting-started" && (
+              <div className="content-grid getting-started-layout">
+                <GettingStarted />
+              </div>
+            )}
+
+            {activeSection === "Commute" && <Commute />}
+            {activeSection === "Compare" && <CityCompare />}
+            <Footer />
+          </>
+        )}
       </div>
     </main>
   );
