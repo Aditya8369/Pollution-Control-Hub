@@ -5,6 +5,25 @@ import ApiWorker from '../workers/apiWorker?worker';
 const BASE_URL = 'https://air-quality-api.open-meteo.com/v1/air-quality';
 
 /**
+ * How long a cached payload may be replayed before this module re-fetches it.
+ *
+ * These live in the service layer rather than in `cacheStore` because freshness is a
+ * property of the data, not of the storage: a forecast is useful for an hour, a live
+ * reading for minutes. Without them, `cacheStore` entries survive for a full day and
+ * every "refresh" replays the first response of the session.
+ *
+ * @type {{ CURRENT: number, GRID: number, FORECAST: number }}
+ */
+export const CACHE_TTL = {
+  /** Current conditions + 24h trend — matches the app's 3-minute auto-refresh cadence. */
+  CURRENT: 5 * 60 * 1000,
+  /** Surrounding hotspot grid — 9 requests per miss, so it is worth holding a little. */
+  GRID: 5 * 60 * 1000,
+  /** 7-day forecast — upstream only regenerates it a few times a day. */
+  FORECAST: 60 * 60 * 1000,
+};
+
+/**
  * Calculates the current hour index from an array of timestamps using the location's UTC offset.
  *
  * @param {string[]} times - Array of ISO timestamp strings (e.g. "2026-03-31T14:00").
@@ -148,7 +167,7 @@ async function fetchGridPointAqi(lat, lon, signal) {
  */
 export async function fetchLocalGrid(lat, lon, topN = 6, signal) {
   const cacheKey = `grid-${lat.toFixed(1)},${lon.toFixed(1)}`;
-  const cached = await cacheStore.get(cacheKey);
+  const cached = await cacheStore.getFresh(cacheKey, CACHE_TTL.GRID);
   if (cached && cached.data) return cached.data;
 
   const gridOffsets = [-1, 0, 1].flatMap((dy) =>
@@ -249,7 +268,7 @@ export async function fetchAirQualityByCoords(lat, lon, signal, skipGrid = false
   }
   if (!isValidCoord(lat, lon)) throw new Error('Invalid coordinates provided.');
 
-  const cached = await cacheStore.get(cacheKey);
+  const cached = await cacheStore.getFresh(cacheKey, CACHE_TTL.CURRENT);
   if (cached && cached.data) return cached.data;
 
   const today = new Date();
@@ -804,7 +823,7 @@ export async function get7DayForecast(lat, lon, signal) {
   if (!isValidCoord(lat, lon)) throw new Error('Invalid coordinates.');
 
   const cacheKey = `forecast-${lat.toFixed(4)},${lon.toFixed(4)}`;
-  const cached = await cacheStore.get(cacheKey);
+  const cached = await cacheStore.getFresh(cacheKey, CACHE_TTL.FORECAST);
   if (cached && cached.data) return cached.data;
 
   const aqiUrl = `${BASE_URL}?latitude=${lat}&longitude=${lon}&hourly=us_aqi&timezone=auto&forecast_days=7`;
