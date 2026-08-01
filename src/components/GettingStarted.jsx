@@ -1,5 +1,5 @@
 import { useState } from "react";
-
+import "../styles.css";
 // Tabs available in the Getting Started guide.
 // Only "overview" and "features" have content today; the rest are
 // upcoming onboarding sections and render a "coming soon" placeholder
