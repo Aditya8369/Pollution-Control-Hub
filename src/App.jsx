@@ -7,6 +7,8 @@ import CommunityHub from "./components/CommunityHub";
 import Dashboard from "./components/Dashboard";
 import Footer from "./components/Footer";
 import HealthAdvisory from "./components/HealthAdvisory";
+import PollenAllergenForecast from "./components/PollenAllergenForecast";
+
 import LocationMap from "./components/LocationMap";
 import QuizSection from "./components/QuizSection";
 import SolutionsAwareness from "./components/SolutionsAwareness";
@@ -852,7 +854,8 @@ export default function App() {
                   exposureEstimate={exposureEstimate}
                 />
 
-                <HealthAdvisory />
+                <HealthAdvisory lat={position.lat} lon={position.lon} />
+                <PollenAllergenForecast lat={position.lat} lon={position.lon} />
                 <SunSafetyDashboard lat={position.lat} lon={position.lon} />
                 <SolutionsAwareness />
 

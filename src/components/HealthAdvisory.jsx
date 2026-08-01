@@ -1,4 +1,7 @@
 import { useState } from 'react';
+import { useSWR } from '../hooks/useSWR';
+import { fetchPollenData, getPollenSeverity } from '../services/airQualityService';
+
 
 const organImpacts = [
   {
@@ -184,8 +187,64 @@ const audiences = {
   }
 };
 
-export default function HealthAdvisory() {
+export default function HealthAdvisory({ lat, lon }) {
   const [activeTab, setActiveTab] = useState('general');
+
+  const pollenKey = lat && lon ? `pollen_${lat.toFixed(4)}_${lon.toFixed(4)}` : null;
+  const { data: pollenData } = useSWR(pollenKey, () => fetchPollenData(lat, lon), { ttl: 60 * 60 * 1000 });
+
+  const activeAudience = audiences[activeTab];
+  let dynamicTips = [...activeAudience.tips];
+
+  if (pollenData) {
+    const { tree, grass, weed } = pollenData;
+    const treeSev = getPollenSeverity('tree', tree);
+    const grassSev = getPollenSeverity('grass', grass);
+    const weedSev = getPollenSeverity('weed', weed);
+
+    if (treeSev.label === 'High') {
+      dynamicTips.push({
+        title: 'Limit Tree Pollen Exposure',
+        detail: 'Tree pollen levels are High. Allergy sufferers should limit outdoor exposure and keep windows closed.',
+        priority: 'High',
+        badgeClass: 'badge-danger',
+        icon: (
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M12 22v-5M9 17h6M12 3a7 7 0 0 0-7 7c0 2.5 1.5 4.5 3.5 5.5h7c2-1 3.5-3 3.5-5.5a7 7 0 0 0-7-7z" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        )
+      });
+    }
+
+    if (grassSev.label === 'High') {
+      dynamicTips.push({
+        title: 'Grass Pollen Advisory',
+        detail: 'Grass pollen levels are High. Consider wearing a mask outdoors or taking allergy medication if appropriate.',
+        priority: 'High',
+        badgeClass: 'badge-danger',
+        icon: (
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M5 22c1-6 4-12 10-14M11 22c1-5 3-10 7-11M3 22c2-8 7-16 16-18" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        )
+      });
+    }
+
+    if (weedSev.label === 'High') {
+      dynamicTips.push({
+        title: 'Seasonal Weed Allergy',
+        detail: 'Weed pollen levels are High. Follow seasonal allergy guidance and keep indoor air purifiers running.',
+        priority: 'Medium',
+        badgeClass: 'badge-warning',
+        icon: (
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M12 2v20M12 7l-5 3M12 12l6 3M12 17l-4 2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        )
+      });
+    }
+  }
+
 
   return (
     <section data-testid="health-advisory" className="panel health-advisory-panel">
@@ -232,7 +291,7 @@ export default function HealthAdvisory() {
 
         {/* Actionable Tips Grid */}
         <div className="tips-grid">
-          {audiences[activeTab].tips.map((tip) => (
+          {dynamicTips.map((tip) => (
             <div key={tip.title} className="tip-action-card">
               <div className="tip-header">
                 <div className="tip-icon-wrapper">{tip.icon}</div>
