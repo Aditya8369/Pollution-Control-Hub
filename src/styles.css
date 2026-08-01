@@ -299,6 +299,34 @@
   height: 18px;
   margin-right: 8px;
 }
+.getting-started-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;              /* Space between tabs */
+  margin: 20px 0;
+  justify-content: center; /* Optional */
+}
+
+.guide-tab {
+  padding: 10px 18px;
+  border-radius: 8px;
+  border: 1px solid #d1d5db;
+  background: #f8fafc;
+  cursor: pointer;
+  font-size: 0.95rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.guide-tab:hover {
+  background: #e2e8f0;
+}
+
+.guide-tab.active {
+  background: #2563eb;
+  color: #fff;
+  border-color: #2563eb;
+}
 .back-btn:hover {
   background: color-mix(in srgb, var(--line) 50%, transparent);
 }
