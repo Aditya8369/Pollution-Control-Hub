@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 import CalendarHeatmap from './CalendarHeatmap';
-import { fetchHistoricalData } from '../services/historicalDataService';
+import { fetchHistoricalData, formatHistoricalCSV } from '../services/historicalDataService';
 
 /** @param {any} params */
 export default function HistoricalAnalysis({ position }) {
@@ -10,8 +12,10 @@ export default function HistoricalAnalysis({ position }) {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [dateError, setDateError] = useState('');
+  const [isExportingPDF, setIsExportingPDF] = useState(false);
   
   const workerRef = useRef(null);
+  const containerRef = useRef(null);
 
   useEffect(() => {
     if (data && data.daily && data.daily.length > 0) {
@@ -21,18 +25,20 @@ export default function HistoricalAnalysis({ position }) {
   }, [data]);
 
   useEffect(() => {
-    // Initialize web worker
-    workerRef.current = new Worker(new URL('../workers/historicalDataWorker.js', import.meta.url), {
-      type: 'module'
-    });
+    try {
+      // Initialize web worker
+      workerRef.current = new Worker(new URL('../workers/historicalDataWorker.js', import.meta.url), {
+        type: 'module'
+      });
 
-    workerRef.current.onmessage = (e) => {
-      if (e.data.error) {
-        setError(e.data.error);
-        setLoading(false);
-      } else {
-        setData(e.data);
-        setLoading(false);
+      workerRef.current.onmessage = (e) => {
+        if (e.data.error) {
+          setError(e.data.error);
+          setLoading(false);
+        } else {
+          setData(e.data);
+          setLoading(false);
+        }
       };
     } catch (err) {
       console.error('Failed to initialize historical data worker:', err);
@@ -84,6 +90,221 @@ export default function HistoricalAnalysis({ position }) {
   const minDate = data?.daily?.[0]?.date || '';
   const maxDate = data?.daily?.[data.daily.length - 1]?.date || '';
 
+  const handleExportPDF = () => {
+    if (!data || !data.daily) return;
+    if (new Date(startDate) > new Date(endDate)) {
+      setDateError('Start date cannot be after end date.');
+      return;
+    }
+    setDateError('');
+
+    try {
+      setIsExportingPDF(true);
+
+      const filtered = data.daily
+        .filter(d => d.date >= startDate && d.date <= endDate)
+        .sort((a, b) => a.date.localeCompare(b.date));
+
+      const daysAnalysed = filtered.length;
+      if (daysAnalysed === 0) return;
+
+      const aqis = filtered
+        .map(d => (d.maxAqi != null ? d.maxAqi : d.aqi))
+        .filter(v => v != null && !isNaN(v));
+
+      const avgAqi = aqis.length > 0 ? Math.round(aqis.reduce((a, b) => a + b, 0) / aqis.length) : '-';
+      const minAqi = aqis.length > 0 ? Math.min(...aqis) : '-';
+      const maxAqi = aqis.length > 0 ? Math.max(...aqis) : '-';
+
+      const highestDay = filtered.find(d => (d.maxAqi != null ? d.maxAqi : d.aqi) === maxAqi);
+      const lowestDay = filtered.find(d => (d.maxAqi != null ? d.maxAqi : d.aqi) === minAqi);
+
+      const calcAvg = (key) => {
+        const vals = filtered.map(d => d[key]).filter(v => typeof v === 'number' && !isNaN(v));
+        return vals.length > 0 ? (vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(1) : 'N/A';
+      };
+
+      const avgPm25 = calcAvg('pm25');
+      const avgPm10 = calcAvg('pm10');
+      const avgNo2 = calcAvg('no2');
+      const avgOzone = calcAvg('ozone');
+      const avgCo = calcAvg('co');
+
+      let goodDays = 0, moderateDays = 0, poorDays = 0, veryPoorDays = 0, hazardousDays = 0;
+      filtered.forEach(d => {
+        const val = d.maxAqi != null ? d.maxAqi : d.aqi;
+        if (val <= 50) goodDays++;
+        else if (val <= 100) moderateDays++;
+        else if (val <= 200) poorDays++;
+        else if (val <= 300) veryPoorDays++;
+        else hazardousDays++;
+      });
+
+      // Deterministic rule-based observations
+      const categories = [
+        { name: 'Good', count: goodDays },
+        { name: 'Moderate', count: moderateDays },
+        { name: 'Poor', count: poorDays },
+        { name: 'Very Poor', count: veryPoorDays },
+        { name: 'Hazardous', count: hazardousDays },
+      ];
+      const predominant = categories.reduce((prev, curr) => (curr.count > prev.count ? curr : prev), categories[0]);
+
+      const observations = [];
+      observations.push(`Air quality remained predominantly ${predominant.name} during the selected reporting period.`);
+      if (highestDay) {
+        observations.push(`Peak pollution occurred on ${highestDay.date} with an AQI of ${maxAqi}.`);
+      }
+      if (avgPm25 !== 'N/A') {
+        observations.push(`PM2.5 recorded the highest average concentration among the monitored pollutants.`);
+      }
+      if (hazardousDays === 0) {
+        observations.push(`No Hazardous AQI levels were observed during the reporting period.`);
+      } else {
+        observations.push(`${hazardousDays} Hazardous AQI level(s) were observed during the reporting period.`);
+      }
+
+      // Generate report using jsPDF
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const margin = 18; // 18mm margin
+      let y = 20;
+
+      // Header Banner
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(18);
+      pdf.setTextColor(13, 148, 136); // #0d9488 brand teal
+      pdf.text('Pollution Control Hub', pageWidth / 2, y, { align: 'center' });
+      y += 7;
+
+      pdf.setFontSize(12);
+      pdf.setTextColor(30, 41, 59); // slate-800
+      pdf.text('Historical Air Quality Report', pageWidth / 2, y, { align: 'center' });
+      y += 9;
+
+      pdf.setDrawColor(203, 213, 225); // slate-300
+      pdf.setLineWidth(0.5);
+      pdf.line(margin, y, pageWidth - margin, y);
+      y += 8; // generous spacing after header before first section
+
+      // Helper function for section headers
+      const addSectionHeader = (title) => {
+        pdf.setFont('helvetica', 'bold');
+        pdf.setFontSize(11.5);
+        pdf.setTextColor(13, 148, 136);
+        pdf.text(title, margin, y);
+        y += 4;
+        pdf.setDrawColor(226, 232, 240); // slate-200
+        pdf.setLineWidth(0.3);
+        pdf.line(margin, y, pageWidth - margin, y);
+        y += 7; // spacing after heading before content
+      };
+
+      // Two-column stat row printing helper
+      const labelX = margin;
+      const valueX = margin + 55; // 55mm offset for perfectly aligned colon and values
+
+      const addStatRow = (label, val) => {
+        pdf.setFont('helvetica', 'normal');
+        pdf.setFontSize(9.5);
+        pdf.setTextColor(71, 85, 105); // slate-600 label
+        pdf.text(label, labelX, y);
+        pdf.setFont('helvetica', 'bold');
+        pdf.setTextColor(15, 23, 42); // slate-900 value
+        pdf.text(`:  ${val}`, valueX, y);
+        y += 5.5;
+      };
+
+      // 1. Location Section
+      addSectionHeader('Location');
+      const locName = position?.cityName ? position.cityName : null;
+      if (locName) {
+        pdf.setFont('helvetica', 'bold');
+        pdf.setFontSize(11);
+        pdf.setTextColor(15, 23, 42);
+        pdf.text(locName, margin, y);
+        y += 6;
+      }
+      if (position?.lat != null && position?.lon != null) {
+        addStatRow('Latitude', position.lat.toFixed(4));
+        addStatRow('Longitude', position.lon.toFixed(4));
+      }
+      y += 6; // spacing between major sections
+
+      // 2. Reporting Period Section
+      addSectionHeader('Reporting Period');
+      addStatRow('From', startDate);
+      addStatRow('To', endDate);
+      y += 6;
+
+      // 3. Summary Statistics Section
+      addSectionHeader('Summary Statistics');
+      addStatRow('Days Analysed', String(daysAnalysed));
+      y += 2.5;
+      addStatRow('Average AQI', String(avgAqi));
+      addStatRow('Minimum AQI', String(minAqi));
+      addStatRow('Maximum AQI', String(maxAqi));
+      y += 2.5;
+      addStatRow('Average PM2.5', `${avgPm25} µg/m³`);
+      addStatRow('Average PM10', `${avgPm10} µg/m³`);
+      addStatRow('Average NO₂', `${avgNo2} µg/m³`);
+      addStatRow('Average Ozone', `${avgOzone} µg/m³`);
+      addStatRow('Average CO', `${avgCo} µg/m³`);
+      y += 6;
+
+      // 4. Air Quality Overview Section
+      addSectionHeader('Air Quality Overview');
+      addStatRow('Good Days', String(goodDays));
+      addStatRow('Moderate Days', String(moderateDays));
+      addStatRow('Poor Days', String(poorDays));
+      addStatRow('Very Poor Days', String(veryPoorDays));
+      addStatRow('Hazardous Days', String(hazardousDays));
+      y += 2.5;
+      if (highestDay) {
+        addStatRow('Highest AQI Date', `${highestDay.date} (AQI ${maxAqi})`);
+      }
+      if (lowestDay) {
+        addStatRow('Lowest AQI Date', `${lowestDay.date} (AQI ${minAqi})`);
+      }
+      y += 6;
+
+      // 5. Environmental Summary Section
+      addSectionHeader('Environmental Summary');
+      pdf.setFont('helvetica', 'normal');
+      pdf.setFontSize(9.5);
+      pdf.setTextColor(51, 65, 85);
+
+      observations.forEach((obs) => {
+        const lines = pdf.splitTextToSize(`• ${obs}`, pageWidth - margin * 2);
+        pdf.text(lines, margin, y);
+        y += lines.length * 5 + 3.5; // spacing between observations
+      });
+      y += 4;
+
+      // 6. Footer Section
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      pdf.setDrawColor(203, 213, 225);
+      pdf.setLineWidth(0.4);
+      pdf.line(margin, pageHeight - 20, pageWidth - margin, pageHeight - 20);
+
+      pdf.setFont('helvetica', 'normal');
+      pdf.setFontSize(8.5);
+      pdf.setTextColor(100, 116, 139);
+
+      const now = new Date();
+      const formattedNow = `${now.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}, ${now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+      pdf.text(`Generated on: ${formattedNow}`, margin, pageHeight - 11);
+      pdf.text('Generated by Pollution Control Hub', pageWidth - margin, pageHeight - 11, { align: 'right' });
+
+      const cityNameStr = position?.cityName ? position.cityName.replace(/[^a-z0-9]/gi, '_').toLowerCase() : 'historical';
+      pdf.save(`${cityNameStr}_pollution_history_${startDate}_to_${endDate}.pdf`);
+    } catch (err) {
+      console.error('Failed to generate PDF report:', err);
+    } finally {
+      setIsExportingPDF(false);
+    }
+  };
+
   const handleExportCSV = () => {
     if (!data || !data.daily) return;
     if (new Date(startDate) > new Date(endDate)) {
@@ -92,22 +313,7 @@ export default function HistoricalAnalysis({ position }) {
     }
     setDateError('');
 
-    const filtered = data.daily
-      .filter(day => day.date >= startDate && day.date <= endDate)
-      .sort((a, b) => a.date.localeCompare(b.date));
-
-    const headers = ['Date', 'AQI', 'PM2.5', 'PM10', 'NO2', 'Ozone', 'CO'];
-    const rows = filtered.map(day => [
-      day.date,
-      day.maxAqi,
-      day.pm25 !== null && day.pm25 !== undefined ? day.pm25 : '',
-      day.pm10 !== null && day.pm10 !== undefined ? day.pm10 : '',
-      day.no2 !== null && day.no2 !== undefined ? day.no2 : '',
-      day.ozone !== null && day.ozone !== undefined ? day.ozone : '',
-      day.co !== null && day.co !== undefined ? day.co : ''
-    ]);
-
-    const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+    const csvContent = formatHistoricalCSV(data.daily, startDate, endDate);
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     
@@ -177,7 +383,7 @@ export default function HistoricalAnalysis({ position }) {
   if (!data) return null;
 
   return (
-    <div data-testid="historical-analysis" className="historical-analysis-container section-card">
+    <div data-testid="historical-analysis" ref={containerRef} className="historical-analysis-container section-card">
       <header style={{ marginBottom: '1.5rem' }}>
         <h2 style={{ fontSize: '1.4rem', fontWeight: 600, margin: '0 0 0.25rem' }}>Long-Term Climate & Pollution Trends</h2>
         <p style={{ fontSize: '0.88rem', opacity: 0.8, margin: 0 }}>
@@ -185,7 +391,7 @@ export default function HistoricalAnalysis({ position }) {
         </p>
       </header>
 
-      <div className="export-controls-section" style={{
+      <div className="export-controls-section" data-html2canvas-ignore="true" style={{
         marginBottom: '2rem',
         padding: '1.25rem',
         borderRadius: 'var(--r-sm, 10px)',
@@ -238,6 +444,32 @@ export default function HistoricalAnalysis({ position }) {
           </div>
           <div style={{ display: 'flex', gap: '0.5rem', flex: '1 1 auto', flexWrap: 'wrap' }}>
             <button
+              onClick={handleExportPDF}
+              disabled={isExportingPDF}
+              type="button"
+              style={{
+                padding: '0.5rem 1rem',
+                fontSize: '0.9rem',
+                fontWeight: 500,
+                cursor: isExportingPDF ? 'not-allowed' : 'pointer',
+                borderRadius: '6px',
+                background: 'var(--brand, #0d9488)',
+                color: '#ffffff',
+                border: 'none',
+                height: '38px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontFamily: 'inherit',
+                opacity: isExportingPDF ? 0.7 : 1,
+                transition: 'background 0.2s'
+              }}
+              onMouseOver={(e) => { if (!isExportingPDF) e.currentTarget.style.background = 'var(--brand-strong, #0b7d73)'; }}
+              onMouseOut={(e) => { if (!isExportingPDF) e.currentTarget.style.background = 'var(--brand, #0d9488)'; }}
+            >
+              {isExportingPDF ? 'Exporting PDF...' : 'Export PDF'}
+            </button>
+            <button
               onClick={handleExportCSV}
               type="button"
               style={{
@@ -270,7 +502,7 @@ export default function HistoricalAnalysis({ position }) {
                 fontWeight: 500,
                 cursor: 'pointer',
                 borderRadius: '6px',
-                background: 'var(--muted, #52667a)',
+                background: 'var(--muted, #0d9488)',
                 color: '#ffffff',
                 border: 'none',
                 height: '38px',
@@ -280,8 +512,8 @@ export default function HistoricalAnalysis({ position }) {
                 fontFamily: 'inherit',
                 transition: 'background 0.2s'
               }}
-              onMouseOver={(e) => { e.currentTarget.style.background = 'var(--ink, #0f172a)'; }}
-              onMouseOut={(e) => { e.currentTarget.style.background = 'var(--muted, #52667a)'; }}
+              onMouseOver={(e) => { e.currentTarget.style.background = 'var(--brand-strong, #0b7d73)'; }}
+              onMouseOut={(e) => { e.currentTarget.style.background = 'var(--brand, #0d9488)'; }}
             >
               Export JSON
             </button>

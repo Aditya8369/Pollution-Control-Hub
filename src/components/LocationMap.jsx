@@ -1,10 +1,54 @@
 // @ts-nocheck
 import { MapContainer, TileLayer, CircleMarker, Popup, Marker } from 'react-leaflet';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import L from 'leaflet';
+import { eventBus } from '../core/events';
+
+const COMMUNITY_REPORTS_STORAGE_KEY = 'pollution-community-reports';
+
+function readGeotaggedCommunityReports() {
+  try {
+    const raw = localStorage.getItem(COMMUNITY_REPORTS_STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter(
+      (report) =>
+        report &&
+        typeof report.latitude === 'number' &&
+        typeof report.longitude === 'number' &&
+        !isNaN(report.latitude) &&
+        !isNaN(report.longitude)
+    );
+  } catch {
+    return [];
+  }
+}
 
 export default function LocationMap({ center, nearbyPoints, confidenceScore, windData }) {
   const [showWind, setShowWind] = useState(false);
+  const [showCommunityReports, setShowCommunityReports] = useState(false);
+  const [communityReports, setCommunityReports] = useState(() => readGeotaggedCommunityReports());
+
+  useEffect(() => {
+    const updateReports = () => {
+      setCommunityReports(readGeotaggedCommunityReports());
+    };
+
+    eventBus.on('COMMUNITY_REPORT_SUBMITTED', updateReports);
+
+    const handleStorage = (e) => {
+      if (!e.key || e.key === COMMUNITY_REPORTS_STORAGE_KEY) {
+        updateReports();
+      }
+    };
+    window.addEventListener('storage', handleStorage);
+
+    return () => {
+      eventBus.off('COMMUNITY_REPORT_SUBMITTED', updateReports);
+      window.removeEventListener('storage', handleStorage);
+    };
+  }, []);
 
   const getWindDirectionText = (degrees) => {
     const dirs = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW', 'N'];
@@ -20,6 +64,13 @@ export default function LocationMap({ center, nearbyPoints, confidenceScore, win
     iconAnchor: [12, 12]
   }) : null;
 
+  const communityReportIcon = L.divIcon({
+    className: 'community-report-marker-icon',
+    html: `<div style="background-color: #8b5cf6; color: white; border: 2px solid white; border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 16px; height: 16px;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>`,
+    iconSize: [28, 28],
+    iconAnchor: [14, 14]
+  });
+
   return (
     <section data-testid="location-map" className="panel">
       <div className="panel-head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.75rem' }}>
@@ -27,15 +78,15 @@ export default function LocationMap({ center, nearbyPoints, confidenceScore, win
           <h2>Location-Based Tracking</h2>
           <p>Nearby pollution intensity map and hotspots</p>
         </div>
-        {windData && (
+        <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
           <button 
             type="button" 
-            onClick={() => setShowWind(!showWind)}
+            onClick={() => setShowCommunityReports(!showCommunityReports)}
             style={{ 
               fontSize: '0.85rem', 
               padding: '0.5rem 1rem', 
               flexShrink: 0,
-              backgroundColor: showWind ? '#ef4444' : '#3b82f6',
+              backgroundColor: showCommunityReports ? '#ef4444' : '#8b5cf6',
               color: 'white',
               border: 'none',
               borderRadius: '0.375rem',
@@ -46,9 +97,31 @@ export default function LocationMap({ center, nearbyPoints, confidenceScore, win
               minHeight: '44px'
             }}
           >
-            {showWind ? 'Hide Wind Overlay' : 'Show Wind Overlay'}
+            {showCommunityReports ? 'Hide Community Reports' : 'Show Community Reports'}
           </button>
-        )}
+          {windData && (
+            <button 
+              type="button" 
+              onClick={() => setShowWind(!showWind)}
+              style={{ 
+                fontSize: '0.85rem', 
+                padding: '0.5rem 1rem', 
+                flexShrink: 0,
+                backgroundColor: showWind ? '#ef4444' : '#3b82f6',
+                color: 'white',
+                border: 'none',
+                borderRadius: '0.375rem',
+                cursor: 'pointer',
+                fontWeight: '600',
+                boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+                transition: 'background-color 0.2s',
+                minHeight: '44px'
+              }}
+            >
+              {showWind ? 'Hide Wind Overlay' : 'Show Wind Overlay'}
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="map-wrap">
@@ -82,6 +155,25 @@ export default function LocationMap({ center, nearbyPoints, confidenceScore, win
               ))}
             </>
           )}
+          {showCommunityReports && communityReports.map((report) => (
+            <Marker
+              key={`community-report-${report.id}`}
+              position={[report.latitude, report.longitude]}
+              icon={communityReportIcon}
+            >
+              <Popup>
+                <div className="community-report-popup">
+                  <strong>{report.title}</strong>
+                  <div>Status: {report.status}</div>
+                  {report.createdAt && (
+                    <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '4px' }}>
+                      {new Date(report.createdAt).toLocaleString()}
+                    </div>
+                  )}
+                </div>
+              </Popup>
+            </Marker>
+          ))}
         </MapContainer>
       </div>
 

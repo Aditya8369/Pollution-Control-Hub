@@ -9,3 +9,28 @@ export function getHighestAQI(points) {
     point.aqi > max.aqi ? point : max
   );
 }
+
+const HIGH_SCORE_KEY = "hotspot-scout-high-score";
+
+export function getHighScore() {
+  try {
+    const raw = localStorage.getItem(HIGH_SCORE_KEY);
+    return raw ? parseInt(raw, 10) : 0;
+  } catch {
+    return 0;
+  }
+}
+
+/** @param {number} score */
+export function saveHighScore(score) {
+  try {
+    const current = getHighScore();
+    if (score > current) {
+      localStorage.setItem(HIGH_SCORE_KEY, String(score));
+      return score;
+    }
+    return current;
+  } catch {
+    return score;
+  }
+}

@@ -1,6 +1,8 @@
 import {
   LineChart,
   Line,
+  AreaChart,
+  Area,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -12,11 +14,13 @@ import {
   Pie,
   Cell
 } from "recharts";
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect, useMemo } from "react";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
-import { getAQIBand, getPollutantColor } from "../services/airQualityService";
+import { useSWR } from "../hooks/useSWR";
+import { getAQIBand, getPollutantColor, get7DayForecast, fetch7DayForecast, getWeatherDetails } from "../services/airQualityService";
 import MorningBriefing from "./MorningBriefing";
+import { eventBus } from "../core/events";
 
 /** @param {any} isoTime */
 function shortTimeLabel(isoTime) {
@@ -57,6 +61,8 @@ function CustomTooltip({ active, payload }) {
 /** @param {any} params */
 export default function Dashboard({
   cityName,
+  lat,
+  lon,
   current,
   trend,
   cityComparisons,
@@ -68,9 +74,50 @@ export default function Dashboard({
   dataCompleteness,
   isFallback
 }) {
+  const forecastKey = lat && lon ? `forecast_${lat.toFixed(4)}_${lon.toFixed(4)}` : null;
+  const {
+    data: forecastData,
+    error: forecastError,
+    mutate: mutateForecast
+  } = useSWR(forecastKey, () => get7DayForecast(lat, lon), { ttl: 60 * 60 * 1000 });
+
+  const [animateForecast, setAnimateForecast] = useState(false);
+
+  useEffect(() => {
+    if (forecastData) {
+      const timer = setTimeout(() => setAnimateForecast(true), 100);
+      return () => clearTimeout(timer);
+    } else {
+      setAnimateForecast(false);
+    }
+  }, [forecastData]);
+
+  useEffect(() => {
+    const handleForceRefresh = () => {
+      mutateForecast();
+    };
+    eventBus.on("FORCE_REFRESH", handleForceRefresh);
+    return () => {
+      eventBus.off("FORCE_REFRESH", handleForceRefresh);
+    };
+  }, [mutateForecast]);
+
+  // Cities whose request failed carry null readings (see fetchCityComparisons). Charting
+  // them would draw a zero-height bar that reads as "clean air", so split them out and
+  // name them explicitly below the chart instead.
+  const measuredCities = useMemo(
+    () => (cityComparisons || []).filter((c) => !c.unavailable && c.aqi != null),
+    [cityComparisons]
+  );
+  const unavailableCities = useMemo(
+    () => (cityComparisons || []).filter((c) => c.unavailable || c.aqi == null),
+    [cityComparisons]
+  );
+
   const reportRef = useRef(null);
   const shareCardRef = useRef(null);
   const [isExporting, setIsExporting] = useState(false);
+  const [exportError, setExportError] = useState(null);
   const [isSharing, setIsSharing] = useState(false);
   
   const [isBriefingDismissed, setIsBriefingDismissed] = useState(false);
@@ -83,6 +130,7 @@ export default function Dashboard({
 
   const exportReportAsPDF = async () => {
     if (!reportRef.current || isExporting) return;
+    setExportError(null);
     try {
       setIsExporting(true);
       const canvas = await html2canvas(reportRef.current, {
@@ -111,7 +159,7 @@ export default function Dashboard({
       pdf.save(`${safeCityName}-air-quality-report.pdf`);
     } catch (error) {
       console.error("PDF export failed:", error);
-      alert("Unable to export the PDF. Please try again.");
+      setExportError(error?.message || "Failed to generate PDF. Please try again.");
     } finally {
       setIsExporting(false);
     }
@@ -177,6 +225,9 @@ export default function Dashboard({
   }
 
   const aqiBand = getAQIBand(current.us_aqi);
+  const forecastAqiValues = forecastData ? forecastData.map(d => d.aqi) : [];
+  const minAqi = forecastAqiValues.length > 0 ? Math.min(...forecastAqiValues) : Infinity;
+  const maxAqi = forecastAqiValues.length > 0 ? Math.max(...forecastAqiValues) : -Infinity;
   const chartData = trend.slice(-timeRange).map((item) => ({
     ...item,
     label: shortTimeLabel(item.time)
@@ -211,6 +262,61 @@ export default function Dashboard({
     <>
       <section data-testid="dashboard" className="panel dashboard" ref={reportRef}>
         <MorningBriefing current={current} trend={trend} />
+        
+        {exportError && (
+          <div
+            className="pdf-export-error-toast"
+            role="alert"
+            style={{
+              backgroundColor: "#fef2f2",
+              border: "1px solid #fca5a5",
+              color: "#991b1b",
+              padding: "0.85rem 1.25rem",
+              borderRadius: "0.5rem",
+              marginBottom: "1rem",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              gap: "1rem"
+            }}
+          >
+            <div>
+              <strong>PDF Export Failed:</strong> {exportError}
+            </div>
+            <div style={{ display: "flex", gap: "0.5rem" }}>
+              <button
+                type="button"
+                onClick={exportReportAsPDF}
+                style={{
+                  backgroundColor: "#dc2626",
+                  color: "#ffffff",
+                  border: "none",
+                  padding: "0.4rem 0.8rem",
+                  borderRadius: "0.375rem",
+                  cursor: "pointer",
+                  fontWeight: "600"
+                }}
+              >
+                Retry
+              </button>
+              <button
+                type="button"
+                onClick={() => setExportError(null)}
+                style={{
+                  backgroundColor: "transparent",
+                  color: "#991b1b",
+                  border: "1px solid #fca5a5",
+                  padding: "0.4rem 0.8rem",
+                  borderRadius: "0.375rem",
+                  cursor: "pointer"
+                }}
+              >
+                Dismiss
+              </button>
+            </div>
+          </div>
+        )}
+
         <div className="panel-head" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
           <div className="dashboard-header-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.75rem', flexWrap: 'wrap' }}>
             <div style={{ minWidth: 0, flex: 1 }}>
@@ -386,6 +492,174 @@ export default function Dashboard({
         </div>
 
         <div className="chart-grid">
+          <article className="chart-card forecast-card" style={{ gridColumn: '1 / -1' }}>
+            <h3>7-Day AQI & Weather Forecast</h3>
+            {forecastError && <p style={{ color: 'var(--danger)', padding: '1rem' }}>Failed to load forecast data.</p>}
+            {!forecastData && !forecastError && (
+              <div style={{ padding: '2rem', textAlign: 'center', opacity: 0.7 }}>
+                <span className="live-dot active" style={{ display: 'inline-block', marginRight: '0.5rem' }}></span>
+                Loading 7-day forecast...
+              </div>
+            )}
+            {forecastData && forecastData.length > 0 && (
+              <div data-testid="7-day-forecast-chart" style={{ marginTop: '1rem', marginBottom: '1.5rem' }}>
+                <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '0.95rem', color: 'var(--muted)', fontWeight: '600' }}>
+                  7-Day Predictive AQI Trend & Confidence Bounds
+                </h4>
+                <ResponsiveContainer width="100%" height={260}>
+                  <AreaChart
+                    data={forecastData.map((d) => ({
+                      ...d,
+                      label: new Date(d.date).toLocaleDateString(undefined, {
+                        weekday: 'short',
+                        month: 'short',
+                        day: 'numeric',
+                        timeZone: 'UTC'
+                      }),
+                    }))}
+                    margin={{ top: 10, right: 20, left: 0, bottom: 0 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" stroke="#d7e6e1" />
+                    <XAxis dataKey="label" />
+                    <YAxis />
+                    <Tooltip
+                      formatter={(val, name) => {
+                        if (name === "Confidence Range") {
+                          const tuple = Array.isArray(val) ? val : [val, val];
+                          return [`${tuple[0]} – ${tuple[1]} AQI`, 'Confidence Bounds'];
+                        }
+                        return [`${val} AQI`, 'Predicted AQI'];
+                      }}
+                    />
+                    <Area
+                      type="monotone"
+                      dataKey="confidenceRange"
+                      stroke="none"
+                      fill="#0d9488"
+                      fillOpacity={0.18}
+                      name="Confidence Range"
+                    />
+                    <Line
+                      type="monotone"
+                      dataKey="aqi"
+                      stroke="#0d9488"
+                      strokeWidth={3}
+                      dot={{ r: 4, fill: "#0d9488" }}
+                      name="Predicted AQI"
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            )}
+            {forecastData && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', marginTop: '1rem' }}>
+                {forecastData.map((day) => {
+                  const weather = getWeatherDetails(day.weatherCode);
+                  const band = getAQIBand(day.aqi);
+                  const isBest = day.aqi === minAqi;
+                  const isWorst = day.aqi === maxAqi;
+                  
+                  const formattedDate = new Date(day.date).toLocaleDateString(undefined, {
+                    weekday: 'short',
+                    month: 'short',
+                    day: 'numeric',
+                    timeZone: 'UTC'
+                  });
+
+                  return (
+                    <div
+                      key={day.date}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '1rem',
+                        padding: '0.75rem 1rem',
+                        borderRadius: '8px',
+                        background: 'var(--bg-card-alt, rgba(0,0,0,0.015))',
+                        border: '1px solid var(--line)',
+                        flexWrap: 'wrap'
+                      }}
+                    >
+                      {/* Date and Weather */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', minWidth: '150px' }}>
+                        <span style={{ fontSize: '1.25rem' }} title={weather.label}>{weather.icon}</span>
+                        <div style={{ display: 'flex', flexDirection: 'column' }}>
+                          <span style={{ fontWeight: '600', fontSize: '0.95rem', color: 'var(--ink)' }}>{formattedDate}</span>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>{weather.label}</span>
+                        </div>
+                      </div>
+
+                      {/* Animated AQI relative bar */}
+                      <div style={{ flex: '1 1 200px', minWidth: '150px' }}>
+                        <div style={{ height: '8px', width: '100%', background: 'var(--line)', borderRadius: '4px', overflow: 'hidden' }}>
+                          <div
+                            style={{
+                              height: '100%',
+                              width: animateForecast ? `${Math.min(100, (day.aqi / 300) * 100)}%` : '0%',
+                              background: band.color,
+                              borderRadius: '4px',
+                              transition: 'width 1s cubic-bezier(0.22, 1, 0.36, 1)'
+                            }}
+                          />
+                        </div>
+                      </div>
+
+                      {/* AQI Value and Band */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', minWidth: '120px' }}>
+                        <span style={{ fontWeight: '700', fontSize: '1.1rem', color: band.color }}>{day.aqi}</span>
+                        <span
+                          style={{
+                            padding: '0.15rem 0.5rem',
+                            borderRadius: '999px',
+                            backgroundColor: `${band.color}22`,
+                            color: band.color,
+                            fontSize: '0.75rem',
+                            fontWeight: '600',
+                            whiteSpace: 'nowrap'
+                          }}
+                        >
+                          {band.label}
+                        </span>
+                      </div>
+
+                      {/* Best/Worst highlights */}
+                      {isBest && (
+                        <span
+                          style={{
+                            padding: '0.2rem 0.6rem',
+                            borderRadius: '6px',
+                            backgroundColor: 'rgba(34, 197, 94, 0.15)',
+                            color: '#15803d',
+                            fontSize: '0.75rem',
+                            fontWeight: '700',
+                            border: '1px solid rgba(34, 197, 94, 0.3)'
+                          }}
+                        >
+                          ✨ Best Day
+                        </span>
+                      )}
+                      {isWorst && (
+                        <span
+                          style={{
+                            padding: '0.2rem 0.6rem',
+                            borderRadius: '6px',
+                            backgroundColor: 'rgba(239, 68, 68, 0.15)',
+                            color: '#b91c1c',
+                            fontSize: '0.75rem',
+                            fontWeight: '700',
+                            border: '1px solid rgba(239, 68, 68, 0.3)'
+                          }}
+                        >
+                          ⚠️ Worst Day
+                        </span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </article>
+
           <article className="chart-card">
             <h3>AQI Trend ({timeRange}h)</h3>
             <div data-testid="aqi-trend-chart">
@@ -404,7 +678,7 @@ export default function Dashboard({
           <article data-testid="city-comparisons" className="chart-card">
             <h3>City-Wise AQI Comparison</h3>
             <ResponsiveContainer width="100%" height={280}>
-              <BarChart data={cityComparisons} layout="vertical" margin={{ left: 30 }}>
+              <BarChart data={measuredCities} layout="vertical" margin={{ left: 30 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#d7e6e1" />
                 <XAxis type="number" />
                 <YAxis type="category" dataKey="city" width={90} />
@@ -412,9 +686,16 @@ export default function Dashboard({
                 <Bar dataKey="aqi" fill="#f97316" radius={[0, 12, 12, 0]} />
               </BarChart>
             </ResponsiveContainer>
+            {unavailableCities.length > 0 && (
+              <p className="city-comparison-unavailable" data-testid="city-comparison-unavailable">
+                No reading available for {unavailableCities.map((c) => c.city).join(', ')}.
+              </p>
+            )}
             <ul style={{ display: 'none' }}>
               {cityComparisons && cityComparisons.map((c, i) => (
-                <li key={i} data-testid="city-comparison-item">{c.city}: {c.aqi}</li>
+                <li key={i} data-testid="city-comparison-item">
+                  {c.city}: {c.unavailable || c.aqi == null ? 'Unavailable' : c.aqi}
+                </li>
               ))}
             </ul>
           </article>
@@ -488,7 +769,6 @@ export default function Dashboard({
           <span>pollution-control-hub.vercel.app</span>
         </div>
       </div>
-
     </>
   );
 }

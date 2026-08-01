@@ -1,12 +1,22 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { cacheStore } from '../utils/cacheStore';
 
+  const delay = (ms) =>
+    new Promise((resolve) => setTimeout(resolve, ms));
+
 /**
  * @param {any} key
  * @param {any} fetcher
  * @param {any} params
  */
-export function useSWR(key, fetcher, { ttl = 5 * 60 * 1000 } = {}) {
+export function useSWR(
+  key,
+  fetcher,
+  {
+    ttl = 5 * 60 * 1000,
+    errorRetryCount = 3,
+  } = {}
+) {
   // Initial state based on synchronous cache read
   const getInitialData = () => {
     if (!key) return undefined;
@@ -55,18 +65,43 @@ export function useSWR(key, fetcher, { ttl = 5 * 60 * 1000 } = {}) {
     }
 
     setIsValidating(true);
+
     try {
-      const newData = await cacheStore.deduplicate(key, () => fetcherRef.current());
+  let retryCount = 0;
+
+  while (true) {
+    try {
+      const newData = await cacheStore.deduplicate(
+        key,
+        () => fetcherRef.current()
+      );
+
       setData(newData);
       setError(null);
+      break;
     } catch (err) {
-      if (err.name !== 'AbortError') {
-        setError(err);
+      if (err.name === 'AbortError') {
+        throw err;
       }
-    } finally {
-      setIsValidating(false);
+
+      if (retryCount >= errorRetryCount) {
+        throw err;
+      }
+
+      const retryDelay = 1000 * Math.pow(2, retryCount);
+
+      await delay(retryDelay);
+      retryCount++;
     }
-  }, [key, ttl]);
+  }
+} catch (err) {
+  if (err.name !== 'AbortError') {
+    setError(err);
+  }
+} finally {
+  setIsValidating(false);
+}
+  }, [key, ttl, errorRetryCount]);
 
   // Revalidate on mount or key change
   useEffect(() => {

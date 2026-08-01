@@ -122,18 +122,32 @@ const PRESETS = [
   },
 ];
 
+const CUSTOM_PRESETS_STORAGE_KEY = 'scenario-simulator-custom-presets';
+
 /* ─── Component ───────────────────────────────────────────────────────────── */
 
-export default function ScenarioSimulator({ current }) {
-  const [pm25Reduction, setPm25Reduction] = useState(0);
+export default function ScenarioSimulator({ current }) {  const [pm25Reduction, setPm25Reduction] = useState(0);
   const [pm10Reduction, setPm10Reduction] = useState(0);
   const [no2Reduction, setNo2Reduction] = useState(0);
   const [o3Reduction, setO3Reduction] = useState(0);
   const [coReduction, setCoReduction] = useState(0);
-  const [activePreset, setActivePreset] = useState(null);
+ const [activePreset, setActivePreset] = useState(null);
 
-  // Multi-city: selected city names (start with just the first city as placeholder;
-  // the "active" city always uses `current` prop directly)
+  // Custom presets saved by the user, loaded once from localStorage
+  const [customPresets, setCustomPresets] = useState(() => {
+    try {
+      const saved = localStorage.getItem(CUSTOM_PRESETS_STORAGE_KEY);
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  useEffect(() => {
+    localStorage.setItem(CUSTOM_PRESETS_STORAGE_KEY, JSON.stringify(customPresets));
+  }, [customPresets]);
+
+  // Multi-city: selected city names (start with just the first city as placeholder;  // the "active" city always uses `current` prop directly)
   const [selectedCities, setSelectedCities] = useState([]);
   // Map of cityName → fetched current pollutant data
   const [cityData, setCityData] = useState({});
@@ -160,9 +174,34 @@ export default function ScenarioSimulator({ current }) {
     }
   }
 
+/* ── Save current slider values as a custom preset ── */
+  function saveCurrentAsPreset() {
+    const name = window.prompt('Name this preset:');
+    if (!name || !name.trim()) return;
+
+    const newPreset = {
+      id: `custom-${Date.now()}`,
+      icon: '⭐',
+      label: name.trim(),
+      description: 'Custom preset',
+      pm25: pm25Reduction,
+      pm10: pm10Reduction,
+      no2: no2Reduction,
+      o3: o3Reduction,
+      co: coReduction,
+    };
+
+    setCustomPresets((prev) => [...prev, newPreset]);
+  }
+
+  /* ── Delete a custom preset ── */
+  function deleteCustomPreset(id) {
+    setCustomPresets((prev) => prev.filter((p) => p.id !== id));
+    if (activePreset === id) setActivePreset(null);
+  }
+
   /* ── City toggle ── */
-  function toggleCity(cityName) {
-    setSelectedCities((prev) => {
+  function toggleCity(cityName) {    setSelectedCities((prev) => {
       if (prev.includes(cityName)) {
         return prev.filter((c) => c !== cityName);
       }
@@ -285,10 +324,41 @@ export default function ScenarioSimulator({ current }) {
             </span>
           </button>
         ))}
-      </div>
+ </div>
 
-      {/* ── Sliders ── */}
-      <div className="sim-sliders" role="group" aria-label="Pollutant reduction sliders">
+      {/* ── Custom User Presets ── */}
+      {customPresets.length > 0 && (
+        <div className="sim-presets sim-custom-presets" role="group" aria-label="Custom saved presets">
+          {customPresets.map((preset) => (
+            <div key={preset.id} className={`sim-preset-card${activePreset === preset.id ? ' active' : ''}`}>
+              <button
+                type="button"
+                className="sim-preset-apply-btn"
+                onClick={() => applyPreset(preset)}
+                aria-pressed={activePreset === preset.id}
+              >
+                <span className="sim-preset-icon">{preset.icon}</span>
+                <span className="sim-preset-label">{preset.label}</span>
+                <span className="sim-preset-desc">{preset.description}</span>
+              </button>
+              <button
+                type="button"
+                className="sim-preset-delete"
+                aria-label={`Delete preset ${preset.label}`}
+                onClick={() => deleteCustomPreset(preset.id)}
+              >
+                ✕
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <button type="button" className="sim-preset-save-btn" onClick={saveCurrentAsPreset}>
+        💾 Save Current as Preset
+      </button>
+
+      {/* ── Sliders ── */}      <div className="sim-sliders" role="group" aria-label="Pollutant reduction sliders">
         <SliderGroup
           id="slider-pm25"
           label="Reduce PM2.5"

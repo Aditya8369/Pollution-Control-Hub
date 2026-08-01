@@ -1,6 +1,6 @@
-// @ts-nocheck
 import React, { useState, useEffect } from "react";
 import { calculateCleanRoute } from "../services/routePlanner";
+import { getAQIBand } from "../services/airQualityService";
 import {
   MapContainer,
   TileLayer,
@@ -8,6 +8,18 @@ import {
   Marker,
   Popup,
 } from "react-leaflet";
+
+const LEGEND_ITEMS = [
+  { range: "0–50", aqi: 25 },
+  { range: "51–100", aqi: 75 },
+  { range: "101–150", aqi: 125 },
+  { range: "151–200", aqi: 175 },
+  { range: "201–300", aqi: 250 },
+  { range: "301+", aqi: 350 },
+].map((item) => ({
+  range: item.range,
+  ...getAQIBand(item.aqi),
+}));
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 
@@ -52,11 +64,14 @@ function readSavedLocations() {
 const Commute = () => {
   const [origin, setOrigin] = useState("");
   const [destination, setDestination] = useState("");
+  const [mode, setMode] = useState("driving");
   const [isCalculating, setIsCalculating] = useState(false);
   const [isLocating, setIsLocating] = useState(false);
+  const [geoError, setGeoError] = useState(null);
 
-  const [routes, setRoutes] = useState([]);
-  const [selectedRouteIndex, setSelectedRouteIndex] = useState(0);
+  const [routeLine, setRouteLine] = useState(null);
+  const [routeSegments, setRouteSegments] = useState([]);
+  const [searchId, setSearchId] = useState(0);
   const [mapCenter, setMapCenter] = useState([28.6139, 77.209]);
   
   const ROUTE_COLORS = ["#0d9488", "#3b82f6", "#eab308", "#8b5cf6", "#f97316"];
@@ -65,8 +80,10 @@ const Commute = () => {
   const [newLocationLabel, setNewLocationLabel] = useState("");
 
   const handleGetLocation = () => {
+    setGeoError(null);
+
     if (!navigator.geolocation) {
-      alert("Geolocation is not supported by your browser.");
+      setGeoError("Geolocation is not supported by your browser.");
       return;
     }
 
@@ -86,6 +103,9 @@ const Commute = () => {
           const response = await fetch(
             `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`,
           );
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
           const data = await response.json();
 
           if (data && data.display_name) {
@@ -95,23 +115,23 @@ const Commute = () => {
               .join(",");
             setOrigin(shortAddress);
           } else {
-            setOrigin(`${latitude}, ${longitude}`);
+            setOrigin("Location unavailable");
+            setGeoError("Location details unavailable for coordinates.");
           }
         } catch (error) {
           console.error("Reverse geocoding failed:", error);
-          setOrigin(`${latitude}, ${longitude}`);
+          setOrigin("Location unavailable");
+          setGeoError("Failed to fetch address details. Displaying placeholder.");
         } finally {
           setIsLocating(false);
         }
       },
       (error) => {
-        alert(
-          "Unable to retrieve your location. Please check your browser permissions.",
-        );
         console.error("Error getting location:", error);
+        setGeoError("Unable to retrieve location. Check browser permissions.");
         setIsLocating(false);
       },
-      options, // Pass options here
+      options,
     );
   };
 
@@ -120,17 +140,25 @@ const Commute = () => {
     setIsCalculating(true);
 
     try {
-      const routeResults = await calculateCleanRoute(origin, destination);
-      const allRoutesFormatted = routeResults.allRoutes.map(route => ({
-        ...route,
-        leafletCoords: route.geometry.map((coord) => [coord[1], coord[0]])
-      }));
+      const routeResults = await calculateCleanRoute(origin, destination, mode);
+      const cleanest = routeResults.cleanestRoute;
+      const leafletCoords = cleanest.geometry.map((coord) => [
+        coord[1],
+        coord[0],
+      ]);
 
-      setRoutes(allRoutesFormatted);
-      setSelectedRouteIndex(0); // Cleanest route is first
-      if (allRoutesFormatted.length > 0) {
-        setMapCenter(allRoutesFormatted[0].leafletCoords[0]);
-      }
+      setRouteLine(leafletCoords);
+      setRouteSegments(cleanest.segments || []);
+      setSearchId((prev) => prev + 1);
+      setMapCenter(leafletCoords[0]);
+      setRouteStats({
+        distance: cleanest.distance,
+        duration: cleanest.duration,
+        pm25: cleanest.pm25,
+        inhaledDose: cleanest.inhaledDose,
+        mode: cleanest.mode,
+        multiplier: cleanest.multiplier,
+      });
       setRouteHistory((prev) => {
         const entry = { origin, destination, timestamp: new Date().toISOString() };
         const deduped = prev.filter(
@@ -187,6 +215,41 @@ const Commute = () => {
         <h2 className="commute-title" style={{ marginTop: 0 }}>
           Clean Route Planner
         </h2>
+
+        {geoError && (
+          <div
+            className="commute-error-banner"
+            role="alert"
+            style={{
+              backgroundColor: "#fff7ed",
+              border: "1px solid #fdba74",
+              color: "#c2410c",
+              padding: "0.75rem 1rem",
+              borderRadius: "0.5rem",
+              marginBottom: "1.5rem",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              fontSize: "0.9rem"
+            }}
+          >
+            <span>⚠️ <strong>Reverse Geocoding Notice:</strong> {geoError}</span>
+            <button
+              type="button"
+              onClick={() => setGeoError(null)}
+              style={{
+                background: "none",
+                border: "none",
+                color: "#c2410c",
+                fontWeight: "bold",
+                cursor: "pointer",
+                paddingLeft: "1rem"
+              }}
+            >
+              ×
+            </button>
+          </div>
+        )}
 
         <div className="commute-layout">
           <div className="commute-sidebar">
@@ -274,6 +337,33 @@ const Commute = () => {
                 />
               </div>
 
+              <div className="form-group">
+                <label>Transport Mode</label>
+                <div className="mode-selector-group" role="group" aria-label="Transport Mode">
+                  <button
+                    type="button"
+                    className={`mode-chip-btn ${mode === "driving" ? "active" : ""}`}
+                    onClick={() => setMode("driving")}
+                  >
+                    Driving
+                  </button>
+                  <button
+                    type="button"
+                    className={`mode-chip-btn ${mode === "biking" ? "active" : ""}`}
+                    onClick={() => setMode("biking")}
+                  >
+                    Cycling
+                  </button>
+                  <button
+                    type="button"
+                    className={`mode-chip-btn ${mode === "foot" ? "active" : ""}`}
+                    onClick={() => setMode("foot")}
+                  >
+                    Walking
+                  </button>
+                </div>
+              </div>
+
               <div className="form-group commute-save-location">
                 <label>Save current locations for quick access</label>
                 <div className="commute-save-row">
@@ -311,67 +401,24 @@ const Commute = () => {
               </button>
             </form>
 
-            {routes.length > 0 && (
-              <div className="commute-options" style={{ marginTop: '1rem' }}>
-                <h3>Route Options</h3>
-                <div className="commute-route-list" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                  {routes.map((route, index) => {
-                    const isSelected = selectedRouteIndex === index;
-                    const routeColor = ROUTE_COLORS[index % ROUTE_COLORS.length];
-                    const isCleanest = index === 0;
-                    return (
-                      <button
-                        key={index}
-                        type="button"
-                        className={`commute-route-option ${isSelected ? 'active' : ''}`}
-                        onClick={() => setSelectedRouteIndex(index)}
-                        style={{
-                          border: `2px solid ${isSelected ? routeColor : '#e5e7eb'}`,
-                          backgroundColor: isSelected ? `${routeColor}10` : '#ffffff',
-                          padding: '1rem',
-                          borderRadius: '8px',
-                          cursor: 'pointer',
-                          transition: 'all 0.2s ease-in-out',
-                          textAlign: 'left',
-                          width: '100%',
-                          display: 'block'
-                        }}
-                      >
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                          <h4 style={{ margin: 0, color: '#1f2937' }}>
-                            Route {index + 1}
-                          </h4>
-                          {isCleanest && (
-                            <span style={{ 
-                              backgroundColor: '#10b981', 
-                              color: 'white', 
-                              padding: '0.25rem 0.5rem', 
-                              borderRadius: '9999px', 
-                              fontSize: '0.75rem',
-                              fontWeight: '600'
-                            }}>
-                              ⭐ Cleanest Recommended
-                            </span>
-                          )}
-                        </div>
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '0.5rem', fontSize: '0.875rem' }}>
-                          <div>
-                            <span style={{ color: '#6b7280', display: 'block' }}>Distance</span>
-                            <strong>{route.distance} km</strong>
-                          </div>
-                          <div>
-                            <span style={{ color: '#6b7280', display: 'block' }}>Duration</span>
-                            <strong>{route.duration} mins</strong>
-                          </div>
-                          <div>
-                            <span style={{ color: '#6b7280', display: 'block' }}>PM2.5</span>
-                            <strong>{route.pm25} µg/m³</strong>
-                          </div>
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
+            {routeStats && (
+              <div className="commute-stats">
+                <h3>Route Selected</h3>
+                <p>
+                  Mode: <strong style={{ textTransform: "capitalize" }}>{routeStats.mode}</strong>
+                </p>
+                <p>
+                  Distance: <strong>{routeStats.distance} km</strong>
+                </p>
+                <p>
+                  Est. Time: <strong>{routeStats.duration} mins</strong>
+                </p>
+                <p>
+                  Avg PM2.5: <strong>{routeStats.pm25} µg/m³</strong>
+                </p>
+                <p>
+                  Inhaled PM2.5 Dose: <strong>{routeStats.inhaledDose} µg</strong>
+                </p>
               </div>
             )}
             {routeHistory.length > 0 && (
@@ -394,7 +441,7 @@ const Commute = () => {
             )}
           </div>
 
-          <div className="commute-map-container">
+          <div className="commute-map-container" style={{ position: "relative" }}>
             <MapContainer
               key={`${mapCenter[0]}-${mapCenter[1]}`}
               center={mapCenter}
@@ -422,36 +469,84 @@ const Commute = () => {
                     </Popup>
                   </Marker>
 
-                  {/* Render unselected routes first so selected route renders on top */}
-                  {routes.map((route, index) => {
-                    if (index === selectedRouteIndex) return null;
-                    return (
-                      <Polyline
-                        key={`route-${index}`}
-                        positions={route.leafletCoords}
-                        color={ROUTE_COLORS[index % ROUTE_COLORS.length]}
-                        weight={4}
-                        opacity={0.5}
-                        eventHandlers={{
-                          click: () => setSelectedRouteIndex(index),
-                        }}
-                      />
-                    );
-                  })}
-                  
-                  {/* Render selected route */}
-                  {routes[selectedRouteIndex] && (
+                  {routeSegments.length > 0 ? (
+                    routeSegments.map((seg, index) => {
+                      const band = getAQIBand(seg.aqi);
+                      const startPt = seg.coordinates[0] ? seg.coordinates[0].join("-") : index;
+                      const segKey = `route-${searchId}-seg-${index}-aqi-${seg.aqi}-${startPt}`;
+
+                      return (
+                        <Polyline
+                          key={segKey}
+                          positions={seg.coordinates}
+                          color={band.color}
+                          weight={6}
+                          opacity={0.85}
+                        >
+                          <Popup>
+                            <div>
+                              <strong>Route Segment {index + 1}</strong>
+                              <br />
+                              AQI: {seg.aqi} — {band.label}
+                              <br />
+                              PM2.5: {seg.pm25} µg/m³
+                            </div>
+                          </Popup>
+                        </Polyline>
+                      );
+                    })
+                  ) : (
                     <Polyline
-                      key={`route-${selectedRouteIndex}-selected`}
-                      positions={routes[selectedRouteIndex].leafletCoords}
-                      color={ROUTE_COLORS[selectedRouteIndex % ROUTE_COLORS.length]}
-                      weight={8}
-                      opacity={1}
+                      positions={routeLine}
+                      color="#0d9488"
+                      weight={6}
+                      opacity={0.8}
                     />
                   )}
                 </>
               )}
             </MapContainer>
+
+            {/* Compact AQI Route Legend */}
+            <div
+              className="route-aqi-legend"
+              data-testid="route-aqi-legend"
+              style={{
+                position: "absolute",
+                bottom: "1rem",
+                right: "1rem",
+                backgroundColor: "rgba(255, 255, 255, 0.95)",
+                backdropFilter: "blur(4px)",
+                border: "1px solid #e2e8f0",
+                borderRadius: "0.5rem",
+                padding: "0.6rem 0.8rem",
+                boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+                zIndex: 1000,
+                fontSize: "0.8rem",
+                color: "#1e293b",
+                fontFamily: "inherit"
+              }}
+            >
+              <div style={{ fontWeight: "700", marginBottom: "0.4rem", color: "#0f172a" }}>
+                Route AQI Legend
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: "0.25rem" }}>
+                {LEGEND_ITEMS.map((item, idx) => (
+                  <div key={`legend-item-${idx}`} style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
+                    <span
+                      style={{
+                        display: "inline-block",
+                        width: "10px",
+                        height: "10px",
+                        borderRadius: "50%",
+                        backgroundColor: item.color,
+                      }}
+                    ></span>
+                    <span>{item.label} ({item.range})</span>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       </div>

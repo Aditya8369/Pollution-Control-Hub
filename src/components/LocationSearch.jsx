@@ -13,6 +13,7 @@ export default function LocationSearch({ onLocationSelected, initialCityName }) 
   const [isLoading, setIsLoading] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
   const [historyError, setHistoryError] = useState('');
+  const [searchError, setSearchError] = useState(null);
 
   const wrapperRef = useRef(null);
   const debounceTimerRef = useRef(null);
@@ -115,6 +116,7 @@ export default function LocationSearch({ onLocationSelected, initialCityName }) 
 
     setQuery(val);
     setActiveIndex(-1);
+    setSearchError(null);
 
     if (val.trim() === '') {
       setSuggestions([]);
@@ -131,16 +133,28 @@ export default function LocationSearch({ onLocationSelected, initialCityName }) 
 
     debounceTimerRef.current = setTimeout(async () => {
       latestQueryRef.current = val;
-      const results = await searchLocations(val);
+      setSearchError(null);
+      try {
+        const results = await searchLocations(val);
 
-      // Ignore this result if a newer search has started since this one fired.
-      if (latestQueryRef.current !== val) {
-        return;
+        // Ignore this result if a newer search has started since this one fired.
+        if (latestQueryRef.current !== val) {
+          return;
+        }
+
+        setSuggestions(results);
+      } catch (err) {
+        if (latestQueryRef.current !== val) {
+          return;
+        }
+        setSuggestions([]);
+        setSearchError('Failed to fetch locations. Please check your network connection.');
+      } finally {
+        if (latestQueryRef.current === val) {
+          setIsLoading(false);
+        }
       }
-
-      setSuggestions(results);
-      setIsLoading(false);
-    }, 500);
+    }, 300);
   };
 
   /** @param {any} e */
@@ -178,6 +192,7 @@ export default function LocationSearch({ onLocationSelected, initialCityName }) 
   const showNoResults =
     query.trim() !== '' &&
     !isLoading &&
+    !searchError &&
     suggestions.length === 0;
 
   return (
@@ -209,7 +224,7 @@ export default function LocationSearch({ onLocationSelected, initialCityName }) 
         </div>
       )}
 
-      {isOpen && (showRecent || showSuggestions || showNoResults) && (
+      {isOpen && (showRecent || showSuggestions || showNoResults || searchError) && (
         <ul
           className="location-search-dropdown"
           id="location-search-listbox"
@@ -233,6 +248,7 @@ export default function LocationSearch({ onLocationSelected, initialCityName }) 
                   onClick={() => handleSelect(item)}
                   role="option"
                   aria-selected={activeIndex === index}
+                  data-testid="location-suggestion"
                 >
                   <svg
                     className="recent-icon"
@@ -262,6 +278,7 @@ export default function LocationSearch({ onLocationSelected, initialCityName }) 
                   onClick={() => handleSelect(item)}
                   role="option"
                   aria-selected={activeIndex === index}
+                  data-testid="location-suggestion"
                 >
                   <svg
                     className="location-icon"
@@ -286,6 +303,24 @@ export default function LocationSearch({ onLocationSelected, initialCityName }) 
               role="presentation"
             >
               No locations found for "{query}"
+            </li>
+          )}
+
+          {searchError && (
+            <li
+              className="location-search-error-item"
+              role="presentation"
+            >
+              <span className="error-message">⚠️ {searchError}</span>
+              <button
+                type="button"
+                className="location-search-retry-btn"
+                onClick={() => {
+                  handleInputChange({ target: { value: query } });
+                }}
+              >
+                Retry
+              </button>
             </li>
           )}
         </ul>

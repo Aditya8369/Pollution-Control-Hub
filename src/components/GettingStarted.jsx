@@ -1,5 +1,5 @@
 import { useState } from "react";
-
+import "../styles.css";
 // Tabs available in the Getting Started guide.
 // Only "overview" and "features" have content today; the rest are
 // upcoming onboarding sections and render a "coming soon" placeholder
@@ -206,17 +206,189 @@ function GettingStarted() {
 </section>
 )}
 
-{["pollutants", "health", "faq"].includes(activeTab) && (
+{activeTab === "pollutants" && (
 <section className="getting-started-section">
   <div className="overview-content">
     <div className="overview-item">
+      <h4>01. PM2.5 — Fine Particulate Matter</h4>
       <p>
-        This section of the Getting Started guide is coming soon.
-        We're working on it — check back shortly!
+        Fine particles can penetrate lungs and enter the bloodstream, making
+        PM2.5 one of the most harmful pollutants to human health.
+      </p>
+      <p>
+        <strong>Common sources:</strong> vehicle exhaust, industrial
+        emissions, and burning of fuels such as wood or coal.
       </p>
     </div>
+
+    <div className="overview-item">
+      <h4>02. PM10 — Coarse Particulate Matter</h4>
+      <p>
+        Coarse particles can irritate airways and cause coughing. They are
+        larger than PM2.5 but still small enough to be inhaled.
+      </p>
+      <p>
+        <strong>Common sources:</strong> dust, construction sites, pollen,
+        and road traffic.
+      </p>
+    </div>
+
+    <div className="overview-item">
+      <h4>03. NO₂ — Nitrogen Dioxide</h4>
+      <p>
+        NO₂ may irritate airways and aggravate respiratory diseases such as
+        asthma.
+      </p>
+      <p>
+        <strong>Common sources:</strong> vehicle traffic and combustion of
+        fossil fuels in engines and power plants.
+      </p>
+    </div>
+
+    <div className="overview-item">
+      <h4>04. SO₂ — Sulfur Dioxide</h4>
+      <p>
+        SO₂ can irritate the respiratory system and contributes to the
+        formation of acid rain and fine particulate pollution.
+      </p>
+      <p>
+        <strong>Common sources:</strong> industrial activity and the burning
+        of sulfur-containing fossil fuels such as coal and oil.
+      </p>
+    </div>
+
+    <div className="overview-item">
+      <h4>05. CO — Carbon Monoxide</h4>
+      <p>
+        High levels of CO reduce oxygen delivery to the body, which can be
+        dangerous in enclosed or heavily trafficked areas.
+      </p>
+      <p>
+        <strong>Common sources:</strong> incomplete combustion from vehicles,
+        generators, and heating appliances.
+      </p>
+    </div>
+
+    <div className="overview-item">
+      <h4>06. O₃ — Ground-level Ozone</h4>
+      <p>
+        Ground-level ozone can trigger asthma and reduce lung function. Unlike
+        the ozone layer above us, this ozone forms close to the ground and is
+        harmful to breathe.
+      </p>
+      <p>
+        <strong>Common sources:</strong> a secondary pollutant formed when
+        vehicle and industrial emissions react in sunlight.
+      </p>
+    </div>
+
   </div>
 </section>
+)}
+
+{activeTab === "health" && (
+  <section className="getting-started-section">
+    <div className="overview-content">
+
+      <div className="overview-item">
+        <h4>01. How air pollution affects health</h4>
+        <p>
+          Poor air quality can irritate the eyes, nose, and throat, worsen
+          breathing problems, and increase the risk of heart and lung diseases,
+          especially during prolonged exposure.
+        </p>
+      </div>
+
+      <div className="overview-item">
+        <h4>02. Who is most at risk?</h4>
+        <p>
+          Children, older adults, pregnant individuals, and people with asthma,
+          heart disease, or other respiratory conditions are more sensitive to
+          polluted air and should take extra precautions.
+        </p>
+      </div>
+
+      <div className="overview-item">
+        <h4>03. How to protect yourself</h4>
+        <p>
+          Check the AQI before going outdoors, reduce strenuous outdoor
+          activities on unhealthy days, keep windows closed when pollution is
+          high, and consider wearing a well-fitted mask if exposure is
+          unavoidable.
+        </p>
+      </div>
+
+      <div className="overview-item">
+        <h4>04. Important reminder</h4>
+        <p>
+          Pollution Control Hub provides environmental information to help you
+          make informed decisions. It is not a substitute for professional
+          medical advice or emergency healthcare.
+        </p>
+      </div>
+
+    </div>
+  </section>
+)}
+
+{activeTab === "faq" && (
+  <section className="getting-started-section">
+    <div className="overview-content">
+
+      <div className="overview-item">
+        <h4>01. Do I need an account to use Pollution Control Hub?</h4>
+        <p>
+          No. Most features are available without creating an account, allowing you
+          to explore air quality information and educational resources immediately.
+        </p>
+      </div>
+
+      <div className="overview-item">
+        <h4>02. How often is air quality data updated?</h4>
+        <p>
+          Air quality information is updated regularly based on the latest data
+          available from supported monitoring sources.
+        </p>
+      </div>
+
+      <div className="overview-item">
+        <h4>03. Why can AQI differ between nearby locations?</h4>
+        <p>
+          Pollution levels can vary due to traffic, weather conditions,
+          industrial activity, vegetation, and other local environmental
+          factors.
+        </p>
+      </div>
+
+      <div className="overview-item">
+        <h4>04. Can I use this platform for medical advice?</h4>
+        <p>
+          No. Pollution Control Hub provides environmental information to help
+          users understand air quality and should not replace professional
+          medical advice.
+        </p>
+      </div>
+
+      <div className="overview-item">
+        <h4>05. What should I do when the AQI is unhealthy?</h4>
+        <p>
+          Limit prolonged outdoor activities, follow local health guidance,
+          monitor AQI updates, and take extra precautions if you are part of a
+          sensitive group.
+        </p>
+      </div>
+
+      <div className="overview-item">
+        <h4>06. What devices can I use to access Pollution Control Hub?</h4>
+        <p>
+          Pollution Control Hub is designed to work in modern web browsers on
+          desktops, laptops, tablets, and mobile devices for easy access wherever
+          you are.
+        </p>
+      </div>
+
+    </div>
+  </section>
 )}
       </div>
     </section>

@@ -21,6 +21,7 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import Commute from "./components/Commute";
 import GettingStarted from "./components/GettingStarted";
 import CityCompare from "./components/CityCompare";
+import SunSafetyDashboard from "./components/SunSafetyDashboard";
 import {
   estimateWeeklyMonthlyAverages,
   fetchAirQualityByCoords,
@@ -29,6 +30,8 @@ import {
   fetchWindData,
 } from "./services/airQualityService";
 import { eventBus } from "./core/events";
+import RiverOriginGame from "./components/RiverOriginGame";
+import CarbonFootprintCalculator from "./components/CarbonFootprintCalculator";
 
 const DEFAULT_POSITION = {
   lat: 28.6139,
@@ -37,8 +40,62 @@ const DEFAULT_POSITION = {
 };
 
 const THEME_STORAGE_KEY = "pollution-hub-theme";
+// Whether the stored theme reflects a deliberate choice ("manual") or just mirrors what
+// the OS was set to when the app last rendered ("system"). The theme value alone cannot
+// answer that — it is written on every render — so intent needs its own key.
+const THEME_SOURCE_KEY = "pollution-hub-theme-source";
 const AUTO_REFRESH_SECONDS = 180;
 
+/** @returns {"dark"|"light"} The OS colour-scheme preference, defaulting to light. */
+function getSystemTheme() {
+  return typeof window !== "undefined" &&
+    window.matchMedia &&
+    window.matchMedia("(prefers-color-scheme: dark)").matches
+    ? "dark"
+    : "light";
+}
+
+/** @returns {boolean} True when the user has explicitly picked a theme in the app. */
+function hasManualThemePreference() {
+  return localStorage.getItem(THEME_SOURCE_KEY) === "manual";
+}
+
+// Nominatim's usage policy allows at most 1 request per second, so we track
+// the last call time here and space out requests if needed.
+let lastGeocodeRequestAt = 0;
+
+async function reverseGeocodeCity(lat, lon) {
+  // Round coordinates so tiny GPS jitter reuses the same cache entry
+  // instead of triggering a new network request every time.
+  const cacheKey = `geocode-${lat.toFixed(2)},${lon.toFixed(2)}`;
+  const cached = await cacheStore.get(cacheKey);
+  if (cached && cached.data) return cached.data;
+
+  const elapsed = Date.now() - lastGeocodeRequestAt;
+  if (elapsed < 1100) {
+    await new Promise((resolve) => setTimeout(resolve, 1100 - elapsed));
+  }
+  lastGeocodeRequestAt = Date.now();
+
+  const response = await fetch(
+    `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`,
+  );
+  if (!response.ok) {
+    throw new Error(`Reverse geocoding failed with status: ${response.status}`);
+  }
+  const data = await response.json();
+  const address = data?.address || {};
+  const cityName =
+    address.city ||
+    address.town ||
+    address.village ||
+    address.suburb ||
+    data?.display_name?.split(",")[0] ||
+    "Your Current Location";
+
+  cacheStore.set(cacheKey, cityName);
+  return cityName;
+}
 /** @param {any} params */
 function Hero({ cityName }) {
   return (
@@ -135,6 +192,7 @@ function SectionNav({ activeSection, onSectionChange, theme }) {
     { id: "community", label: "Community" },
     { id: "history", label: "History" },
     { id: "Commute", label: "Commute" },
+    { id: "CarbonCalculator", label: "Carbon Calculator" },
   ];
   const isDark = theme === "dark";
 
@@ -439,18 +497,20 @@ export default function App() {
   const [theme, setTheme] = useState(() => {
     const savedTheme = localStorage.getItem(THEME_STORAGE_KEY);
 
-    if (savedTheme) return savedTheme;
+    // Only a deliberate in-app choice outranks the OS. A theme left over from a previous
+    // session that merely mirrored the OS should not pin the app to a stale value.
+    if (savedTheme && hasManualThemePreference()) return savedTheme;
 
-    return window.matchMedia &&
-      window.matchMedia("(prefers-color-scheme: dark)").matches
-      ? "dark"
-      : "light";
+    return getSystemTheme();
   });
   const [timeRange, setTimeRange] = useState(() => {
     const saved = localStorage.getItem("timeRange");
     return saved ? Number(saved) : 24;
   });
-
+  const [osThemeSuggestion, setOsThemeSuggestion] = useState(null);
+  // Mirrors `theme` for the media-query listener, which is registered once on mount.
+  const themeRef = useRef(theme);
+  themeRef.current = theme;
   const debounceRef = useRef(null);
   const geoRequestId = useRef(0);
   const scrollAnchorRef = useRef(null);
@@ -470,7 +530,7 @@ export default function App() {
         "Offline caching is unavailable — your data may not persist between sessions."
       );
     });
-    return unsubscribe;
+    return () => { unsubscribe(); };
   }, []);
 
 
@@ -503,6 +563,9 @@ export default function App() {
     if (aqiData) setLastUpdated(new Date().toISOString());
   }, [aqiData]);
 
+  // Persist the theme value so the next load paints without a flash. This runs on mount
+  // too, which is why "has the user chosen a theme?" is tracked under a separate key
+  // rather than inferred from this one existing.
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
     localStorage.setItem(THEME_STORAGE_KEY, theme);
@@ -515,12 +578,21 @@ export default function App() {
     const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
 
     const handleOsThemeChange = (e) => {
-      const hasManualPreference = localStorage.getItem(THEME_STORAGE_KEY);
-      if (!hasManualPreference) {
-        setTheme(e.matches ? "dark" : "light");
+      const newSystemTheme = e.matches ? "dark" : "light";
+
+      if (!hasManualThemePreference()) {
+        // No in-app choice has been made — follow the OS silently.
+        setTheme(newSystemTheme);
+        return;
+      }
+
+      // Compare against the live theme via the ref: this listener is registered once, so
+      // reading `theme` from the closure would compare against the first render's value
+      // and prompt even when the requested theme is already active.
+      if (newSystemTheme !== themeRef.current) {
+        setOsThemeSuggestion(newSystemTheme);
       }
     };
-
     mediaQuery.addEventListener("change", handleOsThemeChange);
     return () => mediaQuery.removeEventListener("change", handleOsThemeChange);
   }, []);
@@ -538,23 +610,30 @@ export default function App() {
     }
 
     navigator.geolocation.getCurrentPosition(
-      (coords) => {
+      async (coords) => {
         if (requestId !== geoRequestId.current) return;
+        const lat = Number(coords.coords.latitude.toFixed(4));
+        const lon = Number(coords.coords.longitude.toFixed(4));
+
         setLocationNotice("");
-        setPosition({
-          lat: Number(coords.coords.latitude.toFixed(4)),
-          lon: Number(coords.coords.longitude.toFixed(4)),
-          cityName: "Your Current Location",
-        });
+        setPosition({ lat, lon, cityName: "Your Current Location" });
         setDetecting(false);
-      },
-      (error) => {
+
+        try {
+          const cityName = await reverseGeocodeCity(lat, lon);
+          if (requestId === geoRequestId.current) {
+            setPosition({ lat, lon, cityName });
+          }
+        } catch (err) {
+          console.warn("Reverse geocoding failed, keeping generic label.", err);
+        }
+      }, (error) => {
         if (requestId !== geoRequestId.current) return;
         console.warn("Geolocation is unavailable. Using the fallback location.");
 
-            if (import.meta.env.DEV) {
-              console.debug("Geolocation fallback diagnostics:", error);
-            }
+        if (import.meta.env.DEV) {
+          console.debug("Geolocation fallback diagnostics:", error);
+        }
         setLocationNotice(
           "Couldn't detect your location — showing Delhi for now.",
         );
@@ -655,12 +734,23 @@ export default function App() {
     [trend, current],
   );
 
-  const toggleTheme = () => {
+  // Using the in-app toggle is the one action that counts as choosing a theme.
+  const toggleTheme = useCallback(() => {
+    localStorage.setItem(THEME_SOURCE_KEY, "manual");
     setTheme((prev) => (prev === "dark" ? "light" : "dark"));
+  }, []);
+
+  const acceptOsThemeSuggestion = () => {
+    setTheme(osThemeSuggestion);
+    setOsThemeSuggestion(null);
   };
 
+  const dismissOsThemeSuggestion = () => {
+    setOsThemeSuggestion(null);
+  };
   const refreshNow = useCallback(async () => {
     if (isRefreshing) return;
+    await cacheStore.invalidate();
     mutateAqi();
     mutateCities();
     mutateWind();
@@ -668,7 +758,13 @@ export default function App() {
   }, [isRefreshing, mutateAqi, mutateCities, mutateWind]);
 
   useEffect(() => {
-    const handleOnline = () => refreshNow();
+    const handleOnline = () => {
+      // Wipe any cached AQI/city/wind data so refreshNow() below is forced
+      // to fetch fresh data instead of serving stale results that were
+      // cached before we went offline.
+      cacheStore.invalidate(undefined);
+      refreshNow();
+    };
 
     window.addEventListener("online", handleOnline);
 
@@ -676,7 +772,6 @@ export default function App() {
       window.removeEventListener("online", handleOnline);
     };
   }, []);
-
   useEffect(() => {
     eventBus.on("TOGGLE_THEME", toggleTheme);
     eventBus.on("FORCE_REFRESH", refreshNow);
@@ -700,135 +795,153 @@ export default function App() {
       />
       <div id="main-content">
 
-      {loading && !error ? (
-        <>
-          <div role="status" aria-live="polite" aria-label="Loading">
-            <div className="loading-spinner"></div>
-            <span className="sr-only">Loading…</span>
-          </div>
-          <h1 className="loading-title text-3xl">
-            Preparing live pollution intelligence...
-          </h1>
-
-          <Hero cityName={position.cityName} />
-          <div ref={scrollAnchorRef} aria-hidden="true" />
-          {activeSection === "home" && (
-            <div
-              key="skeleton-grid"
-              className="content-grid"
-              style={{ marginTop: "var(--sp-4)" }}
-            >
-              <SkeletonDashboard />
+        {loading && !error ? (
+          <>
+            <div role="status" aria-live="polite" aria-label="Loading">
+              <div className="loading-spinner"></div>
+              <span className="sr-only">Loading…</span>
             </div>
-          )}
-        </>
-      ) : (
-        <>
-          <Hero cityName={position.cityName} />
-          <div ref={scrollAnchorRef} aria-hidden="true" />
+            <h1 className="loading-title text-3xl">
+              Preparing live pollution intelligence...
+            </h1>
 
-          {activeSection === "home" && (
-            <AppControls
-              selectedCity={selectedCity}
-              onCityChange={handleLocationSelected}
-              isRefreshing={isRefreshing}
-              refreshCountdown={refreshCountdown}
-              lastUpdated={lastUpdated}
-              detecting={detecting}
-            />
-          )}
+            <Hero cityName={position.cityName} />
+            <div ref={scrollAnchorRef} aria-hidden="true" />
+            {activeSection === "home" && (
+              <div
+                key="skeleton-grid"
+                className="content-grid"
+                style={{ marginTop: "var(--sp-4)" }}
+              >
+                <SkeletonDashboard />
+              </div>
+            )}
+          </>
+        ) : (
+          <>
+            <Hero cityName={position.cityName} />
+            <div ref={scrollAnchorRef} aria-hidden="true" />
 
-          {locationNotice && selectedCity === "auto" && (
-            <div className="location-notice" role="status">
-              <p>{locationNotice}</p>
-              <button type="button" onClick={() => setLocationNotice("")}>
-                Dismiss
-              </button>
-            </div>
-          )}
-
-          {error && <p className="error-banner">{error}</p>}
-          {persistenceWarning && <p className="error-banner">{persistenceWarning}</p>}
-          {activeSection === "home" && current && (
-            <div key="dashboard-grid" className="content-grid">
-              <Dashboard
-                cityName={position.cityName}
-                current={current}
-                trend={trend}
-                cityComparisons={cityComparisons}
-                timeRange={timeRange}
-                onTimeRangeChange={setTimeRange}
-                lastUpdated={lastUpdated}
+            {activeSection === "home" && (
+              <AppControls
+                selectedCity={selectedCity}
+                onCityChange={handleLocationSelected}
                 isRefreshing={isRefreshing}
-                confidenceScore={confidenceScore}
-                dataCompleteness={dataCompleteness}
+                refreshCountdown={refreshCountdown}
+                lastUpdated={lastUpdated}
+                detecting={detecting}
               />
+            )}
 
-              <LocationMap
-                center={position}
-                nearbyPoints={nearbyPoints}
-                confidenceScore={confidenceScore}
-                windData={windData}
-              />
+            {locationNotice && selectedCity === "auto" && (
+              <div className="location-notice" role="status">
+                <p>{locationNotice}</p>
+                <button type="button" onClick={() => setLocationNotice("")}>
+                  Dismiss
+                </button>
+              </div>
+            )}
 
-              <AlertsPanel
-                cityName={position.cityName}
-                current={current}
-                confidenceScore={confidenceScore}
-                dataCompleteness={dataCompleteness}
-                exposureEstimate={exposureEstimate}
-              />
+            {error && <p className="error-banner">{error}</p>}
+            {persistenceWarning && <p className="error-banner">{persistenceWarning}</p>}
+            {osThemeSuggestion && (
+              <div className="location-notice" role="status">
+                <p>System theme changed. Switch to match?</p>
+                <button type="button" onClick={acceptOsThemeSuggestion}>
+                  Yes
+                </button>
+                <button type="button" onClick={dismissOsThemeSuggestion}>
+                  No
+                </button>
+              </div>
+            )}          {activeSection === "home" && current && (
+              <div key="dashboard-grid" className="content-grid">
+                <Dashboard
+                  cityName={position.cityName}
+                  lat={position.lat}
+                  lon={position.lon}
+                  current={current}
+                  trend={trend}
+                  cityComparisons={cityComparisons}
+                  timeRange={timeRange}
+                  onTimeRangeChange={setTimeRange}
+                  lastUpdated={lastUpdated}
+                  isRefreshing={isRefreshing}
+                  confidenceScore={confidenceScore}
+                  dataCompleteness={dataCompleteness}
+                />
 
-              <HealthAdvisory />
+                <LocationMap
+                  center={position}
+                  nearbyPoints={nearbyPoints}
+                  confidenceScore={confidenceScore}
+                  windData={windData}
+                />
 
-              <SolutionsAwareness />
+                <AlertsPanel
+                  cityName={position.cityName}
+                  current={current}
+                  confidenceScore={confidenceScore}
+                  dataCompleteness={dataCompleteness}
+                  exposureEstimate={exposureEstimate}
+                />
 
-              <AnalyticsInsights
-                analytics={analytics}
-                trend={trend}
-                timeRange={timeRange}
-              />
+                <HealthAdvisory />
+                <SunSafetyDashboard lat={position.lat} lon={position.lon} />
+                <SolutionsAwareness />
 
-              <ScenarioSimulator current={current} />
-            </div>
-          )}
+                <AnalyticsInsights
+                  analytics={analytics}
+                  trend={trend}
+                  timeRange={timeRange}
+                />
 
-          {activeSection === "community" && (
-            <div className="content-grid community-layout">
-              <CommunityHub />
-            </div>
-          )}
+                <ScenarioSimulator current={current} />
+              </div>
+            )}
 
-          {activeSection === "history" && (
-            <div className="content-grid history-layout">
-              <HistoricalAnalysis position={position} />
-            </div>
-          )}
+            {activeSection === "community" && (
+              <div className="content-grid community-layout">
+                <CommunityHub />
+              </div>
+            )}
 
-          {activeSection === "quiz" && (
-            <div className="content-grid quiz-layout">
-              <QuizSection />
-            </div>
-          )}
+            {activeSection === "history" && (
+              <div className="content-grid history-layout">
+                <HistoricalAnalysis position={position} />
+              </div>
+            )}
 
-          {activeSection === "game" && (
-            <div className="content-grid game-layout">
-              <AqiMissionGame current={current} />
-              <HotspotScoutGame nearbyPoints={nearbyPoints} />
-            </div>
-          )}
+            {activeSection === "quiz" && (
+              <div className="content-grid quiz-layout">
+                <QuizSection />
+              </div>
+            )}
 
-          {activeSection === "getting-started" && (
-            <div className="content-grid getting-started-layout">
-              <GettingStarted />
-            </div>
-          )}
+            {activeSection === "game" && (
+              <div className="content-grid game-layout">
+                <AqiMissionGame current={current} />
+                <HotspotScoutGame nearbyPoints={nearbyPoints} />
+                <RiverOriginGame />
+              </div>
+            )}
 
-          {activeSection === "Commute" && <Commute />}
-          {activeSection === "Compare" && <CityCompare />}
-          <Footer />
-        </>
-      )}
+            {activeSection === "getting-started" && (
+              <div className="content-grid getting-started-layout">
+                <GettingStarted />
+              </div>
+            )}
+
+            {activeSection === "Commute" && <Commute />}
+            {activeSection === "Compare" && <CityCompare />}
+            {activeSection === "CarbonCalculator" && (
+              <div className="content-grid carbon-calculator-layout">
+                <CarbonFootprintCalculator />
+              </div>
+            )}
+            <Footer />
+          </>
+        )}
       </div>
     </main>
   );
