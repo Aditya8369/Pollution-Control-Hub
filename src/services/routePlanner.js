@@ -1,3 +1,21 @@
+import { getAQIBand } from './airQualityService';
+
+/**
+ * Converts PM2.5 (µg/m³) concentration to US AQI score.
+ *
+ * @param {number} pm - PM2.5 concentration in µg/m³.
+ * @returns {number} Corresponding US AQI integer.
+ */
+export function pm25ToAQI(pm) {
+  if (pm == null || isNaN(pm) || pm < 0) return 0;
+  if (pm <= 12.0) return Math.round(((50 - 0) / (12.0 - 0)) * (pm - 0) + 0);
+  if (pm <= 35.4) return Math.round(((100 - 51) / (35.4 - 12.1)) * (pm - 12.1) + 51);
+  if (pm <= 55.4) return Math.round(((150 - 101) / (55.4 - 35.5)) * (pm - 35.5) + 101);
+  if (pm <= 150.4) return Math.round(((200 - 151) / (150.4 - 55.5)) * (pm - 55.5) + 151);
+  if (pm <= 250.4) return Math.round(((300 - 201) / (250.4 - 150.5)) * (pm - 150.5) + 201);
+  return Math.round(((500 - 301) / (500.4 - 250.5)) * (pm - 250.5) + 301);
+}
+
 /**
  * routePlanner.js
  * Handles geocoding, routing, and cross-referencing paths with PM2.5 data.
@@ -36,20 +54,18 @@ const geocodeLocation = async (locationName) => {
  * @param {number} lon - The longitude coordinate.
  * @param {number} lat - The latitude coordinate.
  * @returns {Promise<number>} A promise that resolves to the PM2.5 concentration level.
- * @throws {Error} Throws an error if the Open-Meteo API request fails.
- *
- * @example
- * const pm25 = await getSegmentPollution(72.8347, 18.9220);
- * // Returns 45.2
  */
 const getSegmentPollution = async (lon, lat) => {
-  const response = await fetch(
-    `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lon}&current=pm2_5`
-  );
-  if (!response.ok) throw new Error("Failed to fetch AQI data");
-  const data = await response.json();
-
-  return data.current.pm2_5;
+  try {
+    const response = await fetch(
+      `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lon}&current=pm2_5`
+    );
+    if (!response.ok) return 25.0; // Fallback Moderate PM2.5 if request fails
+    const data = await response.json();
+    return data.current?.pm2_5 ?? 25.0;
+  } catch {
+    return 25.0; // Fallback PM2.5 when network is unavailable
+  }
 };
 
 const MODE_PROFILES = {
@@ -158,8 +174,46 @@ export const calculateCleanRoute = async (originText, destinationText, mode = "d
 
       const exposureScore = distanceKm * avgPm25 * modeConfig.multiplier;
 
+      // Build colored AQI polyline segments along consecutive route geometry sections
+      const segments = [];
+      for (let k = 0; k < checkpoints.length - 1; k++) {
+        const startIndex = checkpoints[k];
+        const endIndex = checkpoints[k + 1];
+        if (startIndex >= endIndex) continue;
+
+        const sectionCoords = coordinates
+          .slice(startIndex, endIndex + 1)
+          .map(pt => [pt[1], pt[0]]); // Leaflet format [lat, lon]
+
+        const segmentPm25 = parseFloat(((pmValues[k] + pmValues[k + 1]) / 2).toFixed(1));
+        const segmentAqi = pm25ToAQI(segmentPm25);
+        const band = getAQIBand(segmentAqi);
+
+        segments.push({
+          coordinates: sectionCoords,
+          aqi: segmentAqi,
+          category: band.label,
+          color: band.color,
+          pm25: segmentPm25,
+        });
+      }
+
+      // If segments is empty (e.g. coordinates length < 2), fallback to single segment
+      if (segments.length === 0 && coordinates.length >= 2) {
+        const segmentAqi = pm25ToAQI(avgPm25);
+        const band = getAQIBand(segmentAqi);
+        segments.push({
+          coordinates: coordinates.map(pt => [pt[1], pt[0]]),
+          aqi: segmentAqi,
+          category: band.label,
+          color: band.color,
+          pm25: avgPm25,
+        });
+      }
+
       evaluatedRoutes.push({
         geometry: coordinates,
+        segments: segments,
         distance: distanceKm.toFixed(2),
         duration: String(modeDurationMins),
         pm25: avgPm25.toFixed(1),
