@@ -14,7 +14,7 @@ import {
   Pie,
   Cell
 } from "recharts";
-import { useRef, useState, useEffect } from "react";
+import { useRef, useState, useEffect, useMemo } from "react";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 import { useSWR } from "../hooks/useSWR";
@@ -101,6 +101,18 @@ export default function Dashboard({
       eventBus.off("FORCE_REFRESH", handleForceRefresh);
     };
   }, [mutateForecast]);
+
+  // Cities whose request failed carry null readings (see fetchCityComparisons). Charting
+  // them would draw a zero-height bar that reads as "clean air", so split them out and
+  // name them explicitly below the chart instead.
+  const measuredCities = useMemo(
+    () => (cityComparisons || []).filter((c) => !c.unavailable && c.aqi != null),
+    [cityComparisons]
+  );
+  const unavailableCities = useMemo(
+    () => (cityComparisons || []).filter((c) => c.unavailable || c.aqi == null),
+    [cityComparisons]
+  );
 
   const reportRef = useRef(null);
   const shareCardRef = useRef(null);
@@ -666,7 +678,7 @@ export default function Dashboard({
           <article data-testid="city-comparisons" className="chart-card">
             <h3>City-Wise AQI Comparison</h3>
             <ResponsiveContainer width="100%" height={280}>
-              <BarChart data={cityComparisons} layout="vertical" margin={{ left: 30 }}>
+              <BarChart data={measuredCities} layout="vertical" margin={{ left: 30 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#d7e6e1" />
                 <XAxis type="number" />
                 <YAxis type="category" dataKey="city" width={90} />
@@ -674,9 +686,16 @@ export default function Dashboard({
                 <Bar dataKey="aqi" fill="#f97316" radius={[0, 12, 12, 0]} />
               </BarChart>
             </ResponsiveContainer>
+            {unavailableCities.length > 0 && (
+              <p className="city-comparison-unavailable" data-testid="city-comparison-unavailable">
+                No reading available for {unavailableCities.map((c) => c.city).join(', ')}.
+              </p>
+            )}
             <ul style={{ display: 'none' }}>
               {cityComparisons && cityComparisons.map((c, i) => (
-                <li key={i} data-testid="city-comparison-item">{c.city}: {c.aqi}</li>
+                <li key={i} data-testid="city-comparison-item">
+                  {c.city}: {c.unavailable || c.aqi == null ? 'Unavailable' : c.aqi}
+                </li>
               ))}
             </ul>
           </article>

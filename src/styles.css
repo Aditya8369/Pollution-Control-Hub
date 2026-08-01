@@ -5766,6 +5766,15 @@ a {
   border: 1px solid #fde68a;
 }
 
+/* Names the cities whose AQI could not be fetched. Deliberately understated —
+   it reports an absence, not an error the reader has to act on. */
+.city-comparison-unavailable {
+  margin: var(--sp-2) 0 0;
+  font-size: 0.82rem;
+  color: var(--muted);
+  font-style: italic;
+}
+
 /* ============================================================
    Advisory / three-col / analytics
    ============================================================ */
