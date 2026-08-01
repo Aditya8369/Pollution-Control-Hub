@@ -206,6 +206,25 @@ function computeConfidence(hourly, times) {
 }
 
 /**
+ * Fetches historical air quality data for a custom date range.
+ * @param {number} lat
+ * @param {number} lon
+ * @param {string} startDate - ISO date string (YYYY-MM-DD)
+ * @param {string} endDate - ISO date string (YYYY-MM-DD)
+ * @param {AbortSignal} [signal]
+ */
+export async function fetchHistoricalRange(lat, lon, startDate, endDate, signal) {
+  if (!isValidCoord(lat, lon)) return null;
+  const url = `${BASE_URL}?latitude=${lat}&longitude=${lon}&hourly=pm2_5,pm10,carbon_monoxide,nitrogen_dioxide,ozone,us_aqi&timezone=auto&start_date=${startDate}&end_date=${endDate}`;
+
+  const response = await fetch(url, { signal });
+  if (!response.ok) {
+    throw new Error('Failed to fetch historical AQI data for the selected range.');
+  }
+  return response.json();
+}
+
+/**
  * Air Quality metrics record for a single point in time.
  * @typedef {Object} CurrentAQIData
  * @property {string} time - Time corresponding to measurements.
