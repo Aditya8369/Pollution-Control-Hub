@@ -129,7 +129,7 @@ function HotspotScoutGame({ nearbyPoints }) {
       {selected && (
         <>
           <div style={{ marginTop: "20px" }}>
-            Highest AQI: <strong>{selected.name}</strong> ({selected.aqi})
+            Highest AQI: <strong>{selected.areaName}</strong> ({selected.aqi})
           </div>
           <button
             type="button"
