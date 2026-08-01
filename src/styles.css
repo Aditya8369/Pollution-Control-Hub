@@ -1,4 +1,3 @@
-
 .selected-file-container {
   display: flex;
   align-items: center;
@@ -234,7 +233,7 @@
   margin-bottom: var(--sp-2);
 }
 
-.quiz-selector > p {
+.quiz-selector>p {
   color: var(--muted);
   margin-bottom: var(--sp-5);
 }
@@ -1505,20 +1504,16 @@
 
 .mission-select-card.active {
   border-color: var(--brand);
-  background: linear-gradient(
-    140deg,
-    rgba(13, 148, 136, 0.08),
-    rgba(2, 132, 199, 0.04)
-  );
+  background: linear-gradient(140deg,
+      rgba(13, 148, 136, 0.08),
+      rgba(2, 132, 199, 0.04));
   box-shadow: 0 0 0 2px var(--brand);
 }
 
 :root[data-theme="dark"] .mission-select-card.active {
-  background: linear-gradient(
-    140deg,
-    rgba(34, 211, 238, 0.12),
-    rgba(56, 189, 248, 0.06)
-  );
+  background: linear-gradient(140deg,
+      rgba(34, 211, 238, 0.12),
+      rgba(56, 189, 248, 0.06));
 }
 
 .mission-icon-lg {
@@ -1874,20 +1869,16 @@
 
 .policy-card.deployed {
   border-color: var(--brand);
-  background: linear-gradient(
-    140deg,
-    rgba(13, 148, 136, 0.05),
-    rgba(2, 132, 199, 0.02)
-  );
+  background: linear-gradient(140deg,
+      rgba(13, 148, 136, 0.05),
+      rgba(2, 132, 199, 0.02));
   box-shadow: 0 0 0 2px var(--brand);
 }
 
 :root[data-theme="dark"] .policy-card.deployed {
-  background: linear-gradient(
-    140deg,
-    rgba(34, 211, 238, 0.08),
-    rgba(56, 189, 248, 0.04)
-  );
+  background: linear-gradient(140deg,
+      rgba(34, 211, 238, 0.08),
+      rgba(56, 189, 248, 0.04));
 }
 
 .policy-card:disabled {
@@ -2496,6 +2487,7 @@
    Mobile History/Calendar Overflow Fix v2 (mobile only)
    ============================================================ */
 @media (max-width: 640px) {
+
   /* THE key fix: force the grid track itself to shrink,
      not just its children */
   .content-grid {
@@ -2504,7 +2496,7 @@
 
   .history-layout,
   .panel,
-  .content-grid > * {
+  .content-grid>* {
     min-width: 0;
     max-width: 100%;
   }
@@ -2729,7 +2721,7 @@
     grid-template-columns: 1fr;
   }
 
-  .three-col > div + div {
+  .three-col>div+div {
     border-left: none;
     padding-left: 0;
     border-top: 1px solid var(--line);
@@ -4418,6 +4410,7 @@
 
 /* --- Mobile --- */
 @media (max-width: 768px) {
+
   .sa-tip-card,
   .sa-read-card-btn {
     padding: var(--sp-3);
@@ -4465,7 +4458,7 @@
   flex-wrap: wrap;
 }
 
-.sun-safety-header > div {
+.sun-safety-header>div {
   flex: 1;
   min-width: 240px;
 }
@@ -10955,6 +10948,10 @@ a {
 .river-reset-btn:hover {
   border-color: var(--danger);
   color: var(--danger);
+}
+
+.river-rules-card {
+  margin-bottom: var(--sp-4);
 }
 
 .river-match-grid {
