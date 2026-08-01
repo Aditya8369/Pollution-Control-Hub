@@ -4702,17 +4702,19 @@
 /* ============================================================
    Pollution Control Hub — Design Tokens
    ============================================================ */
-:root {
-  --ink: #0f172a;
-  --muted: #52667a;
-  --panel: #eef3f1;
-  --card: #ffffff;
-  --line: #e0e7e3;
-  --brand: #0d9488;
-  --brand-strong: #0b7d73;
-  --accent: #f97316;
-  --sky: #0284c7;
-  --danger: #b91c1c;
+:root,
+:root[data-theme="dark"] {
+  --ink: #eef2f6;
+  --muted: #93a3b8;
+  --panel: #0c1420;
+  --card: #121b29;
+  --line: #223047;
+  --brand: #2dd4bf;
+  --brand-strong: #5eead4;
+  --accent: #fb923c;
+  --sky: #38bdf8;
+  --danger: #f87171;
+  --bg-card-alt: #1a2434;
 
   /* spacing scale */
   --sp-1: 0.25rem;
@@ -4728,36 +4730,711 @@
   --r-sm: 10px;
   --r-md: 16px;
   --r-lg: 22px;
+  --shadow-sm: 0 2px 10px rgba(0, 0, 0, 0.35);
+  --shadow-md: 0 14px 34px rgba(0, 0, 0, 0.45);
+  --shadow-lg: 0 24px 60px rgba(0, 0, 0, 0.55);
+
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+
+  --accent-fill: #3b2314;
+  --sky-fill: #0c2a40;
+  --sky-text: #38bdf8;
+  --danger-fill: #3e1616;
+  --danger-text: #f87171;
+}
+
+:root[data-theme="light"] {
+  --ink: #0f172a;
+  --muted: #52667a;
+  --panel: #eef3f1;
+  --card: #ffffff;
+  --line: #e0e7e3;
+  --brand: #0d9488;
+  --brand-strong: #0b7d73;
+  --accent: #f97316;
+  --sky: #0284c7;
+  --danger: #b91c1c;
+  --bg-card-alt: #f8fafc;
+
   --shadow-sm: 0 2px 8px rgba(15, 23, 42, 0.05);
   --shadow-md: 0 10px 28px rgba(15, 23, 42, 0.08);
   --shadow-lg: 0 20px 48px rgba(15, 23, 42, 0.14);
-
-  --ease: cubic-bezier(0.22, 1, 0.36, 1);
 
   --accent-fill: #ffdec7;
   --sky-fill: #e0f2fe;
   --sky-text: #0284c7;
   --danger-fill: #ffcccc;
   --danger-text: #dc2626;
-  --bg-card-alt: #f8fafc;
 }
 
-:root[data-theme="dark"] {
-  --ink: #eef2f6;
-  --muted: #93a3b8;
-  --panel: #0c1420;
-  --card: #121b29;
-  --line: #223047;
-  --brand: #2dd4bf;
-  --brand-strong: #5eead4;
-  --accent: #fb923c;
-  --sky: #38bdf8;
-  --danger: #f87171;
-  --bg-card-alt: #1a2434;
+/* ============================================================
+   High-Contrast Accessibility Theme — Independent Design System
+   WCAG AAA oriented. Modelled on GOV.UK / NHS Digital / Windows HC.
+   ============================================================ */
 
-  --shadow-sm: 0 2px 10px rgba(0, 0, 0, 0.35);
-  --shadow-md: 0 14px 34px rgba(0, 0, 0, 0.45);
-  --shadow-lg: 0 24px 60px rgba(0, 0, 0, 0.55);
+/* ── 1. Design Tokens ───────────────────────────────────────── */
+:root[data-theme="high-contrast"] {
+  /* Core palette */
+  --hc-bg:          #ffffff;
+  --hc-surface:     #ffffff;
+  --hc-surface-alt: #f0f0f0;
+  --hc-ink:         #000000;
+  --hc-muted:       #2d3748;      /* ≥ 9:1 on white */
+  --hc-brand:       #003d36;      /* deep teal – WCAG AAA on white */
+  --hc-brand-hover: #001e1a;
+  --hc-border:      #000000;
+  --hc-border-light:#4a4a4a;
+  --hc-focus:       #005248;      /* 3:1 on both #000 and #fff */
+  --hc-danger:      #9b1c1c;
+  --hc-warning:     #78350f;
+  --hc-success:     #14532d;
+  --hc-link:        #003d36;
+  --hc-link-visited:#4c1d95;
+  --hc-disabled-bg: #d1d5db;
+  --hc-disabled-ink:#6b7280;
+
+  /* Map onto existing token names so generic rules still work */
+  --ink:         var(--hc-ink);
+  --muted:       var(--hc-muted);
+  --panel:       var(--hc-surface-alt);
+  --card:        var(--hc-surface);
+  --line:        var(--hc-border);
+  --brand:       var(--hc-brand);
+  --brand-strong:var(--hc-brand-hover);
+  --accent:      var(--hc-danger);
+  --sky:         #0369a1;
+  --danger:      var(--hc-danger);
+  --bg-card-alt: var(--hc-surface-alt);
+
+  /* Eliminate all decorative depth */
+  --shadow-sm: none;
+  --shadow-md: none;
+  --shadow-lg: none;
+
+  --accent-fill:  #fee2e2;
+  --sky-fill:     #e0f2fe;
+  --sky-text:     #0369a1;
+  --danger-fill:  #fee2e2;
+  --danger-text:  #9b1c1c;
+
+  /* Typography scale boosted for readability */
+  --hc-body-size:  1.0625rem;   /* 17px */
+  --hc-lh:         1.7;
+  --hc-lh-tight:   1.4;
+}
+
+/* ── 2. Base reset ───────────────────────────────────────────── */
+:root[data-theme="high-contrast"] body {
+  background-color: var(--hc-bg) !important;
+  color: var(--hc-ink) !important;
+  font-size: var(--hc-body-size) !important;
+  line-height: var(--hc-lh) !important;
+}
+
+/* Remove all decorative blur / glass */
+:root[data-theme="high-contrast"] *,
+:root[data-theme="high-contrast"] *::before,
+:root[data-theme="high-contrast"] *::after {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  text-shadow: none !important;
+}
+
+:root[data-theme="high-contrast"] .glass,
+:root[data-theme="high-contrast"] [class*="glass"],
+:root[data-theme="high-contrast"] [class*="blur"] {
+  background: var(--hc-surface) !important;
+  backdrop-filter: none !important;
+}
+
+/* Remove decorative gradients from backgrounds */
+:root[data-theme="high-contrast"] [style*="gradient"],
+:root[data-theme="high-contrast"] [class*="gradient"] {
+  background-image: none !important;
+}
+
+/* ── 3. Shadows → Borders ────────────────────────────────────── */
+:root[data-theme="high-contrast"] *[class] {
+  box-shadow: none !important;
+}
+
+/* ── 4. Typography ───────────────────────────────────────────── */
+:root[data-theme="high-contrast"] h1 {
+  font-size: 2rem !important;
+  font-weight: 800 !important;
+  color: var(--hc-ink) !important;
+  line-height: var(--hc-lh-tight) !important;
+  letter-spacing: -0.01em !important;
+}
+:root[data-theme="high-contrast"] h2 {
+  font-size: 1.5rem !important;
+  font-weight: 700 !important;
+  color: var(--hc-ink) !important;
+  line-height: var(--hc-lh-tight) !important;
+}
+:root[data-theme="high-contrast"] h3 {
+  font-size: 1.25rem !important;
+  font-weight: 700 !important;
+  color: var(--hc-ink) !important;
+}
+:root[data-theme="high-contrast"] h4,
+:root[data-theme="high-contrast"] h5,
+:root[data-theme="high-contrast"] h6 {
+  font-weight: 700 !important;
+  color: var(--hc-ink) !important;
+}
+
+:root[data-theme="high-contrast"] p,
+:root[data-theme="high-contrast"] li {
+  color: var(--hc-ink) !important;
+  line-height: var(--hc-lh) !important;
+}
+
+:root[data-theme="high-contrast"] small,
+:root[data-theme="high-contrast"] .text-sm,
+:root[data-theme="high-contrast"] [class*="muted"],
+:root[data-theme="high-contrast"] [class*="subtitle"],
+:root[data-theme="high-contrast"] [class*="caption"] {
+  color: var(--hc-muted) !important;
+  font-weight: 600 !important;
+}
+
+:root[data-theme="high-contrast"] strong,
+:root[data-theme="high-contrast"] b {
+  font-weight: 800 !important;
+  color: var(--hc-ink) !important;
+}
+
+/* ── 5. Universal Focus Ring ─────────────────────────────────── */
+:root[data-theme="high-contrast"] :focus-visible {
+  outline: 4px solid var(--hc-focus) !important;
+  outline-offset: 3px !important;
+  border-radius: 2px !important;
+  box-shadow: none !important;
+}
+/* Focus on dark elements — also add white inner ring */
+:root[data-theme="high-contrast"] .section-nav button:focus-visible,
+:root[data-theme="high-contrast"] .theme-utility-btn:focus-visible,
+:root[data-theme="high-contrast"] .theme-menu-item:focus-visible {
+  outline: 4px solid var(--hc-focus) !important;
+  outline-offset: 3px !important;
+}
+
+/* ── 6. Links ────────────────────────────────────────────────── */
+:root[data-theme="high-contrast"] a {
+  color: var(--hc-link) !important;
+  text-decoration: underline !important;
+  text-underline-offset: 3px !important;
+  font-weight: 600 !important;
+}
+:root[data-theme="high-contrast"] a:visited {
+  color: var(--hc-link-visited) !important;
+}
+:root[data-theme="high-contrast"] a:hover {
+  color: var(--hc-ink) !important;
+  text-decoration-thickness: 3px !important;
+}
+
+/* ── 7. Cards & Containers ───────────────────────────────────── */
+:root[data-theme="high-contrast"] .content-card,
+:root[data-theme="high-contrast"] .compare-card,
+:root[data-theme="high-contrast"] .commute-card,
+:root[data-theme="high-contrast"] .panel-card {
+  background-color: var(--hc-surface) !important;
+  border: 2px solid var(--hc-border) !important;
+  box-shadow: none !important;
+  padding: 1.25rem !important;
+}
+
+:root[data-theme="high-contrast"] .stat-box,
+:root[data-theme="high-contrast"] .pollutant-summary-box {
+  background-color: var(--hc-surface-alt) !important;
+  border: 2px solid var(--hc-border) !important;
+  box-shadow: none !important;
+}
+
+:root[data-theme="high-contrast"] .location-search-wrapper,
+:root[data-theme="high-contrast"] .preset-buttons-group,
+:root[data-theme="high-contrast"] .mode-selector-group,
+:root[data-theme="high-contrast"] .nav-sections {
+  background-color: var(--hc-surface-alt) !important;
+  border: 2px solid var(--hc-border) !important;
+  box-shadow: none !important;
+}
+
+/* ── 8. Buttons ──────────────────────────────────────────────── */
+
+/* Primary */
+:root[data-theme="high-contrast"] .btn-primary,
+:root[data-theme="high-contrast"] button[class*="primary"] {
+  background-color: var(--hc-brand) !important;
+  color: #ffffff !important;
+  border: 2px solid var(--hc-brand) !important;
+  font-weight: 700 !important;
+  text-decoration: none !important;
+}
+:root[data-theme="high-contrast"] .btn-primary:hover,
+:root[data-theme="high-contrast"] button[class*="primary"]:hover {
+  background-color: var(--hc-brand-hover) !important;
+  border-color: var(--hc-brand-hover) !important;
+  text-decoration: underline !important;
+}
+
+/* Secondary / ghost */
+:root[data-theme="high-contrast"] .btn-secondary,
+:root[data-theme="high-contrast"] button[class*="secondary"],
+:root[data-theme="high-contrast"] button[class*="outline"] {
+  background-color: var(--hc-surface) !important;
+  color: var(--hc-ink) !important;
+  border: 2px solid var(--hc-border) !important;
+  font-weight: 700 !important;
+}
+:root[data-theme="high-contrast"] .btn-secondary:hover,
+:root[data-theme="high-contrast"] button[class*="secondary"]:hover {
+  background-color: var(--hc-surface-alt) !important;
+  border-color: var(--hc-brand) !important;
+  color: var(--hc-brand) !important;
+}
+
+/* Danger */
+:root[data-theme="high-contrast"] .btn-danger,
+:root[data-theme="high-contrast"] button[class*="danger"] {
+  background-color: var(--hc-danger) !important;
+  color: #ffffff !important;
+  border: 2px solid var(--hc-danger) !important;
+  font-weight: 700 !important;
+}
+
+/* Disabled */
+:root[data-theme="high-contrast"] button:disabled,
+:root[data-theme="high-contrast"] button[aria-disabled="true"] {
+  background-color: var(--hc-disabled-bg) !important;
+  color: var(--hc-disabled-ink) !important;
+  border: 2px solid var(--hc-border-light) !important;
+  cursor: not-allowed !important;
+  font-weight: 600 !important;
+  text-decoration: line-through !important;
+}
+
+/* Generic button baseline (covers any un-classified buttons) */
+:root[data-theme="high-contrast"] button:not(:disabled) {
+  border: 2px solid var(--hc-border) !important;
+  font-weight: 600 !important;
+}
+
+/* Any button with dark background / brand fill / active state gets pure white text (#ffffff) */
+:root[data-theme="high-contrast"] button[style*="background"]:not([style*="background: white"]):not([style*="background: rgb(255, 255, 255)"]):not([style*="background:#fff"]):not([style*="background: #fff"]),
+:root[data-theme="high-contrast"] button[style*="brand"],
+:root[data-theme="high-contrast"] button.active,
+:root[data-theme="high-contrast"] button[class*="active"],
+:root[data-theme="high-contrast"] .btn-primary,
+:root[data-theme="high-contrast"] button[class*="primary"],
+:root[data-theme="high-contrast"] .btn-danger,
+:root[data-theme="high-contrast"] button[class*="danger"] {
+  color: #ffffff !important;
+  font-weight: 700 !important;
+}
+
+:root[data-theme="high-contrast"] button:not(:disabled):not([class*="primary"]):not([class*="danger"]):hover {
+  border-color: var(--hc-brand) !important;
+}
+
+/* Active/press state */
+:root[data-theme="high-contrast"] button:not(:disabled):active {
+  transform: scale(0.97) !important;
+}
+
+/* ── 9. Navigation ───────────────────────────────────────────── */
+:root[data-theme="high-contrast"] .section-nav {
+  background-color: var(--hc-surface-alt) !important;
+  border-bottom: 2px solid var(--hc-border) !important;
+}
+
+:root[data-theme="high-contrast"] .section-nav button {
+  color: var(--hc-ink) !important;
+  background: transparent !important;
+  border: 2px solid transparent !important;
+  font-weight: 600 !important;
+  transition: border-color 120ms ease, background 120ms ease !important;
+}
+:root[data-theme="high-contrast"] .section-nav button:hover {
+  background-color: #e8e8e8 !important;
+  border-color: var(--hc-border) !important;
+  color: var(--hc-ink) !important;
+  text-decoration: none !important;
+}
+:root[data-theme="high-contrast"] .section-nav button.active {
+  background-color: var(--hc-ink) !important;
+  color: var(--hc-bg) !important;
+  border: 2px solid var(--hc-ink) !important;
+  font-weight: 800 !important;
+  border-bottom: 4px solid var(--hc-brand) !important;
+}
+
+/* ── 10. Forms & Inputs ──────────────────────────────────────── */
+:root[data-theme="high-contrast"] input,
+:root[data-theme="high-contrast"] textarea,
+:root[data-theme="high-contrast"] select {
+  background-color: var(--hc-surface) !important;
+  color: var(--hc-ink) !important;
+  border: 2px solid var(--hc-border) !important;
+  font-weight: 500 !important;
+  box-shadow: none !important;
+}
+:root[data-theme="high-contrast"] input:hover,
+:root[data-theme="high-contrast"] textarea:hover,
+:root[data-theme="high-contrast"] select:hover {
+  border-color: var(--hc-brand) !important;
+}
+:root[data-theme="high-contrast"] input::placeholder,
+:root[data-theme="high-contrast"] textarea::placeholder {
+  color: #4b5563 !important;  /* ≥ 4.5:1 on white */
+  font-style: italic !important;
+  opacity: 1 !important;
+}
+:root[data-theme="high-contrast"] input[type="checkbox"],
+:root[data-theme="high-contrast"] input[type="radio"] {
+  accent-color: var(--hc-brand) !important;
+  width: 1.25em !important;
+  height: 1.25em !important;
+}
+
+/* ── 11. Navigation Chips / Mode Selectors ───────────────────── */
+:root[data-theme="high-contrast"] .mode-chip-btn {
+  background-color: var(--hc-surface) !important;
+  color: var(--hc-ink) !important;
+  border: 2px solid var(--hc-border) !important;
+  font-weight: 600 !important;
+}
+:root[data-theme="high-contrast"] .mode-chip-btn:hover {
+  background-color: var(--hc-surface-alt) !important;
+  border-color: var(--hc-brand) !important;
+  color: var(--hc-brand) !important;
+}
+:root[data-theme="high-contrast"] .mode-chip-btn.active {
+  background-color: var(--hc-ink) !important;
+  color: var(--hc-bg) !important;
+  border: 2px solid var(--hc-ink) !important;
+  font-weight: 700 !important;
+}
+
+/* ── 12. Accordions ──────────────────────────────────────────── */
+:root[data-theme="high-contrast"] details,
+:root[data-theme="high-contrast"] [class*="accordion"],
+:root[data-theme="high-contrast"] [class*="solution"] {
+  border: 2px solid var(--hc-border) !important;
+  background-color: var(--hc-surface) !important;
+  box-shadow: none !important;
+}
+:root[data-theme="high-contrast"] summary,
+:root[data-theme="high-contrast"] [class*="accordion-header"],
+:root[data-theme="high-contrast"] [class*="solution-header"] {
+  background-color: var(--hc-surface-alt) !important;
+  color: var(--hc-ink) !important;
+  font-weight: 700 !important;
+  border-bottom: 2px solid var(--hc-border) !important;
+  padding: 0.85rem 1rem !important;
+  cursor: pointer !important;
+}
+:root[data-theme="high-contrast"] summary:hover,
+:root[data-theme="high-contrast"] [class*="accordion-header"]:hover {
+  background-color: #e0e0e0 !important;
+  border-color: var(--hc-brand) !important;
+}
+:root[data-theme="high-contrast"] details[open] > summary,
+:root[data-theme="high-contrast"] [class*="accordion"].open > [class*="accordion-header"] {
+  background-color: var(--hc-ink) !important;
+  color: var(--hc-bg) !important;
+  border-left: 6px solid var(--hc-brand) !important;
+}
+
+/* ── 13. Tables ──────────────────────────────────────────────── */
+:root[data-theme="high-contrast"] table {
+  border-collapse: collapse !important;
+  border: 2px solid var(--hc-border) !important;
+}
+:root[data-theme="high-contrast"] th {
+  background-color: var(--hc-ink) !important;
+  color: var(--hc-bg) !important;
+  font-weight: 700 !important;
+  border: 2px solid var(--hc-border) !important;
+  padding: 0.6rem 0.75rem !important;
+}
+:root[data-theme="high-contrast"] td {
+  border: 1px solid var(--hc-border-light) !important;
+  padding: 0.5rem 0.75rem !important;
+  color: var(--hc-ink) !important;
+}
+:root[data-theme="high-contrast"] tr:hover td {
+  background-color: var(--hc-surface-alt) !important;
+}
+
+/* ── 14. Badges & Status Chips ───────────────────────────────── */
+:root[data-theme="high-contrast"] [class*="badge"],
+:root[data-theme="high-contrast"] [class*="chip"],
+:root[data-theme="high-contrast"] [class*="tag"] {
+  border: 2px solid var(--hc-border) !important;
+  font-weight: 700 !important;
+  box-shadow: none !important;
+}
+
+/* AQI-specific badge overrides – high WCAG contrast against white */
+:root[data-theme="high-contrast"] [class*="good"],
+:root[data-theme="high-contrast"] [data-aqi-band="good"] {
+  background-color: #14532d !important;
+  color: #ffffff !important;
+  border-color: #14532d !important;
+}
+:root[data-theme="high-contrast"] [class*="moderate"],
+:root[data-theme="high-contrast"] [data-aqi-band="moderate"] {
+  background-color: #78350f !important;
+  color: #ffffff !important;
+  border-color: #78350f !important;
+}
+:root[data-theme="high-contrast"] [class*="poor"],
+:root[data-theme="high-contrast"] [data-aqi-band="poor"],
+:root[data-theme="high-contrast"] [data-aqi-band="unhealthy-sensitive"] {
+  background-color: #7c2d12 !important;
+  color: #ffffff !important;
+  border-color: #7c2d12 !important;
+}
+:root[data-theme="high-contrast"] [class*="very-poor"],
+:root[data-theme="high-contrast"] [data-aqi-band="unhealthy"] {
+  background-color: #9b1c1c !important;
+  color: #ffffff !important;
+  border-color: #9b1c1c !important;
+}
+:root[data-theme="high-contrast"] [class*="hazardous"],
+:root[data-theme="high-contrast"] [data-aqi-band="hazardous"] {
+  background-color: #4c1d95 !important;
+  color: #ffffff !important;
+  border-color: #4c1d95 !important;
+}
+
+/* ── 15. Charts & Data Visualisations ───────────────────────── */
+
+/* Grid lines — dark dashes for maximum separation */
+:root[data-theme="high-contrast"] .recharts-cartesian-grid line,
+:root[data-theme="high-contrast"] .recharts-cartesian-grid-horizontal line,
+:root[data-theme="high-contrast"] .recharts-cartesian-grid-vertical line {
+  stroke: #000000 !important;
+  stroke-opacity: 0.6 !important;
+  stroke-dasharray: 4 3 !important;
+  stroke-width: 1px !important;
+}
+
+/* Axis labels */
+:root[data-theme="high-contrast"] .recharts-text,
+:root[data-theme="high-contrast"] .recharts-cartesian-axis-tick-value,
+:root[data-theme="high-contrast"] .recharts-label {
+  fill: #000000 !important;
+  font-weight: 700 !important;
+  font-size: 0.8rem !important;
+}
+
+/* Legend */
+:root[data-theme="high-contrast"] .recharts-legend-item-text,
+:root[data-theme="high-contrast"] .recharts-legend-wrapper {
+  color: #000000 !important;
+  fill: #000000 !important;
+  font-weight: 700 !important;
+}
+
+/* Surface of chart */
+:root[data-theme="high-contrast"] .recharts-wrapper,
+:root[data-theme="high-contrast"] .recharts-surface {
+  background-color: var(--hc-surface) !important;
+}
+
+/* Increase polyline / stroke widths for readability */
+:root[data-theme="high-contrast"] .recharts-line-curve,
+:root[data-theme="high-contrast"] .recharts-area-curve {
+  stroke-width: 3px !important;
+}
+:root[data-theme="high-contrast"] svg polyline,
+:root[data-theme="high-contrast"] svg path[class*="line"] {
+  stroke-width: 3px !important;
+}
+
+/* Radar chart polygon */
+:root[data-theme="high-contrast"] .recharts-polar-grid-angle line,
+:root[data-theme="high-contrast"] .recharts-polar-grid-concentric-polygon {
+  stroke: #000000 !important;
+  stroke-opacity: 0.6 !important;
+  stroke-width: 1.5px !important;
+}
+
+/* ── 16. Images & Thumbnails ─────────────────────────────────── */
+:root[data-theme="high-contrast"] img {
+  filter: contrast(1.15) grayscale(0.2) !important;
+}
+
+/* ── 17. Dividers & Separators ───────────────────────────────── */
+:root[data-theme="high-contrast"] hr {
+  background-color: var(--hc-border) !important;
+  border: none !important;
+  height: 2px !important;
+  opacity: 1 !important;
+}
+:root[data-theme="high-contrast"] .nav-divider,
+:root[data-theme="high-contrast"] [class*="divider"] {
+  background-color: var(--hc-border) !important;
+  opacity: 1 !important;
+}
+
+/* ── 18. Motion — reduce decorative animations ───────────────── */
+:root[data-theme="high-contrast"] *,
+:root[data-theme="high-contrast"] *::before,
+:root[data-theme="high-contrast"] *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 120ms !important;
+  scroll-behavior: auto !important;
+}
+/* But keep meaningful transitions */
+:root[data-theme="high-contrast"] .theme-switcher-utility,
+:root[data-theme="high-contrast"] .theme-popover-menu,
+:root[data-theme="high-contrast"] details,
+:root[data-theme="high-contrast"] summary {
+  transition: none !important;
+}
+
+/* ── 19. Theme Switcher – accessible variant ─────────────────── */
+:root[data-theme="high-contrast"] .theme-utility-btn {
+  background-color: var(--hc-ink) !important;
+  color: var(--hc-bg) !important;
+  border: 2px solid var(--hc-ink) !important;
+  font-weight: 700 !important;
+}
+:root[data-theme="high-contrast"] .theme-utility-btn:hover {
+  background-color: var(--hc-brand) !important;
+  border-color: var(--hc-brand) !important;
+}
+
+:root[data-theme="high-contrast"] .theme-popover-menu {
+  background-color: var(--hc-surface) !important;
+  border: 2px solid var(--hc-border) !important;
+  box-shadow: none !important;
+}
+:root[data-theme="high-contrast"] .theme-menu-item {
+  color: var(--hc-ink) !important;
+  font-weight: 600 !important;
+  border: 2px solid transparent !important;
+  border-radius: 4px !important;
+}
+:root[data-theme="high-contrast"] .theme-menu-item:hover {
+  background-color: var(--hc-surface-alt) !important;
+  border-color: var(--hc-brand) !important;
+  color: var(--hc-brand) !important;
+}
+:root[data-theme="high-contrast"] .theme-menu-item.active {
+  background-color: var(--hc-ink) !important;
+  color: var(--hc-bg) !important;
+  border-color: var(--hc-ink) !important;
+  font-weight: 700 !important;
+}
+:root[data-theme="high-contrast"] .theme-item-check {
+  color: var(--hc-bg) !important;
+  font-weight: 900 !important;
+}
+
+/* ============================================================
+   Smooth Theme Transitions & Theme Utility Switcher Controls
+   ============================================================ */
+body,
+.content-card,
+.compare-card,
+.commute-card,
+.panel-card,
+.section-nav,
+button,
+input,
+select {
+  transition: background-color 200ms ease, color 200ms ease, border-color 200ms ease, box-shadow 200ms ease;
+}
+
+.theme-switcher-utility {
+  position: relative;
+  display: inline-block;
+}
+
+.theme-utility-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.4rem 0.7rem;
+  font-size: 0.825rem;
+  font-weight: 600;
+  color: var(--ink);
+  background-color: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  transition: all 180ms var(--ease);
+}
+
+.theme-utility-btn:hover {
+  border-color: var(--brand);
+}
+
+.theme-utility-btn:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}
+
+.theme-btn-arrow {
+  font-size: 0.65rem;
+  opacity: 0.75;
+}
+
+.theme-popover-menu {
+  position: absolute;
+  top: calc(100% + 0.35rem);
+  right: 0;
+  min-width: 160px;
+  background-color: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  box-shadow: var(--shadow-md);
+  padding: 0.35rem;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.theme-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.45rem 0.65rem;
+  font-size: 0.825rem;
+  font-weight: 500;
+  color: var(--ink);
+  background: transparent;
+  border: none;
+  border-radius: calc(var(--r-sm) - 4px);
+  cursor: pointer;
+  text-align: left;
+  transition: background-color 150ms var(--ease);
+}
+
+.theme-menu-item:hover {
+  background-color: var(--panel);
+}
+
+.theme-menu-item.active {
+  font-weight: 700;
+  color: var(--brand);
+  background-color: var(--panel);
+}
+
+.theme-item-check {
+  margin-left: auto;
+  font-size: 0.85rem;
+  color: var(--brand);
 }
 
 *,

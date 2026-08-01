@@ -31,6 +31,8 @@ import {
 } from "./services/airQualityService";
 import { eventBus } from "./core/events";
 import RiverOriginGame from "./components/RiverOriginGame";
+import { ThemeProvider, useTheme } from "./context/ThemeContext";
+import ThemeSwitcher from "./components/ThemeSwitcher";
 
 const DEFAULT_POSITION = {
   lat: 28.6139,
@@ -198,12 +200,13 @@ function SectionNav({ activeSection, onSectionChange, theme }) {
   const menuRef = useRef(null);
 
   const [isMobile, setIsMobile] = useState(() =>
-    typeof window !== "undefined"
+    typeof window !== "undefined" && typeof window.matchMedia === "function"
       ? window.matchMedia("(max-width: 768px)").matches
       : false,
   );
 
   useEffect(() => {
+    if (typeof window === "undefined" || typeof window.matchMedia !== "function") return;
     const mediaQuery = window.matchMedia("(max-width: 768px)");
     /** @param {any} e */
     const handler = (e) => setIsMobile(e.matches);
@@ -296,7 +299,7 @@ function SectionNav({ activeSection, onSectionChange, theme }) {
             </button>
           ))}
           <div className="nav-divider"></div>
-          {themeToggleNode}
+          <ThemeSwitcher />
         </div>
       </nav>
     );
@@ -396,12 +399,12 @@ function SectionNav({ activeSection, onSectionChange, theme }) {
         )}
       </nav>
 
-      {themeToggleNode}
+      <ThemeSwitcher />
     </header>
   );
 }
 
-export default function App() {
+function AppContent() {
   const [activeSection, setActiveSection] = useState(
     () => localStorage.getItem("activeSection") || "home",
   );
@@ -492,15 +495,7 @@ export default function App() {
     useState(AUTO_REFRESH_SECONDS);
   const [locationNotice, setLocationNotice] = useState("");
   const [persistenceWarning, setPersistenceWarning] = useState("");
-  const [theme, setTheme] = useState(() => {
-    const savedTheme = localStorage.getItem(THEME_STORAGE_KEY);
-
-    // Only a deliberate in-app choice outranks the OS. A theme left over from a previous
-    // session that merely mirrored the OS should not pin the app to a stale value.
-    if (savedTheme && hasManualThemePreference()) return savedTheme;
-
-    return getSystemTheme();
-  });
+  const { theme, setTheme, changeTheme } = useTheme();
   const [timeRange, setTimeRange] = useState(() => {
     const saved = localStorage.getItem("timeRange");
     return saved ? Number(saved) : 24;
@@ -937,5 +932,13 @@ export default function App() {
         )}
       </div>
     </main>
+  );
+}
+
+export default function App() {
+  return (
+    <ThemeProvider>
+      <AppContent />
+    </ThemeProvider>
   );
 }
