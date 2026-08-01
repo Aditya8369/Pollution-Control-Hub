@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Initial setup of the Changelog document.
-- [Add recent feature 1 here]
+- Replaced notification checkbox with pill-style ON/OFF toggle matching the theme switch design (#459)
 
 ### Fixed
-- [Add recent fix 1 here]
+- Added handling for denied notification permission state, which previously showed no UI
