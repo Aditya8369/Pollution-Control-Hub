@@ -502,7 +502,7 @@ export default function HistoricalAnalysis({ position }) {
                 fontWeight: 500,
                 cursor: 'pointer',
                 borderRadius: '6px',
-                background: 'var(--muted, #52667a)',
+                background: 'var(--muted, #0d9488)',
                 color: '#ffffff',
                 border: 'none',
                 height: '38px',
@@ -512,8 +512,8 @@ export default function HistoricalAnalysis({ position }) {
                 fontFamily: 'inherit',
                 transition: 'background 0.2s'
               }}
-              onMouseOver={(e) => { e.currentTarget.style.background = 'var(--ink, #0f172a)'; }}
-              onMouseOut={(e) => { e.currentTarget.style.background = 'var(--muted, #52667a)'; }}
+              onMouseOver={(e) => { e.currentTarget.style.background = 'var(--brand-strong, #0b7d73)'; }}
+              onMouseOut={(e) => { e.currentTarget.style.background = 'var(--brand, #0d9488)'; }}
             >
               Export JSON
             </button>
