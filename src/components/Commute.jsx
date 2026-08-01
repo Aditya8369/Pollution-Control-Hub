@@ -127,9 +127,10 @@ const Commute = () => {
       }));
 
       setRoutes(allRoutesFormatted);
-      setSelectedRouteIndex(0);
-      setMapCenter(allRoutesFormatted[0].leafletCoords[0]);
-      
+      setSelectedRouteIndex(0); // Cleanest route is first
+      if (allRoutesFormatted.length > 0) {
+        setMapCenter(allRoutesFormatted[0].leafletCoords[0]);
+      }
       setRouteHistory((prev) => {
         const entry = { origin, destination, timestamp: new Date().toISOString() };
         const deduped = prev.filter(
@@ -311,15 +312,18 @@ const Commute = () => {
             </form>
 
             {routes.length > 0 && (
-              <div className="commute-routes-comparison" style={{ marginTop: '1rem' }}>
-                <h3>Available Routes</h3>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+              <div className="commute-options" style={{ marginTop: '1rem' }}>
+                <h3>Route Options</h3>
+                <div className="commute-route-list" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                   {routes.map((route, index) => {
                     const isSelected = selectedRouteIndex === index;
                     const routeColor = ROUTE_COLORS[index % ROUTE_COLORS.length];
+                    const isCleanest = index === 0;
                     return (
-                      <div
+                      <button
                         key={index}
+                        type="button"
+                        className={`commute-route-option ${isSelected ? 'active' : ''}`}
                         onClick={() => setSelectedRouteIndex(index)}
                         style={{
                           border: `2px solid ${isSelected ? routeColor : '#e5e7eb'}`,
@@ -328,13 +332,16 @@ const Commute = () => {
                           borderRadius: '8px',
                           cursor: 'pointer',
                           transition: 'all 0.2s ease-in-out',
+                          textAlign: 'left',
+                          width: '100%',
+                          display: 'block'
                         }}
                       >
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
                           <h4 style={{ margin: 0, color: '#1f2937' }}>
                             Route {index + 1}
                           </h4>
-                          {index === 0 && (
+                          {isCleanest && (
                             <span style={{ 
                               backgroundColor: '#10b981', 
                               color: 'white', 
@@ -361,7 +368,7 @@ const Commute = () => {
                             <strong>{route.pm25} µg/m³</strong>
                           </div>
                         </div>
-                      </div>
+                      </button>
                     );
                   })}
                 </div>
