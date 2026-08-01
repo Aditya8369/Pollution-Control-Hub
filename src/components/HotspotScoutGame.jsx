@@ -107,18 +107,24 @@ function HotspotScoutGame({ nearbyPoints }) {
         </button>
       </div>
 
-      <div className="hotspot-options">
-        {round.map((spot) => (
-          <button
-            key={spot.areaName}
-            className="hotspot-option"
-            onClick={() => handleSelect(spot)}
-            disabled={!!selected}
-          >
-            {spot.areaName}
-          </button>
-        ))}
-      </div>
+      {round.length === 0 ? (
+        <p style={{ marginTop: "16px" }}>
+          Waiting for nearby zone data...
+        </p>
+      ) : (
+        <div className="hotspot-options">
+          {round.map((spot) => (
+            <button
+              key={spot.areaName}
+              className="hotspot-option"
+              onClick={() => handleSelect(spot)}
+              disabled={!!selected}
+            >
+              {spot.areaName}
+            </button>
+          ))}
+        </div>
+      )}
 
       {selected && (
         <>
