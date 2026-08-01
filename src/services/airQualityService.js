@@ -623,7 +623,50 @@ export function estimateExposureTime(trend, currentAQI, threshold = 120) {
  */
 
 /**
+ * Number of decimal places a breakpoint table is expressed in.
+ *
+ * The EPA publishes each pollutant's table at the precision its concentrations are
+ * reported at — PM2.5 to one decimal, the gases to whole numbers. Deriving it from the
+ * table keeps the two in sync if a table is ever edited.
+ *
+ * @param {Breakpoint[]} breakpoints
+ * @returns {number} Decimal places, e.g. 1 for PM2.5 and 0 for PM10.
+ */
+function breakpointPrecision(breakpoints) {
+  let decimals = 0;
+  for (const bp of breakpoints) {
+    for (const bound of [bp.cLow, bp.cHigh]) {
+      const text = String(bound);
+      const dot = text.indexOf('.');
+      if (dot !== -1) decimals = Math.max(decimals, text.length - dot - 1);
+    }
+  }
+  return decimals;
+}
+
+/**
+ * Truncates a concentration to a table's reporting precision.
+ *
+ * The EPA algorithm truncates rather than rounds (Technical Assistance Document for the
+ * Reporting of Daily Air Quality, step 1), so 12.09 µg/m³ is treated as 12.0.
+ *
+ * @param {number} concentration
+ * @param {number} decimals
+ * @returns {number}
+ */
+function truncateToPrecision(concentration, decimals) {
+  const factor = 10 ** decimals;
+  return Math.floor(concentration * factor) / factor;
+}
+
+/**
  * Calculates a specific pollutant sub-index score using standard US EPA breakpoint formulas.
+ *
+ * The published breakpoint tables are not contiguous — PM2.5 runs to 12.0 and resumes at
+ * 12.1, PM10 runs to 54 and resumes at 55, and so on. The EPA closes those gaps by
+ * truncating the measurement to the table's precision *before* the lookup, which is what
+ * this function does; a raw range test would leave 12.0 < c < 12.1 matching no band and
+ * silently reporting the pollutant as 0.
  *
  * @param {number} concentration - Measured pollutant concentration level.
  * @param {Breakpoint[]} breakpoints - Standard EPA concentration-to-index lookup array.
@@ -631,16 +674,34 @@ export function estimateExposureTime(trend, currentAQI, threshold = 120) {
  *
  * @example
  * const subAqiScore = subAqi(24.5, BP_PM25);
+ * @example
+ * subAqi(12.05, BP_PM25); // 50 — truncated to 12.0, not dropped into a gap
  */
 export function subAqi(concentration, breakpoints) {
+  if (!Array.isArray(breakpoints) || breakpoints.length === 0) return 0;
+  if (typeof concentration !== 'number' || !Number.isFinite(concentration)) return 0;
+
+  // Negative readings are sensor noise, not clean air below the scale.
+  if (concentration <= 0) return 0;
+
+  const value = truncateToPrecision(concentration, breakpointPrecision(breakpoints));
+
+  const highest = breakpoints[breakpoints.length - 1];
+  if (value > highest.cHigh) return 500;
+
   for (const bp of breakpoints) {
-    if (concentration >= bp.cLow && concentration <= bp.cHigh) {
+    if (value >= bp.cLow && value <= bp.cHigh) {
+      const span = bp.cHigh - bp.cLow;
+      // A degenerate single-point band would divide by zero; report its floor instead.
+      if (span === 0) return bp.iLow;
       return Math.round(
-        ((bp.iHigh - bp.iLow) / (bp.cHigh - bp.cLow)) * (concentration - bp.cLow) + bp.iLow
+        ((bp.iHigh - bp.iLow) / span) * (value - bp.cLow) + bp.iLow
       );
     }
   }
-  return concentration > breakpoints[breakpoints.length - 1].cHigh ? 500 : 0;
+
+  // Below the first band's floor — nothing measurable.
+  return 0;
 }
 
 /** @type {Breakpoint[]} Standard US EPA PM2.5 breakpoints */
