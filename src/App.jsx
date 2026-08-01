@@ -33,6 +33,7 @@ import { eventBus } from "./core/events";
 import RiverOriginGame from "./components/RiverOriginGame";
 import { ThemeProvider, useTheme } from "./context/ThemeContext";
 import ThemeSwitcher from "./components/ThemeSwitcher";
+import CarbonFootprintCalculator from "./components/CarbonFootprintCalculator";
 
 const DEFAULT_POSITION = {
   lat: 28.6139,
@@ -193,6 +194,7 @@ function SectionNav({ activeSection, onSectionChange, theme }) {
     { id: "community", label: "Community" },
     { id: "history", label: "History" },
     { id: "Commute", label: "Commute" },
+    { id: "CarbonCalculator", label: "Carbon Calculator" },
   ];
   const isDark = theme === "dark";
 
@@ -927,6 +929,11 @@ function AppContent() {
 
             {activeSection === "Commute" && <Commute />}
             {activeSection === "Compare" && <CityCompare />}
+            {activeSection === "CarbonCalculator" && (
+              <div className="content-grid carbon-calculator-layout">
+                <CarbonFootprintCalculator />
+              </div>
+            )}
             <Footer />
           </>
         )}
