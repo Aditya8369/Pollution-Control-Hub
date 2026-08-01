@@ -9,6 +9,7 @@ const MAX_IMAGE_SIZE_BYTES = 500 * 1024; // 500 KB
 const STORAGE_WARN_THRESHOLD = 5 * 1024 * 1024; // 5 MB warning
 const MAX_TITLE_LENGTH = 120;
 const MAX_DESCRIPTION_LENGTH = 2000;
+const HASHTAGS = ['#TreePlanting', '#StubbleBurning', '#CleanAir'];
 
 /**
  * Compress a base64 data URI to a smaller JPEG using canvas.
@@ -115,10 +116,12 @@ export default function CommunityHub() {
   const [reports, setReports] = useState(() => readReports());
   const [votedIds, setVotedIds] = useState(() => readVotedIds());
   const [filter, setFilter] = useState('All');
+  const [hashtagFilter, setHashtagFilter] = useState('All');
   const [form, setForm] = useState({
     title: '',
     description: '',
-    image: ''
+    image: '',
+    hashtag: ''
   });
   const [fileInputKey, setFileInputKey] = useState(Date.now());
   const [uploadError, setUploadError] = useState('');
@@ -220,6 +223,7 @@ export default function CommunityHub() {
       title: cleanTitle,
       description: cleanDescription,
       image: safeImage,
+      hashtag: form.hashtag,
       votes: 0,
       createdAt: new Date().toISOString(),
       status: "Pending",
@@ -230,7 +234,7 @@ export default function CommunityHub() {
     };
 
     setReports((prev) => [newReport, ...prev]);
-    setForm({ title: '', description: '', image: '' });
+    setForm({ title: '', description: '', image: '', hashtag: '' });
     setFileInputKey(Date.now());
     setLocationCoords(null);
     setLocationStatus('idle');
@@ -331,6 +335,7 @@ export default function CommunityHub() {
   };
 
   const filteredReports = reports.filter((report) => {
+    if (hashtagFilter !== 'All' && report.hashtag !== hashtagFilter) return false;
     if (filter === 'All') return true;
     if (filter === 'Verified') return report.status.startsWith('Verified');
     return report.status === filter;
@@ -357,6 +362,15 @@ export default function CommunityHub() {
           placeholder="Describe location and issue details"
           onChange={(event) => setForm((prev) => ({ ...prev, description: event.target.value }))}
         />
+        <select
+          value={form.hashtag}
+          onChange={(event) => setForm((prev) => ({ ...prev, hashtag: event.target.value }))}
+        >
+          <option value="">Add a hashtag (optional)</option>
+          {HASHTAGS.map((hashtag) => (
+            <option key={hashtag} value={hashtag}>{hashtag}</option>
+          ))}
+        </select>
         <input
           key={fileInputKey}
           type="file"
@@ -415,6 +429,19 @@ export default function CommunityHub() {
         ))}
       </div>
 
+      <div className="filter-tabs" style={{ display: 'flex', gap: '8px', margin: '15px 0', flexWrap: 'wrap' }}>
+        {['All', ...HASHTAGS].map((hashtagOption) => (
+          <button
+            key={hashtagOption}
+            type="button"
+            className={hashtagFilter === hashtagOption ? 'active' : ''}
+            onClick={() => setHashtagFilter(hashtagOption)}
+          >
+            {hashtagOption}
+          </button>
+        ))}
+      </div>
+
       <div className="reports-list" style={{ display: 'grid', gap: '15px' }}>
         {filteredReports.length === 0 ? (
           <p className="no-reports">No reports found for "{filter}".</p>
@@ -430,6 +457,9 @@ export default function CommunityHub() {
                   </span>
                 </div>
                 <p style={{ margin: '0 0 10px 0', color: 'var(--muted)', fontSize: '0.95rem' }}>{report.description}</p>
+                {report.hashtag && (
+                  <p className="report-hashtag" style={{ margin: '0 0 10px 0', fontSize: '0.85rem', color: 'var(--brand)' }}>{report.hashtag}</p>
+                )}
                 {report.image && (
                   <div style={{ marginBottom: '10px' }}>
                     <img src={report.image} alt={report.title} style={{ maxWidth: '100%', maxHeight: '200px', borderRadius: '6px', objectFit: 'cover' }} />
