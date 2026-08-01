@@ -487,20 +487,27 @@ export async function fetchSunSafetyData(lat, lon, signal) {
  * Individual city metrics comparison summary object.
  * @typedef {Object} CityComparison
  * @property {string} city - City name string.
- * @property {number} aqi - US AQI score.
- * @property {number} pm2_5 - Fine PM2.5 particle level.
- * @property {number} pm10 - Coarse PM10 particle level.
+ * @property {number|null} aqi - US AQI score, or null when the reading could not be fetched.
+ * @property {number|null} pm2_5 - Fine PM2.5 particle level, or null when unavailable.
+ * @property {number|null} pm10 - Coarse PM10 particle level, or null when unavailable.
+ * @property {boolean} unavailable - True when this city's request failed; readings are null.
  */
 
 /**
  * Fetches AQI indices for predefined major global/national cities for comparison.
  *
+ * Cities whose request fails are returned with null readings and `unavailable: true`, and
+ * are sorted to the end of the list. They are never given substitute values: an invented
+ * number that looks like a measurement is worse than a visible gap, because a reader has
+ * no way to tell it apart from a real one.
+ *
  * @param {AbortSignal} [signal] - Optional request cancellation signal.
- * @returns {Promise<CityComparison[]>} Sorted list of city comparison objects in descending order of AQI.
+ * @returns {Promise<CityComparison[]>} List sorted by descending AQI, unavailable cities last.
  * @throws {DOMException} Throws AbortError if aborted during execution.
  *
  * @example
  * const comparisons = await fetchCityComparisons();
+ * const measured = comparisons.filter((c) => !c.unavailable);
  */
 export async function fetchCityComparisons(signal) {
   const cityData = await Promise.all(
@@ -513,21 +520,28 @@ export async function fetchCityComparisons(signal) {
           city: city.name,
           aqi: result.current.us_aqi,
           pm2_5: result.current.pm2_5,
-          pm10: result.current.pm10
+          pm10: result.current.pm10,
+          unavailable: false
         };
       } catch (error) {
         if (error.name === 'AbortError') throw error;
+        console.warn(`Air quality unavailable for ${city.name}:`, error);
         return {
           city: city.name,
-          aqi: 85,
-          pm2_5: 34,
-          pm10: 55
+          aqi: null,
+          pm2_5: null,
+          pm10: null,
+          unavailable: true
         };
       }
     })
   );
 
-  return cityData.sort((a, b) => b.aqi - a.aqi);
+  return cityData.sort((a, b) => {
+    if (a.unavailable !== b.unavailable) return a.unavailable ? 1 : -1;
+    if (a.unavailable) return a.city.localeCompare(b.city);
+    return b.aqi - a.aqi;
+  });
 }
 
 /**
