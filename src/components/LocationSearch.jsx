@@ -205,6 +205,7 @@ export default function LocationSearch({ onLocationSelected, initialCityName }) 
         onChange={handleInputChange}
         onFocus={() => setIsOpen(true)}
         onKeyDown={handleKeyDown}
+        aria-label="Search for a city or location"
         aria-expanded={isOpen}
         aria-autocomplete="list"
         aria-controls="location-search-listbox"

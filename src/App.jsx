@@ -252,17 +252,30 @@ function SectionNav({ activeSection, onSectionChange, theme }) {
   const themeToggleNode = (
     <button
       type="button"
-      className={`theme-toggle-inline ${theme === "dark" ? "dark" : ""}`}
+      className={`theme-toggle-inline ${theme === 'dark' ? 'dark' : theme === 'high-contrast' ? 'high-contrast' : ''}`}
       onClick={() => eventBus.emit("TOGGLE_THEME")}
       aria-label="Toggle Theme"
+      aria-pressed={theme !== 'light'}
+      title={
+        theme === 'light'
+          ? 'Switch to dark mode'
+          : theme === 'dark'
+          ? 'Switch to high-contrast mode'
+          : 'Switch to light mode'
+      }
     >
       <span className="toggle-thumb">
-        {theme === "dark" ? (
+        {theme === 'dark' ? (
           <svg viewBox="0 0 24 24" className="moon-icon">
             <path
               d="M20 15.5A8.5 8.5 0 1 1 12.5 4a7 7 0 0 0 7.5 11.5z"
               fill="currentColor"
             />
+          </svg>
+        ) : theme === 'high-contrast' ? (
+          <svg viewBox="0 0 24 24" className="sun-icon" aria-hidden="true">
+            <circle cx="12" cy="12" r="10" fill="currentColor" />
+            <circle cx="12" cy="12" r="5" fill="white" />
           </svg>
         ) : (
           <svg viewBox="0 0 24 24" className="sun-icon">
@@ -737,13 +750,18 @@ export default function App() {
   // Using the in-app toggle is the one action that counts as choosing a theme.
   const toggleTheme = useCallback(() => {
     localStorage.setItem(THEME_SOURCE_KEY, "manual");
-    setTheme((prev) => (prev === "dark" ? "light" : "dark"));
+    setTheme((prev) => {
+      if (prev === 'light') return 'dark';
+      if (prev === 'dark') return 'high-contrast';
+      return 'light';
+    });
   }, []);
 
   const acceptOsThemeSuggestion = () => {
     setTheme(osThemeSuggestion);
     setOsThemeSuggestion(null);
   };
+
 
   const dismissOsThemeSuggestion = () => {
     setOsThemeSuggestion(null);
