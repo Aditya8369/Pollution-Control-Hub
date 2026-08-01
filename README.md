@@ -287,9 +287,12 @@ Please read our [Code of Conduct](CODE_OF_CONDUCT.md) before participating in th
 Distributed under the **MIT License**. See [LICENSE](LICENSE) for details.
 
 ---
-
 <div align="center">
 
-**From awareness to action — one city at a time.** 🌱
+**Made with ❤️ by the Aditya8369**
+
+⭐ **Don't forget to star this repo if you found it helpful.** ⭐<br>
+  **From awareness to action — one city at a time.** 🌱
 
 </div>
+
