@@ -31,6 +31,7 @@ import {
 } from "./services/airQualityService";
 import { eventBus } from "./core/events";
 import RiverOriginGame from "./components/RiverOriginGame";
+import CarbonFootprintCalculator from "./components/CarbonFootprintCalculator";
 
 const DEFAULT_POSITION = {
   lat: 28.6139,
@@ -191,6 +192,7 @@ function SectionNav({ activeSection, onSectionChange, theme }) {
     { id: "community", label: "Community" },
     { id: "history", label: "History" },
     { id: "Commute", label: "Commute" },
+    { id: "CarbonCalculator", label: "Carbon Calculator" },
   ];
   const isDark = theme === "dark";
 
@@ -932,6 +934,11 @@ export default function App() {
 
             {activeSection === "Commute" && <Commute />}
             {activeSection === "Compare" && <CityCompare />}
+            {activeSection === "CarbonCalculator" && (
+              <div className="content-grid carbon-calculator-layout">
+                <CarbonFootprintCalculator />
+              </div>
+            )}
             <Footer />
           </>
         )}

@@ -11205,3 +11205,496 @@ a {
   font-weight: 600;
   box-shadow: var(--shadow-sm);
 }
+
+/* ============================================================
+   Personal Carbon Footprint Calculator (#58)
+   ============================================================ */
+.carbon-calculator-container {
+  grid-column: 1 / -1;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-5);
+}
+
+.carbon-header-card {
+  background: linear-gradient(135deg, color-mix(in srgb, var(--brand) 15%, var(--card)), var(--card));
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  padding: var(--sp-6);
+  text-align: left;
+  box-shadow: var(--shadow-sm);
+}
+
+.carbon-header-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--brand);
+  background: color-mix(in srgb, var(--brand) 12%, transparent);
+  border-radius: 999px;
+  padding: 0.3rem 0.8rem;
+  margin-bottom: var(--sp-3);
+}
+
+.carbon-calculator-title {
+  font-family: "Fraunces", serif;
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--ink);
+  margin-bottom: var(--sp-2);
+}
+
+.carbon-calculator-subtitle {
+  color: var(--muted);
+  font-size: 0.95rem;
+  line-height: 1.6;
+  max-width: 800px;
+}
+
+.carbon-layout-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--sp-6);
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .carbon-layout-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.carbon-inputs-column,
+.carbon-results-column {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-5);
+}
+
+.carbon-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  padding: var(--sp-5);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+}
+
+.carbon-card-heading {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--ink);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: var(--sp-3);
+  margin-bottom: var(--sp-1);
+}
+
+.carbon-icon {
+  font-size: 1.2rem;
+}
+
+.carbon-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.carbon-label-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: var(--ink);
+}
+
+.carbon-value-display {
+  font-weight: 700;
+  color: var(--brand);
+  background: color-mix(in srgb, var(--brand) 10%, transparent);
+  padding: 0.2rem 0.6rem;
+  border-radius: var(--r-sm);
+  font-size: 0.85rem;
+}
+
+.carbon-select,
+.carbon-number-input {
+  width: 100%;
+  padding: 0.55rem 0.8rem;
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--bg-card-alt, var(--card));
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.9rem;
+  transition: border-color 180ms ease;
+}
+
+.carbon-select:focus,
+.carbon-number-input:focus {
+  border-color: var(--brand);
+  outline: none;
+}
+
+.carbon-range-slider {
+  width: 100%;
+  accent-color: var(--brand);
+  cursor: pointer;
+}
+
+.carbon-form-row-2col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--sp-4);
+}
+
+@media (max-width: 500px) {
+  .carbon-form-row-2col {
+    grid-template-columns: 1fr;
+  }
+}
+
+.carbon-action-buttons {
+  display: flex;
+  gap: var(--sp-3);
+}
+
+.carbon-btn-save,
+.carbon-btn-reset {
+  flex: 1;
+  padding: 0.65rem 1rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  transition: all 180ms var(--ease);
+}
+
+.carbon-toast-success {
+  background: #dcfce7;
+  color: #15803d;
+  border: 1px solid #86efac;
+  padding: var(--sp-3) var(--sp-4);
+  border-radius: var(--r-sm);
+  font-size: 0.88rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+/* Results Hero Card */
+.carbon-hero-result-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  padding: var(--sp-6);
+  box-shadow: var(--shadow-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-4);
+}
+
+.carbon-impact-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.carbon-result-label {
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.carbon-impact-badge {
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 0.3rem 0.8rem;
+  border-radius: 999px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.impact-badge-low {
+  background: #dcfce7;
+  color: #15803d;
+  border: 1px solid #86efac;
+}
+
+.impact-badge-moderate {
+  background: #fef3c7;
+  color: #b45309;
+  border: 1px solid #fde68a;
+}
+
+.impact-badge-high {
+  background: #fee2e2;
+  color: #b91c1c;
+  border: 1px solid #fca5a5;
+}
+
+.carbon-hero-values {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-5);
+  margin: var(--sp-2) 0;
+}
+
+.carbon-hero-metric {
+  display: flex;
+  flex-direction: column;
+}
+
+.carbon-metric-number {
+  font-family: "Fraunces", serif;
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: var(--ink);
+  line-height: 1;
+}
+
+.carbon-metric-unit {
+  font-size: 0.85rem;
+  color: var(--muted);
+  font-weight: 500;
+  margin-top: 0.3rem;
+}
+
+.carbon-hero-divider {
+  width: 1px;
+  height: 50px;
+  background: var(--line);
+}
+
+.carbon-hero-metric-secondary {
+  display: flex;
+  flex-direction: column;
+}
+
+.carbon-secondary-number {
+  font-family: "Fraunces", serif;
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: var(--brand);
+  line-height: 1;
+}
+
+.carbon-secondary-unit {
+  font-size: 0.82rem;
+  color: var(--muted);
+  font-weight: 500;
+  margin-top: 0.3rem;
+}
+
+.carbon-impact-description {
+  font-size: 0.92rem;
+  color: var(--ink);
+  line-height: 1.5;
+  background: var(--bg-card-alt, var(--panel));
+  padding: var(--sp-3) var(--sp-4);
+  border-radius: var(--r-sm);
+  border-left: 4px solid var(--brand);
+}
+
+.carbon-subheading {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--ink);
+  margin-bottom: var(--sp-1);
+}
+
+/* Benchmark Comparison */
+.carbon-benchmark-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+
+.carbon-benchmark-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.carbon-benchmark-header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
+.carbon-benchmark-header strong {
+  color: var(--ink);
+}
+
+.carbon-bar-bg {
+  height: 8px;
+  background: color-mix(in srgb, var(--line) 60%, transparent);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.carbon-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 300ms ease;
+}
+
+.carbon-bar-india {
+  background: #3b82f6;
+}
+
+.carbon-bar-target {
+  background: #10b981;
+}
+
+/* Breakdown List */
+.carbon-breakdown-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+
+.carbon-breakdown-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.carbon-breakdown-info {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.85rem;
+}
+
+.carbon-breakdown-label {
+  color: var(--ink);
+  font-weight: 500;
+}
+
+.carbon-breakdown-value {
+  color: var(--muted);
+  font-weight: 600;
+}
+
+.carbon-breakdown-bar-bg {
+  height: 6px;
+  background: color-mix(in srgb, var(--line) 50%, transparent);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.carbon-breakdown-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--brand), var(--sky, #0284c7));
+  border-radius: 999px;
+  transition: width 300ms ease;
+}
+
+/* Tips Cards */
+.carbon-tips-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+
+.carbon-tip-card {
+  background: var(--bg-card-alt, var(--panel));
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  padding: var(--sp-4);
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.carbon-tip-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.78rem;
+}
+
+.carbon-tip-tag {
+  font-weight: 700;
+  color: var(--brand);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.carbon-tip-impact {
+  color: #16a34a;
+  font-weight: 600;
+  background: #dcfce7;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+}
+
+.carbon-tip-title {
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.carbon-tip-text {
+  font-size: 0.85rem;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+/* History Card */
+.carbon-history-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.carbon-history-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.carbon-history-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--bg-card-alt, var(--panel));
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  padding: 0.5rem 0.8rem;
+  font-size: 0.85rem;
+}
+
+.carbon-history-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.carbon-history-date {
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.carbon-history-value {
+  font-weight: 600;
+  color: var(--ink);
+}
