@@ -39,7 +39,25 @@ const DEFAULT_POSITION = {
 };
 
 const THEME_STORAGE_KEY = "pollution-hub-theme";
+// Whether the stored theme reflects a deliberate choice ("manual") or just mirrors what
+// the OS was set to when the app last rendered ("system"). The theme value alone cannot
+// answer that — it is written on every render — so intent needs its own key.
+const THEME_SOURCE_KEY = "pollution-hub-theme-source";
 const AUTO_REFRESH_SECONDS = 180;
+
+/** @returns {"dark"|"light"} The OS colour-scheme preference, defaulting to light. */
+function getSystemTheme() {
+  return typeof window !== "undefined" &&
+    window.matchMedia &&
+    window.matchMedia("(prefers-color-scheme: dark)").matches
+    ? "dark"
+    : "light";
+}
+
+/** @returns {boolean} True when the user has explicitly picked a theme in the app. */
+function hasManualThemePreference() {
+  return localStorage.getItem(THEME_SOURCE_KEY) === "manual";
+}
 
 // Nominatim's usage policy allows at most 1 request per second, so we track
 // the last call time here and space out requests if needed.
@@ -477,18 +495,20 @@ export default function App() {
   const [theme, setTheme] = useState(() => {
     const savedTheme = localStorage.getItem(THEME_STORAGE_KEY);
 
-    if (savedTheme) return savedTheme;
+    // Only a deliberate in-app choice outranks the OS. A theme left over from a previous
+    // session that merely mirrored the OS should not pin the app to a stale value.
+    if (savedTheme && hasManualThemePreference()) return savedTheme;
 
-    return window.matchMedia &&
-      window.matchMedia("(prefers-color-scheme: dark)").matches
-      ? "dark"
-      : "light";
+    return getSystemTheme();
   });
   const [timeRange, setTimeRange] = useState(() => {
     const saved = localStorage.getItem("timeRange");
     return saved ? Number(saved) : 24;
   });
   const [osThemeSuggestion, setOsThemeSuggestion] = useState(null);
+  // Mirrors `theme` for the media-query listener, which is registered once on mount.
+  const themeRef = useRef(theme);
+  themeRef.current = theme;
   const debounceRef = useRef(null);
   const geoRequestId = useRef(0);
   const scrollAnchorRef = useRef(null);
@@ -541,6 +561,9 @@ export default function App() {
     if (aqiData) setLastUpdated(new Date().toISOString());
   }, [aqiData]);
 
+  // Persist the theme value so the next load paints without a flash. This runs on mount
+  // too, which is why "has the user chosen a theme?" is tracked under a separate key
+  // rather than inferred from this one existing.
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
     localStorage.setItem(THEME_STORAGE_KEY, theme);
@@ -553,11 +576,18 @@ export default function App() {
     const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
 
     const handleOsThemeChange = (e) => {
-      const hasManualPreference = localStorage.getItem(THEME_STORAGE_KEY);
       const newSystemTheme = e.matches ? "dark" : "light";
-      if (!hasManualPreference) {
+
+      if (!hasManualThemePreference()) {
+        // No in-app choice has been made — follow the OS silently.
         setTheme(newSystemTheme);
-      } else if (newSystemTheme !== theme) {
+        return;
+      }
+
+      // Compare against the live theme via the ref: this listener is registered once, so
+      // reading `theme` from the closure would compare against the first render's value
+      // and prompt even when the requested theme is already active.
+      if (newSystemTheme !== themeRef.current) {
         setOsThemeSuggestion(newSystemTheme);
       }
     };
@@ -702,9 +732,11 @@ export default function App() {
     [trend, current],
   );
 
-  const toggleTheme = () => {
+  // Using the in-app toggle is the one action that counts as choosing a theme.
+  const toggleTheme = useCallback(() => {
+    localStorage.setItem(THEME_SOURCE_KEY, "manual");
     setTheme((prev) => (prev === "dark" ? "light" : "dark"));
-  };
+  }, []);
 
   const acceptOsThemeSuggestion = () => {
     setTheme(osThemeSuggestion);
