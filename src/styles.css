@@ -294,7 +294,11 @@
   font-size: 0.9rem;
   transition: all 180ms var(--ease);
 }
-
+.footer-icon {
+  width: 18px;
+  height: 18px;
+  margin-right: 8px;
+}
 .back-btn:hover {
   background: color-mix(in srgb, var(--line) 50%, transparent);
 }
