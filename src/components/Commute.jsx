@@ -73,7 +73,8 @@ const Commute = () => {
   const [routeSegments, setRouteSegments] = useState([]);
   const [searchId, setSearchId] = useState(0);
   const [mapCenter, setMapCenter] = useState([28.6139, 77.209]);
-  const [routeStats, setRouteStats] = useState(null);
+  
+  const ROUTE_COLORS = ["#0d9488", "#3b82f6", "#eab308", "#8b5cf6", "#f97316"];
   const [routeHistory, setRouteHistory] = useState(() => readRouteHistory());
   const [savedLocations, setSavedLocations] = useState(() => readSavedLocations());
   const [newLocationLabel, setNewLocationLabel] = useState("");
@@ -451,16 +452,16 @@ const Commute = () => {
                 url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                 attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
               />
-              {routeLine && (
+              {routes.length > 0 && (
                 <>
-                  <Marker position={routeLine[0]} icon={defaultIcon}>
+                  <Marker position={routes[0].leafletCoords[0]} icon={defaultIcon}>
                     <Popup>
                       <strong>Start:</strong> {origin}
                     </Popup>
                   </Marker>
 
                   <Marker
-                    position={routeLine[routeLine.length - 1]}
+                    position={routes[0].leafletCoords[routes[0].leafletCoords.length - 1]}
                     icon={defaultIcon}
                   >
                     <Popup>
