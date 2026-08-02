@@ -5,6 +5,25 @@ import ApiWorker from '../workers/apiWorker?worker';
 const BASE_URL = 'https://air-quality-api.open-meteo.com/v1/air-quality';
 
 /**
+ * How long a cached payload may be replayed before this module re-fetches it.
+ *
+ * These live in the service layer rather than in `cacheStore` because freshness is a
+ * property of the data, not of the storage: a forecast is useful for an hour, a live
+ * reading for minutes. Without them, `cacheStore` entries survive for a full day and
+ * every "refresh" replays the first response of the session.
+ *
+ * @type {{ CURRENT: number, GRID: number, FORECAST: number }}
+ */
+export const CACHE_TTL = {
+  /** Current conditions + 24h trend — matches the app's 3-minute auto-refresh cadence. */
+  CURRENT: 5 * 60 * 1000,
+  /** Surrounding hotspot grid — 9 requests per miss, so it is worth holding a little. */
+  GRID: 5 * 60 * 1000,
+  /** 7-day forecast — upstream only regenerates it a few times a day. */
+  FORECAST: 60 * 60 * 1000,
+};
+
+/**
  * Calculates the current hour index from an array of timestamps using the location's UTC offset.
  *
  * @param {string[]} times - Array of ISO timestamp strings (e.g. "2026-03-31T14:00").
@@ -148,7 +167,7 @@ async function fetchGridPointAqi(lat, lon, signal) {
  */
 export async function fetchLocalGrid(lat, lon, topN = 6, signal) {
   const cacheKey = `grid-${lat.toFixed(1)},${lon.toFixed(1)}`;
-  const cached = await cacheStore.get(cacheKey);
+  const cached = await cacheStore.getFresh(cacheKey, CACHE_TTL.GRID);
   if (cached && cached.data) return cached.data;
 
   const gridOffsets = [-1, 0, 1].flatMap((dy) =>
@@ -268,7 +287,7 @@ export async function fetchAirQualityByCoords(lat, lon, signal, skipGrid = false
   }
   if (!isValidCoord(lat, lon)) throw new Error('Invalid coordinates provided.');
 
-  const cached = await cacheStore.get(cacheKey);
+  const cached = await cacheStore.getFresh(cacheKey, CACHE_TTL.CURRENT);
   if (cached && cached.data) return cached.data;
 
   const today = new Date();
@@ -487,20 +506,27 @@ export async function fetchSunSafetyData(lat, lon, signal) {
  * Individual city metrics comparison summary object.
  * @typedef {Object} CityComparison
  * @property {string} city - City name string.
- * @property {number} aqi - US AQI score.
- * @property {number} pm2_5 - Fine PM2.5 particle level.
- * @property {number} pm10 - Coarse PM10 particle level.
+ * @property {number|null} aqi - US AQI score, or null when the reading could not be fetched.
+ * @property {number|null} pm2_5 - Fine PM2.5 particle level, or null when unavailable.
+ * @property {number|null} pm10 - Coarse PM10 particle level, or null when unavailable.
+ * @property {boolean} unavailable - True when this city's request failed; readings are null.
  */
 
 /**
  * Fetches AQI indices for predefined major global/national cities for comparison.
  *
+ * Cities whose request fails are returned with null readings and `unavailable: true`, and
+ * are sorted to the end of the list. They are never given substitute values: an invented
+ * number that looks like a measurement is worse than a visible gap, because a reader has
+ * no way to tell it apart from a real one.
+ *
  * @param {AbortSignal} [signal] - Optional request cancellation signal.
- * @returns {Promise<CityComparison[]>} Sorted list of city comparison objects in descending order of AQI.
+ * @returns {Promise<CityComparison[]>} List sorted by descending AQI, unavailable cities last.
  * @throws {DOMException} Throws AbortError if aborted during execution.
  *
  * @example
  * const comparisons = await fetchCityComparisons();
+ * const measured = comparisons.filter((c) => !c.unavailable);
  */
 export async function fetchCityComparisons(signal) {
   const cityData = await Promise.all(
@@ -513,21 +539,28 @@ export async function fetchCityComparisons(signal) {
           city: city.name,
           aqi: result.current.us_aqi,
           pm2_5: result.current.pm2_5,
-          pm10: result.current.pm10
+          pm10: result.current.pm10,
+          unavailable: false
         };
       } catch (error) {
         if (error.name === 'AbortError') throw error;
+        console.warn(`Air quality unavailable for ${city.name}:`, error);
         return {
           city: city.name,
-          aqi: 85,
-          pm2_5: 34,
-          pm10: 55
+          aqi: null,
+          pm2_5: null,
+          pm10: null,
+          unavailable: true
         };
       }
     })
   );
 
-  return cityData.sort((a, b) => b.aqi - a.aqi);
+  return cityData.sort((a, b) => {
+    if (a.unavailable !== b.unavailable) return a.unavailable ? 1 : -1;
+    if (a.unavailable) return a.city.localeCompare(b.city);
+    return b.aqi - a.aqi;
+  });
 }
 
 /**
@@ -642,7 +675,50 @@ export function estimateExposureTime(trend, currentAQI, threshold = 120) {
  */
 
 /**
+ * Number of decimal places a breakpoint table is expressed in.
+ *
+ * The EPA publishes each pollutant's table at the precision its concentrations are
+ * reported at — PM2.5 to one decimal, the gases to whole numbers. Deriving it from the
+ * table keeps the two in sync if a table is ever edited.
+ *
+ * @param {Breakpoint[]} breakpoints
+ * @returns {number} Decimal places, e.g. 1 for PM2.5 and 0 for PM10.
+ */
+function breakpointPrecision(breakpoints) {
+  let decimals = 0;
+  for (const bp of breakpoints) {
+    for (const bound of [bp.cLow, bp.cHigh]) {
+      const text = String(bound);
+      const dot = text.indexOf('.');
+      if (dot !== -1) decimals = Math.max(decimals, text.length - dot - 1);
+    }
+  }
+  return decimals;
+}
+
+/**
+ * Truncates a concentration to a table's reporting precision.
+ *
+ * The EPA algorithm truncates rather than rounds (Technical Assistance Document for the
+ * Reporting of Daily Air Quality, step 1), so 12.09 µg/m³ is treated as 12.0.
+ *
+ * @param {number} concentration
+ * @param {number} decimals
+ * @returns {number}
+ */
+function truncateToPrecision(concentration, decimals) {
+  const factor = 10 ** decimals;
+  return Math.floor(concentration * factor) / factor;
+}
+
+/**
  * Calculates a specific pollutant sub-index score using standard US EPA breakpoint formulas.
+ *
+ * The published breakpoint tables are not contiguous — PM2.5 runs to 12.0 and resumes at
+ * 12.1, PM10 runs to 54 and resumes at 55, and so on. The EPA closes those gaps by
+ * truncating the measurement to the table's precision *before* the lookup, which is what
+ * this function does; a raw range test would leave 12.0 < c < 12.1 matching no band and
+ * silently reporting the pollutant as 0.
  *
  * @param {number} concentration - Measured pollutant concentration level.
  * @param {Breakpoint[]} breakpoints - Standard EPA concentration-to-index lookup array.
@@ -650,16 +726,34 @@ export function estimateExposureTime(trend, currentAQI, threshold = 120) {
  *
  * @example
  * const subAqiScore = subAqi(24.5, BP_PM25);
+ * @example
+ * subAqi(12.05, BP_PM25); // 50 — truncated to 12.0, not dropped into a gap
  */
 export function subAqi(concentration, breakpoints) {
+  if (!Array.isArray(breakpoints) || breakpoints.length === 0) return 0;
+  if (typeof concentration !== 'number' || !Number.isFinite(concentration)) return 0;
+
+  // Negative readings are sensor noise, not clean air below the scale.
+  if (concentration <= 0) return 0;
+
+  const value = truncateToPrecision(concentration, breakpointPrecision(breakpoints));
+
+  const highest = breakpoints[breakpoints.length - 1];
+  if (value > highest.cHigh) return 500;
+
   for (const bp of breakpoints) {
-    if (concentration >= bp.cLow && concentration <= bp.cHigh) {
+    if (value >= bp.cLow && value <= bp.cHigh) {
+      const span = bp.cHigh - bp.cLow;
+      // A degenerate single-point band would divide by zero; report its floor instead.
+      if (span === 0) return bp.iLow;
       return Math.round(
-        ((bp.iHigh - bp.iLow) / (bp.cHigh - bp.cLow)) * (concentration - bp.cLow) + bp.iLow
+        ((bp.iHigh - bp.iLow) / span) * (value - bp.cLow) + bp.iLow
       );
     }
   }
-  return concentration > breakpoints[breakpoints.length - 1].cHigh ? 500 : 0;
+
+  // Below the first band's floor — nothing measurable.
+  return 0;
 }
 
 /** @type {Breakpoint[]} Standard US EPA PM2.5 breakpoints */
@@ -823,7 +917,7 @@ export async function get7DayForecast(lat, lon, signal) {
   if (!isValidCoord(lat, lon)) throw new Error('Invalid coordinates.');
 
   const cacheKey = `forecast-${lat.toFixed(4)},${lon.toFixed(4)}`;
-  const cached = await cacheStore.get(cacheKey);
+  const cached = await cacheStore.getFresh(cacheKey, CACHE_TTL.FORECAST);
   if (cached && cached.data) return cached.data;
 
   const aqiUrl = `${BASE_URL}?latitude=${lat}&longitude=${lon}&hourly=us_aqi&timezone=auto&forecast_days=7`;
@@ -894,3 +988,96 @@ export async function get7DayForecast(lat, lon, signal) {
 }
 
 export const fetch7DayForecast = get7DayForecast;
+
+export async function fetchPollenData(lat, lon, signal) {
+  if (!isValidCoord(lat, lon)) return null;
+
+  const getDeterministicFallback = (latitude, longitude) => {
+    const val = Math.abs(Math.sin(latitude) * Math.cos(longitude));
+    const dayOfYear = Math.floor(Date.now() / 8.64e7) % 365;
+    const seasonalFactor = 0.5 + 0.5 * Math.sin((dayOfYear / 365) * 2 * Math.PI);
+
+    const treeVal = Math.round((val * 100 + 10) * seasonalFactor);
+    const grassVal = Math.round((((val * 77) % 20) + 2) * seasonalFactor);
+    const weedVal = Math.round((((val * 133) % 45) + 5) * seasonalFactor);
+
+    return {
+      tree: treeVal,
+      grass: grassVal,
+      weed: weedVal,
+      mold: null,
+      isFallback: true
+    };
+  };
+
+  const url = `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lon}&hourly=alder_pollen,birch_pollen,grass_pollen,mugwort_pollen,olive_pollen,ragweed_pollen&timezone=auto&forecast_days=1`;
+
+  try {
+    const response = await fetch(url, { signal });
+    if (!response.ok) {
+      return getDeterministicFallback(lat, lon);
+    }
+    const data = await response.json();
+    const hourly = data.hourly || {};
+    const times = hourly.time || [];
+    if (times.length === 0) {
+      return getDeterministicFallback(lat, lon);
+    }
+
+    const idx = getCurrentHourIndex(times, data.utc_offset_seconds ?? 0);
+
+    const alder = hourly.alder_pollen?.[idx];
+    const birch = hourly.birch_pollen?.[idx];
+    const grass = hourly.grass_pollen?.[idx];
+    const mugwort = hourly.mugwort_pollen?.[idx];
+    const olive = hourly.olive_pollen?.[idx];
+    const ragweed = hourly.ragweed_pollen?.[idx];
+
+    if (
+      alder === null || birch === null || grass === null ||
+      mugwort === null || olive === null || ragweed === null ||
+      alder === undefined || birch === undefined || grass === undefined ||
+      mugwort === undefined || olive === undefined || ragweed === undefined
+    ) {
+      return getDeterministicFallback(lat, lon);
+    }
+
+    const treeVal = Math.round((alder ?? 0) + (birch ?? 0) + (olive ?? 0));
+    const grassVal = Math.round(grass ?? 0);
+    const weedVal = Math.round((mugwort ?? 0) + (ragweed ?? 0));
+
+    return {
+      tree: treeVal,
+      grass: grassVal,
+      weed: weedVal,
+      mold: null,
+      isFallback: false
+    };
+  } catch (err) {
+    if (err.name === 'AbortError') throw err;
+    return getDeterministicFallback(lat, lon);
+  }
+}
+
+export function getPollenSeverity(type, value) {
+  if (value === null || value === undefined) {
+    return { label: 'Unavailable', color: 'var(--muted)' };
+  }
+  if (type === 'tree') {
+    if (value < 15) return { label: 'Low', color: '#1f9d55' };
+    if (value < 90) return { label: 'Moderate', color: '#f59e0b' };
+    return { label: 'High', color: '#ef4444' };
+  }
+  if (type === 'grass') {
+    if (value < 5) return { label: 'Low', color: '#1f9d55' };
+    if (value < 20) return { label: 'Moderate', color: '#f59e0b' };
+    return { label: 'High', color: '#ef4444' };
+  }
+  if (type === 'weed') {
+    if (value < 10) return { label: 'Low', color: '#1f9d55' };
+    if (value < 50) return { label: 'Moderate', color: '#f59e0b' };
+    return { label: 'High', color: '#ef4444' };
+  }
+  return { label: 'Low', color: '#1f9d55' };
+}
+

@@ -129,6 +129,27 @@ export default function RiverOriginGame() {
                 Match each Indian river to its true point of origin. Select a river, then select its matching origin.
             </p>
 
+            <div className="rules-card river-rules-card">
+                <h3>How to Play</h3>
+                <ol className="rules-list">
+                    <li>
+                        <strong>Select a river:</strong> Click a river name from the left column.
+                    </li>
+                    <li>
+                        <strong>Find its origin:</strong> Click the matching origin point from the right column.
+                    </li>
+                    <li>
+                        <strong>Track mistakes:</strong> A wrong pairing counts as a mistake and clears your selection.
+                    </li>
+                    <li>
+                        <strong>Beat your best run:</strong> Match all rivers with as few mistakes as possible.
+                    </li>
+                    <li>
+                        <strong>Reset anytime:</strong> Use the Reset button to reshuffle and start over.
+                    </li>
+                </ol>
+            </div>
+
             <div className="river-score-board">
                 <span>Matched: {matchedIds.size}/{RIVERS.length}</span>
                 <span>Mistakes: {mistakes}</span>

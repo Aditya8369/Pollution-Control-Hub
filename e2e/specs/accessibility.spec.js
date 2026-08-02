@@ -144,7 +144,7 @@ test.describe('Keyboard navigation', () => {
     if (await notice.isVisible({ timeout: 3_000 })) {
       await page.keyboard.press('Escape');
       // Either dismissed or still visible — just check no crash occurred
-      const isVisible = await notice.isVisible({ timeout: 1_000 }).catch(() => false);
+      await notice.isVisible({ timeout: 1_000 }).catch(() => false);
       // Not asserting either way — just ensuring no JS error
     }
   });
@@ -162,4 +162,50 @@ test.describe('Dark mode structural correctness', () => {
     await mockPage.locator('button[aria-label="Toggle Theme"]').click();
     await expect(mockPage.locator('[data-testid="dashboard"]')).toBeVisible();
   });
+});
+
+test('time range selector uses tablist semantics', async ({ mockPage }) => {
+  const tablist = mockPage.locator('[role="tablist"]');
+  await expect(tablist).toBeVisible();
+
+  const tabs = tablist.locator('[role="tab"]');
+  await expect(tabs.first()).toBeVisible();
+});
+
+test('selected time range tab controls the chart', async ({ mockPage }) => {
+  const selectedTab = mockPage.locator('[role="tab"][aria-selected="true"]');
+
+  await expect(selectedTab).toHaveAttribute(
+    'aria-controls',
+    'aqi-trend-chart'
+  );
+});
+
+test('clicking a time range updates the selected tab', async ({ mockPage }) => {
+  const tab12 = mockPage.locator('#time-tab-12');
+
+  await tab12.click();
+
+  await expect(tab12).toHaveAttribute('aria-selected', 'true');
+});
+
+test('time range tabs can receive keyboard focus', async ({ mockPage }) => {
+  const firstTab = mockPage.locator('[role="tab"]').first();
+
+  await firstTab.focus();
+
+  await expect(firstTab).toBeFocused();
+});
+
+test('all time range tabs expose required ARIA attributes', async ({ mockPage }) => {
+  const tabs = mockPage.locator('[role="tab"]');
+
+  const count = await tabs.count();
+
+  for (let i = 0; i < count; i++) {
+    const tab = tabs.nth(i);
+
+    await expect(tab).toHaveAttribute('id', /time-tab-/);
+    await expect(tab).toHaveAttribute('aria-controls', 'aqi-trend-chart');
+  }
 });
