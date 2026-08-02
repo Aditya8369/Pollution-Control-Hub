@@ -1,6 +1,13 @@
 /** @param {any} arr */
 export function shuffleArray(arr) {
-  return [...arr].sort(() => Math.random() - 0.5);
+  // Fisher–Yates: an unbiased, uniform shuffle. The `sort(() => Math.random() - 0.5)`
+  // idiom is not uniform — under V8's sort it skews the order heavily.
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
 }
 
 /** @param {any} points */

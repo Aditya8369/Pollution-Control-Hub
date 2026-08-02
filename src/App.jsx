@@ -8,13 +8,14 @@ import Dashboard from "./components/Dashboard";
 import Footer from "./components/Footer";
 import HealthAdvisory from "./components/HealthAdvisory";
 import PollenAllergenForecast from "./components/PollenAllergenForecast";
-import EmbeddableWidgetGenerator from "./components/EmbeddableWidgetGenerator";
+import ExposureCalculator from "./components/ExposureCalculator";
 import LocationMap from "./components/LocationMap";
 import QuizSection from "./components/QuizSection";
 import SolutionsAwareness from "./components/SolutionsAwareness";
 import ScenarioSimulator from "./components/ScenarioSimulator";
 import AqiMissionGame from "./components/AqiMissionGame";
 import HistoricalAnalysis from "./components/HistoricalAnalysis";
+import HistoricalData from "./components/HistoricalData";
 import LocationSearch from "./components/LocationSearch";
 import SkeletonDashboard from "./components/SkeletonDashboard";
 // @ts-ignore
@@ -270,11 +271,13 @@ function SectionNav({ activeSection, onSectionChange, theme }) {
     { id: "home", label: "Home" },
     { id: "getting-started", label: "Getting Started" },
     { id: "Compare", label: "Compare" },
+    { id: "exposure", label: "Exposure Calculator" },
     { id: "quiz", label: "Quiz" },
     { id: "widget", label: "AQI Widget" },
     { id: "game", label: "Game" },
     { id: "community", label: "Community" },
     { id: "history", label: "History" },
+    { id: "historical-data", label: "Data Explorer" },
     { id: "Commute", label: "Commute" },
     { id: "CarbonCalculator", label: "Carbon Calculator" },
   ];
@@ -1033,6 +1036,20 @@ function AppContent() {
               </div>
             )}
 
+            {activeSection === "exposure" && (
+              <div
+                className="content-grid exposure-layout"
+                style={{
+                  maxWidth: "1100px",
+                  margin: "2rem auto",
+                  width: "100%",
+                  display: "block"
+                }}
+              >
+                <ExposureCalculator currentAqi={current?.us_aqi || 100} />
+              </div>
+            )}
+
             {activeSection === "community" && (
               <div className="content-grid community-layout">
                 <CommunityHub />
@@ -1042,6 +1059,17 @@ function AppContent() {
             {activeSection === "history" && (
               <div className="content-grid history-layout">
                 <HistoricalAnalysis position={position} />
+              </div>
+            )}
+            {activeSection === "historical-data" && (
+              <div className="content-grid history-layout">
+                <HistoricalData position={position} />
+              </div>
+            )}
+
+            {activeSection === "quiz" && (
+              <div className="content-grid quiz-layout">
+                <QuizSection />
               </div>
             )}
 
