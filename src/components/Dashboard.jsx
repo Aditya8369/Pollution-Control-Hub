@@ -22,6 +22,7 @@ import { getAQIBand, getPollutantColor, get7DayForecast, fetch7DayForecast, getW
 import MorningBriefing from "./MorningBriefing";
 import { eventBus } from "../core/events";
 import ChallengesWidget from "./ChallengesWidget";
+import IndoorTracker from "./IndoorTracker";
 /** @param {any} isoTime */
 function shortTimeLabel(isoTime) {
   return new Date(isoTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -517,6 +518,7 @@ onKeyDown={(e) => {
         </div>
 
         <div className="chart-grid">
+          <IndoorTracker currentOutdoor={current} />
           <article className="chart-card forecast-card" style={{ gridColumn: '1 / -1' }}>
             <h3>7-Day AQI & Weather Forecast</h3>
             {forecastError && <p style={{ color: 'var(--danger)', padding: '1rem' }}>Failed to load forecast data.</p>}
