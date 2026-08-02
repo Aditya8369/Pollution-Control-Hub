@@ -16,6 +16,7 @@ import SolutionsAwareness from "./components/SolutionsAwareness";
 import ScenarioSimulator from "./components/ScenarioSimulator";
 import AqiMissionGame from "./components/AqiMissionGame";
 import HistoricalAnalysis from "./components/HistoricalAnalysis";
+import HistoricalData from "./components/HistoricalData";
 import LocationSearch from "./components/LocationSearch";
 import SkeletonDashboard from "./components/SkeletonDashboard";
 // @ts-ignore
@@ -276,6 +277,7 @@ function SectionNav({ activeSection, onSectionChange, theme }) {
     { id: "game", label: "Game" },
     { id: "community", label: "Community" },
     { id: "history", label: "History" },
+    { id: "historical-data", label: "Data Explorer" },
     { id: "Commute", label: "Commute" },
     { id: "CarbonCalculator", label: "Carbon Calculator" },
   ];
@@ -1044,6 +1046,17 @@ function AppContent() {
             {activeSection === "history" && (
               <div className="content-grid history-layout">
                 <HistoricalAnalysis position={position} />
+              </div>
+            )}
+            {activeSection === "historical-data" && (
+              <div className="content-grid history-layout">
+                <HistoricalData position={position} />
+              </div>
+            )}
+
+            {activeSection === "quiz" && (
+              <div className="content-grid quiz-layout">
+                <QuizSection />
               </div>
             )}
 
