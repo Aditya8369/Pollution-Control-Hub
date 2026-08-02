@@ -22,6 +22,8 @@ import { getAQIBand, getPollutantColor, get7DayForecast, fetch7DayForecast, getW
 import MorningBriefing from "./MorningBriefing";
 import { eventBus } from "../core/events";
 import ChallengesWidget from "./ChallengesWidget";
+import WindPollutionRose from "./WindPollutionRose";
+
 /** @param {any} isoTime */
 function shortTimeLabel(isoTime) {
   return new Date(isoTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -102,9 +104,6 @@ export default function Dashboard({
     };
   }, [mutateForecast]);
 
-  // Cities whose request failed carry null readings (see fetchCityComparisons). Charting
-  // them would draw a zero-height bar that reads as "clean air", so split them out and
-  // name them explicitly below the chart instead.
   const measuredCities = useMemo(
     () => (cityComparisons || []).filter((c) => !c.unavailable && c.aqi != null),
     [cityComparisons]
@@ -119,14 +118,6 @@ export default function Dashboard({
   const [isExporting, setIsExporting] = useState(false);
   const [exportError, setExportError] = useState(null);
   const [isSharing, setIsSharing] = useState(false);
-  
-  const [isBriefingDismissed, setIsBriefingDismissed] = useState(false);
-  const [showBriefingTrigger, setShowBriefingTrigger] = useState(0);
-
-  const handleShowBriefing = () => {
-    setIsBriefingDismissed(false);
-    setShowBriefingTrigger(prev => prev + 1);
-  };
 
   const exportReportAsPDF = async () => {
     if (!reportRef.current || isExporting) return;
@@ -178,7 +169,6 @@ export default function Dashboard({
       const safeCityName = cityName.replace(/[^a-z0-9]/gi, "-").toLowerCase();
       const fileName = `${safeCityName}-aqi-${new Date().toISOString().slice(0, 10)}.png`;
 
-      // Use native Web Share API on mobile if available
       if (navigator.share && navigator.canShare) {
         canvas.toBlob(async (blob) => {
           const file = new File([blob], fileName, { type: "image/png" });
@@ -367,37 +357,33 @@ export default function Dashboard({
           </div>
           <div className="dashboard-tools">
             <div
-  data-testid="time-range-selector"
-  className="range-switch"
-  role="tablist"
-  aria-label="Time range selector"
->
+              data-testid="time-range-selector"
+              className="range-switch"
+              role="tablist"
+              aria-label="Time range selector"
+            >
               {[6, 12, 24].map((range) => (
                 <button
-                key={range}
-type="button"
-role="tab"
-id={`time-tab-${range}`}
-aria-selected={timeRange===range}
-aria-controls="aqi-trend-chart"
-tabIndex={timeRange===range ? 0 : -1}
-onClick={() => onTimeRangeChange(range)}
-
-onKeyDown={(e) => {
-  if (e.key === "ArrowRight") {
-    const ranges = [6,12,24];
-    const next =
-      ranges[(ranges.indexOf(range)+1)%ranges.length];
-    onTimeRangeChange(next);
-  }
-
-  if (e.key === "ArrowLeft") {
-    const ranges=[6,12,24];
-    const prev =
-      ranges[(ranges.indexOf(range)-1+ranges.length)%ranges.length];
-    onTimeRangeChange(prev);
-  }
-}}
+                  key={range}
+                  type="button"
+                  role="tab"
+                  id={`time-tab-${range}`}
+                  aria-selected={timeRange === range}
+                  aria-controls="aqi-trend-chart"
+                  tabIndex={timeRange === range ? 0 : -1}
+                  onClick={() => onTimeRangeChange(range)}
+                  onKeyDown={(e) => {
+                    if (e.key === "ArrowRight") {
+                      const ranges = [6, 12, 24];
+                      const next = ranges[(ranges.indexOf(range) + 1) % ranges.length];
+                      onTimeRangeChange(next);
+                    }
+                    if (e.key === "ArrowLeft") {
+                      const ranges = [6, 12, 24];
+                      const prev = ranges[(ranges.indexOf(range) - 1 + ranges.length) % ranges.length];
+                      onTimeRangeChange(prev);
+                    }
+                  }}
                 >
                   {range}h
                 </button>
@@ -456,7 +442,6 @@ onKeyDown={(e) => {
             </div>
           </article>
           <ChallengesWidget />
-
         </div>
 
         <div data-testid="pollutants-grid" className="pollutants-grid">
@@ -522,18 +507,18 @@ onKeyDown={(e) => {
             {forecastError && <p style={{ color: 'var(--danger)', padding: '1rem' }}>Failed to load forecast data.</p>}
             {!forecastData && !forecastError && (
               <div
-role="status"
-aria-live="polite"
-style={{
-padding:'2rem',
-textAlign:'center',
-opacity:0.7
-}}
->
+                role="status"
+                aria-live="polite"
+                style={{
+                  padding: '2rem',
+                  textAlign: 'center',
+                  opacity: 0.7
+                }}
+              >
                 <span
-className="loading-spinner live-dot active"
-aria-hidden="true"
-                style={{ display: 'inline-block', marginRight: '0.5rem' }}></span>
+                  className="loading-spinner live-dot active"
+                  aria-hidden="true"
+                  style={{ display: 'inline-block', marginRight: '0.5rem' }}></span>
                 Loading 7-day forecast...
               </div>
             )}
@@ -616,7 +601,6 @@ aria-hidden="true"
                         flexWrap: 'wrap'
                       }}
                     >
-                      {/* Date and Weather */}
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', minWidth: '150px' }}>
                         <span style={{ fontSize: '1.25rem' }} title={weather.label}>{weather.icon}</span>
                         <div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -625,7 +609,6 @@ aria-hidden="true"
                         </div>
                       </div>
 
-                      {/* Animated AQI relative bar */}
                       <div style={{ flex: '1 1 200px', minWidth: '150px' }}>
                         <div style={{ height: '8px', width: '100%', background: 'var(--line)', borderRadius: '4px', overflow: 'hidden' }}>
                           <div
@@ -640,7 +623,6 @@ aria-hidden="true"
                         </div>
                       </div>
 
-                      {/* AQI Value and Band */}
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', minWidth: '120px' }}>
                         <span style={{ fontWeight: '700', fontSize: '1.1rem', color: band.color }}>{day.aqi}</span>
                         <span
@@ -658,7 +640,6 @@ aria-hidden="true"
                         </span>
                       </div>
 
-                      {/* Best/Worst highlights */}
                       {isBest && (
                         <span
                           style={{
@@ -696,14 +677,17 @@ aria-hidden="true"
             )}
           </article>
 
+          {/* Wind & Pollution Rose Chart */}
+          <WindPollutionRose lat={lat} lon={lon} />
+
           <article className="chart-card">
             <h3>AQI Trend ({timeRange}h)</h3>
             <div
-id="aqi-trend-chart"
-data-testid="aqi-trend-chart"
-role="tabpanel"
-aria-labelledby={`time-tab-${timeRange}`}
->
+              id="aqi-trend-chart"
+              data-testid="aqi-trend-chart"
+              role="tabpanel"
+              aria-labelledby={`time-tab-${timeRange}`}
+            >
               <ResponsiveContainer width="100%" height={280}>
                 <LineChart data={chartData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#d7e6e1" />
@@ -743,7 +727,7 @@ aria-labelledby={`time-tab-${timeRange}`}
         </div>
       </section>
 
-      {/* Hidden AQI Share Card — captured by html2canvas */}
+      {/* Hidden AQI Share Card */}
       <div
         ref={shareCardRef}
         aria-hidden="true"
@@ -752,7 +736,6 @@ aria-labelledby={`time-tab-${timeRange}`}
           borderColor: `${aqiBand.color}44`,
         }}
       >
-        {/* Header */}
         <div className="share-card-header">
           <span className="share-card-badge">POLLUTION CONTROL HUB</span>
           <span className="share-card-date">
@@ -764,7 +747,6 @@ aria-labelledby={`time-tab-${timeRange}`}
           {cityName}
         </h2>
 
-        {/* Hero AQI Box */}
         <div className="share-card-hero">
           <div className="share-card-hero-left">
             <span className="share-card-hero-sub">AIR QUALITY INDEX</span>
@@ -777,7 +759,6 @@ aria-labelledby={`time-tab-${timeRange}`}
           </div>
         </div>
 
-        {/* Pollutant Metric Grid Tiles */}
         <div className="share-card-grid">
           {[
             { label: 'PM2.5', value: current.pm2_5, limit: 15 },
@@ -804,7 +785,6 @@ aria-labelledby={`time-tab-${timeRange}`}
           })}
         </div>
 
-        {/* Footer Branding */}
         <div className="share-card-footer">
           <span>🌍 Live Air Quality Status</span>
           <span>pollution-control-hub.vercel.app</span>
