@@ -470,8 +470,7 @@ const Commute = () => {
                 </div>
               </>
             )}
-              </div>
-            )}
+
             {routeHistory.length > 0 && (
               <div className="commute-history">
                 <h3>Recent Routes</h3>
