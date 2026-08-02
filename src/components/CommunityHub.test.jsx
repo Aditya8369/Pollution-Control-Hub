@@ -129,7 +129,7 @@ describe('CommunityHub Component', () => {
     expect(screen.getByText('Old Report')).toBeInTheDocument();
   });
 
-  it('sanitizes special HTML characters in title and description to prevent stored XSS', async () => {
+  it('renders HTML in report text as inert literal text, without injecting elements', async () => {
     render(<CommunityHub />);
 
     const titleInput = screen.getByPlaceholderText(/Issue title/i);
@@ -143,9 +143,16 @@ describe('CommunityHub Component', () => {
     fireEvent.change(descInput, { target: { value: maliciousDesc } });
     fireEvent.click(submitBtn);
 
-    // Verify report card renders sanitized text rather than raw HTML tags
-    expect(screen.getByRole('heading', { level: 3 })).toHaveTextContent(/&lt;script&gt;alert\("XSS-Title"\)&lt;\/script&gt;|&lt;script&gt;alert\(&quot;XSS-Title&quot;\)&lt;\/script&gt;/);
-    expect(screen.getByText(/&lt;img src=x onerror="alert\(1\)"&gt; &amp; &quot;quotes&quot;|&lt;img src=x onerror=&quot;alert\(1\)&quot;&gt; &amp; &quot;quotes&quot;/i)).toBeInTheDocument();
+    const card = await screen.findByText(maliciousDesc);
+
+    // The markup is never parsed: React escapes text children, so no element is created.
+    expect(document.querySelector('.report-card script')).toBeNull();
+    expect(document.querySelector('.report-card img[src="x"]')).toBeNull();
+
+    // And the reader sees exactly what the author typed — not HTML entity names.
+    expect(screen.getByRole('heading', { level: 3 })).toHaveTextContent(maliciousTitle);
+    expect(card).toBeInTheDocument();
+    expect(card.textContent).not.toMatch(/&(amp|lt|gt|quot|#x27);/);
   });
 
   it('rejects non-image files or invalid file extensions during upload', async () => {

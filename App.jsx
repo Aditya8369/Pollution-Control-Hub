@@ -1,4 +1,12 @@
-import { useEffect, useMemo, useState, useCallback, useRef } from "react";
+import {
+  useEffect,
+  useMemo,
+  useState,
+  useCallback,
+  useRef,
+  lazy,
+  Suspense,
+} from "react";
 import { useSWR } from "./hooks/useSWR";
 import AlertsPanel from "./components/AlertsPanel";
 import AnalyticsInsights from "./components/AnalyticsInsights";
@@ -9,13 +17,9 @@ import HealthAdvisory from "./components/HealthAdvisory";
 import LocationMap from "./components/LocationMap";
 import QuizSection from "./components/QuizSection";
 import SolutionsAwareness from "./components/SolutionsAwareness";
-import ScenarioSimulator from "./components/ScenarioSimulator";
-import AqiMissionGame from "./components/AqiMissionGame";
-import HistoricalAnalysis from "./components/HistoricalAnalysis";
 import LocationSearch from "./components/LocationSearch";
 import SkeletonDashboard from "./components/SkeletonDashboard";
 import { CITY_COORDINATES } from "./constants/cities";
-import HotspotScoutGame from "./components/HotspotScoutGame";
 import ErrorBoundary from "./components/ErrorBoundary";
 import {
   estimateWeeklyMonthlyAverages,
@@ -26,6 +30,21 @@ import {
 } from './services/airQualityService';
 import { eventBus } from './core/events';
 
+const ScenarioSimulator = lazy(() =>
+  import("./components/ScenarioSimulator")
+);
+
+const AqiMissionGame = lazy(() =>
+  import("./components/AqiMissionGame")
+);
+
+const HistoricalAnalysis = lazy(() =>
+  import("./components/HistoricalAnalysis")
+);
+
+const HotspotScoutGame = lazy(() =>
+  import("./components/HotspotScoutGame")
+);
 const DEFAULT_POSITION = {
   lat: 28.6139,
   lon: 77.209,
@@ -665,7 +684,9 @@ export default function App() {
                 timeRange={timeRange}
               />
 
+              <Suspense fallback={<SkeletonDashboard />}>
               <ScenarioSimulator current={current} />
+              </Suspense>
             </div>
           )}
 
@@ -677,7 +698,9 @@ export default function App() {
 
           {activeSection === "history" && (
             <div className="content-grid history-layout">
+             <Suspense fallback={<SkeletonDashboard />}>
               <HistoricalAnalysis position={position} />
+             </Suspense>
             </div>
           )}
 
@@ -689,8 +712,12 @@ export default function App() {
 
           {activeSection === "game" && (
             <div className="content-grid game-layout">
-              <AqiMissionGame current={current} />
-              <HotspotScoutGame nearbyPoints={nearbyPoints} />
+              <Suspense fallback={<SkeletonDashboard />}>
+              <AqiMissionGame />
+              </Suspense>
+              <Suspense fallback={<SkeletonDashboard />}>
+               <HotspotScoutGame />
+              </Suspense>
             </div>
           )}
 
