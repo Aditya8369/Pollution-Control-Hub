@@ -1045,9 +1045,17 @@ function AppContent() {
               </div>
             )}
 
-            {activeSection === "quiz" && (
-              <div className="content-grid quiz-layout">
-                <QuizSection />
+            {activeSection === "leaderboard" && (
+              <div
+                className="content-grid leaderboard-layout"
+                style={{
+                  maxWidth: "1100px",
+                  margin: "2rem auto",
+                  width: "100%",
+                  gridColumn: "1 / -1"
+                }}
+              >
+                <Leaderboard />
               </div>
             )}
 

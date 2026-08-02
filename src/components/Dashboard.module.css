@@ -1,0 +1,276 @@
+.dashboardTools {
+  margin-top: var(--sp-3);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--sp-4);
+  flex-wrap: wrap;
+}
+
+.dashboardHeaderRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.dashboardHeaderActions {
+  display: flex;
+  gap: 0.5rem;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+.rangeSwitch {
+  display: inline-flex;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--card);
+}
+
+.rangeSwitch button {
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-weight: 600;
+  padding: 0.4rem 0.9rem;
+  cursor: pointer;
+  transition: all 180ms var(--ease);
+}
+
+.rangeSwitch button.active {
+  background: linear-gradient(120deg, var(--brand), var(--sky));
+  color: white;
+}
+
+.dashboardMeta {
+  font-size: 0.88rem;
+  color: var(--muted);
+}
+
+.kpiGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: var(--sp-4);
+}
+
+.aqi {
+  grid-column: span 1;
+}
+
+.chartCard {
+  grid-column: span 2;
+}
+
+.kpiCard {
+  background: var(--card);
+  border-radius: var(--r-md);
+  border: 1px solid var(--line);
+  padding: var(--sp-4) var(--sp-4) var(--sp-5);
+  box-shadow: var(--shadow-sm);
+  transition:
+    transform 220ms var(--ease),
+    box-shadow 220ms var(--ease);
+  min-width: 0;
+}
+
+.kpiCard h3 {
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+
+.kpiCard.aqi {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.kpiValue {
+  font-size: 2.15rem;
+  font-weight: 700;
+  font-family: "Fraunces", serif;
+  line-height: 1.05;
+}
+
+.kpiCard p {
+  margin: 0;
+}
+
+.pollutantStatusPill {
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.2rem 0.55rem;
+  border-radius: 20px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  line-height: 1;
+}
+
+.pollutantValueContainer {
+  display: flex;
+  align-items: baseline;
+  gap: 0.35rem;
+  margin-top: 0.25rem;
+  margin-bottom: 0.35rem;
+}
+
+.pollutantValue {
+  font-size: 1.75rem;
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.5px;
+}
+
+.pollutantUnit {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--muted, #64748b);
+}
+
+.pollutantMetaInfo {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.75rem;
+  color: var(--muted, #64748b);
+  margin-top: 0.4rem;
+  margin-bottom: 0.5rem;
+}
+
+.pollutantLimit {
+  font-weight: 500;
+}
+
+.pollutantPercent {
+  font-weight: 700;
+}
+
+.pollutantProgressFill {
+  height: 100%;
+  border-radius: 10px;
+  transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.exportReportButton {
+  padding: 10px 18px;
+  border: none;
+  border-radius: 12px;
+  background: #0d9488;
+  color: white;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    opacity 0.2s ease;
+}
+
+.exportReportButton:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(13, 148, 136, 0.25);
+}
+
+.exportReportButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+.shareAQIButton {
+  padding: 10px 18px;
+  border: none;
+  border-radius: 12px;
+  background: #f97316;
+  color: white;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    opacity 0.2s ease;
+}
+
+.shareAQIButton:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(249, 115, 22, 0.3);
+}
+
+.shareAQIButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+.chartGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: var(--sp-4);
+}
+
+.pollutantsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--sp-4);
+  margin-top: var(--sp-4);
+}
+
+.pollutantCard {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  padding: var(--sp-4);
+  box-shadow: var(--shadow-sm);
+  transition: transform 180ms var(--ease), box-shadow 180ms var(--ease);
+}
+
+.pollutantCard:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.pollutantCardHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.pollutantCardHeader h4 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.pollutantProgressTrack {
+  width: 100%;
+  height: 0.5rem;
+  background: rgba(148, 163, 184, 0.18);
+  border-radius: 999px;
+  overflow: hidden;
+  margin-top: 1rem;
+}
+
+@media (max-width: 640px) {
+  .dashboardHeaderRow {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .dashboardHeaderRow > div:first-child {
+    flex: none;
+    width: 100%;
+  }
+
+  .dashboardHeaderActions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+}
