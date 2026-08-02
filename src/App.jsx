@@ -31,6 +31,8 @@ import {
 } from "./services/airQualityService";
 import { eventBus } from "./core/events";
 import RiverOriginGame from "./components/RiverOriginGame";
+import { ThemeProvider, useTheme } from "./context/ThemeContext";
+import ThemeSwitcher from "./components/ThemeSwitcher";
 import CarbonFootprintCalculator from "./components/CarbonFootprintCalculator";
 
 const DEFAULT_POSITION = {
@@ -38,6 +40,8 @@ const DEFAULT_POSITION = {
   lon: 77.209,
   cityName: "Delhi",
 };
+
+const SAVED_LOCATIONS_KEY = "pollution-hub-saved-locations";
 
 const THEME_STORAGE_KEY = "pollution-hub-theme";
 // Whether the stored theme reflects a deliberate choice ("manual") or just mirrors what
@@ -58,6 +62,17 @@ function getSystemTheme() {
 /** @returns {boolean} True when the user has explicitly picked a theme in the app. */
 function hasManualThemePreference() {
   return localStorage.getItem(THEME_SOURCE_KEY) === "manual";
+}
+
+/** @returns {any[]} The locations the user pinned, or an empty list if none are readable. */
+function readSavedLocations() {
+  try {
+    const raw = localStorage.getItem(SAVED_LOCATIONS_KEY);
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
 }
 
 // Nominatim's usage policy allows at most 1 request per second, so we track
@@ -121,7 +136,15 @@ function AppControls({
   refreshCountdown,
   lastUpdated,
   detecting,
+  currentCity,
+  savedLocations,
+  onSaveLocation,
+  onRemoveSavedLocation,
 }) {
+  const isCurrentCitySaved = savedLocations.some(
+    (item) => item.name === currentCity,
+  );
+
   return (
     <section className="app-controls" aria-label="Live controls">
       <div
@@ -151,7 +174,62 @@ function AppControls({
         >
           {detecting ? "Detecting..." : "Auto Detect"}
         </button>
+        <button
+          type="button"
+          className="btn-secondary text-sm"
+          style={{
+            padding: "0.4rem 0.8rem",
+            whiteSpace: "nowrap",
+            flexShrink: 0,
+          }}
+          onClick={onSaveLocation}
+          disabled={isCurrentCitySaved}
+        >
+          {isCurrentCitySaved ? "Saved" : "Save Location"}
+        </button>
       </div>
+
+      {savedLocations.length > 0 && (
+        <div
+          className="control-group saved-locations"
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "0.5rem",
+            flexWrap: "wrap",
+          }}
+        >
+          <label>Saved:</label>
+          {savedLocations.map((location) => (
+            <span
+              key={location.name}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "0.35rem",
+              }}
+            >
+              <button
+                type="button"
+                className="btn-secondary text-sm"
+                style={{ padding: "0.3rem 0.7rem", whiteSpace: "nowrap" }}
+                onClick={() => onCityChange(location)}
+              >
+                {location.name}
+              </button>
+              <button
+                type="button"
+                className="btn-secondary text-sm"
+                style={{ padding: "0.3rem 0.5rem" }}
+                onClick={() => onRemoveSavedLocation(location.name)}
+                aria-label={`Remove ${location.name} from saved locations`}
+              >
+                ×
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
 
       <div className="control-group status">
         <span className={`live-dot ${isRefreshing ? "active" : ""}`} />
@@ -200,12 +278,13 @@ function SectionNav({ activeSection, onSectionChange, theme }) {
   const menuRef = useRef(null);
 
   const [isMobile, setIsMobile] = useState(() =>
-    typeof window !== "undefined"
+    typeof window !== "undefined" && typeof window.matchMedia === "function"
       ? window.matchMedia("(max-width: 768px)").matches
       : false,
   );
 
   useEffect(() => {
+    if (typeof window === "undefined" || typeof window.matchMedia !== "function") return;
     const mediaQuery = window.matchMedia("(max-width: 768px)");
     /** @param {any} e */
     const handler = (e) => setIsMobile(e.matches);
@@ -311,7 +390,7 @@ function SectionNav({ activeSection, onSectionChange, theme }) {
             </button>
           ))}
           <div className="nav-divider"></div>
-          {themeToggleNode}
+          <ThemeSwitcher />
         </div>
       </nav>
     );
@@ -411,12 +490,12 @@ function SectionNav({ activeSection, onSectionChange, theme }) {
         )}
       </nav>
 
-      {themeToggleNode}
+      <ThemeSwitcher />
     </header>
   );
 }
 
-export default function App() {
+function AppContent() {
   const [activeSection, setActiveSection] = useState(
     () => localStorage.getItem("activeSection") || "home",
   );
@@ -505,17 +584,10 @@ export default function App() {
   const [lastUpdated, setLastUpdated] = useState("");
   const [refreshCountdown, setRefreshCountdown] =
     useState(AUTO_REFRESH_SECONDS);
+  const [savedLocations, setSavedLocations] = useState(() => readSavedLocations());
   const [locationNotice, setLocationNotice] = useState("");
   const [persistenceWarning, setPersistenceWarning] = useState("");
-  const [theme, setTheme] = useState(() => {
-    const savedTheme = localStorage.getItem(THEME_STORAGE_KEY);
-
-    // Only a deliberate in-app choice outranks the OS. A theme left over from a previous
-    // session that merely mirrored the OS should not pin the app to a stale value.
-    if (savedTheme && hasManualThemePreference()) return savedTheme;
-
-    return getSystemTheme();
-  });
+  const { theme, setTheme, changeTheme } = useTheme();
   const [timeRange, setTimeRange] = useState(() => {
     const saved = localStorage.getItem("timeRange");
     return saved ? Number(saved) : 24;
@@ -566,6 +638,14 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem("position", JSON.stringify(position));
   }, [position]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(SAVED_LOCATIONS_KEY, JSON.stringify(savedLocations));
+    } catch {
+      // Pinned locations are a convenience, so a full quota must not break the dashboard.
+    }
+  }, [savedLocations]);
 
   useEffect(() => {
     localStorage.setItem("timeRange", timeRange.toString());
@@ -692,6 +772,22 @@ export default function App() {
       setLocationNotice("");
     }
   }, [handleAutoDetect]);
+
+  const handleSaveLocation = useCallback(() => {
+    setSavedLocations((prev) =>
+      prev.some((item) => item.name === position.cityName)
+        ? prev
+        : [
+            ...prev,
+            { name: position.cityName, lat: position.lat, lon: position.lon },
+          ],
+    );
+  }, [position]);
+
+  /** @param {string} name */
+  const handleRemoveSavedLocation = useCallback((name) => {
+    setSavedLocations((prev) => prev.filter((item) => item.name !== name));
+  }, []);
 
   // Listen for browser Back/Forward (popstate) and restore the city from the URL hash
   useEffect(() => {
@@ -848,6 +944,10 @@ export default function App() {
                 refreshCountdown={refreshCountdown}
                 lastUpdated={lastUpdated}
                 detecting={detecting}
+                currentCity={position.cityName}
+                savedLocations={savedLocations}
+                onSaveLocation={handleSaveLocation}
+                onRemoveSavedLocation={handleRemoveSavedLocation}
               />
             )}
 
@@ -962,5 +1062,13 @@ export default function App() {
         )}
       </div>
     </main>
+  );
+}
+
+export default function App() {
+  return (
+    <ThemeProvider>
+      <AppContent />
+    </ThemeProvider>
   );
 }

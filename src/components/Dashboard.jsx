@@ -366,15 +366,38 @@ export default function Dashboard({
             </div>
           </div>
           <div className="dashboard-tools">
-            <div data-testid="time-range-selector" className="range-switch" role="group" aria-label="Select time range">
+            <div
+  data-testid="time-range-selector"
+  className="range-switch"
+  role="tablist"
+  aria-label="Time range selector"
+>
               {[6, 12, 24].map((range) => (
                 <button
-                  key={range}
-                  type="button"
-                  className={timeRange === range ? 'active' : ''}
-                  onClick={() => onTimeRangeChange(range)}
-                  aria-label={`Show last ${range} hours`}
-                  aria-pressed={timeRange === range}
+                key={range}
+type="button"
+role="tab"
+id={`time-tab-${range}`}
+aria-selected={timeRange===range}
+aria-controls="aqi-trend-chart"
+tabIndex={timeRange===range ? 0 : -1}
+onClick={() => onTimeRangeChange(range)}
+
+onKeyDown={(e) => {
+  if (e.key === "ArrowRight") {
+    const ranges = [6,12,24];
+    const next =
+      ranges[(ranges.indexOf(range)+1)%ranges.length];
+    onTimeRangeChange(next);
+  }
+
+  if (e.key === "ArrowLeft") {
+    const ranges=[6,12,24];
+    const prev =
+      ranges[(ranges.indexOf(range)-1+ranges.length)%ranges.length];
+    onTimeRangeChange(prev);
+  }
+}}
                 >
                   {range}h
                 </button>
@@ -496,8 +519,19 @@ export default function Dashboard({
             <h3>7-Day AQI & Weather Forecast</h3>
             {forecastError && <p style={{ color: 'var(--danger)', padding: '1rem' }}>Failed to load forecast data.</p>}
             {!forecastData && !forecastError && (
-              <div style={{ padding: '2rem', textAlign: 'center', opacity: 0.7 }}>
-                <span className="live-dot active" style={{ display: 'inline-block', marginRight: '0.5rem' }}></span>
+              <div
+role="status"
+aria-live="polite"
+style={{
+padding:'2rem',
+textAlign:'center',
+opacity:0.7
+}}
+>
+                <span
+className="loading-spinner live-dot active"
+aria-hidden="true"
+                style={{ display: 'inline-block', marginRight: '0.5rem' }}></span>
                 Loading 7-day forecast...
               </div>
             )}
@@ -662,7 +696,12 @@ export default function Dashboard({
 
           <article className="chart-card">
             <h3>AQI Trend ({timeRange}h)</h3>
-            <div data-testid="aqi-trend-chart">
+            <div
+id="aqi-trend-chart"
+data-testid="aqi-trend-chart"
+role="tabpanel"
+aria-labelledby={`time-tab-${timeRange}`}
+>
               <ResponsiveContainer width="100%" height={280}>
                 <LineChart data={chartData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#d7e6e1" />
