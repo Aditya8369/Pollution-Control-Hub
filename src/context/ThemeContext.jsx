@@ -9,7 +9,6 @@ const ThemeContext = createContext({
   setTheme: () => {},
   changeTheme: () => {},
 });
-
 export function ThemeProvider({ children }) {
   const [theme, setTheme] = useState(() => {
     try {
@@ -40,7 +39,9 @@ export function ThemeProvider({ children }) {
   };
 
   return (
-    <ThemeContext.Provider value={{ theme, setTheme, changeTheme }}>
+    <ThemeContext.Provider value={{ theme, 
+// @ts-ignore
+    setTheme, changeTheme }}>
       {children}
     </ThemeContext.Provider>
   );
