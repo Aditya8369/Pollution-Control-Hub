@@ -273,7 +273,7 @@ function SectionNav({ activeSection, onSectionChange, theme }) {
     { id: "Compare", label: "Compare" },
     { id: "exposure", label: "Exposure Calculator" },
     { id: "quiz", label: "Quiz" },
-    { id: "leaderboard", label: "Leaderboard" },
+    { id: "widget", label: "AQI Widget" },
     { id: "game", label: "Game" },
     { id: "community", label: "Community" },
     { id: "history", label: "History" },
@@ -281,7 +281,6 @@ function SectionNav({ activeSection, onSectionChange, theme }) {
     { id: "Commute", label: "Commute" },
     { id: "CarbonCalculator", label: "Carbon Calculator" },
   ];
-
   // @ts-ignore
   const isDark = theme === "dark";
 
@@ -1085,6 +1084,25 @@ function AppContent() {
                 }}
               >
                 <Leaderboard />
+              </div>
+            )}
+
+            {activeSection === "widget" && (
+              <div
+                className="content-grid widget-layout"
+                style={{
+                  maxWidth: "1100px",
+                  margin: "2rem auto",
+                  width: "100%",
+                  display: "block"
+                }}
+              >
+                <EmbeddableWidgetGenerator
+                  cityName={position.cityName}
+                  lat={position.lat}
+                  lon={position.lon}
+                  currentAqi={current?.us_aqi || 113}
+                />
               </div>
             )}
 
