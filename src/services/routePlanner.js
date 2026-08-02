@@ -128,8 +128,11 @@ export const calculateCleanRoute = async (originText, destinationText, mode = "d
     const activeMode = MODE_PROFILES[mode] ? mode : "driving";
     const modeConfig = MODE_PROFILES[activeMode];
 
-    const originCoords = await geocodeLocation(originText);
-    const destCoords = await geocodeLocation(destinationText);
+    // The two geocodes are independent — run them together instead of serially.
+    const [originCoords, destCoords] = await Promise.all([
+      geocodeLocation(originText),
+      geocodeLocation(destinationText),
+    ]);
 
     const osrmUrl = `https://router.project-osrm.org/route/v1/${modeConfig.osrmProfile}/${originCoords[0]},${originCoords[1]};${destCoords[0]},${destCoords[1]}?alternatives=true&geometries=geojson`;
 
