@@ -40,7 +40,9 @@ export function ThemeProvider({ children }) {
   };
 
   return (
-    <ThemeContext.Provider value={{ theme, setTheme, changeTheme }}>
+    <ThemeContext.Provider value={{ theme, 
+// @ts-ignore
+    setTheme, changeTheme }}>
       {children}
     </ThemeContext.Provider>
   );

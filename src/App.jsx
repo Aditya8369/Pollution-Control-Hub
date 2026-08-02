@@ -8,7 +8,7 @@ import Dashboard from "./components/Dashboard";
 import Footer from "./components/Footer";
 import HealthAdvisory from "./components/HealthAdvisory";
 import PollenAllergenForecast from "./components/PollenAllergenForecast";
-
+import ExposureCalculator from "./components/ExposureCalculator";
 import LocationMap from "./components/LocationMap";
 import QuizSection from "./components/QuizSection";
 import SolutionsAwareness from "./components/SolutionsAwareness";
@@ -267,6 +267,7 @@ function SectionNav({ activeSection, onSectionChange, theme }) {
     { id: "home", label: "Home" },
     { id: "getting-started", label: "Getting Started" },
     { id: "Compare", label: "Compare" },
+    { id: "exposure", label: "Exposure Calculator" },
     { id: "quiz", label: "Quiz" },
     { id: "game", label: "Game" },
     { id: "community", label: "Community" },
@@ -341,8 +342,8 @@ function SectionNav({ activeSection, onSectionChange, theme }) {
         theme === 'light'
           ? 'Switch to dark mode'
           : theme === 'dark'
-          ? 'Switch to high-contrast mode'
-          : 'Switch to light mode'
+            ? 'Switch to high-contrast mode'
+            : 'Switch to light mode'
       }
     >
       <span className="toggle-thumb">
@@ -677,6 +678,7 @@ function AppContent() {
 
       if (!hasManualThemePreference()) {
         // No in-app choice has been made — follow the OS silently.
+        // @ts-ignore
         setTheme(newSystemTheme);
         return;
       }
@@ -780,9 +782,9 @@ function AppContent() {
       prev.some((item) => item.name === position.cityName)
         ? prev
         : [
-            ...prev,
-            { name: position.cityName, lat: position.lat, lon: position.lon },
-          ],
+          ...prev,
+          { name: position.cityName, lat: position.lat, lon: position.lon },
+        ],
     );
   }, [position]);
 
@@ -848,6 +850,7 @@ function AppContent() {
   // Using the in-app toggle is the one action that counts as choosing a theme.
   const toggleTheme = useCallback(() => {
     localStorage.setItem(THEME_SOURCE_KEY, "manual");
+    // @ts-ignore
     setTheme((prev) => {
       if (prev === 'light') return 'dark';
       if (prev === 'dark') return 'high-contrast';
@@ -856,6 +859,7 @@ function AppContent() {
   }, []);
 
   const acceptOsThemeSuggestion = () => {
+    // @ts-ignore
     setTheme(osThemeSuggestion);
     setOsThemeSuggestion(null);
   };
@@ -1006,7 +1010,9 @@ function AppContent() {
                   exposureEstimate={exposureEstimate}
                 />
 
-                <HealthAdvisory lat={position.lat} lon={position.lon} />
+                <HealthAdvisory 
+// @ts-ignore
+                lat={position.lat} lon={position.lon} />
                 <PollenAllergenForecast lat={position.lat} lon={position.lon} />
                 <SunSafetyDashboard lat={position.lat} lon={position.lon} />
                 <SolutionsAwareness />
@@ -1018,6 +1024,20 @@ function AppContent() {
                 />
 
                 <ScenarioSimulator current={current} />
+              </div>
+            )}
+
+            {activeSection === "exposure" && (
+              <div
+                className="content-grid exposure-layout"
+                style={{
+                  maxWidth: "1100px",
+                  margin: "2rem auto",
+                  width: "100%",
+                  display: "block"
+                }}
+              >
+                <ExposureCalculator currentAqi={current?.us_aqi || 100} />
               </div>
             )}
 
