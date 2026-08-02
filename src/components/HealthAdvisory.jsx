@@ -234,7 +234,7 @@ export default function HealthAdvisory() {
 
         {/* Actionable Tips Grid */}
         <div className="tips-grid">
-          {dynamicTips.map((tip) => (
+          {audiences[activeTab].tips.map((tip) => (
             <div key={tip.title} className="tip-action-card">
               <div className="tip-header">
                 <div className="tip-icon-wrapper">{tip.icon}</div>

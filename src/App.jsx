@@ -15,6 +15,7 @@ import SolutionsAwareness from "./components/SolutionsAwareness";
 import ScenarioSimulator from "./components/ScenarioSimulator";
 import AqiMissionGame from "./components/AqiMissionGame";
 import HistoricalAnalysis from "./components/HistoricalAnalysis";
+import Factoid from "./components/Factoid";
 import HistoricalData from "./components/HistoricalData";
 import LocationSearch from "./components/LocationSearch";
 import SkeletonDashboard from "./components/SkeletonDashboard";
@@ -39,6 +40,8 @@ import RiverOriginGame from "./components/RiverOriginGame";
 import { ThemeProvider, useTheme } from "./context/ThemeContext";
 import ThemeSwitcher from "./components/ThemeSwitcher";
 import CarbonFootprintCalculator from "./components/CarbonFootprintCalculator";
+import Leaderboard from "./components/Leaderboard";
+import EmbeddableWidgetGenerator from "./components/EmbeddableWidgetGenerator";
 
 const DEFAULT_POSITION = {
   lat: 28.6139,
@@ -934,6 +937,8 @@ function AppContent() {
               Preparing live pollution intelligence...
             </h1>
 
+            <Factoid />
+
             <Hero cityName={position.cityName} />
             <div ref={scrollAnchorRef} aria-hidden="true" />
             {activeSection === "home" && (
@@ -1019,9 +1024,9 @@ function AppContent() {
                   exposureEstimate={exposureEstimate}
                 />
 
-                <HealthAdvisory 
-// @ts-ignore
-                lat={position.lat} lon={position.lon} />
+                <HealthAdvisory
+                  // @ts-ignore
+                  lat={position.lat} lon={position.lon} />
                 <PollenAllergenForecast lat={position.lat} lon={position.lon} />
                 <SunSafetyDashboard lat={position.lat} lon={position.lon} />
                 <SolutionsAwareness />
