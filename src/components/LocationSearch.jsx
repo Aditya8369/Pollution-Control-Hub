@@ -1,10 +1,19 @@
 import { useState, useEffect, useRef } from 'react';
 import { searchLocations } from '../services/geocodingService';
+import PropTypes from "prop-types";
 
 const RECENT_SEARCHES_KEY = 'pollution_hub_recent_searches';
 const MAX_RECENT_SEARCHES = 5;
 
-/** @param {any} params */
+/** 
+ * Search input with autocomplete and recent-search history.
+ *
+ * @param {Object} props Component props.
+ * @param {(location: Object) => void} props.onLocationSelected Callback invoked
+ * when a location is selected.
+ * @param {string} [props.initialCityName] Initial city name shown in the input.
+ */
+
 export default function LocationSearch({ onLocationSelected, initialCityName }) {
   const [query, setQuery] = useState(initialCityName || '');
   const [suggestions, setSuggestions] = useState([]);
@@ -74,7 +83,13 @@ export default function LocationSearch({ onLocationSelected, initialCityName }) 
     };
   }, []);
 
-  /** @param {any} location */
+  /** 
+ * @param {{
+ *   id: string|number,
+ *   name: string,
+ *   displayName: string
+ * }} location
+  */
   const saveRecentSearch = (location) => {
     const newRecent = [
       location,
@@ -100,7 +115,13 @@ export default function LocationSearch({ onLocationSelected, initialCityName }) 
     }
   };
 
-  /** @param {any} location */
+  /** 
+ * @param {{
+ *   id: string|number,
+ *   name: string,
+ *   displayName: string
+ * }} location
+  */
   const handleSelect = (location) => {
     setQuery(location.name);
     setIsOpen(false);
@@ -110,7 +131,9 @@ export default function LocationSearch({ onLocationSelected, initialCityName }) 
     onLocationSelected(location);
   };
 
-  /** @param {any} e */
+  /** 
+   *  @param {React.ChangeEvent<HTMLInputElement>} e
+  */
   const handleInputChange = (e) => {
     const val = e.target.value;
 
@@ -157,7 +180,9 @@ export default function LocationSearch({ onLocationSelected, initialCityName }) 
     }, 300);
   };
 
-  /** @param {any} e */
+    /**
+   * @param {React.KeyboardEvent<HTMLInputElement>} e
+   */
   const handleKeyDown = (e) => {
     const items = query.trim() === '' ? recentSearches : suggestions;
 
@@ -329,3 +354,18 @@ export default function LocationSearch({ onLocationSelected, initialCityName }) 
     </div>
   );
 }
+LocationSearch.propTypes = {
+  /**
+   * Called when the user selects a location.
+   */
+  onLocationSelected: PropTypes.func.isRequired,
+
+  /**
+   * Initial city displayed in the search input.
+   */
+  initialCityName: PropTypes.string,
+};
+
+LocationSearch.defaultProps = {
+  initialCityName: "",
+};
