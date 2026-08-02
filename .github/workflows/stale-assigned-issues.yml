@@ -7,6 +7,7 @@ on:
 
 permissions:
   issues: write
+  pull-requests: read
   contents: read
 
 jobs:
@@ -32,6 +33,8 @@ jobs:
               per_page: 100
             });
 
+            console.log(`Found ${issues.length} open issues/PRs in total.`);
+
             for (const issue of issues) {
               // Skip PRs or unassigned issues
               if (issue.pull_request || !issue.assignees || issue.assignees.length === 0) {
@@ -39,6 +42,27 @@ jobs:
               }
 
               const issueNumber = issue.number;
+              const assigneeLogins = issue.assignees.map(a => a.login);
+
+              // Check if there is an open PR linked to this issue via timeline events
+              const timelineEvents = await github.paginate(github.rest.issues.listEventsForTimeline, {
+                owner,
+                repo,
+                issue_number: issueNumber,
+                per_page: 100
+              });
+
+              const hasOpenLinkedPR = timelineEvents.some(e => {
+                const isCrossReferenced = e.event === 'cross-referenced' && e.source?.issue?.pull_request;
+                const isConnected = e.event === 'connected';
+                const prState = e.source?.issue?.state;
+                return (isCrossReferenced || isConnected) && prState === 'open';
+              });
+
+              if (hasOpenLinkedPR) {
+                console.log(`Skipping issue #${issueNumber}: An open PR is linked to this issue.`);
+                continue;
+              }
 
               // Fetch issue events to find assignment date
               const events = await github.paginate(github.rest.issues.listEvents, {
@@ -64,16 +88,17 @@ jobs:
                 per_page: 100
               });
 
-              const assigneeLogins = issue.assignees.map(a => a.login);
               const hasAssigneeActivity = comments.some(c => assigneeLogins.includes(c.user?.login));
 
               // Skip if assignee has commented or updated the issue
               if (hasAssigneeActivity) {
+                console.log(`Skipping issue #${issueNumber}: Assignee @${assigneeLogins.join(', @')} has active comments.`);
                 continue;
               }
 
               if (elapsedMs >= THREE_DAYS_MS) {
                 // Day 3 (72h+): Unassign contributor and notify
+                console.log(`Unassigning issue #${issueNumber} from @${assigneeLogins.join(', @')} due to 3 days of inactivity.`);
                 for (const assignee of issue.assignees) {
                   await github.rest.issues.removeAssignees({
                     owner,
@@ -95,6 +120,7 @@ jobs:
                 const hasBeenWarned = comments.some(c => c.body && c.body.includes(warningSignature));
 
                 if (!hasBeenWarned) {
+                  console.log(`Warning assignees of issue #${issueNumber}: @${assigneeLogins.join(', @')}`);
                   const mentionList = assigneeLogins.map(login => `@${login}`).join(' ');
                   await github.rest.issues.createComment({
                     owner,
