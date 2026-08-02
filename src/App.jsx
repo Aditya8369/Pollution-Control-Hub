@@ -8,8 +8,7 @@ import Dashboard from "./components/Dashboard";
 import Footer from "./components/Footer";
 import HealthAdvisory from "./components/HealthAdvisory";
 import PollenAllergenForecast from "./components/PollenAllergenForecast";
-// @ts-ignore
-import Leaderboard from "./components/Leaderboard";
+import ExposureCalculator from "./components/ExposureCalculator";
 import LocationMap from "./components/LocationMap";
 import QuizSection from "./components/QuizSection";
 import SolutionsAwareness from "./components/SolutionsAwareness";
@@ -272,6 +271,7 @@ function SectionNav({ activeSection, onSectionChange, theme }) {
     { id: "home", label: "Home" },
     { id: "getting-started", label: "Getting Started" },
     { id: "Compare", label: "Compare" },
+    { id: "exposure", label: "Exposure Calculator" },
     { id: "quiz", label: "Quiz" },
     { id: "leaderboard", label: "Leaderboard" },
     { id: "game", label: "Game" },
@@ -1020,9 +1020,9 @@ function AppContent() {
                   exposureEstimate={exposureEstimate}
                 />
 
-                <HealthAdvisory
-                  // @ts-ignore
-                  lat={position.lat} lon={position.lon} />
+                <HealthAdvisory 
+// @ts-ignore
+                lat={position.lat} lon={position.lon} />
                 <PollenAllergenForecast lat={position.lat} lon={position.lon} />
                 <SunSafetyDashboard lat={position.lat} lon={position.lon} />
                 <SolutionsAwareness />
@@ -1034,6 +1034,20 @@ function AppContent() {
                 />
 
                 <ScenarioSimulator current={current} />
+              </div>
+            )}
+
+            {activeSection === "exposure" && (
+              <div
+                className="content-grid exposure-layout"
+                style={{
+                  maxWidth: "1100px",
+                  margin: "2rem auto",
+                  width: "100%",
+                  display: "block"
+                }}
+              >
+                <ExposureCalculator currentAqi={current?.us_aqi || 100} />
               </div>
             )}
 
