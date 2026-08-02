@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { getAQIBand } from '../services/airQualityService';
+import { useTranslation } from 'react-i18next';
 import './MorningBriefing.css';
 
 /** @param {any} params */
 export default function MorningBriefing({ current, trend, showTrigger, onDismiss }) {
+  const { t } = useTranslation();
   const [isVisible, setIsVisible] = useState(true);
   const [streak, setStreak] = useState(0);
   
@@ -59,10 +61,10 @@ export default function MorningBriefing({ current, trend, showTrigger, onDismiss
   };
 
   const currentHour = new Date().getHours();
-  let greeting = "Late Night Check-in";
-  if (currentHour >= 5 && currentHour < 12) greeting = "Good Morning, here's your air quality briefing";
-  else if (currentHour >= 12 && currentHour < 17) greeting = "Good Afternoon, here's your air quality briefing";
-  else if (currentHour >= 17 && currentHour < 21) greeting = "Good Evening, here's your air quality briefing";
+  let greeting = t('briefing.greetings.lateNight');
+  if (currentHour >= 5 && currentHour < 12) greeting = t('briefing.greetings.morning');
+  else if (currentHour >= 12 && currentHour < 17) greeting = t('briefing.greetings.afternoon');
+  else if (currentHour >= 17 && currentHour < 21) greeting = t('briefing.greetings.evening');
 
   // Yesterday's summary proxy
   let yesterdayAvg = current.us_aqi;
@@ -74,44 +76,44 @@ export default function MorningBriefing({ current, trend, showTrigger, onDismiss
   }
 
   const diff = current.us_aqi - yesterdayAvg;
-  let summaryText = "Same as yesterday's average.";
+  let summaryText = t('briefing.summaries.same');
   let summaryIcon = "⚪";
   if (diff > 5) {
-    summaryText = `Worse than yesterday's average (${yesterdayAvg}).`;
+    summaryText = t('briefing.summaries.worse', { avg: yesterdayAvg });
     summaryIcon = "🔴 ↑";
   } else if (diff < -5) {
-    summaryText = `Better than yesterday's average (${yesterdayAvg}).`;
+    summaryText = t('briefing.summaries.better', { avg: yesterdayAvg });
     summaryIcon = "🟢 ↓";
   }
 
   // Today's Outlook (Slope)
-  let outlook = "AQI is relatively stable today.";
+  let outlook = t('briefing.outlooks.stable');
   if (trend && trend.length >= 2) {
     const firstAQI = trend[0].us_aqi;
     const lastAQI = trend[trend.length - 1].us_aqi;
     const slope = (lastAQI - firstAQI) / (trend.length - 1);
     if (slope < -0.5) {
-      outlook = "AQI is trending downward — expect improvement this afternoon.";
+      outlook = t('briefing.outlooks.downward');
     } else if (slope > 0.5) {
-      outlook = "AQI is trending upward — it may get worse.";
+      outlook = t('briefing.outlooks.upward');
     }
   }
 
   // Health tip
   const aqiBand = getAQIBand(current.us_aqi);
-  let healthTip = "Enjoy the day!";
-  if (current.us_aqi <= 50) healthTip = "Great day for outdoor exercise!";
-  else if (current.us_aqi <= 100) healthTip = "Acceptable air quality. Unusually sensitive individuals should consider limiting prolonged outdoor exertion.";
-  else if (current.us_aqi <= 150) healthTip = "Members of sensitive groups may experience health effects. General public is less likely to be affected.";
-  else if (current.us_aqi <= 200) healthTip = "Consider wearing an N95 mask outdoors. Everyone may begin to experience health effects.";
-  else healthTip = "Avoid prolonged or heavy exertion outdoors. Consider wearing an N95 mask.";
+  let healthTip = t('briefing.tips.enjoy');
+  if (current.us_aqi <= 50) healthTip = t('briefing.tips.good');
+  else if (current.us_aqi <= 100) healthTip = t('briefing.tips.moderate');
+  else if (current.us_aqi <= 150) healthTip = t('briefing.tips.sensitive');
+  else if (current.us_aqi <= 200) healthTip = t('briefing.tips.unhealthy');
+  else healthTip = t('briefing.tips.hazardous');
 
   return (
     <article className="morning-briefing slide-up-animation">
       <div className="briefing-header">
         <div className="greeting-container">
           <h3>{greeting}</h3>
-          {streak > 0 && <span className="streak-badge">🔥 {streak}-day streak</span>}
+          {streak > 0 && <span className="streak-badge">{t('briefing.streak', { streak })}</span>}
         </div>
         <button className="dismiss-btn" onClick={handleDismiss} aria-label="Dismiss briefing">
           ✕
@@ -122,7 +124,7 @@ export default function MorningBriefing({ current, trend, showTrigger, onDismiss
         <div className="briefing-item">
           <span className="icon">{summaryIcon}</span>
           <div>
-            <strong>Yesterday's Summary:</strong>
+            <strong>{t('briefing.yesterdaySummary')}</strong>
             <p>{summaryText}</p>
           </div>
         </div>
@@ -130,7 +132,7 @@ export default function MorningBriefing({ current, trend, showTrigger, onDismiss
         <div className="briefing-item">
           <span className="icon">📈</span>
           <div>
-            <strong>Today's Outlook:</strong>
+            <strong>{t('briefing.todayOutlook')}</strong>
             <p>{outlook}</p>
           </div>
         </div>
@@ -138,7 +140,7 @@ export default function MorningBriefing({ current, trend, showTrigger, onDismiss
         <div className="briefing-item">
           <span className="icon">💡</span>
           <div>
-            <strong>Health Tip:</strong>
+            <strong>{t('briefing.healthTip')}</strong>
             <p>{healthTip}</p>
           </div>
         </div>

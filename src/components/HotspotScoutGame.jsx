@@ -72,6 +72,27 @@ function HotspotScoutGame({ nearbyPoints }) {
     <div className="hotspot-game">
       <h2>Hotspot Scout Game</h2>
 
+      <div className="rules-card hotspot-rules-card">
+        <h3>How to Play</h3>
+        <ol className="rules-list">
+          <li>
+            <strong>Identify the hotspot:</strong> Select the zone with the highest pollution level.
+          </li>
+          <li>
+            <strong>Earn points:</strong> Gain points for every correct selection.
+          </li>
+          <li>
+            <strong>Build your streak:</strong> Consecutive correct answers increase your streak.
+          </li>
+          <li>
+            <strong>Complete all rounds:</strong> Finish all rounds to achieve the highest possible score.
+          </li>
+          <li>
+            <strong>Reset anytime:</strong> Use the Reset button to start a new game.
+          </li>
+        </ol>
+      </div>
+
       <div className="score-board">
         <span>Score: {score}</span>
         <span>Streak: {streak}</span>
@@ -86,23 +107,29 @@ function HotspotScoutGame({ nearbyPoints }) {
         </button>
       </div>
 
-      <div className="hotspot-options">
-        {round.map((spot) => (
-          <button
-            key={spot.areaName}
-            className="hotspot-option"
-            onClick={() => handleSelect(spot)}
-            disabled={!!selected}
-          >
-            {spot.areaName}
-          </button>
-        ))}
-      </div>
+      {round.length === 0 ? (
+        <p style={{ marginTop: "16px" }}>
+          Waiting for nearby zone data...
+        </p>
+      ) : (
+        <div className="hotspot-options">
+          {round.map((spot) => (
+            <button
+              key={spot.areaName}
+              className="hotspot-option"
+              onClick={() => handleSelect(spot)}
+              disabled={!!selected}
+            >
+              {spot.areaName}
+            </button>
+          ))}
+        </div>
+      )}
 
       {selected && (
         <>
           <div style={{ marginTop: "20px" }}>
-            Highest AQI: <strong>{selected.name}</strong> ({selected.aqi})
+            Highest AQI: <strong>{selected.areaName}</strong> ({selected.aqi})
           </div>
           <button
             type="button"
