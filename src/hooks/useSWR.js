@@ -14,7 +14,7 @@ export function useSWR(
   fetcher,
   {
     ttl = 5 * 60 * 1000,
-    errorRetryCount = 3,
+    errorRetryCount = typeof process !== 'undefined' && process.env?.NODE_ENV === 'test' ? 0 : 3,
   } = {}
 ) {
   // Initial state based on synchronous cache read
