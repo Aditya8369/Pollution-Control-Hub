@@ -1,4 +1,5 @@
 import Skeleton from './Skeleton';
+import styles from './Dashboard.module.css';
 
 export default function SkeletonDashboard() {
   return (
@@ -7,21 +8,21 @@ export default function SkeletonDashboard() {
         <div className="panel-head">
           <Skeleton className="skel-title" style={{ width: '320px', height: '2rem', marginBottom: '0.5rem' }} />
           <Skeleton className="skel-text" style={{ width: '180px', height: '1.2rem' }} />
-          <div className="dashboard-tools" style={{ marginTop: '1rem' }}>
+          <div className={styles.dashboardTools} style={{ marginTop: '1rem' }}>
             <Skeleton className="skel-btn" style={{ width: '160px', height: '36px', borderRadius: '999px' }} />
             <Skeleton className="skel-text" style={{ width: '120px', height: '1rem' }} />
           </div>
         </div>
 
-        <div className="kpi-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))' }}>
-          <article className="kpi-card aqi" style={{ gridColumn: 'span 1' }}>
+        <div className={styles.kpiGrid} style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))' }}>
+          <article className={`${styles.kpiCard} ${styles.aqi}`} style={{ gridColumn: 'span 1' }}>
             <Skeleton className="skel-text" style={{ width: '80px', height: '1rem', marginBottom: '1rem' }} />
             <Skeleton className="skel-title" style={{ width: '100px', height: '2.5rem', marginBottom: '0.5rem' }} />
             <Skeleton className="skel-text" style={{ width: '140px', height: '1.2rem', marginBottom: '1rem' }} />
             <Skeleton className="skel-badge" style={{ width: '160px', height: '1.5rem', borderRadius: '999px' }} />
           </article>
 
-          <article className="kpi-card chart-card" style={{ gridColumn: 'span 2', display: 'flex', flexDirection: 'column' }}>
+          <article className={`${styles.kpiCard} ${styles.chartCard}`} style={{ gridColumn: 'span 2', display: 'flex', flexDirection: 'column' }}>
             <Skeleton className="skel-text" style={{ width: '200px', height: '1.2rem', marginBottom: '0.5rem' }} />
             <Skeleton className="skel-text" style={{ width: '350px', height: '1rem', marginBottom: '1rem' }} />
             <div style={{ flex: 1, minHeight: '200px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
@@ -30,13 +31,13 @@ export default function SkeletonDashboard() {
           </article>
         </div>
 
-        <div className="chart-grid">
-          <article className="chart-card">
+        <div className={styles.chartGrid}>
+          <article className={styles.chartCard}>
             <Skeleton className="skel-title" style={{ width: '140px', height: '1.2rem', marginBottom: '1.5rem' }} />
             <Skeleton className="skel-chart" style={{ width: '100%', height: '250px' }} />
           </article>
 
-          <article className="chart-card">
+          <article className={styles.chartCard}>
             <Skeleton className="skel-title" style={{ width: '220px', height: '1.2rem', marginBottom: '1.5rem' }} />
             <Skeleton className="skel-chart" style={{ width: '100%', height: '250px' }} />
           </article>
