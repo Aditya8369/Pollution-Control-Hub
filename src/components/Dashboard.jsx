@@ -21,7 +21,7 @@ import { useSWR } from "../hooks/useSWR";
 import { getAQIBand, getPollutantColor, get7DayForecast, fetch7DayForecast, getWeatherDetails } from "../services/airQualityService";
 import MorningBriefing from "./MorningBriefing";
 import { eventBus } from "../core/events";
-
+import ChallengesWidget from "./ChallengesWidget";
 /** @param {any} isoTime */
 function shortTimeLabel(isoTime) {
   return new Date(isoTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -455,6 +455,8 @@ onKeyDown={(e) => {
               </ResponsiveContainer>
             </div>
           </article>
+          <ChallengesWidget />
+
         </div>
 
         <div data-testid="pollutants-grid" className="pollutants-grid">
