@@ -63,10 +63,9 @@ export default function AlertsPanel({
   // Separate ref for history deduplication — does not affect notification behavior
   const lastHistorySignature = useRef("");
 
-  if (!current) {
-    return null;
-  }
-  const warnings = useMemo(() => buildWarnings(current), [current]);
+  // Keep every hook call unconditional (Rules of Hooks). Guard `current` inside
+  // the hooks and bail out before rendering the JSX further down.
+  const warnings = useMemo(() => (current ? buildWarnings(current) : []), [current]);
   const lastNotified = useRef("");
 
   useEffect(() => {
@@ -114,7 +113,7 @@ export default function AlertsPanel({
       });
       lastNotified.current = signature;
     }
-  }, [warnings, cityName, current.us_aqi, permission, alertsEnabled]);
+  }, [warnings, cityName, current?.us_aqi, permission, alertsEnabled]);
 
   const requestNotificationPermission = () => {
     if (!("Notification" in window)) return;
@@ -131,6 +130,8 @@ export default function AlertsPanel({
     }
     setAlertHistory([]);
   };
+
+  if (!current) return null;
 
   return (
     <section data-testid="alerts-panel" className="panel">
