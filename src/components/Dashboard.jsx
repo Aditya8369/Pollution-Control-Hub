@@ -17,6 +17,7 @@ import {
 import { useRef, useState, useEffect, useMemo } from "react";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
+import styles from "./Dashboard.module.css";
 import { useSWR } from "../hooks/useSWR";
 import { getAQIBand, getPollutantColor, get7DayForecast, fetch7DayForecast, getWeatherDetails } from "../services/airQualityService";
 import MorningBriefing from "./MorningBriefing";
@@ -308,7 +309,7 @@ export default function Dashboard({
         )}
 
         <div className="panel-head" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-          <div className="dashboard-header-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.75rem', flexWrap: 'wrap' }}>
+          <div className={styles.dashboardHeaderRow}>
             <div style={{ minWidth: 0, flex: 1 }}>
               <h2>Real-Time Pollution Dashboard</h2>
               <p>
@@ -330,10 +331,10 @@ export default function Dashboard({
                 )}
               </p>
             </div>
-            <div className="dashboard-header-actions" style={{ display: 'flex', gap: '0.5rem', flexShrink: 0, flexWrap: 'wrap' }} data-html2canvas-ignore="true">
+            <div className={styles.dashboardHeaderActions} data-html2canvas-ignore="true">
               <button
                 type="button"
-                className="export-report-button"
+                className={styles.exportReportButton}
                 onClick={exportReportAsPDF}
                 disabled={isExporting}
                 data-html2canvas-ignore="true"
@@ -344,7 +345,7 @@ export default function Dashboard({
               </button>
               <button
                 type="button"
-                className="share-aqi-button"
+                className={styles.shareAQIButton}
                 onClick={shareAQICard}
                 disabled={isSharing}
                 data-html2canvas-ignore="true"
@@ -355,7 +356,7 @@ export default function Dashboard({
               </button>
             </div>
           </div>
-          <div className="dashboard-tools">
+          <div className={styles.dashboardTools}>
             <div
               data-testid="time-range-selector"
               className="range-switch"
@@ -389,16 +390,16 @@ export default function Dashboard({
                 </button>
               ))}
             </div>
-            <p className="dashboard-meta">
+            <p className={styles.dashboardMeta}>
               {isRefreshing ? 'Updating...' : `Updated ${lastUpdated ? new Date(lastUpdated).toLocaleTimeString() : 'just now'}`}
             </p>
           </div>
         </div>
 
-        <div className="kpi-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(min(300px, 100%), 1fr))' }}>
-          <article className="kpi-card aqi">
+        <div className={styles.kpiGrid} style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(min(300px, 100%), 1fr))' }}>
+          <article className={`${styles.kpiCard} ${styles.aqi}`}>
             <h3>US AQI</h3>
-            <div data-testid="aqi-value" className="kpi-value" style={{ color: aqiBand.color }}>
+            <div data-testid="aqi-value" className={styles.kpiValue} style={{ color: aqiBand.color }}>
               {current.us_aqi}
             </div>
             <p data-testid="aqi-band-label">{aqiBand.label}</p>
@@ -412,7 +413,7 @@ export default function Dashboard({
             </span>
           </article>
 
-          <article className="kpi-card chart-card" style={{ display: 'flex', flexDirection: 'column' }}>
+          <article className={`${styles.kpiCard} ${styles.chartCard}`} style={{ display: 'flex', flexDirection: 'column' }}>
             <h3>Pollutant Health Speedometer</h3>
             <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>
               Relative magnitude vs. WHO guidelines. Larger segments indicate higher severity.
@@ -444,7 +445,7 @@ export default function Dashboard({
           <ChallengesWidget />
         </div>
 
-        <div data-testid="pollutants-grid" className="pollutants-grid">
+        <div data-testid="pollutants-grid" className={styles.pollutantsGrid}>
           {pollutants.map((p) => {
             const pct = Math.round((p.value / p.limit) * 100);
             const status =
@@ -458,13 +459,13 @@ export default function Dashboard({
               <article
                 key={p.name}
                 data-testid={`pollutant-${p.name.toLowerCase().replace('.', '_')}`}
-                className="pollutant-card"
+                className={styles.pollutantCard}
                 style={{ borderLeft: `4px solid ${p.color}` }}
               >
-                <div className="pollutant-card-header">
+                <div className={styles.pollutantCardHeader}>
                   <h4>{p.name}</h4>
                   <span
-                    className="pollutant-status-pill"
+                    className={styles.pollutantStatusPill}
                     style={{ backgroundColor: status.bg, color: status.color }}
                   >
                     <span style={{
@@ -477,19 +478,19 @@ export default function Dashboard({
                   </span>
                 </div>
 
-                <div className="pollutant-value-container">
-                  <span className="pollutant-value" style={{ color: p.color }}>{p.value}</span>
-                  <span className="pollutant-unit">µg/m³</span>
+                <div className={styles.pollutantValueContainer}>
+                  <span className={styles.pollutantValue} style={{ color: p.color }}>{p.value}</span>
+                  <span className={styles.pollutantUnit}>µg/m³</span>
                 </div>
 
-                <div className="pollutant-meta-info">
-                  <span className="pollutant-limit">WHO Limit: {p.limit} µg/m³</span>
-                  <span className="pollutant-percent" style={{ color: p.color }}>{pct}%</span>
+                <div className={styles.pollutantMetaInfo}>
+                  <span className={styles.pollutantLimit}>WHO Limit: {p.limit} µg/m³</span>
+                  <span className={styles.pollutantPercent} style={{ color: p.color }}>{pct}%</span>
                 </div>
 
-                <div className="pollutant-progress-track">
+                <div className={styles.pollutantProgressTrack}>
                   <div
-                    className="pollutant-progress-fill"
+                    className={styles.pollutantProgressFill}
                     style={{
                       width: `${Math.min(pct, 100)}%`,
                       backgroundColor: p.color
@@ -501,8 +502,8 @@ export default function Dashboard({
           })}
         </div>
 
-        <div className="chart-grid">
-          <article className="chart-card forecast-card" style={{ gridColumn: '1 / -1' }}>
+        <div className={styles.chartGrid}>
+          <article className={`${styles.chartCard} ${styles.forecastCard}`} style={{ gridColumn: '1 / -1' }}>
             <h3>7-Day AQI & Weather Forecast</h3>
             {forecastError && <p style={{ color: 'var(--danger)', padding: '1rem' }}>Failed to load forecast data.</p>}
             {!forecastData && !forecastError && (

@@ -1,0 +1,137 @@
+.siteFooter {
+  margin-top: var(--sp-8);
+  padding: 0;
+  background: var(--card);
+  border-top: 1px solid var(--line);
+}
+
+.siteFooterInner {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: var(--sp-7) clamp(1.25rem, 4vw, 3rem) var(--sp-5);
+}
+
+.footerGrid {
+  display: grid;
+  grid-template-columns: 1.6fr 1fr;
+  gap: var(--sp-6);
+  align-items: start;
+}
+
+.footerBrand {
+  max-width: 400px;
+}
+
+.footerBrand h3 {
+  font-size: 1.15rem;
+  color: var(--brand);
+  margin-bottom: var(--sp-3);
+}
+
+.footerBrand p {
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+
+.footerLinks h4 {
+  margin: 0 0 var(--sp-3);
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--ink);
+}
+
+.footerLinks ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.footerLinks a {
+  color: var(--muted);
+  text-decoration: none;
+  font-size: 0.9rem;
+  transition: color 180ms var(--ease);
+}
+
+.footerLinks a:hover {
+  color: var(--brand);
+}
+
+.footerLinks a:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 4px;
+  border-radius: 2px;
+}
+
+.footerLinksGroup {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 2.5rem;
+}
+
+.footerIcon {
+  width: 1.1rem;
+  height: 1.1rem;
+  flex-shrink: 0;
+}
+
+.footerBottom {
+  max-width: 1200px;
+  margin: var(--sp-7) auto 0;
+  padding-top: var(--sp-4);
+  border-top: 1px solid var(--line);
+  text-align: center;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+@media (max-width: 768px) {
+  .siteFooter {
+    margin-top: 2rem;
+    padding: 2.5rem 1rem 1.5rem;
+  }
+
+  .siteFooterInner {
+    width: 100%;
+    padding: 0;
+  }
+
+  .footerGrid {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+    text-align: center;
+  }
+
+  .footerBrand {
+    max-width: 100%;
+    text-align: center;
+  }
+
+  .footerLinksGroup {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+    justify-content: center;
+  }
+
+  .footerLinks {
+    text-align: center;
+  }
+
+  .footerLinks ul {
+    align-items: center;
+  }
+
+  .footerBottom {
+    flex-direction: column;
+    justify-content: center;
+    text-align: center;
+    gap: 0.75rem;
+    margin-top: 2rem;
+  }
+}
