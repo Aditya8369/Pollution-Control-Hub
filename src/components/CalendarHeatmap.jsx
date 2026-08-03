@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { getAQIBand } from '../services/airQualityService';
+import PropTypes from "prop-types";
 
 // Matches the bands defined in getAQIBand() in airQualityService.js
 const AQI_LEGEND_BANDS = [
@@ -16,13 +17,7 @@ const MONTH_NAMES = [
   'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec',
 ];
 
-/**
- * Given the array of week-columns (each column is an array of up to 7 day
- * entries or nulls), compute which week index is the first column that
- * contains any day belonging to each calendar month.
- *
- * Returns an array of objects: { weekIndex, label, isFirstOfYear, year }
- */
+
 function computeTemporalMarkers(weeks) {
   const markers = [];
   let lastMonth = -1;
@@ -52,7 +47,16 @@ function computeTemporalMarkers(weeks) {
   return markers;
 }
 
-/** @param {any} params */
+/** 
+ * Displays a calendar heatmap of historical AQI values.
+ *
+ * @param {Object} props Component props.
+ * @param {Array<{
+ *   date: string,
+ *   maxAqi: number
+ * }>} props.data Daily AQI records used to render the heatmap.
+ */
+ 
 export default function CalendarHeatmap({ data }) {
   const [activeTooltip, setActiveTooltip] = useState(null);
 
@@ -89,9 +93,13 @@ export default function CalendarHeatmap({ data }) {
   const markerByWeek = new Map(markers.map((m) => [m.weekIndex, m]));
 
   /**
-     * @param {any} e
-     * @param {any} day
-     * @param {any} aqiBand
+    
+   * Displays the tooltip for a heatmap cell.
+   *
+   * @param {React.MouseEvent<HTMLDivElement>} e
+   * @param {{date: string, maxAqi: number}} day
+   * @param {{label: string, color: string}} aqiBand
+   
      */
     const handleCellMouseEnter = (e, day, aqiBand) => {
     const rect = e.currentTarget.getBoundingClientRect();
@@ -249,3 +257,15 @@ export default function CalendarHeatmap({ data }) {
     </div>
   );
 }
+
+CalendarHeatmap.propTypes = {
+  /**
+   * Historical AQI records displayed in the calendar.
+   */
+  data: PropTypes.arrayOf(
+    PropTypes.shape({
+      date: PropTypes.string.isRequired,
+      maxAqi: PropTypes.number.isRequired,
+    })
+  ).isRequired,
+};
