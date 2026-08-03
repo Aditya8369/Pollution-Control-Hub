@@ -24,26 +24,83 @@ export const CACHE_TTL = {
 };
 
 /**
- * Calculates the current hour index from an array of timestamps using the location's UTC offset.
+ * Formats "now, in the queried location's timezone" as an `YYYY-MM-DDTHH` stamp.
  *
- * @param {string[]} times - Array of ISO timestamp strings (e.g. "2026-03-31T14:00").
+ * Open-Meteo returns `hourly.time` in the location's local time when `timezone=auto` is
+ * set, and reports the offset it applied in `utc_offset_seconds`. Shifting the epoch by
+ * that offset and reading the UTC fields back out gives the local wall clock without
+ * depending on the *browser's* timezone, which is usually a different one.
+ *
  * @param {number} [utcOffsetSeconds=0] - The UTC offset in seconds for the queried location.
- * @returns {number} The array index corresponding to the current hour in the local timezone, or 0 if not found.
+ * @returns {string} e.g. "2026-08-03T08".
  */
-function getCurrentHourIndex(times, utcOffsetSeconds = 0) {
-  // Current time in the queried location's timezone
+export function localHourStamp(utcOffsetSeconds = 0) {
   const nowInLocation = new Date(Date.now() + utcOffsetSeconds * 1000);
-  const currentHour = nowInLocation.getUTCHours();
+  const year = nowInLocation.getUTCFullYear();
+  const month = String(nowInLocation.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(nowInLocation.getUTCDate()).padStart(2, '0');
+  const hour = String(nowInLocation.getUTCHours()).padStart(2, '0');
+  return `${year}-${month}-${day}T${hour}`;
+}
 
-  let index = -1;
+/**
+ * Locates the sample that represents "now" in a timestamp array.
+ *
+ * Matching is done on the full `YYYY-MM-DDTHH` prefix, not on the hour alone. Hour 08
+ * occurs once per day in the response, so an hour-only comparison will happily match
+ * yesterday's 08:00 and report a day-old reading as current — which is exactly what
+ * happened when the requested date window did not cover the location's local today.
+ *
+ * The strings are fixed-width and zero-padded, so a lexicographic comparison orders them
+ * chronologically and no date parsing is needed.
+ *
+ * @param {string[]} times - ISO timestamp strings (e.g. "2026-03-31T14:00"), ascending.
+ * @param {number} [utcOffsetSeconds=0] - The UTC offset in seconds for the queried location.
+ * @returns {{ index: number, exact: boolean, timestamp: string|null }}
+ *   `exact` is false whenever the current hour is absent and an older sample was used
+ *   instead, so callers can label the reading rather than present it as live.
+ */
+export function resolveCurrentIndex(times, utcOffsetSeconds = 0) {
+  if (!Array.isArray(times) || times.length === 0) {
+    return { index: -1, exact: false, timestamp: null };
+  }
+
+  const target = localHourStamp(utcOffsetSeconds);
+
   for (let i = times.length - 1; i >= 0; i--) {
-    const hour = parseInt(times[i].slice(11, 13), 10);
-    if (hour === currentHour) {
-      index = i;
-      break;
+    if (typeof times[i] === 'string' && times[i].slice(0, 13) === target) {
+      return { index: i, exact: true, timestamp: times[i] };
     }
   }
 
+  // No sample for the current hour. Fall back to the most recent one that is not in
+  // the future — never to index 0, which is the *oldest* sample in the window and was
+  // the previous behaviour.
+  let latestPast = -1;
+  for (let i = 0; i < times.length; i++) {
+    if (typeof times[i] !== 'string') continue;
+    if (times[i].slice(0, 13) <= target) latestPast = i;
+    else break;
+  }
+
+  if (latestPast === -1) {
+    // Everything we have is in the future; the earliest is the closest to now.
+    return { index: 0, exact: false, timestamp: times[0] ?? null };
+  }
+  return { index: latestPast, exact: false, timestamp: times[latestPast] };
+}
+
+/**
+ * Calculates the current hour index from an array of timestamps using the location's UTC offset.
+ *
+ * Thin wrapper over {@link resolveCurrentIndex} for callers that only need the position.
+ *
+ * @param {string[]} times - Array of ISO timestamp strings (e.g. "2026-03-31T14:00").
+ * @param {number} [utcOffsetSeconds=0] - The UTC offset in seconds for the queried location.
+ * @returns {number} The index of the current hour, or the newest usable sample.
+ */
+function getCurrentHourIndex(times, utcOffsetSeconds = 0) {
+  const { index } = resolveCurrentIndex(times, utcOffsetSeconds);
   return index === -1 ? 0 : index;
 }
 
@@ -263,6 +320,8 @@ export async function fetchHistoricalRange(lat, lon, startDate, endDate, signal)
  * @property {GridPoint[]} nearbyPoints - Surrounding regional spatial grid metrics.
  * @property {'High'|'Medium'|'Low'} confidenceScore - Confidence rating based on available data completeness.
  * @property {number} dataCompleteness - Completeness percentage score (0 to 100).
+ * @property {boolean} isCurrentHour - True when `current` really is the location's current hour.
+ * @property {string|null} readingTime - Local timestamp the reading was taken from.
  */
 
 /**
@@ -290,15 +349,16 @@ export async function fetchAirQualityByCoords(lat, lon, signal, skipGrid = false
   const cached = await cacheStore.getFresh(cacheKey, CACHE_TTL.CURRENT);
   if (cached && cached.data) return cached.data;
 
-  const today = new Date();
-  const yesterday = new Date(today);
-
-  yesterday.setDate(today.getDate() - 1);
-
-  const startDate = yesterday.toISOString().split('T')[0];
-  const endDate = today.toISOString().split('T')[0];
-
-  const url = `${BASE_URL}?latitude=${lat}&longitude=${lon}&hourly=pm2_5,pm10,carbon_monoxide,nitrogen_dioxide,sulphur_dioxide,ozone,us_aqi&timezone=auto&start_date=${startDate}&end_date=${endDate}`;
+  // Ask for the window in *relative* terms rather than as explicit dates.
+  //
+  // The previous code built start_date/end_date from `toISOString()`, which is always
+  // UTC, while `timezone=auto` makes the response local to the queried coordinates. For
+  // anywhere far enough east of UTC the local date runs a day ahead during the morning,
+  // so today was never requested and the reading labelled "current" came from yesterday.
+  //
+  // `past_days`/`forecast_days` are resolved server-side against the location's own
+  // timezone, which is the only place that knows what "today" means there.
+  const url = `${BASE_URL}?latitude=${lat}&longitude=${lon}&hourly=pm2_5,pm10,carbon_monoxide,nitrogen_dioxide,sulphur_dioxide,ozone,us_aqi&timezone=auto&past_days=1&forecast_days=1`;
 
   /**
    * Internal worker execution helper.
@@ -407,10 +467,8 @@ export async function fetchAirQualityByCoords(lat, lon, signal, skipGrid = false
   }
   const hourly = data.hourly || {};
   const times = hourly.time || [];
-  const idx = getCurrentHourIndex(
-    times,
-    data.utc_offset_seconds ?? 0
-  );
+  const resolved = resolveCurrentIndex(times, data.utc_offset_seconds ?? 0);
+  const idx = resolved.index === -1 ? 0 : resolved.index;
   const current = {
     time: times[idx],
     pm2_5: Math.round(hourly.pm2_5?.[idx] ?? 0),
@@ -441,7 +499,12 @@ export async function fetchAirQualityByCoords(lat, lon, signal, skipGrid = false
     trend,
     nearbyPoints,
     confidenceScore,
-    dataCompleteness
+    dataCompleteness,
+    // True only when a sample for the location's actual current hour was found. When it
+    // is false the reading is the newest one available, not a live one, and the UI should
+    // say so instead of stamping it "just updated".
+    isCurrentHour: resolved.exact,
+    readingTime: resolved.timestamp
   };
 
   cacheStore.set(cacheKey, result);
