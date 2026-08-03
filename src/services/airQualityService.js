@@ -55,16 +55,34 @@ function getCurrentHourIndex(times, utcOffsetSeconds = 0) {
  */
 
 /**
+ * The band used when there is no reading to classify.
+ *
+ * Grey, and outside the green-to-maroon scale, so "we don't know" cannot be mistaken for
+ * a measurement at either end of it.
+ *
+ * @type {AQIBand}
+ */
+export const UNKNOWN_AQI_BAND = { label: 'Unknown', color: '#94a3b8' };
+
+/**
  * Maps a numerical US AQI value to its corresponding qualitative category label and hex color code.
  *
- * @param {number} value - The numerical US AQI score (0 to 500+).
+ * A missing value returns {@link UNKNOWN_AQI_BAND} rather than falling through to 'Good'.
+ * The first comparison used to be `value <= 50`, and both `null <= 50` and `undefined`
+ * handling made absent data render as green "Good" — the single most misleading thing
+ * this app can display.
+ *
+ * @param {number|null|undefined} value - The numerical US AQI score (0 to 500+).
  * @returns {AQIBand} An object containing the descriptive category label and matching hex color string.
  *
  * @example
  * const band = getAQIBand(42);
  * // Returns { label: 'Good', color: '#1f9d55' }
+ * @example
+ * getAQIBand(null); // { label: 'Unknown', color: '#94a3b8' }
  */
 export function getAQIBand(value) {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return UNKNOWN_AQI_BAND;
   if (value <= 50) return { label: 'Good', color: '#1f9d55' };
   if (value <= 100) return { label: 'Moderate', color: '#f59e0b' };
   if (value <= 150) return { label: 'Unhealthy (Sensitive)', color: '#f97316' };
@@ -76,15 +94,22 @@ export function getAQIBand(value) {
 /**
  * Determines a color indicator for a specific pollutant level based on its safety threshold limit ratio.
  *
- * @param {number} value - Current measured pollutant concentration.
+ * A missing reading returns the neutral {@link UNKNOWN_AQI_BAND} colour. `null / limit`
+ * evaluates to 0 in JavaScript, so without this guard an absent pollutant painted the
+ * same green as a concentration well inside the limit.
+ *
+ * @param {number|null|undefined} value - Current measured pollutant concentration.
  * @param {number} limit - Safe standard limit threshold concentration.
  * @returns {string} Hexadecimal color code representing the ratio severity.
  *
  * @example
  * const color = getPollutantColor(25, 50);
  * // Returns '#1f9d55' (Good)
+ * @example
+ * getPollutantColor(null, 50); // '#94a3b8' (Unknown)
  */
 export function getPollutantColor(value, limit) {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return UNKNOWN_AQI_BAND.color;
   const ratio = value / limit;
   if (ratio <= 0.5) return '#1f9d55'; // Good (well within)
   if (ratio <= 1.0) return '#f59e0b'; // Moderate (approaching limit)
@@ -210,18 +235,58 @@ export async function fetchLocalGrid(lat, lon, topN = 6, signal) {
 function computeConfidence(hourly, times) {
   const POLLUTANT_FIELDS = ['pm2_5', 'pm10', 'carbon_monoxide', 'nitrogen_dioxide', 'ozone', 'us_aqi'];
 
-  const validFields = POLLUTANT_FIELDS.filter((f) => {
-    const arr = hourly[f];
-    return arr && arr.length > 0 && arr.some((v) => v != null && !isNaN(v));
-  }).length;
+  const sampleCount = Array.isArray(times) ? times.length : 0;
+  if (sampleCount === 0) {
+    return { confidenceScore: 'Low', dataCompleteness: 0 };
+  }
 
-  const dataCompleteness = Math.round((validFields / POLLUTANT_FIELDS.length) * 100);
-  const sampleRatio = Math.min(1, times.length / 24);
-  const score = dataCompleteness * 0.5 + sampleRatio * 100 * 0.5;
+  // Count the readings that are actually numbers, not the fields that contain at least
+  // one. The previous `.some()` test passed on a series of 47 nulls and a single value,
+  // which reported 100% complete for a response that was 96% gaps.
+  let presentReadings = 0;
+  let expectedReadings = 0;
+
+  for (const field of POLLUTANT_FIELDS) {
+    const series = hourly[field];
+    expectedReadings += sampleCount;
+    if (!Array.isArray(series)) continue;
+    for (let i = 0; i < sampleCount; i++) {
+      const value = series[i];
+      if (typeof value === 'number' && Number.isFinite(value)) presentReadings += 1;
+    }
+  }
+
+  const dataCompleteness = expectedReadings === 0
+    ? 0
+    : Math.round((presentReadings / expectedReadings) * 100);
+
+  // How much of a 24-hour window we were given, independent of whether it has values in
+  // it. The two terms are multiplied rather than averaged: a response can be trusted only
+  // if it covers the window *and* has readings in it. Averaging them let a payload with
+  // 24 timestamps and zero values score 50 and come back "Medium".
+  const sampleRatio = Math.min(1, sampleCount / 24);
+  const score = dataCompleteness * sampleRatio;
 
   const confidenceScore = score >= 80 ? 'High' : score >= 50 ? 'Medium' : 'Low';
 
   return { confidenceScore, dataCompleteness };
+}
+
+/**
+ * Reads one hourly sample, keeping a missing value missing.
+ *
+ * The previous `Math.round(series?.[idx] ?? 0)` turned an absent reading into a hard
+ * `0 µg/m³` — which `getAQIBand` then labelled "Good" in green. Rounding null to zero is
+ * not a safe default here; it is the least safe one available.
+ *
+ * @param {any} series - An hourly value array from the payload.
+ * @param {number} idx - Index to read.
+ * @returns {number|null} The rounded reading, or null when it is absent.
+ */
+function readingAt(series, idx) {
+  const value = Array.isArray(series) ? series[idx] : undefined;
+  if (typeof value !== 'number' || !Number.isFinite(value)) return null;
+  return Math.round(value);
 }
 
 /**
@@ -245,14 +310,17 @@ export async function fetchHistoricalRange(lat, lon, startDate, endDate, signal)
 
 /**
  * Air Quality metrics record for a single point in time.
+ * Every reading is nullable: `null` means the hour had no value, and is deliberately
+ * distinct from `0`, which means a measured concentration of zero.
+ *
  * @typedef {Object} CurrentAQIData
  * @property {string} time - Time corresponding to measurements.
- * @property {number} pm2_5 - Fine particulate concentration (PM2.5).
- * @property {number} pm10 - Coarse particulate concentration (PM10).
- * @property {number} carbon_monoxide - CO level concentration.
- * @property {number} nitrogen_dioxide - NO2 level concentration.
- * @property {number} ozone - O3 level concentration.
- * @property {number} us_aqi - Aggregate US AQI score.
+ * @property {number|null} pm2_5 - Fine particulate concentration (PM2.5).
+ * @property {number|null} pm10 - Coarse particulate concentration (PM10).
+ * @property {number|null} carbon_monoxide - CO level concentration.
+ * @property {number|null} nitrogen_dioxide - NO2 level concentration.
+ * @property {number|null} ozone - O3 level concentration.
+ * @property {number|null} us_aqi - Aggregate US AQI score.
  */
 
 /**
@@ -413,24 +481,26 @@ export async function fetchAirQualityByCoords(lat, lon, signal, skipGrid = false
   );
   const current = {
     time: times[idx],
-    pm2_5: Math.round(hourly.pm2_5?.[idx] ?? 0),
-    pm10: Math.round(hourly.pm10?.[idx] ?? 0),
-    carbon_monoxide: Math.round(hourly.carbon_monoxide?.[idx] ?? 0),
-    nitrogen_dioxide: Math.round(hourly.nitrogen_dioxide?.[idx] ?? 0),
-    sulfur_dioxide: Math.round(hourly.sulfur_dioxide?.[idx] ?? hourly.sulphur_dioxide?.[idx] ?? 0),
-    ozone: Math.round(hourly.ozone?.[idx] ?? 0),
-    us_aqi: Math.round(hourly.us_aqi?.[idx] ?? 0)
+    pm2_5: readingAt(hourly.pm2_5, idx),
+    pm10: readingAt(hourly.pm10, idx),
+    carbon_monoxide: readingAt(hourly.carbon_monoxide, idx),
+    nitrogen_dioxide: readingAt(hourly.nitrogen_dioxide, idx),
+    sulfur_dioxide: readingAt(hourly.sulfur_dioxide, idx) ?? readingAt(hourly.sulphur_dioxide, idx),
+    ozone: readingAt(hourly.ozone, idx),
+    us_aqi: readingAt(hourly.us_aqi, idx)
   };
 
   const startIndex = Math.max(0, idx - 23);
 
+  // Gaps stay null so the chart breaks the line instead of drawing it down to zero,
+  // which reads as "the air suddenly got clean" rather than "we have no reading".
   const trend = times
     .slice(startIndex, idx + 1)
     .map((time, i) => ({
       time,
-      pm2_5: Math.round(hourly.pm2_5?.[startIndex + i] ?? 0),
-      pm10: Math.round(hourly.pm10?.[startIndex + i] ?? 0),
-      us_aqi: Math.round(hourly.us_aqi?.[startIndex + i] ?? 0)
+      pm2_5: readingAt(hourly.pm2_5, startIndex + i),
+      pm10: readingAt(hourly.pm10, startIndex + i),
+      us_aqi: readingAt(hourly.us_aqi, startIndex + i)
     }));
 
   const nearbyPoints = skipGrid ? [] : await fetchLocalGrid(lat, lon, 6, signal);
@@ -581,7 +651,17 @@ export async function fetchCityComparisons(signal) {
  * const estimates = estimateWeeklyMonthlyAverages([{ us_aqi: 100 }, { us_aqi: 110 }]);
  */
 export function estimateWeeklyMonthlyAverages(trend) {
-  const dayAverage = trend.reduce((acc, item) => acc + item.us_aqi, 0) / (trend.length || 1);
+  // Hours with no reading are skipped rather than counted as zero. Averaging a null in
+  // as 0 drags the projection down and makes a gappy day look cleaner than it was.
+  const measured = (trend || [])
+    .map((item) => item?.us_aqi)
+    .filter((v) => typeof v === 'number' && Number.isFinite(v));
+
+  if (measured.length === 0) {
+    return { weekly: null, monthly: null, prediction: null };
+  }
+
+  const dayAverage = measured.reduce((acc, v) => acc + v, 0) / measured.length;
   const weekly = Math.round(dayAverage * 1.05);
   const monthly = Math.round(dayAverage * 1.12);
 
@@ -616,6 +696,15 @@ export function estimateExposureTime(trend, currentAQI, threshold = 120) {
     return null;
   }
 
+  // The endpoints of the window may be gaps; the slope has to be taken between two
+  // readings that exist, and there is nothing to extrapolate from fewer than two.
+  const measured = trend.filter(
+    (item) => typeof item?.us_aqi === 'number' && Number.isFinite(item.us_aqi)
+  );
+  if (measured.length < 2 || typeof currentAQI !== 'number' || !Number.isFinite(currentAQI)) {
+    return null;
+  }
+
   if (currentAQI >= threshold) {
     return {
       message: "Already above the recommended exposure threshold.",
@@ -623,11 +712,11 @@ export function estimateExposureTime(trend, currentAQI, threshold = 120) {
     };
   }
 
-  const firstAQI = trend[0].us_aqi;
-  const lastAQI = trend[trend.length - 1].us_aqi;
+  const firstAQI = measured[0].us_aqi;
+  const lastAQI = measured[measured.length - 1].us_aqi;
 
-  // Average AQI change , per hour over the last 24 hrs 
-  const slope = (lastAQI - firstAQI) / (trend.length - 1);
+  // Average AQI change , per hour over the last 24 hrs
+  const slope = (lastAQI - firstAQI) / (measured.length - 1);
 
   if (slope <= 0) {
     return {
