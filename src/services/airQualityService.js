@@ -124,24 +124,58 @@ function isValidCoord(lat, lon) {
 /**
  * Fetches AQI data for a single geographic grid point coordinate.
  *
+ * Network errors are caught here rather than allowed to escape. `fetchLocalGrid` runs
+ * these through `Promise.all`, and `fetchAirQualityByCoords` awaits that — so a single
+ * rejected grid request used to take down the entire air-quality fetch, current reading
+ * and all, over an optional side panel.
+ *
+ * An AbortError is still rethrown: that one means the caller went away on purpose.
+ *
  * @param {number} lat - Latitude.
  * @param {number} lon - Longitude.
  * @param {AbortSignal} [signal] - Optional signal to abort the fetch request.
- * @returns {Promise<number|null>} Calculated AQI rounded to nearest integer, or null on error.
+ * @returns {Promise<number|null>} Calculated AQI rounded to nearest integer, or null when
+ *   the point could not be read. Null means "unknown", never "clean".
  */
 async function fetchGridPointAqi(lat, lon, signal) {
   if (!isValidCoord(lat, lon)) return null;
   const url = `${BASE_URL}?latitude=${lat}&longitude=${lon}&hourly=us_aqi&timezone=auto&forecast_days=1`;
-  const response = await fetch(url, { signal });
-  if (!response.ok) return null;
-  const data = await response.json();
-  const times = data.hourly?.time || [];
-  const idx = getCurrentHourIndex(
-    times,
-    data.utc_offset_seconds ?? 0
-  );
-  return Math.round(data.hourly?.us_aqi?.[idx] ?? 0);
+  try {
+    const response = await fetch(url, { signal });
+    if (!response.ok) return null;
+    const data = await response.json();
+    const times = data.hourly?.time || [];
+    const idx = getCurrentHourIndex(
+      times,
+      data.utc_offset_seconds ?? 0
+    );
+    const value = data.hourly?.us_aqi?.[idx];
+    if (typeof value !== 'number' || !Number.isFinite(value)) return null;
+    return Math.round(value);
+  } catch (err) {
+    if (err?.name === 'AbortError') throw err;
+    return null;
+  }
 }
+
+/**
+ * Cache-key precision for the hotspot grid, in decimal places.
+ *
+ * The grid samples points `GRID_STEP` (0.09°, ~10 km) apart, but the key used to round to
+ * one decimal — ~11 km buckets. Two locations further apart than the entire grid spacing
+ * therefore shared a cache entry, and since each point carries its own real lat/lon, the
+ * neighbouring area's hotspots got plotted on the current map. Two decimals is ~1.1 km,
+ * comfortably finer than the data it keys.
+ */
+const GRID_CACHE_PRECISION = 2;
+
+/**
+ * How many of the 8 surrounding points must answer before a grid result is worth caching.
+ *
+ * Below this the result is served but not stored, so a transient outage cannot pin an
+ * empty hotspot panel in place for the full TTL.
+ */
+const GRID_MIN_MEASURED_POINTS = 3;
 
 /**
  * Representation of a surrounding grid point.
@@ -156,17 +190,24 @@ async function fetchGridPointAqi(lat, lon, signal) {
 /**
  * Fetches AQI data for surrounding grid coordinates around a central location.
  *
+ * Costs 8 requests on a cache miss, so a rate-limit burst can easily take out several of
+ * them at once. Points that fail are dropped from the result rather than counted as 0,
+ * and a result built from too few readings is returned but deliberately *not* cached —
+ * otherwise one bad moment pins an empty hotspot panel for the whole TTL.
+ *
  * @param {number} lat - Center latitude.
  * @param {number} lon - Center longitude.
  * @param {number} [topN=6] - Maximum number of top AQI points to return.
  * @param {AbortSignal} [signal] - Optional signal to abort network requests.
- * @returns {Promise<GridPoint[]>} Array of top surrounding grid points sorted by highest AQI.
+ * @returns {Promise<GridPoint[]>} Top surrounding grid points sorted by highest AQI. Empty
+ *   when nothing was measurable — the caller cannot tell these apart, which is why the
+ *   caching decision is made here.
  *
  * @example
  * const localGrid = await fetchLocalGrid(19.0760, 72.8777, 4);
  */
 export async function fetchLocalGrid(lat, lon, topN = 6, signal) {
-  const cacheKey = `grid-${lat.toFixed(1)},${lon.toFixed(1)}`;
+  const cacheKey = `grid-${lat.toFixed(GRID_CACHE_PRECISION)},${lon.toFixed(GRID_CACHE_PRECISION)}`;
   const cached = await cacheStore.getFresh(cacheKey, CACHE_TTL.GRID);
   if (cached && cached.data) return cached.data;
 
@@ -185,18 +226,33 @@ export async function fetchLocalGrid(lat, lon, topN = 6, signal) {
         id: `grid-${i}`,
         lat: gLat,
         lon: gLon,
-        aqi: aqi ?? 0,
+        // Keep the failure distinguishable from a reading. Collapsing it to 0 here is
+        // what made "every request failed" indistinguishable from "nowhere is polluted".
+        aqi,
         areaName: DIRECTION_LABELS[`${dx},${dy}`] || `Zone ${i + 1}`
       };
     })
   );
 
-  const points = results
+  const measured = results.filter(
+    (p) => typeof p.aqi === 'number' && Number.isFinite(p.aqi)
+  );
+
+  const points = measured
     .filter((p) => p.aqi > 0)
     .sort((a, b) => b.aqi - a.aqi)
     .slice(0, topN);
 
-  cacheStore.set(cacheKey, points);
+  // Only cache a result we actually have evidence for.
+  //
+  // The empty array produced by a total outage used to be written with a fresh
+  // timestamp, and `getFresh` treats a cached [] as a hit — so retrying, switching tabs
+  // and hitting refresh all kept returning it for the full 5-minute TTL. An empty result
+  // built from too few readings is now returned but not stored, so the next call retries.
+  if (measured.length >= GRID_MIN_MEASURED_POINTS) {
+    cacheStore.set(cacheKey, points);
+  }
+
   return points;
 }
 
