@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useCallback, useRef } from "react";
+import { useEffect, useMemo, useState, useCallback, useRef, lazy, Suspense, } from "react";
 import { useSWR } from "./hooks/useSWR";
 import { cacheStore } from "./utils/cacheStore";
 import AlertsPanel from "./components/AlertsPanel";
@@ -13,14 +13,12 @@ import LocationMap from "./components/LocationMap";
 import QuizSection from "./components/QuizSection";
 import SolutionsAwareness from "./components/SolutionsAwareness";
 import ScenarioSimulator from "./components/ScenarioSimulator";
-import AqiMissionGame from "./components/AqiMissionGame";
 import HistoricalAnalysis from "./components/HistoricalAnalysis";
 import HistoricalData from "./components/HistoricalData";
 import LocationSearch from "./components/LocationSearch";
 import SkeletonDashboard from "./components/SkeletonDashboard";
 // @ts-ignore
 import { CITY_COORDINATES } from "./constants/cities";
-import HotspotScoutGame from "./components/HotspotScoutGame";
 // @ts-ignore
 import ErrorBoundary from "./components/ErrorBoundary";
 import Commute from "./components/Commute";
@@ -35,10 +33,13 @@ import {
   fetchWindData,
 } from "./services/airQualityService";
 import { eventBus } from "./core/events";
-import RiverOriginGame from "./components/RiverOriginGame";
 import { ThemeProvider, useTheme } from "./context/ThemeContext";
 import ThemeSwitcher from "./components/ThemeSwitcher";
 import CarbonFootprintCalculator from "./components/CarbonFootprintCalculator";
+
+const AqiMissionGame = lazy(() => import("./components/AqiMissionGame"));
+const HotspotScoutGame = lazy(() => import("./components/HotspotScoutGame"));
+const RiverOriginGame = lazy(() => import("./components/RiverOriginGame"));
 
 const DEFAULT_POSITION = {
   lat: 28.6139,
@@ -1107,11 +1108,29 @@ function AppContent() {
             )}
 
             {activeSection === "game" && (
-              <div className="content-grid game-layout">
-                <AqiMissionGame current={current} />
-                <HotspotScoutGame nearbyPoints={nearbyPoints} />
-                <RiverOriginGame />
-              </div>
+              <Suspense
+                fallback={
+                  <div className="content-grid game-layout"
+                    style={{
+                      display: "flex",
+                      justifyContent: "center",
+                      alignItems: "center",
+                      minHeight: "300px",
+                    }}
+                  >
+                  <div role="status" aria-live="polite">
+                    <div className="loading-spinner" />
+                      <p style={{ marginTop: "1rem" }}>Loading games...</p>
+                    </div>
+                  </div>
+                }
+              >
+                <div className="content-grid game-layout">
+                  <AqiMissionGame current={current} />
+                  <HotspotScoutGame nearbyPoints={nearbyPoints} />
+                  <RiverOriginGame />
+                </div>
+              </Suspense>
             )}
 
             {activeSection === "getting-started" && (
