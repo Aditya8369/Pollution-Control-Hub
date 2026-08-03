@@ -73,15 +73,23 @@ describe('fetchAirQualityByCoords - trend slicing', () => {
     vi.setSystemTime(mockNow);
 
     const fetchSpy = vi.fn().mockImplementation(async (url) => {
-      // Parse start_date and end_date from requested URL
+      // The window is requested as past_days/forecast_days now, so the upstream resolves
+      // the dates against the location's own timezone (#545). With utc_offset_seconds 0
+      // below, that is simply yesterday and today in UTC.
       const urlObj = new URL(url);
-      const startDateStr = urlObj.searchParams.get('start_date');
-      const endDateStr = urlObj.searchParams.get('end_date');
+      const pastDays = Number(urlObj.searchParams.get('past_days') ?? 0);
+      const forecastDays = Number(urlObj.searchParams.get('forecast_days') ?? 1);
 
-      const times = [
-        ...Array.from({ length: 24 }, (_, i) => `${startDateStr}T${String(i).padStart(2, '0')}:00`),
-        ...Array.from({ length: 24 }, (_, i) => `${endDateStr}T${String(i).padStart(2, '0')}:00`)
-      ];
+      const dayStrings = [];
+      for (let offset = -pastDays; offset < forecastDays; offset++) {
+        const day = new Date(mockNow);
+        day.setUTCDate(day.getUTCDate() + offset);
+        dayStrings.push(day.toISOString().split('T')[0]);
+      }
+
+      const times = dayStrings.flatMap((date) =>
+        Array.from({ length: 24 }, (_, i) => `${date}T${String(i).padStart(2, '0')}:00`)
+      );
 
       return {
         ok: true,
