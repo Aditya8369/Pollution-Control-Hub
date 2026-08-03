@@ -24,6 +24,7 @@ import MorningBriefing from "./MorningBriefing";
 import { eventBus } from "../core/events";
 import ChallengesWidget from "./ChallengesWidget";
 import WindPollutionRose from "./WindPollutionRose";
+import Factoid from "./Factoid";
 
 /** @param {any} isoTime */
 function shortTimeLabel(isoTime) {
@@ -253,7 +254,7 @@ export default function Dashboard({
     <>
       <section data-testid="dashboard" className="panel dashboard" ref={reportRef}>
         <MorningBriefing current={current} trend={trend} />
-        
+
         {exportError && (
           <div
             className="pdf-export-error-toast"
@@ -502,6 +503,8 @@ export default function Dashboard({
           })}
         </div>
 
+        <Factoid label="Did You Know?" />
+
         <div className={styles.chartGrid}>
           <article className={`${styles.chartCard} ${styles.forecastCard}`} style={{ gridColumn: '1 / -1' }}>
             <h3>7-Day AQI & Weather Forecast</h3>
@@ -580,7 +583,7 @@ export default function Dashboard({
                   const band = getAQIBand(day.aqi);
                   const isBest = day.aqi === minAqi;
                   const isWorst = day.aqi === maxAqi;
-                  
+
                   const formattedDate = new Date(day.date).toLocaleDateString(undefined, {
                     weekday: 'short',
                     month: 'short',
