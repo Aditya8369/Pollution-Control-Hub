@@ -27,6 +27,7 @@ export default function LocationSearch({ onLocationSelected, initialCityName }) 
   const wrapperRef = useRef(null);
   const debounceTimerRef = useRef(null);
   const latestQueryRef = useRef('');
+  const abortControllerRef = useRef(null);
 
   useEffect(() => {
     // Load recent searches on mount.
@@ -134,6 +135,13 @@ export default function LocationSearch({ onLocationSelected, initialCityName }) 
   /** 
    *  @param {React.ChangeEvent<HTMLInputElement>} e
   */
+
+useEffect(() => {
+  return () => {
+    abortControllerRef.current?.abort();
+  };
+}, []);
+
   const handleInputChange = (e) => {
     const val = e.target.value;
 
@@ -157,8 +165,12 @@ export default function LocationSearch({ onLocationSelected, initialCityName }) 
     debounceTimerRef.current = setTimeout(async () => {
       latestQueryRef.current = val;
       setSearchError(null);
+
+      abortControllerRef.current?.abort();
+      abortControllerRef.current = new AbortController();
+
       try {
-        const results = await searchLocations(val);
+        const results = await searchLocations(val, 5, abortControllerRef.current.signal);
 
         // Ignore this result if a newer search has started since this one fired.
         if (latestQueryRef.current !== val) {
@@ -167,12 +179,17 @@ export default function LocationSearch({ onLocationSelected, initialCityName }) 
 
         setSuggestions(results);
       } catch (err) {
-        if (latestQueryRef.current !== val) {
-          return;
-        }
-        setSuggestions([]);
-        setSearchError('Failed to fetch locations. Please check your network connection.');
-      } finally {
+          if (err.name === "AbortError") {
+            return;
+          }
+
+          if (latestQueryRef.current !== val) {
+            return;
+          }
+
+          setSuggestions([]);
+          setSearchError("Failed to fetch locations. Please check your network connection.");
+        } finally {
         if (latestQueryRef.current === val) {
           setIsLoading(false);
         }
