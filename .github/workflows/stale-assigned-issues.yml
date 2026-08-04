@@ -1,0 +1,133 @@
+name: Stale Assigned Issues Workflow
+
+on:
+  schedule:
+    - cron: '0 2 * * *' # Runs daily at 02:00 UTC
+  workflow_dispatch: # Enables manual trigger from GitHub Actions UI
+
+permissions:
+  issues: write
+  pull-requests: read
+  contents: read
+
+jobs:
+  manage-stale-assignments:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Process Stale Assigned Issues
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const { owner, repo } = context.repo;
+            const now = new Date();
+            const TWO_DAYS_MS = 2 * 24 * 60 * 60 * 1000;
+            const THREE_DAYS_MS = 3 * 24 * 60 * 60 * 1000;
+
+            // Fetch open issues
+            const issues = await github.paginate(github.rest.issues.listForRepo, {
+              owner,
+              repo,
+              state: 'open',
+              per_page: 100
+            });
+
+            console.log(`Found ${issues.length} open issues/PRs in total.`);
+
+            for (const issue of issues) {
+              // Skip PRs or unassigned issues
+              if (issue.pull_request || !issue.assignees || issue.assignees.length === 0) {
+                continue;
+              }
+
+              const issueNumber = issue.number;
+              const assigneeLogins = issue.assignees.map(a => a.login);
+
+              // Check if there is an open PR linked to this issue via timeline events
+              const timelineEvents = await github.paginate(github.rest.issues.listEventsForTimeline, {
+                owner,
+                repo,
+                issue_number: issueNumber,
+                per_page: 100
+              });
+
+              const hasOpenLinkedPR = timelineEvents.some(e => {
+                const isCrossReferenced = e.event === 'cross-referenced' && e.source?.issue?.pull_request;
+                const isConnected = e.event === 'connected';
+                const prState = e.source?.issue?.state;
+                return (isCrossReferenced || isConnected) && prState === 'open';
+              });
+
+              if (hasOpenLinkedPR) {
+                console.log(`Skipping issue #${issueNumber}: An open PR is linked to this issue.`);
+                continue;
+              }
+
+              // Fetch issue events to find assignment date
+              const events = await github.paginate(github.rest.issues.listEvents, {
+                owner,
+                repo,
+                issue_number: issueNumber,
+                per_page: 100
+              });
+
+              const assignedEvents = events.filter(e => e.event === 'assigned');
+              if (assignedEvents.length === 0) continue;
+
+              const lastAssignedEvent = assignedEvents[assignedEvents.length - 1];
+              const assignedDate = new Date(lastAssignedEvent.created_at);
+              const elapsedMs = now - assignedDate;
+
+              // Fetch comments posted since assignment date
+              const comments = await github.paginate(github.rest.issues.listComments, {
+                owner,
+                repo,
+                issue_number: issueNumber,
+                since: assignedDate.toISOString(),
+                per_page: 100
+              });
+
+              const hasAssigneeActivity = comments.some(c => assigneeLogins.includes(c.user?.login));
+
+              // Skip if assignee has commented or updated the issue
+              if (hasAssigneeActivity) {
+                console.log(`Skipping issue #${issueNumber}: Assignee @${assigneeLogins.join(', @')} has active comments.`);
+                continue;
+              }
+
+              if (elapsedMs >= THREE_DAYS_MS) {
+                // Day 3 (72h+): Unassign contributor and notify
+                console.log(`Unassigning issue #${issueNumber} from @${assigneeLogins.join(', @')} due to 3 days of inactivity.`);
+                for (const assignee of issue.assignees) {
+                  await github.rest.issues.removeAssignees({
+                    owner,
+                    repo,
+                    issue_number: issueNumber,
+                    assignees: [assignee.login]
+                  });
+
+                  await github.rest.issues.createComment({
+                    owner,
+                    repo,
+                    issue_number: issueNumber,
+                    body: `This issue has been automatically unassigned from @${assignee.login} due to 3 days of inactivity. It is now open for other contributors! 🚀`
+                  });
+                }
+              } else if (elapsedMs >= TWO_DAYS_MS) {
+                // Day 2 (48h+): Send 24-hour warning reminder if not already warned
+                const warningSignature = 'Friendly Reminder: This issue was assigned 2 days ago';
+                const hasBeenWarned = comments.some(c => c.body && c.body.includes(warningSignature));
+
+                if (!hasBeenWarned) {
+                  console.log(`Warning assignees of issue #${issueNumber}: @${assigneeLogins.join(', @')}`);
+                  const mentionList = assigneeLogins.map(login => `@${login}`).join(' ');
+                  await github.rest.issues.createComment({
+                    owner,
+                    repo,
+                    issue_number: issueNumber,
+                    body: `${mentionList} 👋 **Friendly Reminder:** This issue was assigned 2 days ago. Please submit a working PR or update within 24 hours, or the issue will be automatically unassigned. ⏳`
+                  });
+                }
+              }
+            }

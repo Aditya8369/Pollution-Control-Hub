@@ -1,607 +1,216 @@
-// @ts-nocheck
-import { useEffect, useState } from 'react';
-import { CarFront, Sun, Wind, Factory } from "lucide-react";
-import { CITY_COORDINATES } from '../constants/cities';
-import { fetchAirQualityByCoords, getAQIBand, estimateAQI } from '../services/airQualityService';
+import { useState, useMemo } from "react";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Legend
+} from "recharts";
 
-const PM25GaugeIcon = ({ size = 24 }) => (
-  <svg
-    width={size}
-    height={size}
-    viewBox="0 0 32 32"
-    xmlns="http://www.w3.org/2000/svg"
-    aria-hidden="true"
-  >
-    {/* Colored AQI gauge */}
-    <path
-      d="M5 21 A11 11 0 0 1 9 12"
-      fill="none"
-      stroke="#84cc16"
-      strokeWidth="4"
-      strokeLinecap="round"
-    />
-
-    <path
-      d="M9 12 A11 11 0 0 1 16 9"
-      fill="none"
-      stroke="#eab308"
-      strokeWidth="4"
-    />
-
-    <path
-      d="M16 9 A11 11 0 0 1 23 12"
-      fill="none"
-      stroke="#f97316"
-      strokeWidth="4"
-    />
-
-    <path
-      d="M23 12 A11 11 0 0 1 27 21"
-      fill="none"
-      stroke="#ef4444"
-      strokeWidth="4"
-      strokeLinecap="round"
-    />
-
-    {/* Needle */}
-    <line
-      x1="16"
-      y1="21"
-      x2="10"
-      y2="15"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-    />
-
-    {/* Center */}
-    <circle
-      cx="16"
-      cy="21"
-      r="2.5"
-      fill="currentColor"
-    />
-  </svg>
-);
-/* ─── Preset intervention scenarios ──────────────────────────────────────── */
-const PRESETS = [
+// Pre-set guided scenarios with impact formulas
+const PRESET_SCENARIOS = [
   {
-    id: 'traffic',
-    icon: '🚗',
-    label: 'Traffic Control',
-    description: 'Odd-even driving, EV mandates',
-    pm25: 10,
-    pm10: 10,
-    no2: 20,
-    o3: 5,
-    co: 15,
+    id: "ev_transition",
+    title: "⚡ 30% EV Adoption",
+    description: "Replace 30% of fossil-fuel vehicles on city roads with zero-emission EVs.",
+    no2ReductionPct: 25,
+    pm25ReductionPct: 15,
+    details: "Dramatically lowers tailpipe combustion NO₂ emissions and reduces brake dust PM2.5."
   },
   {
-    id: 'industrial',
-    icon: '🏭',
-    label: 'Industrial Limits',
-    description: 'Stricter stack emission caps',
-    pm25: 25,
-    pm10: 20,
-    no2: 15,
-    o3: 0,
-    co: 10,
+    id: "urban_canopy",
+    title: "🌳 20% Green Canopy",
+    description: "Expand city tree cover, rooftop gardens, and urban parks by 20%.",
+    no2ReductionPct: 10,
+    pm25ReductionPct: 20,
+    details: "Leaves and vegetation trap airborne fine particulate matter and absorb gaseous pollutants."
   },
   {
-    id: 'green',
-    icon: '🌳',
-    label: 'Green Cover',
-    description: 'Urban forestry & park expansion',
-    pm25: 10,
-    pm10: 10,
-    no2: 5,
-    o3: 15,
-    co: 5,
+    id: "industrial_scrubbers",
+    title: "🏭 Emission Controls",
+    description: "Mandate advanced particulate scrubbers across nearby factories and power plants.",
+    no2ReductionPct: 35,
+    pm25ReductionPct: 40,
+    details: "Targeted stack filtration cuts bulk industrial PM2.5 and atmospheric nitrogen oxides."
   },
   {
-    id: 'clean-fuel',
-    icon: '⚡',
-    label: 'Clean Fuel Switch',
-    description: 'Replace petrol/diesel with CNG/EV',
-    pm25: 20,
-    pm10: 15,
-    no2: 30,
-    o3: 10,
-    co: 25,
-  },
-  {
-    id: 'combined',
-    icon: '🌐',
-    label: 'Combined Policy',
-    description: 'All interventions together',
-    pm25: 50,
-    pm10: 50,
-    no2: 50,
-    o3: 50,
-    co: 50,
-  },
+    id: "renewable_grid",
+    title: "☀️ 50% Clean Energy",
+    description: "Transition half of the regional electricity grid to clean renewable energy sources.",
+    no2ReductionPct: 30,
+    pm25ReductionPct: 25,
+    details: "Phases out coal and gas thermal generation, drastically cleaning regional air sheds."
+  }
 ];
 
-const CUSTOM_PRESETS_STORAGE_KEY = 'scenario-simulator-custom-presets';
+export default function ScenarioSimulator({ current }) {
+  const [selectedScenarioId, setSelectedScenarioId] = useState(PRESET_SCENARIOS[0].id);
+  const [customEvPct, setCustomEvPct] = useState(30);
 
-/* ─── Component ───────────────────────────────────────────────────────────── */
+  const currentPm25 = current?.pm2_5 || 35;
+  const currentNo2 = current?.nitrogen_dioxide || 28;
 
-export default function ScenarioSimulator({ current }) {  const [pm25Reduction, setPm25Reduction] = useState(0);
-  const [pm10Reduction, setPm10Reduction] = useState(0);
-  const [no2Reduction, setNo2Reduction] = useState(0);
-  const [o3Reduction, setO3Reduction] = useState(0);
-  const [coReduction, setCoReduction] = useState(0);
- const [activePreset, setActivePreset] = useState(null);
-
-  // Custom presets saved by the user, loaded once from localStorage
-  const [customPresets, setCustomPresets] = useState(() => {
-    try {
-      const saved = localStorage.getItem(CUSTOM_PRESETS_STORAGE_KEY);
-      return saved ? JSON.parse(saved) : [];
-    } catch {
-      return [];
-    }
-  });
-
-  useEffect(() => {
-    localStorage.setItem(CUSTOM_PRESETS_STORAGE_KEY, JSON.stringify(customPresets));
-  }, [customPresets]);
-
-  // Multi-city: selected city names (start with just the first city as placeholder;  // the "active" city always uses `current` prop directly)
-  const [selectedCities, setSelectedCities] = useState([]);
-  // Map of cityName → fetched current pollutant data
-  const [cityData, setCityData] = useState({});
-  const [cityLoadingSet, setCityLoadingSet] = useState(new Set());
-  const [cityErrorSet, setCityErrorSet] = useState(new Set());
-
-  /* ── Preset apply ── */
-  function applyPreset(preset) {
-    if (activePreset === preset.id) {
-      // Deselect — reset sliders
-      setActivePreset(null);
-      setPm25Reduction(0);
-      setPm10Reduction(0);
-      setNo2Reduction(0);
-      setO3Reduction(0);
-      setCoReduction(0);
-    } else {
-      setActivePreset(preset.id);
-      setPm25Reduction(preset.pm25);
-      setPm10Reduction(preset.pm10);
-      setNo2Reduction(preset.no2);
-      setO3Reduction(preset.o3);
-      setCoReduction(preset.co);
-    }
-  }
-
-/* ── Save current slider values as a custom preset ── */
-  function saveCurrentAsPreset() {
-    const name = window.prompt('Name this preset:');
-    if (!name || !name.trim()) return;
-
-    const newPreset = {
-      id: `custom-${Date.now()}`,
-      icon: '⭐',
-      label: name.trim(),
-      description: 'Custom preset',
-      pm25: pm25Reduction,
-      pm10: pm10Reduction,
-      no2: no2Reduction,
-      o3: o3Reduction,
-      co: coReduction,
-    };
-
-    setCustomPresets((prev) => [...prev, newPreset]);
-  }
-
-  /* ── Delete a custom preset ── */
-  function deleteCustomPreset(id) {
-    setCustomPresets((prev) => prev.filter((p) => p.id !== id));
-    if (activePreset === id) setActivePreset(null);
-  }
-
-  /* ── City toggle ── */
-  function toggleCity(cityName) {    setSelectedCities((prev) => {
-      if (prev.includes(cityName)) {
-        return prev.filter((c) => c !== cityName);
-      }
-      return [...prev, cityName];
-    });
-  }
-
-  /* ── Fetch data for newly selected cities ── */
-  useEffect(() => {
-    for (const cityName of selectedCities) {
-      if (cityData[cityName] || cityLoadingSet.has(cityName)) continue;
-
-      const city = CITY_COORDINATES.find((c) => c.name === cityName);
-      if (!city) continue;
-
-      setCityLoadingSet((prev) => new Set(prev).add(cityName));
-
-      fetchAirQualityByCoords(city.lat, city.lon)
-        .then((result) => {
-          setCityData((prev) => ({ ...prev, [cityName]: result.current }));
-          setCityLoadingSet((prev) => {
-            const next = new Set(prev);
-            next.delete(cityName);
-            return next;
-          });
-        })
-        .catch(() => {
-          setCityErrorSet((prev) => new Set(prev).add(cityName));
-          setCityLoadingSet((prev) => {
-            const next = new Set(prev);
-            next.delete(cityName);
-            return next;
-          });
-        });
-    }
-  }, [selectedCities, cityData, cityLoadingSet]);
-
-  /* ── Derived values for the "active city" (from prop) ── */
-  const reducedPm25 = current.pm2_5 * (1 - pm25Reduction / 100);
-  const reducedPm10 = current.pm10 * (1 - pm10Reduction / 100);
-  const reducedNo2 = current.nitrogen_dioxide * (1 - no2Reduction / 100);
-  const reducedO3 = current.ozone * (1 - o3Reduction / 100);
-  const reducedCo = current.carbon_monoxide * (1 - coReduction / 100);
-
-  const estimatedAqi = estimateAQI(
-    Math.round(reducedPm25),
-    Math.round(reducedPm10),
-    Math.round(reducedNo2),
-    Math.round(reducedO3),
-    Math.round(reducedCo)
+  const activeScenario = useMemo(
+    () => PRESET_SCENARIOS.find((s) => s.id === selectedScenarioId) || PRESET_SCENARIOS[0],
+    [selectedScenarioId]
   );
 
-  const currentBand = getAQIBand(current.us_aqi);
-  const estimatedBand = getAQIBand(estimatedAqi);
+  const { simulatedPm25, simulatedNo2, no2Drop, pm25Drop } = useMemo(() => {
+    let no2Red = activeScenario.no2ReductionPct;
+    let pm25Red = activeScenario.pm25ReductionPct;
 
-  const improvement =
-    current.us_aqi > 0
-      ? Math.round(((current.us_aqi - estimatedAqi) / current.us_aqi) * 100)
-      : 0;
+    if (activeScenario.id === "ev_transition") {
+      no2Red = Math.round((customEvPct / 30) * 25);
+      pm25Red = Math.round((customEvPct / 30) * 15);
+    }
 
-  /* ── Compute simulated result for a comparison city ── */
-  function simulateCity(data) {
-    const rPm25 = data.pm2_5 * (1 - pm25Reduction / 100);
-    const rPm10 = data.pm10 * (1 - pm10Reduction / 100);
-    const rNo2 = data.nitrogen_dioxide * (1 - no2Reduction / 100);
-    const rO3 = data.ozone * (1 - o3Reduction / 100);
-    const rCo = data.carbon_monoxide * (1 - coReduction / 100);
-    const simAqi = estimateAQI(
-      Math.round(rPm25),
-      Math.round(rPm10),
-      Math.round(rNo2),
-      Math.round(rO3),
-      Math.round(rCo)
-    );
-    const imp =
-      data.us_aqi > 0
-        ? Math.round(((data.us_aqi - simAqi) / data.us_aqi) * 100)
-        : 0;
+    const simNo2 = Math.max(2, Number((currentNo2 * (1 - no2Red / 100)).toFixed(1)));
+    const simPm25 = Math.max(2, Number((currentPm25 * (1 - pm25Red / 100)).toFixed(1)));
+
     return {
-      simAqi,
-      simBand: getAQIBand(simAqi),
-      improvement: imp,
-      rPm25: Math.round(rPm25),
-      rPm10: Math.round(rPm10),
-      rNo2: Math.round(rNo2),
-      rO3: Math.round(rO3),
-      rCo: Math.round(rCo),
+      simulatedNo2: simNo2,
+      simulatedPm25: simPm25,
+      no2Drop: no2Red,
+      pm25Drop: pm25Red
     };
-  }
+  }, [activeScenario, customEvPct, currentNo2, currentPm25]);
+
+  const chartData = [
+    {
+      pollutant: "PM2.5 (µg/m³)",
+      Baseline: Number(currentPm25.toFixed(1)),
+      Simulated: simulatedPm25
+    },
+    {
+      pollutant: "NO₂ (µg/m³)",
+      Baseline: Number(currentNo2.toFixed(1)),
+      Simulated: simulatedNo2
+    }
+  ];
 
   return (
-    <section data-testid="scenario-simulator" className="panel scenario-simulator" aria-labelledby="sim-heading">
-      {/* ── Header ── */}
-      <div className="panel-head">
-        <h2 id="sim-heading">🧪 Scenario Simulator</h2>
-        <p>
-          Adjust sliders or pick a preset to see how interventions could improve AQI across cities.
+    <article className="chart-card scenario-simulator-card" style={{ gridColumn: "1 / -1", width: "100%" }}>
+      <div style={{ marginBottom: "1.25rem" }}>
+        <h3 style={{ margin: 0 }}>🔮 Interactive "What-If" Scenario Simulator</h3>
+        <p style={{ fontSize: "0.85rem", color: "var(--muted, #94a3b8)", margin: "0.25rem 0 0 0" }}>
+          Simulate community policies and habits to visualize expected pollutant reductions.
         </p>
       </div>
 
-      {/* ── Preset Scenario Cards ── */}
-      <div className="sim-presets" role="group" aria-label="Intervention presets">
-        {PRESETS.map((preset) => (
-          <button
-            key={preset.id}
-            type="button"
-            className={`sim-preset-card${activePreset === preset.id ? ' active' : ''}`}
-            onClick={() => applyPreset(preset)}
-            aria-pressed={activePreset === preset.id}
-          >
-            <span className="sim-preset-icon">{preset.icon}</span>
-            <span className="sim-preset-label">{preset.label}</span>
-            <span className="sim-preset-desc">{preset.description}</span>
-            <span className="sim-preset-tags">
-              {preset.pm25 > 0 && <span className="sim-tag">PM2.5 −{preset.pm25}%</span>}
-              {preset.pm10 > 0 && <span className="sim-tag">PM10 −{preset.pm10}%</span>}
-              {preset.no2 > 0 && <span className="sim-tag">NO₂ −{preset.no2}%</span>}
-              {preset.o3 > 0 && <span className="sim-tag">O₃ −{preset.o3}%</span>}
-              {preset.co > 0 && <span className="sim-tag">CO −{preset.co}%</span>}
-            </span>
-          </button>
-        ))}
- </div>
+      {/* Side-by-Side Horizontal Split Layout */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "1.5rem", alignItems: "start" }}>
+        
+        {/* Left Column: Preset Buttons & Controls */}
+        <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "0.75rem" }}>
+            {PRESET_SCENARIOS.map((scenario) => {
+              const isSelected = scenario.id === selectedScenarioId;
+              return (
+                <button
+                  key={scenario.id}
+                  type="button"
+                  onClick={() => setSelectedScenarioId(scenario.id)}
+                  style={{
+                    textAlign: "left",
+                    padding: "0.75rem 1rem",
+                    borderRadius: "8px",
+                    border: isSelected ? "2px solid var(--brand, #0d9488)" : "1px solid var(--line, #334155)",
+                    background: isSelected ? "rgba(13, 148, 136, 0.15)" : "var(--bg-card-alt, rgba(255, 255, 255, 0.03))",
+                    cursor: "pointer",
+                    transition: "all 0.2s ease"
+                  }}
+                >
+                  <div
+                    style={{
+                      fontWeight: "700",
+                      fontSize: "0.88rem",
+                      color: isSelected ? "var(--brand, #2dd4bf)" : "var(--ink, #f8fafc)",
+                      marginBottom: "0.2rem"
+                    }}
+                  >
+                    {scenario.title}
+                  </div>
+                  <div style={{ fontSize: "0.78rem", color: "var(--muted, #94a3b8)", lineHeight: "1.3" }}>
+                    {scenario.description}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
 
-      {/* ── Custom User Presets ── */}
-      {customPresets.length > 0 && (
-        <div className="sim-presets sim-custom-presets" role="group" aria-label="Custom saved presets">
-          {customPresets.map((preset) => (
-            <div key={preset.id} className={`sim-preset-card${activePreset === preset.id ? ' active' : ''}`}>
-              <button
-                type="button"
-                className="sim-preset-apply-btn"
-                onClick={() => applyPreset(preset)}
-                aria-pressed={activePreset === preset.id}
-              >
-                <span className="sim-preset-icon">{preset.icon}</span>
-                <span className="sim-preset-label">{preset.label}</span>
-                <span className="sim-preset-desc">{preset.description}</span>
-              </button>
-              <button
-                type="button"
-                className="sim-preset-delete"
-                aria-label={`Delete preset ${preset.label}`}
-                onClick={() => deleteCustomPreset(preset.id)}
-              >
-                ✕
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
-
-      <button type="button" className="sim-preset-save-btn" onClick={saveCurrentAsPreset}>
-        💾 Save Current as Preset
-      </button>
-
-      {/* ── Sliders ── */}      <div className="sim-sliders" role="group" aria-label="Pollutant reduction sliders">
-        <SliderGroup
-          id="slider-pm25"
-          label="Reduce PM2.5"
-          icon={PM25GaugeIcon}
-          value={pm25Reduction}
-          onChange={(v) => {
-            setActivePreset(null);
-            setPm25Reduction(v);
-          }}
-          current={current.pm2_5}
-          unit="µg/m³"
-        />
-        <SliderGroup
-          id="slider-pm10"
-          label="Reduce PM10"
-          icon={Wind}
-          iconColor="#8b5cf6"
-          value={pm10Reduction}
-          onChange={(v) => {
-            setActivePreset(null);
-            setPm10Reduction(v);
-          }}
-          current={current.pm10}
-          unit="µg/m³"
-        />
-        <SliderGroup
-          id="slider-no2"
-          label="Reduce NO₂"
-          icon={CarFront}
-          value={no2Reduction}
-          onChange={(v) => {
-            setActivePreset(null);
-            setNo2Reduction(v);
-          }}
-          current={current.nitrogen_dioxide}
-          unit="µg/m³"
-        />
-        <SliderGroup
-          id="slider-o3"
-          label="Reduce Ozone"
-          icon={Sun}
-          iconColor="#efa001"
-          value={o3Reduction}
-          onChange={(v) => { setActivePreset(null); setO3Reduction(v); }}
-          current={current.ozone}
-          unit="µg/m³"
-        />
-        <SliderGroup
-          id="slider-co"
-          label="Reduce Carbon Monoxide"
-          icon={Factory}
-          iconColor="#64748b"
-          value={coReduction}
-          onChange={(v) => { setActivePreset(null); setCoReduction(v); }}
-          current={current.carbon_monoxide}
-          unit="µg/m³"
-        />
-      </div>
-
-      {/* ── Active-city AQI comparison ── */}
-      <div className="sim-comparison" role="region" aria-label="Active city AQI comparison">
-        <div className="sim-side sim-current">
-          <span className="sim-label">Current AQI</span>
-          <span className="sim-value" style={{ color: currentBand.color }}>
-            {current.us_aqi}
-          </span>
-          <span className="sim-band" style={{ color: currentBand.color }}>
-            {currentBand.label}
-          </span>
-        </div>
-
-        <div className="sim-arrow-wrap" aria-hidden="true">
-          <span className="sim-arrow-big">→</span>
-          {improvement > 0 && (
-            <span className="sim-improvement-badge">−{improvement}%</span>
-          )}
-          {improvement < 0 && (
-            <span className="sim-worsened-badge">+{Math.abs(improvement)}%</span>
-          )}
-        </div>
-
-        <div className="sim-side sim-estimated">
-          <span className="sim-label">Estimated AQI</span>
-          <span className="sim-value" style={{ color: estimatedBand.color }}>
-            {estimatedAqi}
-          </span>
-          <span className="sim-band" style={{ color: estimatedBand.color }}>
-            {estimatedBand.label}
-          </span>
-        </div>
-      </div>
-
-      {/* ── Multi-city selector ── */}
-      <div className="sim-city-section">
-        <p className="sim-section-label">Compare with other cities:</p>
-        <div className="sim-city-selector" role="group" aria-label="City comparison selector">
-          {CITY_COORDINATES.map((city) => (
-            <button
-              key={city.name}
-              type="button"
-              className={`sim-city-chip${selectedCities.includes(city.name) ? ' active' : ''}`}
-              onClick={() => toggleCity(city.name)}
-              aria-pressed={selectedCities.includes(city.name)}
+          {selectedScenarioId === "ev_transition" && (
+            <div
+              style={{
+                background: "var(--bg-card-alt, rgba(255,255,255,0.03))",
+                padding: "0.85rem 1rem",
+                borderRadius: "8px",
+                border: "1px solid var(--line, #334155)",
+                marginTop: "0.25rem"
+              }}
             >
-              {city.name}
-              {cityLoadingSet.has(city.name) && (
-                <span className="sim-chip-spinner" aria-hidden="true" />
-              )}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* ── City comparison result grid ── */}
-      {selectedCities.length > 0 && (
-        <div className="sim-city-results" role="region" aria-label="City simulation results">
-          {selectedCities.map((cityName) => {
-            if (cityLoadingSet.has(cityName)) {
-              return (
-                <div key={cityName} className="sim-city-result-card sim-loading-card">
-                  <span className="sim-loading-spinner" aria-hidden="true" />
-                  <span>Loading {cityName}…</span>
-                </div>
-              );
-            }
-
-            if (cityErrorSet.has(cityName)) {
-              return (
-                <div key={cityName} className="sim-city-result-card sim-error-card">
-                  <span>⚠️ Could not fetch {cityName} data.</span>
-                </div>
-              );
-            }
-
-            const data = cityData[cityName];
-            if (!data) return null;
-
-            const { simAqi, simBand, improvement: imp, rPm25, rPm10, rNo2, rO3, rCo } = simulateCity(data);
-            const origBand = getAQIBand(data.us_aqi);
-
-            return (
-              <div key={cityName} className="sim-city-result-card">
-                <div className="sim-city-result-header">
-                  <span className="sim-city-name">{cityName}</span>
-                  {imp > 0 && (
-                    <span className="sim-improvement">−{imp}% better</span>
-                  )}
-                  {imp < 0 && (
-                    <span className="sim-worsened">+{Math.abs(imp)}% worse</span>
-                  )}
-                  {imp === 0 && <span className="sim-no-change">No change</span>}
-                </div>
-
-                <div className="sim-city-aqi-row">
-                  <div className="sim-mini-aqi">
-                    <span className="sim-mini-label">Now</span>
-                    <span className="sim-mini-value" style={{ color: origBand.color }}>
-                      {data.us_aqi}
-                    </span>
-                    <span className="sim-mini-band" style={{ color: origBand.color }}>
-                      {origBand.label}
-                    </span>
-                  </div>
-                  <span className="sim-mini-arrow" aria-hidden="true">→</span>
-                  <div className="sim-mini-aqi">
-                    <span className="sim-mini-label">Simulated</span>
-                    <span className="sim-mini-value" style={{ color: simBand.color }}>
-                      {simAqi}
-                    </span>
-                    <span className="sim-mini-band" style={{ color: simBand.color }}>
-                      {simBand.label}
-                    </span>
-                  </div>
-                </div>
-
-                <table className="sim-pollutant-table" aria-label={`Pollutant before/after for ${cityName}`}>
-                  <thead>
-                    <tr>
-                      <th>Pollutant</th>
-                      <th>Before</th>
-                      <th></th>
-                      <th>After</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <PollutantRow label="PM2.5" before={data.pm2_5} after={rPm25} unit="µg/m³" />
-                    <PollutantRow label="PM10" before={data.pm10} after={rPm10} unit="µg/m³" />
-                    <PollutantRow label="NO₂" before={data.nitrogen_dioxide} after={rNo2} unit="µg/m³" />
-                    <PollutantRow label="Ozone" before={data.ozone} after={rO3} unit="µg/m³" />
-                    <PollutantRow label="CO" before={data.carbon_monoxide} after={rCo} unit="µg/m³" />
-                  </tbody>
-                </table>
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.85rem", fontWeight: "600", marginBottom: "0.5rem", color: "var(--ink, #f8fafc)" }}>
+                <span>Adjust Citywide EV Fleet Adoption:</span>
+                <span style={{ color: "var(--brand, #2dd4bf)", fontWeight: "bold" }}>{customEvPct}% EVs</span>
               </div>
-            );
-          })}
+              <input
+                type="range"
+                min="5"
+                max="100"
+                step="5"
+                value={customEvPct}
+                onChange={(e) => setCustomEvPct(Number(e.target.value))}
+                style={{ width: "100%", cursor: "pointer", accentColor: "var(--brand, #0d9488)" }}
+              />
+            </div>
+          )}
         </div>
-      )}
-    </section>
-  );
-}
 
-/* ─── Sub-components ──────────────────────────────────────────────────────── */
-function SliderGroup({
-  id,
-  label,
-  emoji,
-  icon: Icon,
-  iconColor,
-  value,
-  onChange,
-  current,
-  unit
-}) {
-  const reduced = Math.round(current * (1 - value / 100));
+        {/* Right Column: Impact Badges & Animated Visualizer Chart */}
+        <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+          <div
+            style={{
+              display: "flex",
+              gap: "1.25rem",
+              flexWrap: "wrap",
+              padding: "0.85rem 1rem",
+              background: "rgba(13, 148, 136, 0.1)",
+              borderRadius: "8px",
+              borderLeft: "4px solid var(--brand, #0d9488)"
+            }}
+          >
+            <div style={{ fontSize: "0.85rem", color: "var(--ink, #f8fafc)" }}>
+              <strong>NO₂ Reduction:</strong> <span style={{ color: "#22c55e", fontWeight: "bold" }}>-{no2Drop}%</span>
+            </div>
+            <div style={{ fontSize: "0.85rem", color: "var(--ink, #f8fafc)" }}>
+              <strong>PM2.5 Reduction:</strong> <span style={{ color: "#22c55e", fontWeight: "bold" }}>-{pm25Drop}%</span>
+            </div>
+            <div style={{ fontSize: "0.82rem", color: "var(--muted, #94a3b8)", flex: "1 1 100%" }}>
+              💡 {activeScenario.details}
+            </div>
+          </div>
 
-  return (
-    <div className="sim-slider-group">
-      <label htmlFor={id}>
+          <div style={{ width: "100%", height: 260 }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={chartData} margin={{ top: 15, right: 20, left: 0, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--line, #334155)" />
+                <XAxis dataKey="pollutant" tick={{ fontSize: 12, fontWeight: "bold", fill: "var(--ink, #f8fafc)" }} />
+                <YAxis tick={{ fill: "var(--muted, #94a3b8)" }} />
+                <Tooltip
+                  formatter={(val) => [`${val} µg/m³`]}
+                  contentStyle={{ background: "var(--card, #1e293b)", border: "1px solid var(--line, #334155)", color: "var(--ink, #fff)" }}
+                />
+                <Legend wrapperStyle={{ color: "var(--ink, #f8fafc)" }} />
+                <Bar dataKey="Baseline" name="Current Baseline" fill="#ef4444" radius={[6, 6, 0, 0]} isAnimationActive={true} />
+                <Bar dataKey="Simulated" name="Simulated Level" fill="#22c55e" radius={[6, 6, 0, 0]} isAnimationActive={true} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
 
-        <span className="sim-slider-emoji" aria-hidden="true">
-          {Icon ? <Icon size={20} color={iconColor} /> : emoji}
-        </span>
-
-        {label}
-
-        <span className="sim-slider-value">{value}%</span>
-      </label>
-
-      <input
-        id={id}
-        type="range"
-        min={0}
-        max={50}
-        step={5}
-        value={value}
-        onChange={(e) => onChange(Number(e.target.value))}
-        aria-label={`${label} reduction percentage`}
-      />
-
-      <div className="sim-slider-range">
-        <span>Current: {current} {unit}</span>
-        <span>Target: {reduced} {unit}</span>
       </div>
-    </div>
+    </article>
   );
 }

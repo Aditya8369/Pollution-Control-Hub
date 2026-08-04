@@ -16,6 +16,8 @@ Our goal is to maintain a welcoming, collaborative, and high-quality open-source
 * Issue Labels
 * Branch Naming Convention
 * Development Guidelines
+* Testing Guidelines
+* Code Formatting & Linting
 * Commit Message Convention
 * Pull Request Process
 * Review Workflow
@@ -47,7 +49,7 @@ You can contribute by:
 * 📚 Improving documentation
 * ⚡ Refactoring code
 * ♿ Improving accessibility
-* 🧪 Writing or improving tests
+* 🧪 Writing or improving unit and E2E tests
 * 🔒 Improving performance or security
 
 ---
@@ -63,7 +65,7 @@ Click the **Fork** button in the upper-right corner of the repository.
 ## 2. Clone Your Fork
 
 ```bash
-git clone https://github.com/Aditya8369/Pollution-Control-Hub.git
+git clone [https://github.com/Aditya8369/Pollution-Control-Hub.git](https://github.com/Aditya8369/Pollution-Control-Hub.git)
 cd pollution-control-hub
 ```
 
@@ -185,6 +187,46 @@ Please follow these guidelines:
 
 ---
 
+# 🧪 Testing Guidelines
+
+Ensuring code stability is critical. Before submitting a pull request, you must run and pass all test suites locally.
+
+### Running Unit Tests (Vitest)
+This project uses **Vitest** and **React Testing Library** for automated component and utility tests.
+
+To run all unit tests:
+```bash
+npm run test
+```
+
+To run tests in interactive watch mode:
+```bash
+npm run test:watch
+```
+
+### Running End-to-End (E2E) Tests (Playwright)
+To ensure critical user flows work correctly across browsers, execute the Playwright E2E test suite:
+
+```bash
+npx playwright test
+```
+
+If you need to view the test runs interactively using the Playwright UI runner:
+```bash
+npx playwright test --ui
+```
+
+---
+
+# 🧹 Code Formatting & Linting
+
+To maintain a clean and unified codebase style, ensure your code adheres to standard formatting and linting practices before pushing.
+
+- Run your linter/formatter (if configured via package scripts) or ensure your IDE uses standard Prettier/ESLint rules.
+- Avoid introducing unused variables or syntax errors that cause build failures.
+
+---
+
 # 📂 Suggested Project Structure
 
 ```text
@@ -256,19 +298,25 @@ git checkout -b feature/your-feature
 
 3. Make your changes.
 
-4. Commit your work.
+4. Run unit and E2E tests locally to verify everything passes.
+```bash
+npm run test
+npx playwright test
+```
+
+5. Commit your work.
 
 ```bash
 git commit -m "feat: add pollution heatmap"
 ```
 
-5. Push your branch.
+6. Push your branch.
 
 ```bash
 git push origin feature/your-feature
 ```
 
-6. Open a Pull Request.
+7. Open a Pull Request referencing the issue number (e.g., `Closes #437`).
 
 ---
 
@@ -314,7 +362,7 @@ Provide any additional context if necessary.
 
 Once your Pull Request is submitted:
 
-1. Automated checks (if configured) will run.
+1. Automated checks and test suites (Vitest & Playwright E2E) will run.
 2. A maintainer will review your changes.
 3. You may be asked to make revisions.
 4. Push additional commits to the same branch.
@@ -330,9 +378,11 @@ Please be patient during the review process.
 Before submitting your Pull Request, ensure that:
 
 * [ ] My code builds successfully.
-* [ ] I tested my changes.
+* [ ] I passed all local Vitest unit tests (`npm run test`).
+* [ ] I passed all Playwright E2E tests (`npx playwright test`).
+* [ ] I tested my changes manually.
 * [ ] No console errors remain.
-* [ ] I followed the existing coding style.
+* [ ] I followed the existing coding style and formatting rules.
 * [ ] I updated documentation if required.
 * [ ] My branch is up to date.
 * [ ] My Pull Request focuses on a single issue.

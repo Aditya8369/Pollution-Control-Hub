@@ -3,6 +3,7 @@ import { MapContainer, TileLayer, CircleMarker, Popup, Marker } from 'react-leaf
 import { useState, useEffect } from 'react';
 import L from 'leaflet';
 import { eventBus } from '../core/events';
+import PropTypes from "prop-types";
 
 const COMMUNITY_REPORTS_STORAGE_KEY = 'pollution-community-reports';
 
@@ -24,6 +25,17 @@ function readGeotaggedCommunityReports() {
     return [];
   }
 }
+
+/**
+ * Displays an interactive pollution map with nearby AQI hotspots,
+ * optional wind overlay, and community reports.
+ *
+ * @param {Object} props
+ * @param {{lat: number, lon: number}} props.center
+ * @param {Array<Object>} props.nearbyPoints
+ * @param {"Low"|"Medium"|"High"|string} props.confidenceScore
+ * @param {{direction: number, speed: number}|null} [props.windData]
+ */
 
 export default function LocationMap({ center, nearbyPoints, confidenceScore, windData }) {
   const [showWind, setShowWind] = useState(false);
@@ -208,3 +220,46 @@ export default function LocationMap({ center, nearbyPoints, confidenceScore, win
     </section>
   );
 }
+
+LocationMap.propTypes = {
+  /**
+   * Center coordinates of the map.
+   */
+  center: PropTypes.shape({
+    lat: PropTypes.number.isRequired,
+    lon: PropTypes.number.isRequired,
+  }).isRequired,
+
+  /**
+   * Nearby pollution monitoring points.
+   */
+  nearbyPoints: PropTypes.arrayOf(
+    PropTypes.shape({
+      id: PropTypes.oneOfType([
+        PropTypes.string,
+        PropTypes.number,
+      ]).isRequired,
+      lat: PropTypes.number.isRequired,
+      lon: PropTypes.number.isRequired,
+      areaName: PropTypes.string.isRequired,
+      aqi: PropTypes.number.isRequired,
+    })
+  ).isRequired,
+
+  /**
+   * Confidence level used for map visualization.
+   */
+  confidenceScore: PropTypes.string.isRequired,
+
+  /**
+   * Wind overlay information.
+   */
+  windData: PropTypes.shape({
+    direction: PropTypes.number.isRequired,
+    speed: PropTypes.number.isRequired,
+  }),
+};
+
+LocationMap.defaultProps = {
+  windData: null,
+};

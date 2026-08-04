@@ -7,6 +7,10 @@ const VOTE_THRESHOLD = 5;
 const X_DAYS = 7;
 const MAX_IMAGE_SIZE_BYTES = 500 * 1024; // 500 KB
 const STORAGE_WARN_THRESHOLD = 5 * 1024 * 1024; // 5 MB warning
+const MAX_TITLE_LENGTH = 120;
+const MAX_DESCRIPTION_LENGTH = 2000;
+const MAX_COMMENT_LENGTH = 500;
+const HASHTAGS = ['#TreePlanting', '#StubbleBurning', '#CleanAir'];
 
 /**
  * Compress a base64 data URI to a smaller JPEG using canvas.
@@ -31,10 +35,70 @@ function compressImage(dataUrl, maxWidth = 800, quality = 0.7) {
   });
 }
 
-function readReports() {
+/**
+ * Reverses the HTML entity escaping that earlier versions applied before storing a
+ * report. React escapes text children itself, so the stored entities were rendered
+ * literally ("Smoke &amp;amp; dust"). Decoding on read repairs reports that were already
+ * saved in that form; text that contains no entities passes through untouched.
+ *
+ * Applied repeatedly this is not idempotent in the strict sense — a report whose author
+ * genuinely typed "&amp;" would lose one round — so it runs once, at the migration below,
+ * and the result is written back.
+ *
+ * @param {string} value
+ * @returns {string}
+ */
+export function decodeStoredEntities(value) {
+  if (typeof value !== 'string') return value;
+  return value
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#x27;/g, "'")
+    .replace(/&amp;/g, '&'); // last, so "&amp;lt;" decodes to "&lt;" and not "<"
+}
+
+/**
+ * True when a stored report still holds the escaped text written by earlier versions.
+ *
+ * @param {any} report
+ * @returns {boolean}
+ */
+function needsEntityMigration(report) {
+  const pattern = /&(amp|lt|gt|quot|#x27);/;
+  return pattern.test(report?.title || '') || pattern.test(report?.description || '');
+}
+
+/**
+ * Loads reports from localStorage, decoding any that were persisted with HTML entities.
+ *
+ * @returns {any[]}
+ */
+export function readReports() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : [];
+    const parsed = raw ? JSON.parse(raw) : [];
+    if (!Array.isArray(parsed)) return [];
+
+    if (!parsed.some(needsEntityMigration)) return parsed;
+
+    const migrated = parsed.map((report) =>
+      needsEntityMigration(report)
+        ? {
+            ...report,
+            title: decodeStoredEntities(report.title),
+            description: decodeStoredEntities(report.description),
+          }
+        : report
+    );
+
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(migrated));
+    } catch {
+      // Migration is best-effort; the decoded copy is still returned for this session.
+    }
+
+    return migrated;
   } catch {
     return [];
   }
@@ -53,16 +117,19 @@ export default function CommunityHub() {
   const [reports, setReports] = useState(() => readReports());
   const [votedIds, setVotedIds] = useState(() => readVotedIds());
   const [filter, setFilter] = useState('All');
+  const [hashtagFilter, setHashtagFilter] = useState('All');
   const [form, setForm] = useState({
     title: '',
     description: '',
-    image: ''
+    image: '',
+    hashtag: ''
   });
   const [fileInputKey, setFileInputKey] = useState(Date.now());
   const [uploadError, setUploadError] = useState('');
   const [isProcessingImage, setIsProcessingImage] = useState(false);
   const [locationCoords, setLocationCoords] = useState(null);
   const [locationStatus, setLocationStatus] = useState('idle');
+  const [commentDrafts, setCommentDrafts] = useState({});
 
   useEffect(() => {
     try {
@@ -131,21 +198,15 @@ export default function CommunityHub() {
     );
   };
 
-  /** @param {string} str */
-  const sanitizeText = (str) => {
-    return str
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#x27;');
-  };
-
   /** @param {any} event */
   const onSubmit = (event) => {
     event.preventDefault();
-    const cleanTitle = form.title.trim();
-    const cleanDescription = form.description.trim();
+    // Report text is stored verbatim and rendered as a React text child, which React
+    // escapes on output. Escaping here as well would double-encode it — an apostrophe
+    // would reach the reader as "&#x27;" — without adding any protection, since this
+    // component never uses dangerouslySetInnerHTML.
+    const cleanTitle = form.title.trim().slice(0, MAX_TITLE_LENGTH);
+    const cleanDescription = form.description.trim().slice(0, MAX_DESCRIPTION_LENGTH);
     if (!cleanTitle || !cleanDescription) return;
 
     // Validate image data URL scheme if present
@@ -161,9 +222,10 @@ export default function CommunityHub() {
 
     const newReport = {
       id: crypto.randomUUID(),
-      title: sanitizeText(cleanTitle),
-      description: sanitizeText(cleanDescription),
+      title: cleanTitle,
+      description: cleanDescription,
       image: safeImage,
+      hashtag: form.hashtag,
       votes: 0,
       createdAt: new Date().toISOString(),
       status: "Pending",
@@ -171,10 +233,11 @@ export default function CommunityHub() {
       moderationNotes: "",
       latitude: locationCoords ? locationCoords.latitude : null,
       longitude: locationCoords ? locationCoords.longitude : null,
+      comments: [],
     };
 
     setReports((prev) => [newReport, ...prev]);
-    setForm({ title: '', description: '', image: '' });
+    setForm({ title: '', description: '', image: '', hashtag: '' });
     setFileInputKey(Date.now());
     setLocationCoords(null);
     setLocationStatus('idle');
@@ -274,7 +337,34 @@ export default function CommunityHub() {
     setVotedIds((prev) => new Set(prev).add(id));
   };
 
+  /** @param {string} reportId */
+  const addComment = (reportId) => {
+    const text = (commentDrafts[reportId] || '').trim().slice(0, MAX_COMMENT_LENGTH);
+    if (!text) return;
+
+    setReports((prev) =>
+      prev.map((report) => {
+        if (report.id !== reportId) return report;
+        const comments = Array.isArray(report.comments) ? report.comments : [];
+        return {
+          ...report,
+          comments: [
+            ...comments,
+            {
+              id: crypto.randomUUID(),
+              text,
+              createdAt: new Date().toISOString(),
+            },
+          ],
+        };
+      })
+    );
+
+    setCommentDrafts((prev) => ({ ...prev, [reportId]: '' }));
+  };
+
   const filteredReports = reports.filter((report) => {
+    if (hashtagFilter !== 'All' && report.hashtag !== hashtagFilter) return false;
     if (filter === 'All') return true;
     if (filter === 'Verified') return report.status.startsWith('Verified');
     return report.status === filter;
@@ -291,14 +381,25 @@ export default function CommunityHub() {
         <input
           type="text"
           value={form.title}
+          maxLength={MAX_TITLE_LENGTH}
           placeholder="Issue title (e.g., Garbage burning)"
           onChange={(event) => setForm((prev) => ({ ...prev, title: event.target.value }))}
         />
         <textarea
           value={form.description}
+          maxLength={MAX_DESCRIPTION_LENGTH}
           placeholder="Describe location and issue details"
           onChange={(event) => setForm((prev) => ({ ...prev, description: event.target.value }))}
         />
+        <select
+          value={form.hashtag}
+          onChange={(event) => setForm((prev) => ({ ...prev, hashtag: event.target.value }))}
+        >
+          <option value="">Add a hashtag (optional)</option>
+          {HASHTAGS.map((hashtag) => (
+            <option key={hashtag} value={hashtag}>{hashtag}</option>
+          ))}
+        </select>
         <input
           key={fileInputKey}
           type="file"
@@ -357,6 +458,19 @@ export default function CommunityHub() {
         ))}
       </div>
 
+      <div className="filter-tabs" style={{ display: 'flex', gap: '8px', margin: '15px 0', flexWrap: 'wrap' }}>
+        {['All', ...HASHTAGS].map((hashtagOption) => (
+          <button
+            key={hashtagOption}
+            type="button"
+            className={hashtagFilter === hashtagOption ? 'active' : ''}
+            onClick={() => setHashtagFilter(hashtagOption)}
+          >
+            {hashtagOption}
+          </button>
+        ))}
+      </div>
+
       <div className="reports-list" style={{ display: 'grid', gap: '15px' }}>
         {filteredReports.length === 0 ? (
           <p className="no-reports">No reports found for "{filter}".</p>
@@ -372,6 +486,9 @@ export default function CommunityHub() {
                   </span>
                 </div>
                 <p style={{ margin: '0 0 10px 0', color: 'var(--muted)', fontSize: '0.95rem' }}>{report.description}</p>
+                {report.hashtag && (
+                  <p className="report-hashtag" style={{ margin: '0 0 10px 0', fontSize: '0.85rem', color: 'var(--brand)' }}>{report.hashtag}</p>
+                )}
                 {report.image && (
                   <div style={{ marginBottom: '10px' }}>
                     <img src={report.image} alt={report.title} style={{ maxWidth: '100%', maxHeight: '200px', borderRadius: '6px', objectFit: 'cover' }} />
@@ -387,6 +504,59 @@ export default function CommunityHub() {
                   >
                     {isVoted ? 'Voted' : 'Upvote (+1)'}
                   </button>
+                </div>
+
+                <div className="report-comments" style={{ marginTop: '12px', borderTop: '1px solid var(--line)', paddingTop: '12px' }}>
+                  <p style={{ margin: '0 0 8px 0', fontSize: '0.85rem', fontWeight: 600 }}>
+                    Comments ({(report.comments || []).length})
+                  </p>
+                  {(report.comments || []).length === 0 ? (
+                    <p style={{ margin: '0 0 8px 0', fontSize: '0.85rem', color: 'var(--muted)' }}>
+                      No comments yet.
+                    </p>
+                  ) : (
+                    <ul style={{ listStyle: 'none', margin: '0 0 10px 0', padding: 0, display: 'grid', gap: '8px' }}>
+                      {(report.comments || []).map((comment) => (
+                        <li
+                          key={comment.id}
+                          style={{
+                            fontSize: '0.9rem',
+                            padding: '8px 10px',
+                            background: 'var(--panel)',
+                            borderRadius: '6px',
+                          }}
+                        >
+                          <p style={{ margin: 0 }}>{comment.text}</p>
+                          <small style={{ color: 'var(--muted)' }}>
+                            {new Date(comment.createdAt).toLocaleString()}
+                          </small>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  <form
+                    onSubmit={(event) => {
+                      event.preventDefault();
+                      addComment(report.id);
+                    }}
+                    style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}
+                  >
+                    <textarea
+                      value={commentDrafts[report.id] || ''}
+                      maxLength={MAX_COMMENT_LENGTH}
+                      placeholder="Add a comment..."
+                      onChange={(event) =>
+                        setCommentDrafts((prev) => ({
+                          ...prev,
+                          [report.id]: event.target.value,
+                        }))
+                      }
+                      style={{ flex: 1, minHeight: '60px', resize: 'vertical' }}
+                    />
+                    <button type="submit" style={{ padding: '6px 12px', whiteSpace: 'nowrap' }}>
+                      Post
+                    </button>
+                  </form>
                 </div>
               </div>
             );
