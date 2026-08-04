@@ -39,6 +39,7 @@ import ThemeSwitcher from "./components/ThemeSwitcher";
 import CarbonFootprintCalculator from "./components/CarbonFootprintCalculator";
 import Leaderboard from "./components/Leaderboard";
 import EmbeddableWidgetGenerator from "./components/EmbeddableWidgetGenerator";
+import Glossary from "./components/Glossary";
 
 const AqiMissionGame = lazy(() => import("./components/AqiMissionGame"));
 const HotspotScoutGame = lazy(() => import("./components/HotspotScoutGame"));
@@ -284,6 +285,7 @@ function SectionNav({ activeSection, onSectionChange, theme }) {
     { id: "historical-data", label: "Data Explorer" },
     { id: "Commute", label: "Commute" },
     { id: "CarbonCalculator", label: "Carbon Calculator" },
+    { id: "glossary", label: "Glossary" },
   ];
   // @ts-ignore
   const isDark = theme === "dark";
@@ -1159,6 +1161,14 @@ function AppContent() {
             {activeSection === "CarbonCalculator" && (
               <div className="content-grid carbon-calculator-layout">
                 <CarbonFootprintCalculator />
+              </div>
+            )}
+            {activeSection === "glossary" && (
+              <div
+                className="content-grid glossary-layout"
+                style={{ maxWidth: "1100px", margin: "2rem auto", width: "100%", display: "block" }}
+              >
+                <Glossary />
               </div>
             )}
             <Footer />
