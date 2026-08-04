@@ -829,12 +829,22 @@ function AppContent() {
     return () => window.removeEventListener("popstate", handlePopState);
   }, [startGeolocation]);
 
+  const mutateAqiRef = useRef(mutateAqi);
+  const mutateCitiesRef = useRef(mutateCities);
+  const mutateWindRef = useRef(mutateWind);
+
+  useEffect(() => {
+    mutateAqiRef.current = mutateAqi;
+    mutateCitiesRef.current = mutateCities;
+    mutateWindRef.current = mutateWind;
+  });
+
   useEffect(() => {
     const refreshTimer = setInterval(() => {
       if (navigator.onLine) {
-        mutateAqi();
-        mutateCities();
-        mutateWind();
+        mutateAqiRef.current();
+        mutateCitiesRef.current();
+        mutateWindRef.current();
         setRefreshCountdown(AUTO_REFRESH_SECONDS);
       }
     }, AUTO_REFRESH_SECONDS * 1000);
@@ -849,7 +859,7 @@ function AppContent() {
       clearInterval(refreshTimer);
       clearInterval(countdownTimer);
     };
-  }, [mutateAqi, mutateCities, mutateWind]);
+  }, []);
 
   const analytics = useMemo(
     () => estimateWeeklyMonthlyAverages(trend),
