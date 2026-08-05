@@ -27,9 +27,9 @@ export default function ExposureCalculator({ currentAqi = 100 }) {
     if (newHours <= 0) return;
     setActivities((prev) => [
       ...prev,
-      { id: Date.now(), type: newActivityType, hours: Number(newHours) },
-    ]);
-    setNewHours(1);
+  { id: crypto.randomUUID(), type: newActivityType, hours: Number(newHours) },
+]);
+  setNewHours(1);
   };
 
   const handleRemoveActivity = (id) => {
