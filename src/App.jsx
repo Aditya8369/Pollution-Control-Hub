@@ -58,7 +58,30 @@ const THEME_STORAGE_KEY = "pollution-hub-theme";
 // the OS was set to when the app last rendered ("system"). The theme value alone cannot
 // answer that — it is written on every render — so intent needs its own key.
 const THEME_SOURCE_KEY = "pollution-hub-theme-source";
-const AUTO_REFRESH_SECONDS = 180;
+const AUTO_REFRESH_STORAGE_KEY = "pollution-hub-auto-refresh-seconds";
+const DEFAULT_AUTO_REFRESH_SECONDS = 180;
+const AUTO_REFRESH_OPTIONS = [
+  { label: "Off", seconds: 0 },
+  { label: "1 min", seconds: 60 },
+  { label: "3 min", seconds: 180 },
+  { label: "5 min", seconds: 300 },
+  { label: "10 min", seconds: 600 },
+];
+
+/** @returns {number} Saved auto-refresh interval in seconds, or the default. */
+function readAutoRefreshSeconds() {
+  try {
+    const raw = localStorage.getItem(AUTO_REFRESH_STORAGE_KEY);
+    if (raw == null) return DEFAULT_AUTO_REFRESH_SECONDS;
+    const value = Number(raw);
+    if (!AUTO_REFRESH_OPTIONS.some((option) => option.seconds === value)) {
+      return DEFAULT_AUTO_REFRESH_SECONDS;
+    }
+    return value;
+  } catch {
+    return DEFAULT_AUTO_REFRESH_SECONDS;
+  }
+}
 
 /** @returns {"dark"|"light"} The OS colour-scheme preference, defaulting to light. */
 // @ts-ignore
@@ -151,6 +174,8 @@ function AppControls({
   savedLocations,
   onSaveLocation,
   onRemoveSavedLocation,
+  autoRefreshSeconds,
+  onAutoRefreshChange,
 }) {
   const isCurrentCitySaved = savedLocations.some(
     (item) => item.name === currentCity,
@@ -247,8 +272,25 @@ function AppControls({
         <p>
           {isRefreshing
             ? "Refreshing live feed..."
-            : `Auto refresh in ${refreshCountdown}s`}
+            : autoRefreshSeconds === 0
+              ? "Auto refresh off"
+              : `Auto refresh in ${refreshCountdown}s`}
         </p>
+        <label htmlFor="auto-refresh-interval" style={{ marginLeft: "0.5rem" }}>
+          Interval:
+        </label>
+        <select
+          id="auto-refresh-interval"
+          value={autoRefreshSeconds}
+          onChange={(event) => onAutoRefreshChange(Number(event.target.value))}
+          style={{ padding: "0.3rem 0.5rem" }}
+        >
+          {AUTO_REFRESH_OPTIONS.map((option) => (
+            <option key={option.seconds} value={option.seconds}>
+              {option.label}
+            </option>
+          ))}
+        </select>
       </div>
 
       <div className="control-group actions">
@@ -599,8 +641,12 @@ function AppContent() {
   const error = (aqiError || citiesError || windError)?.message || "";
 
   const [lastUpdated, setLastUpdated] = useState("");
-  const [refreshCountdown, setRefreshCountdown] =
-    useState(AUTO_REFRESH_SECONDS);
+  const [autoRefreshSeconds, setAutoRefreshSeconds] = useState(
+    () => readAutoRefreshSeconds(),
+  );
+  const [refreshCountdown, setRefreshCountdown] = useState(
+    () => readAutoRefreshSeconds(),
+  );
   const [savedLocations, setSavedLocations] = useState(() => readSavedLocations());
   const [locationNotice, setLocationNotice] = useState("");
   const [persistenceWarning, setPersistenceWarning] = useState("");
@@ -842,18 +888,34 @@ function AppContent() {
   });
 
   useEffect(() => {
+    try {
+      localStorage.setItem(
+        AUTO_REFRESH_STORAGE_KEY,
+        String(autoRefreshSeconds),
+      );
+    } catch {
+      // Preference is optional — a full quota shouldn't break the dashboard.
+    }
+    setRefreshCountdown(autoRefreshSeconds);
+  }, [autoRefreshSeconds]);
+
+  useEffect(() => {
+    if (autoRefreshSeconds === 0) {
+      return undefined;
+    }
+
     const refreshTimer = setInterval(() => {
       if (navigator.onLine) {
         mutateAqiRef.current();
         mutateCitiesRef.current();
         mutateWindRef.current();
-        setRefreshCountdown(AUTO_REFRESH_SECONDS);
+        setRefreshCountdown(autoRefreshSeconds);
       }
-    }, AUTO_REFRESH_SECONDS * 1000);
+    }, autoRefreshSeconds * 1000);
 
     const countdownTimer = setInterval(() => {
       setRefreshCountdown((prev) =>
-        prev <= 1 ? AUTO_REFRESH_SECONDS : prev - 1,
+        prev <= 1 ? autoRefreshSeconds : prev - 1,
       );
     }, 1000);
 
@@ -861,7 +923,7 @@ function AppContent() {
       clearInterval(refreshTimer);
       clearInterval(countdownTimer);
     };
-  }, []);
+  }, [autoRefreshSeconds]);
 
   const analytics = useMemo(
     () => estimateWeeklyMonthlyAverages(trend),
@@ -899,8 +961,10 @@ function AppContent() {
     mutateAqi();
     mutateCities();
     mutateWind();
-    setRefreshCountdown(AUTO_REFRESH_SECONDS);
-  }, [isRefreshing, mutateAqi, mutateCities, mutateWind]);
+    if (autoRefreshSeconds > 0) {
+      setRefreshCountdown(autoRefreshSeconds);
+    }
+  }, [isRefreshing, mutateAqi, mutateCities, mutateWind, autoRefreshSeconds]);
 
   useEffect(() => {
     const handleOnline = () => {
@@ -981,6 +1045,8 @@ function AppContent() {
                 savedLocations={savedLocations}
                 onSaveLocation={handleSaveLocation}
                 onRemoveSavedLocation={handleRemoveSavedLocation}
+                autoRefreshSeconds={autoRefreshSeconds}
+                onAutoRefreshChange={setAutoRefreshSeconds}
               />
             )}
 
