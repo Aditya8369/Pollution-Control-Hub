@@ -20,7 +20,11 @@ describe('routePlanner - AQI Polyline Heatmap & Route Segmentation', () => {
     it('handles invalid or edge case values gracefully', () => {
       expect(pm25ToAQI(null)).toBe(0);
       expect(pm25ToAQI(undefined)).toBe(0);
+
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
       expect(pm25ToAQI(-5)).toBe(0);
+      expect(warnSpy).toHaveBeenCalled();
+      warnSpy.mockRestore();
     });
   });
 
