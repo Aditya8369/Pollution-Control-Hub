@@ -137,7 +137,7 @@ export default function LocationMap({ center, nearbyPoints, confidenceScore, win
       </div>
 
       <div className="map-wrap">
-        <MapContainer center={[center.lat, center.lon]} zoom={11} scrollWheelZoom={true} className="map">
+        <MapContainer key={`${center.lat}-${center.lon}`} center={[center.lat, center.lon]} zoom={11} scrollWheelZoom={true} className="map">
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
