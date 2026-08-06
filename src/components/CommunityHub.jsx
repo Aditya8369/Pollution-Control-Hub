@@ -147,6 +147,9 @@ export default function CommunityHub() {
       if (e.name === 'QuotaExceededError' || e.code === 22) {
         console.error('localStorage quota exceeded. Pruning oldest reports...');
         // Remove oldest/lowest-vote reports until write succeeds
+        // Lowest-value first: fewest votes, then oldest. We drop victims in
+        // this order but keep `pruned` in the original (newest-first) display
+        // order so the surviving reports aren't reordered.
         const sorted = [...reports].sort((a, b) => {
           if (a.votes !== b.votes) return a.votes - b.votes;
           // @ts-ignore
@@ -154,13 +157,15 @@ export default function CommunityHub() {
         });
 
         let pruned = [...reports];
+        let victimIdx = 0;
         while (pruned.length > 0) {
           try {
             localStorage.setItem(STORAGE_KEY, JSON.stringify(pruned));
             setReports(pruned);
             break;
           } catch {
-            pruned.shift(); // remove lowest-value report
+            const victim = sorted[victimIdx++]; // remove lowest-value report
+            pruned = pruned.filter((r) => r !== victim);
           }
         }
 
