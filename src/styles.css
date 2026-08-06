@@ -4751,7 +4751,7 @@
 }
 
 /* Any button with dark background / brand fill / active state gets pure white text (#ffffff) */
-:root[data-theme="high-contrast"] button[style*="background"]:not([style*="background: white"]):not([style*="background: rgb(255, 255, 255)"]):not([style*="background:#fff"]):not([style*="background: #fff"]),
+:root[data-theme="high-contrast"] button[style*="background"]:not([style*="background: white"]):not([style*="background: rgb(255, 255, 255)"]):not([style*="background:#fff"]):not([style*="background: #fff"]):not(.glossary-quick-stat-chip),
 :root[data-theme="high-contrast"] button[style*="brand"],
 :root[data-theme="high-contrast"] button.active,
 :root[data-theme="high-contrast"] button[class*="active"],
@@ -4770,6 +4770,47 @@
 /* Active/press state */
 :root[data-theme="high-contrast"] button:not(:disabled):active {
   transform: scale(0.97) !important;
+}
+
+/* Glossary quick-stat chips & category filter buttons set inline text/background
+   colors (pastel, designed for the dark theme) via style={{...}} in Glossary.jsx.
+   Those inline colors are unreadable in High Contrast, so force readable text
+   while leaving the per-category border color intact. */
+:root[data-theme="high-contrast"] .glossary-quick-stat-chip,
+:root[data-theme="high-contrast"] .glossary-cat-btn {
+  color: var(--hc-ink) !important;
+  background-color: var(--hc-surface) !important;
+}
+
+:root[data-theme="high-contrast"] .glossary-quick-stat-chip:hover {
+  opacity: 1 !important;
+  color: #ffffff !important;
+  background-color: var(--hc-brand) !important;
+  border-color: var(--hc-brand) !important;
+}
+
+:root[data-theme="high-contrast"] .glossary-cat-btn--active {
+  background-color: var(--hc-brand) !important;
+  color: #ffffff !important;
+  border-color: var(--hc-brand) !important;
+}
+
+:root[data-theme="high-contrast"] .glossary-category-badge {
+  background-color: var(--hc-surface-alt) !important;
+  color: var(--hc-ink) !important;
+  border: 2px solid var(--hc-border) !important;
+}
+
+:root[data-theme="high-contrast"] .glossary-header-badge {
+  background-color: var(--hc-surface-alt) !important;
+  color: var(--hc-ink) !important;
+  border: 2px solid var(--hc-border) !important;
+}
+
+:root[data-theme="high-contrast"] .glossary-search-hint kbd {
+  background-color: var(--hc-surface) !important;
+  color: var(--hc-ink) !important;
+  border: 2px solid var(--hc-border) !important;
 }
 
 /* ── 9. Navigation ───────────────────────────────────────────── */
