@@ -68,7 +68,7 @@ export default function SolutionsAwareness() {
         } else {
           if (document.activeElement === lastElement) {
             e.preventDefault();
-            lastElement.focus();
+            firstElement.focus();
           }
         }
       }
