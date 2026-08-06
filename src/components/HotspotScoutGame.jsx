@@ -38,7 +38,7 @@ function HotspotScoutGame({ nearbyPoints }) {
 
     const winner = getHighestAQI(round);
 
-    if (spot.aqi === winner.aqi) {
+    if (spot.areaName === winner.areaName) {
       setScore(prev => prev + 1);
       setStreak(prev => prev + 1);
     } else {
