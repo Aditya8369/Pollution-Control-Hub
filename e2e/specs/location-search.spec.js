@@ -63,20 +63,15 @@ test.describe('City search / location lookup', () => {
     await page.goto('/');
     await page.waitForSelector('[data-testid="dashboard"]', { timeout: 15_000 });
 
-    const geoRequests = [];
-    page.on('request', (req) => {
-      if (req.url().includes('geocoding-api.open-meteo.com')) {
-        geoRequests.push(req.url());
-      }
-    });
-
     const input = page.locator('section[aria-label="Live controls"] input').first();
+    const geoRequestPromise = page.waitForRequest(
+      (req) => req.url().includes('geocoding-api.open-meteo.com'),
+      { timeout: 5_000 },
+    );
     await input.fill('Mumbai');
 
-    // Geocoding should be called (debounced — wait up to 2 s)
-    await page.waitForTimeout(1_500);
-    expect(geoRequests.length).toBeGreaterThan(0);
-    expect(geoRequests[0]).toContain('Mumbai');
+    const geoRequest = await geoRequestPromise;
+    expect(geoRequest.url()).toContain('Mumbai');
   });
 
   test('selecting a suggestion updates the hero city name', async ({ page }) => {
@@ -85,8 +80,12 @@ test.describe('City search / location lookup', () => {
     await page.waitForSelector('[data-testid="dashboard"]', { timeout: 15_000 });
 
     const input = page.locator('section[aria-label="Live controls"] input').first();
+    const geoRequestPromise = page.waitForRequest(
+      (req) => req.url().includes('geocoding-api.open-meteo.com'),
+      { timeout: 5_000 },
+    );
     await input.fill('Mumbai');
-    await page.waitForTimeout(1_500);
+    await geoRequestPromise;
 
     // Select via keyboard to avoid sticky-nav pointer interception on narrow viewports
     const suggestion = page.locator('[data-testid="location-suggestion"]').first();
@@ -106,8 +105,12 @@ test.describe('City search / location lookup', () => {
     await page.waitForSelector('[data-testid="dashboard"]', { timeout: 15_000 });
 
     const input = page.locator('section[aria-label="Live controls"] input').first();
+    const geoRequestPromise = page.waitForRequest(
+      (req) => req.url().includes('geocoding-api.open-meteo.com'),
+      { timeout: 5_000 },
+    );
     await input.fill('Mumbai');
-    await page.waitForTimeout(1_500);
+    await geoRequestPromise;
 
     const suggestion = page.locator('[data-testid="location-suggestion"]').first();
     if (await suggestion.isVisible({ timeout: 3_000 })) {
