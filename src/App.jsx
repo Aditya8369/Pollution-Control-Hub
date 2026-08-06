@@ -1225,7 +1225,15 @@ function AppContent() {
             {activeSection === "Commute" && <Commute />}
             {activeSection === "Compare" && <CityCompare />}
             {activeSection === "CarbonCalculator" && (
-              <div className="content-grid carbon-calculator-layout">
+              <div
+                className="content-grid carbon-calculator-layout"
+                style={{
+                  maxWidth: "1200px",
+                  margin: "2rem auto",
+                  width: "100%",
+                  display: "block",
+                }}
+              >
                 <CarbonFootprintCalculator />
               </div>
             )}
