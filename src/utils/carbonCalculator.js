@@ -71,11 +71,11 @@ export function calculateCarbonFootprint(inputs = {}) {
   const totalAnnualTonnes = (totalMonthlyKg * 12) / 1000;
 
   const breakdown = [
-    { key: 'vehicle', label: 'Car / Bike Travel', monthlyKg: Math.round(vehicleEmissions * 10) / 10 },
-    { key: 'electricity', label: 'Home Electricity', monthlyKg: Math.round(electricityEmissions * 10) / 10 },
-    { key: 'lpg', label: 'LPG Cooking Gas', monthlyKg: Math.round(lpgEmissions * 10) / 10 },
-    { key: 'publicTransit', label: 'Public Transit', monthlyKg: Math.round(publicTransitEmissions * 10) / 10 },
-    { key: 'flights', label: 'Flights', monthlyKg: Math.round(flightEmissions * 10) / 10 }
+    { key: 'vehicle', label: 'Car / Bike Travel', monthlyKg: Math.round(vehicleEmissions * 10) / 10, unit: 'kg CO₂e/month' },
+    { key: 'electricity', label: 'Home Electricity', monthlyKg: Math.round(electricityEmissions * 10) / 10, unit: 'kg CO₂e/month' },
+    { key: 'lpg', label: 'LPG Cooking Gas', monthlyKg: Math.round(lpgEmissions * 10) / 10, unit: 'kg CO₂e/month' },
+    { key: 'publicTransit', label: 'Public Transit', monthlyKg: Math.round(publicTransitEmissions * 10) / 10, unit: 'kg CO₂e/month' },
+    { key: 'flights', label: 'Flights', monthlyKg: Math.round(flightEmissions * 10) / 10, unit: 'kg CO₂e/month' }
   ];
 
   return {
