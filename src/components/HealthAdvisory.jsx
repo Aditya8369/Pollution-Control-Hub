@@ -202,7 +202,12 @@ export default function HealthAdvisory() {
         {organImpacts.map((organ) => (
           <article key={organ.title} className="advisory-card">
             <div className="advisory-card-header">
-              {organ.icon}
+              <span
+                className="organ-icon-wrapper"
+                title={t('healthAdvisory.organIconTooltip', { organ: organ.title, defaultValue: `Impact on ${organ.title}` })}
+              >
+                {organ.icon}
+              </span>
               <h3>{organ.title}</h3>
             </div>
             <p>{organ.impact}</p>
@@ -237,7 +242,12 @@ export default function HealthAdvisory() {
           {audiences[activeTab].tips.map((tip) => (
             <div key={tip.title} className="tip-action-card">
               <div className="tip-header">
-                <div className="tip-icon-wrapper">{tip.icon}</div>
+                <div
+                  className="tip-icon-wrapper"
+                  title={t('healthAdvisory.tipIconTooltip', { tip: tip.title, defaultValue: `${tip.title} icon` })}
+                >
+                  {tip.icon}
+                </div>
                 <span className={`priority-badge ${tip.badgeClass}`}>{tip.priority}</span>
               </div>
               <div className="tip-body">

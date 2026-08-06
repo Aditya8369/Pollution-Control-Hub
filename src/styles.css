@@ -981,6 +981,13 @@
   flex-shrink: 0;
 }
 
+.organ-icon-wrapper {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: help;
+}
+
 .divider-line {
   height: 1px;
   background: var(--line);
