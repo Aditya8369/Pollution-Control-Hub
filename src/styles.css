@@ -1,4 +1,3 @@
-
 .selected-file-container {
   display: flex;
   align-items: center;
@@ -1337,7 +1336,8 @@
   top: calc(100% + 4px);
   left: 0;
   width: 100%;
-  min-width: 280px;
+  min-width: unset;
+  max-width: calc(100vw - 2rem);
   max-height: 250px;
   overflow-y: auto;
   background: var(--card);
@@ -2630,8 +2630,8 @@
 
   .location-search-wrapper {
     max-width: 100%;
-    flex: 1;
-    min-width: 0;
+    flex: 1 1 160px;
+    min-width: 160px;
   }
 
   .location-search-dropdown {
@@ -4324,6 +4324,7 @@
     text-align: center;
   }
 }
+
 @media (max-width: 480px) {
   .compare-controls-bar {
     flex-direction: column;
@@ -4350,7 +4351,9 @@
     padding: var(--sp-4);
   }
 }
+
 @media (max-width: 480px) {
+
   /* City Compare */
   .compare-controls-bar {
     flex-direction: column;
@@ -5689,6 +5692,10 @@ a {
   transition:
     box-shadow 200ms var(--ease),
     transform 200ms var(--ease);
+}
+
+.control-group:has(.location-search-dropdown) {
+  z-index: 50;
 }
 
 .control-group:hover {
@@ -7677,7 +7684,8 @@ a {
   top: calc(100% + 4px);
   left: 0;
   width: 100%;
-  min-width: 280px;
+  min-width: unset;
+  max-width: calc(100vw - 2rem);
   max-height: 250px;
   overflow-y: auto;
   background: var(--card);
@@ -8919,8 +8927,8 @@ a {
 
   .location-search-wrapper {
     max-width: 100%;
-    flex: 1;
-    min-width: 0;
+    flex: 1 1 160px;
+    min-width: 160px;
   }
 
   .location-search-dropdown {
