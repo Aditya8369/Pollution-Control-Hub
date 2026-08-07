@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, useCallback, useRef, lazy, Suspense, } from "react";
+import { useEffect, useMemo, useState, useCallback, useRef, lazy, Suspense } from "react";
 import { useSWR } from "./hooks/useSWR";
 import { cacheStore } from "./utils/cacheStore";
 import AlertsPanel from "./components/AlertsPanel";
@@ -54,9 +54,6 @@ const DEFAULT_POSITION = {
 const SAVED_LOCATIONS_KEY = "pollution-hub-saved-locations";
 
 const THEME_STORAGE_KEY = "pollution-hub-theme";
-// Whether the stored theme reflects a deliberate choice ("manual") or just mirrors what
-// the OS was set to when the app last rendered ("system"). The theme value alone cannot
-// answer that — it is written on every render — so intent needs its own key.
 const THEME_SOURCE_KEY = "pollution-hub-theme-source";
 const AUTO_REFRESH_STORAGE_KEY = "pollution-hub-auto-refresh-seconds";
 const DEFAULT_AUTO_REFRESH_SECONDS = 180;
@@ -109,13 +106,9 @@ function readSavedLocations() {
   }
 }
 
-// Nominatim's usage policy allows at most 1 request per second, so we track
-// the last call time here and space out requests if needed.
 let lastGeocodeRequestAt = 0;
 
 async function reverseGeocodeCity(lat, lon) {
-  // Round coordinates so tiny GPS jitter reuses the same cache entry
-  // instead of triggering a new network request every time.
   const cacheKey = `geocode-${lat.toFixed(2)},${lon.toFixed(2)}`;
   const cached = await cacheStore.get(cacheKey);
   if (cached && cached.data) return cached.data;
@@ -145,6 +138,7 @@ async function reverseGeocodeCity(lat, lon) {
   cacheStore.set(cacheKey, cityName);
   return cityName;
 }
+
 /** @param {any} params */
 function Hero({ cityName }) {
   return (
@@ -329,33 +323,9 @@ function SectionNav({ activeSection, onSectionChange, theme }) {
     { id: "CarbonCalculator", label: "Carbon Calculator" },
     { id: "glossary", label: "Glossary" },
   ];
-  // @ts-ignore
-  const isDark = theme === "dark";
 
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef(null);
-
-  const [isMobile, setIsMobile] = useState(() =>
-    typeof window !== "undefined" && typeof window.matchMedia === "function"
-      ? window.matchMedia("(max-width: 768px)").matches
-      : false,
-  );
-
-  useEffect(() => {
-    if (typeof window === "undefined" || typeof window.matchMedia !== "function") return;
-    const mediaQuery = window.matchMedia("(max-width: 768px)");
-    /** @param {any} e */
-    const handler = (e) => setIsMobile(e.matches);
-
-    // Add compatibility for older browsers if needed, though addEventListener is widely supported
-    if (mediaQuery.addEventListener) {
-      mediaQuery.addEventListener("change", handler);
-      return () => mediaQuery.removeEventListener("change", handler);
-    } else {
-      mediaQuery.addListener(handler);
-      return () => mediaQuery.removeListener(handler);
-    }
-  }, []);
 
   useEffect(() => {
     function handleClickOutside(event) {
@@ -380,84 +350,15 @@ function SectionNav({ activeSection, onSectionChange, theme }) {
     };
   }, [isMenuOpen]);
 
-  /** @param {any} id */
   const handleSectionClick = (id) => {
     onSectionChange(id);
     setIsMenuOpen(false);
   };
 
-  // @ts-ignore
-  const themeToggleNode = (
-    <button
-      type="button"
-      className={`theme-toggle-inline ${theme === 'dark' ? 'dark' : theme === 'high-contrast' ? 'high-contrast' : ''}`}
-      onClick={() => eventBus.emit("TOGGLE_THEME")}
-      aria-label="Toggle Theme"
-      aria-pressed={theme !== 'light'}
-      title={
-        theme === 'light'
-          ? 'Switch to dark mode'
-          : theme === 'dark'
-            ? 'Switch to high-contrast mode'
-            : 'Switch to light mode'
-      }
-    >
-      <span className="toggle-thumb">
-        {theme === 'dark' ? (
-          <svg viewBox="0 0 24 24" className="moon-icon">
-            <path
-              d="M20 15.5A8.5 8.5 0 1 1 12.5 4a7 7 0 0 0 7.5 11.5z"
-              fill="currentColor"
-            />
-          </svg>
-        ) : theme === 'high-contrast' ? (
-          <svg viewBox="0 0 24 24" className="sun-icon" aria-hidden="true">
-            <circle cx="12" cy="12" r="10" fill="currentColor" />
-            <circle cx="12" cy="12" r="5" fill="white" />
-          </svg>
-        ) : (
-          <svg viewBox="0 0 24 24" className="sun-icon">
-            <circle cx="12" cy="12" r="5" fill="currentColor" />
-            <g stroke="currentColor" strokeWidth="2">
-              <line x1="12" y1="1" x2="12" y2="4" />
-              <line x1="12" y1="20" x2="12" y2="23" />
-              <line x1="1" y1="12" x2="4" y2="12" />
-              <line x1="20" y1="12" x2="23" y2="12" />
-              <line x1="4" y1="4" x2="6" y2="6" />
-              <line x1="18" y1="18" x2="20" y2="20" />
-              <line x1="18" y1="6" x2="20" y2="4" />
-              <line x1="4" y1="20" x2="6" y2="18" />
-            </g>
-          </svg>
-        )}
-      </span>
-    </button>
-  );
-
-  if (!isMobile) {
-    return (
-      <nav className="section-nav" aria-label="Main sections" ref={menuRef}>
-        <div className="nav-sections">
-          {sections.map((section) => (
-            <button
-              key={section.id}
-              type="button"
-              className={activeSection === section.id ? "active" : ""}
-              onClick={() => handleSectionClick(section.id)}
-            >
-              {section.label}
-            </button>
-          ))}
-          <div className="nav-divider"></div>
-          <ThemeSwitcher />
-        </div>
-      </nav>
-    );
-  }
-
   return (
     <header
       className="section-nav"
+      ref={menuRef}
       style={{
         display: "flex",
         justifyContent: "space-between",
@@ -465,31 +366,105 @@ function SectionNav({ activeSection, onSectionChange, theme }) {
         width: "100%",
       }}
     >
-      <nav
-        aria-label="Main sections"
-        ref={menuRef}
-        style={{ display: "flex", alignItems: "center" }}
-      >
+      {/* 
+        Refactored: CSS-based responsive logic directly embedded to prevent re-renders.
+      */}
+      <style>{`
+        .nav-desktop {
+          display: flex;
+          align-items: center;
+        }
+        .nav-mobile, .mobile-theme-switcher {
+          display: none !important;
+        }
+        
+        @media (max-width: 768px) {
+          .nav-desktop {
+            display: none !important;
+          }
+          .nav-mobile {
+            display: flex !important;
+            align-items: center;
+          }
+          .mobile-theme-switcher {
+            display: block !important;
+          }
+          .hamburger-btn {
+            border: 1px solid var(--line, #334155);
+            background: var(--card, #1e293b);
+            color: var(--ink, #fff);
+            border-radius: 50%;
+            width: 44px;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: var(--shadow-sm);
+            padding: 0;
+          }
+          .mobile-dropdown {
+            display: none;
+          }
+          .mobile-dropdown.open {
+            display: flex;
+            position: absolute;
+            top: 100%;
+            left: 1rem;
+            right: 1rem;
+            margin-top: 0.5rem;
+            background: var(--card, #1e293b);
+            box-shadow: var(--shadow-lg);
+            border: 1px solid var(--line, #334155);
+            border-radius: var(--r-md, 8px);
+            padding: 0.5rem;
+            flex-direction: column;
+            gap: 0.5rem;
+            z-index: 50;
+          }
+          .mobile-dropdown button {
+            width: 100%;
+            text-align: center;
+            padding: 0.75rem 1rem;
+            border: none;
+            background: transparent;
+            color: var(--muted, #94a3b8);
+            border-radius: 999px;
+            font-weight: 700;
+            font-size: 0.9rem;
+            cursor: pointer;
+          }
+          .mobile-dropdown button.active {
+            background: linear-gradient(120deg, var(--brand, #0d9488), var(--sky, #0ea5e9));
+            color: #fff;
+          }
+        }
+      `}</style>
+
+      {/* --- DESKTOP LAYOUT --- */}
+      <nav className="nav-sections nav-desktop" aria-label="Main sections">
+        {sections.map((section) => (
+          <button
+            key={section.id}
+            type="button"
+            className={activeSection === section.id ? "active" : ""}
+            onClick={() => handleSectionClick(section.id)}
+          >
+            {section.label}
+          </button>
+        ))}
+        <div className="nav-divider"></div>
+        <ThemeSwitcher />
+      </nav>
+
+      {/* --- MOBILE LAYOUT --- */}
+      <nav className="nav-mobile" aria-label="Mobile navigation">
         <button
           className="hamburger-btn"
           onClick={() => setIsMenuOpen(!isMenuOpen)}
           aria-expanded={isMenuOpen}
           aria-label="Toggle navigation"
           aria-controls="mobile-navigation"
-          style={{
-            border: "1px solid var(--line)",
-            background: "var(--card)",
-            color: "var(--ink)",
-            borderRadius: "50%",
-            width: "44px",
-            height: "44px",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            cursor: "pointer",
-            boxShadow: "var(--shadow-sm)",
-            padding: 0,
-          }}
         >
           <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
             {isMenuOpen ? (
@@ -500,56 +475,23 @@ function SectionNav({ activeSection, onSectionChange, theme }) {
           </svg>
         </button>
 
-        {isMenuOpen && (
-          <nav
-            id="mobile-navigation"
-            style={{
-              position: "absolute",
-              top: "100%",
-              left: "1rem",
-              right: "1rem",
-              marginTop: "0.5rem",
-              background: "var(--card)",
-              boxShadow: "var(--shadow-lg)",
-              border: "1px solid var(--line)",
-              borderRadius: "var(--r-md)",
-              padding: "0.5rem",
-              display: "flex",
-              flexDirection: "column",
-              gap: "0.5rem",
-              zIndex: 50,
-            }}
-          >
-            {sections.map((section) => (
-              <button
-                key={section.id}
-                type="button"
-                className={activeSection === section.id ? "active" : ""}
-                onClick={() => handleSectionClick(section.id)}
-                style={{
-                  width: "100%",
-                  textAlign: "center",
-                  padding: "0.75rem 1rem",
-                  border: "none",
-                  background:
-                    activeSection === section.id
-                      ? "linear-gradient(120deg, var(--brand), var(--sky))"
-                      : "transparent",
-                  color: activeSection === section.id ? "#fff" : "var(--muted)",
-                  borderRadius: "999px",
-                  fontWeight: "700",
-                  fontSize: "0.9rem",
-                  cursor: "pointer",
-                }}
-              >
-                {section.label}
-              </button>
-            ))}
-          </nav>
-        )}
+        <div id="mobile-navigation" className={`mobile-dropdown ${isMenuOpen ? "open" : ""}`}>
+          {sections.map((section) => (
+            <button
+              key={section.id}
+              type="button"
+              className={activeSection === section.id ? "active" : ""}
+              onClick={() => handleSectionClick(section.id)}
+            >
+              {section.label}
+            </button>
+          ))}
+        </div>
       </nav>
 
-      <ThemeSwitcher />
+      <div className="mobile-theme-switcher">
+        <ThemeSwitcher />
+      </div>
     </header>
   );
 }
@@ -559,37 +501,31 @@ function AppContent() {
     () => localStorage.getItem("activeSection") || "home",
   );
 
-  // --- Helper: read city info from the URL hash (e.g. #city=Mumbai&lat=19.07&lon=72.87) ---
   function getCityFromHash() {
     const params = new URLSearchParams(window.location.hash.slice(1));
     const name = params.get("city");
     const lat = parseFloat(params.get("lat"));
     const lon = parseFloat(params.get("lon"));
-    // Only use hash values if all three are present and valid
     if (name && !isNaN(lat) && !isNaN(lon)) {
       return { name, lat, lon };
     }
     return null;
   }
 
-  // --- Helper: write city info into the URL hash so Back/Forward works ---
   function setCityInHash(name, lat, lon) {
     const params = new URLSearchParams();
     params.set("city", name);
     params.set("lat", lat);
     params.set("lon", lon);
-    // pushState so browser Back button can restore the previous city
     window.history.pushState(null, "", "#" + params.toString());
   }
 
-  // On first load: prefer URL hash → then localStorage → then 'auto'
   const [selectedCity, setSelectedCity] = useState(() => {
     const fromHash = getCityFromHash();
     if (fromHash) return fromHash.name;
     return localStorage.getItem("selectedCity") || "auto";
   });
 
-  // On first load: prefer URL hash → then localStorage → then DEFAULT_POSITION
   const [position, setPosition] = useState(() => {
     const fromHash = getCityFromHash();
     if (fromHash)
@@ -657,7 +593,6 @@ function AppContent() {
     return saved ? Number(saved) : 24;
   });
   const [osThemeSuggestion, setOsThemeSuggestion] = useState(null);
-  // Mirrors `theme` for the media-query listener, which is registered once on mount.
   const themeRef = useRef(theme);
   themeRef.current = theme;
   const debounceRef = useRef(null);
@@ -681,7 +616,6 @@ function AppContent() {
     });
     return () => { unsubscribe(); };
   }, []);
-
 
   useEffect(() => {
     return () => {
@@ -707,7 +641,6 @@ function AppContent() {
     try {
       localStorage.setItem(SAVED_LOCATIONS_KEY, JSON.stringify(savedLocations));
     } catch {
-      // Pinned locations are a convenience, so a full quota must not break the dashboard.
     }
   }, [savedLocations]);
 
@@ -715,20 +648,15 @@ function AppContent() {
     localStorage.setItem("timeRange", timeRange.toString());
   }, [timeRange]);
 
-  // Update lastUpdated when data changes
   useEffect(() => {
     if (aqiData) setLastUpdated(new Date().toISOString());
   }, [aqiData]);
 
-  // Persist the theme value so the next load paints without a flash. This runs on mount
-  // too, which is why "has the user chosen a theme?" is tracked under a separate key
-  // rather than inferred from this one existing.
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
     localStorage.setItem(THEME_STORAGE_KEY, theme);
   }, [theme]);
 
-  // Sync theme with OS dark-mode changes (only when user has no manual preference)
   useEffect(() => {
     if (!window.matchMedia) return;
 
@@ -738,15 +666,11 @@ function AppContent() {
       const newSystemTheme = e.matches ? "dark" : "light";
 
       if (!hasManualThemePreference()) {
-        // No in-app choice has been made — follow the OS silently.
         // @ts-ignore
         setTheme(newSystemTheme);
         return;
       }
 
-      // Compare against the live theme via the ref: this listener is registered once, so
-      // reading `theme` from the closure would compare against the first render's value
-      // and prompt even when the requested theme is already active.
       if (newSystemTheme !== themeRef.current) {
         setOsThemeSuggestion(newSystemTheme);
       }
@@ -802,13 +726,11 @@ function AppContent() {
     );
   }, []);
 
-  // Initial mount geolocation if selectedCity is auto
   useEffect(() => {
     if (selectedCity === "auto") {
       setDetecting(true);
       startGeolocation();
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleAutoDetect = useCallback(() => {
@@ -854,12 +776,10 @@ function AppContent() {
     setSavedLocations((prev) => prev.filter((item) => item.name !== name));
   }, []);
 
-  // Listen for browser Back/Forward (popstate) and restore the city from the URL hash
   useEffect(() => {
     function handlePopState() {
       const fromHash = getCityFromHash();
       if (fromHash) {
-        // Restore the city that was in the URL before Back was pressed
         setSelectedCity(fromHash.name);
         setPosition({
           lat: fromHash.lat,
@@ -867,7 +787,6 @@ function AppContent() {
           cityName: fromHash.name,
         });
       } else {
-        // No hash → fall back to auto-detect
         setSelectedCity("auto");
         setDetecting(true);
         startGeolocation();
@@ -894,7 +813,6 @@ function AppContent() {
         String(autoRefreshSeconds),
       );
     } catch {
-      // Preference is optional — a full quota shouldn't break the dashboard.
     }
     setRefreshCountdown(autoRefreshSeconds);
   }, [autoRefreshSeconds]);
@@ -934,7 +852,6 @@ function AppContent() {
     [trend, current],
   );
 
-  // Using the in-app toggle is the one action that counts as choosing a theme.
   const toggleTheme = useCallback(() => {
     localStorage.setItem(THEME_SOURCE_KEY, "manual");
     // @ts-ignore
@@ -950,7 +867,6 @@ function AppContent() {
     setTheme(osThemeSuggestion);
     setOsThemeSuggestion(null);
   };
-
 
   const dismissOsThemeSuggestion = () => {
     setOsThemeSuggestion(null);
@@ -968,9 +884,6 @@ function AppContent() {
 
   useEffect(() => {
     const handleOnline = () => {
-      // Wipe any cached AQI/city/wind data so refreshNow() below is forced
-      // to fetch fresh data instead of serving stale results that were
-      // cached before we went offline.
       cacheStore.invalidate(undefined);
       refreshNow();
     };
@@ -996,7 +909,6 @@ function AppContent() {
       <a href="#main-content" className="skip-link">
         Skip to main content
       </a>
-      {/* 1. Structural fix: Renders the navigation element at the very top */}
       <SectionNav
         activeSection={activeSection}
         onSectionChange={setActiveSection}
@@ -1201,8 +1113,8 @@ function AppContent() {
                       minHeight: "300px",
                     }}
                   >
-                  <div role="status" aria-live="polite">
-                    <div className="loading-spinner" />
+                    <div role="status" aria-live="polite">
+                      <div className="loading-spinner" />
                       <p style={{ marginTop: "1rem" }}>Loading games...</p>
                     </div>
                   </div>
