@@ -196,9 +196,9 @@ export default function HealthAdvisory() {
         <p className="tab-description">{audiences[activeTab].desc}</p>
 
         {/* Actionable Tips Grid */}
-        <div className="tips-grid">
+        <ul className="tips-grid">
           {audiences[activeTab].tips.map((tip) => (
-            <div key={tip.title} className="tip-action-card">
+            <li key={tip.title} className="tip-action-card">
               <div className="tip-header">
                 <div
                   className="tip-icon-wrapper"
