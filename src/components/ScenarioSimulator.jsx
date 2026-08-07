@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   BarChart,
   Bar,
@@ -49,9 +49,22 @@ const PRESET_SCENARIOS = [
 export default function ScenarioSimulator({ current }) {
   const [selectedScenarioId, setSelectedScenarioId] = useState(PRESET_SCENARIOS[0].id);
   const [customEvPct, setCustomEvPct] = useState(30);
+  
+  // Loading state for the chart (from Issue #569)
+  const [isChartLoading, setIsChartLoading] = useState(false);
 
   const currentPm25 = current?.pm2_5 || 35;
   const currentNo2 = current?.nitrogen_dioxide || 28;
+
+  // Trigger loading state when scenario changes
+  useEffect(() => {
+    setIsChartLoading(true);
+    const timer = setTimeout(() => {
+      setIsChartLoading(false);
+    }, 600);
+
+    return () => clearTimeout(timer);
+  }, [selectedScenarioId]);
 
   const activeScenario = useMemo(
     () => PRESET_SCENARIOS.find((s) => s.id === selectedScenarioId) || PRESET_SCENARIOS[0],
@@ -93,6 +106,16 @@ export default function ScenarioSimulator({ current }) {
 
   return (
     <article className="chart-card scenario-simulator-card" style={{ gridColumn: "1 / -1", width: "100%" }}>
+      {/* NEW: Accessibility CSS injected here for distinct keyboard focus styling */}
+      <style>{`
+        .accessible-scenario-btn:focus-visible,
+        .accessible-slider:focus-visible {
+          outline: 3px solid var(--brand, #0d9488) !important;
+          outline-offset: 2px !important;
+          box-shadow: 0 0 0 4px rgba(13, 148, 136, 0.3) !important;
+        }
+      `}</style>
+
       <div style={{ marginBottom: "1.25rem" }}>
         <h3 style={{ margin: 0 }}>🔮 Interactive "What-If" Scenario Simulator</h3>
         <p style={{ fontSize: "0.85rem", color: "var(--muted, #94a3b8)", margin: "0.25rem 0 0 0" }}>
@@ -100,7 +123,6 @@ export default function ScenarioSimulator({ current }) {
         </p>
       </div>
 
-      {/* Side-by-Side Horizontal Split Layout */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "1.5rem", alignItems: "start" }}>
         
         {/* Left Column: Preset Buttons & Controls */}
@@ -112,6 +134,7 @@ export default function ScenarioSimulator({ current }) {
                 <button
                   key={scenario.id}
                   type="button"
+                  className="accessible-scenario-btn"
                   onClick={() => setSelectedScenarioId(scenario.id)}
                   style={{
                     textAlign: "left",
@@ -120,7 +143,7 @@ export default function ScenarioSimulator({ current }) {
                     border: isSelected ? "2px solid var(--brand, #0d9488)" : "1px solid var(--line, #334155)",
                     background: isSelected ? "rgba(13, 148, 136, 0.15)" : "var(--bg-card-alt, rgba(255, 255, 255, 0.03))",
                     cursor: "pointer",
-                    transition: "all 0.2s ease"
+                    transition: "all 0.2s ease",
                   }}
                 >
                   <div
@@ -162,6 +185,7 @@ export default function ScenarioSimulator({ current }) {
                 step="5"
                 value={customEvPct}
                 onChange={(e) => setCustomEvPct(Number(e.target.value))}
+                className="accessible-slider"
                 style={{ width: "100%", cursor: "pointer", accentColor: "var(--brand, #0d9488)" }}
               />
             </div>
@@ -192,21 +216,33 @@ export default function ScenarioSimulator({ current }) {
             </div>
           </div>
 
-          <div style={{ width: "100%", height: 260 }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={chartData} margin={{ top: 15, right: 20, left: 0, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--line, #334155)" />
-                <XAxis dataKey="pollutant" tick={{ fontSize: 12, fontWeight: "bold", fill: "var(--ink, #f8fafc)" }} />
-                <YAxis tick={{ fill: "var(--muted, #94a3b8)" }} />
-                <Tooltip
-                  formatter={(val) => [`${val} µg/m³`]}
-                  contentStyle={{ background: "var(--card, #1e293b)", border: "1px solid var(--line, #334155)", color: "var(--ink, #fff)" }}
-                />
-                <Legend wrapperStyle={{ color: "var(--ink, #f8fafc)" }} />
-                <Bar dataKey="Baseline" name="Current Baseline" fill="#ef4444" radius={[6, 6, 0, 0]} isAnimationActive={true} />
-                <Bar dataKey="Simulated" name="Simulated Level" fill="#22c55e" radius={[6, 6, 0, 0]} isAnimationActive={true} />
-              </BarChart>
-            </ResponsiveContainer>
+          {/* Conditional Rendering for Loading State */}
+          <div style={{ width: "100%", height: 260, display: "flex", justifyContent: "center", alignItems: "center" }}>
+            {isChartLoading ? (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                <svg width="40" height="40" viewBox="0 0 50 50">
+                  <circle cx="25" cy="25" r="20" fill="none" stroke="var(--brand, #0d9488)" strokeWidth="4" strokeDasharray="31.4 31.4" strokeLinecap="round">
+                    <animateTransform attributeName="transform" type="rotate" repeatCount="indefinite" dur="1s" values="0 25 25;360 25 25"/>
+                  </circle>
+                </svg>
+                <p style={{ marginTop: '10px', color: 'var(--muted, #94a3b8)', fontSize: '0.9rem', fontWeight: "500" }}>Calculating impact...</p>
+              </div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={chartData} margin={{ top: 15, right: 20, left: 0, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--line, #334155)" />
+                  <XAxis dataKey="pollutant" tick={{ fontSize: 12, fontWeight: "bold", fill: "var(--ink, #f8fafc)" }} />
+                  <YAxis tick={{ fill: "var(--muted, #94a3b8)" }} />
+                  <Tooltip
+                    formatter={(val) => [`${val} µg/m³`]}
+                    contentStyle={{ background: "var(--card, #1e293b)", border: "1px solid var(--line, #334155)", color: "var(--ink, #fff)" }}
+                  />
+                  <Legend wrapperStyle={{ color: "var(--ink, #f8fafc)" }} />
+                  <Bar dataKey="Baseline" name="Current Baseline" fill="#ef4444" radius={[6, 6, 0, 0]} isAnimationActive={true} />
+                  <Bar dataKey="Simulated" name="Simulated Level" fill="#22c55e" radius={[6, 6, 0, 0]} isAnimationActive={true} />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
           </div>
         </div>
 
