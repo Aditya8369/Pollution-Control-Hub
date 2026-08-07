@@ -845,9 +845,22 @@ function AppContent() {
           if (requestId === geoRequestId.current) {
             setPosition({ lat, lon, cityName });
           }
-        } catch (err) {
-          console.warn("Reverse geocoding failed, keeping generic label.", err);
-        }
+        } 
+        catch (err) {
+    console.warn("Reverse geocoding failed, keeping generic label.", err);
+
+    if (requestId === geoRequestId.current) {
+        setLocationNotice(
+            "Couldn't retrieve your city name. Using your current coordinates instead."
+        );
+
+        setPosition({
+            lat,
+            lon,
+            cityName: "Your Current Location",
+        });
+    }
+}
       }, (error) => {
         if (requestId !== geoRequestId.current) return;
         console.warn("Geolocation is unavailable. Using the fallback location.");
