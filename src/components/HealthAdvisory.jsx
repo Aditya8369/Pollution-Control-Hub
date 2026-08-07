@@ -208,6 +208,10 @@ export default function HealthAdvisory() {
                 </div>
                 <span className={`priority-badge ${tip.badgeClass}`}>{tip.priority}</span>
               </div>
+              <div className="tip-body">
+                <h4>{tip.title}</h4>
+                <p>{tip.detail}</p>
+              </div>
             </li>
           ))}
         </ul>
