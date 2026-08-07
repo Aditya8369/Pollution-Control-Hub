@@ -57,4 +57,24 @@ describe('geocodingService - searchLocations caching & deduplication', () => {
     expect(fetchSpy).toHaveBeenCalledTimes(1);
     expect(res1).toEqual(res2);
   });
+
+  it('propagates errors when the fetch API request fails', async () => {
+    const fetchSpy = vi.fn().mockImplementation(async () => {
+      return {
+        ok: false,
+        status: 500,
+        statusText: 'Internal Server Error'
+      };
+    });
+    vi.stubGlobal('fetch', fetchSpy);
+
+    await expect(searchLocations('ErrorCity')).rejects.toThrow('Geocoding search failed');
+  });
+
+  it('propagates errors when the fetch function itself throws', async () => {
+    const fetchSpy = vi.fn().mockRejectedValue(new Error('Network error'));
+    vi.stubGlobal('fetch', fetchSpy);
+
+    await expect(searchLocations('ErrorCity')).rejects.toThrow('Network error');
+  });
 });

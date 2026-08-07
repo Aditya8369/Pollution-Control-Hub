@@ -68,7 +68,7 @@ export default function SolutionsAwareness() {
         } else {
           if (document.activeElement === lastElement) {
             e.preventDefault();
-            lastElement.focus();
+            firstElement.focus();
           }
         }
       }
@@ -91,31 +91,31 @@ export default function SolutionsAwareness() {
       <div className="three-col solutions-three-col">
         {/* Column 1: Interactive Pollution Reduction Tips */}
         <div className="solutions-col">
-          <div className="solutions-col-header">
+          <div className="solutions-col-header sa-col-header">
             <h3>Ways to Reduce Pollution</h3>
           </div>
 
-          <div className="tips-list" role="list">
+          <div className="sa-tips-list" role="list">
             {REDUCTION_TIPS.map((tip) => {
               const isBookmarked = bookmarkedTips.has(tip.id);
 
               return (
                 <article
                   key={tip.id}
-                  className="tip-card"
+                  className="sa-tip-card"
                   role="listitem"
                 >
-                  <div className="tip-card-header">
-                    <span className="tip-category-badge">{tip.category}</span>
+                  <div className="sa-tip-card-header">
+                    <span className="sa-tip-category-badge">{tip.category}</span>
                   </div>
 
-                  <h4 className="tip-title">{tip.title}</h4>
-                  <p className="tip-description">{tip.description}</p>
+                  <h4 className="sa-tip-title">{tip.title}</h4>
+                  <p className="sa-tip-description">{tip.description}</p>
 
-                  <div className="tip-actions">
+                  <div className="sa-tip-actions">
                     <button
                       type="button"
-                      className={`tip-action-btn ${isBookmarked ? 'tip-btn-active' : ''}`}
+                      className={`sa-tip-action-btn ${isBookmarked ? 'sa-tip-btn-active' : ''}`}
                       onClick={() => bookmarkedTips.toggle(tip.id)}
                       aria-label={isBookmarked ? `Remove bookmark for ${tip.title}` : `Bookmark ${tip.title}`}
                       title={isBookmarked ? 'Bookmarked' : 'Bookmark this tip'}
@@ -131,30 +131,30 @@ export default function SolutionsAwareness() {
 
         {/* Column 2: Expandable Government Policy Cards */}
         <div className="solutions-col">
-          <div className="solutions-col-header">
+          <div className="solutions-col-header sa-col-header">
             <h3>Government Policies</h3>
-            <span className="solutions-subtext">Click card to expand</span>
+            <span className="solutions-subtext sa-subtext">Click card to expand</span>
           </div>
 
-          <div className="policy-accordion" role="list">
+          <div className="sa-policy-accordion" role="list">
             {GOVERNMENT_POLICIES.map((policy) => {
               const isExpanded = expandedPolicyId === policy.id;
 
               return (
                 <div
                   key={policy.id}
-                  className={`policy-card ${isExpanded ? 'policy-card-expanded' : ''}`}
+                  className={`sa-policy-card ${isExpanded ? 'sa-policy-card-expanded' : ''}`}
                   role="listitem"
                 >
                   <button
                     type="button"
-                    className="policy-header-btn"
+                    className="sa-policy-header-btn"
                     onClick={() => togglePolicy(policy.id)}
                     aria-expanded={isExpanded}
                     aria-controls={`policy-body-${policy.id}`}
                   >
-                    <span className="policy-title">{policy.title}</span>
-                    <span className={`policy-chevron ${isExpanded ? 'chevron-rotated' : ''}`} aria-hidden="true">
+                    <span className="sa-policy-title">{policy.title}</span>
+                    <span className={`sa-policy-chevron ${isExpanded ? 'sa-chevron-rotated' : ''}`} aria-hidden="true">
                       ▼
                     </span>
                   </button>
@@ -162,18 +162,18 @@ export default function SolutionsAwareness() {
                   {isExpanded && (
                     <div
                       id={`policy-body-${policy.id}`}
-                      className="policy-body"
+                      className="sa-policy-body"
                       role="region"
                       aria-label={policy.title}
                     >
-                      <p className="policy-desc">{policy.description}</p>
+                      <p className="sa-policy-desc">{policy.description}</p>
 
-                      <div className="policy-detail-block">
+                      <div className="sa-policy-detail-block">
                         <strong>Objective:</strong>
                         <p>{policy.objective}</p>
                       </div>
 
-                      <div className="policy-detail-block">
+                      <div className="sa-policy-detail-block">
                         <strong>Impact:</strong>
                         <p>{policy.impact}</p>
                       </div>
@@ -183,7 +183,7 @@ export default function SolutionsAwareness() {
                           href={policy.url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="policy-learn-more-link"
+                          className="sa-policy-learn-more-link"
                         >
                           Learn More Official Resource ↗
                         </a>
@@ -198,28 +198,28 @@ export default function SolutionsAwareness() {
 
         {/* Column 3: Educational Reads */}
         <div className="solutions-col">
-          <div className="solutions-col-header">
+          <div className="solutions-col-header sa-col-header">
             <h3>Educational Reads</h3>
-            <span className="solutions-subtext">Click card to open article</span>
+            <span className="solutions-subtext sa-subtext">Click card to open article</span>
           </div>
 
-          <div className="reads-list" role="list">
+          <div className="sa-reads-list" role="list">
             {EDUCATIONAL_READS.map((read) => (
               <button
                 type="button"
                 key={read.id}
-                className="read-card-btn"
+                className="sa-read-card-btn"
                 onClick={(e) => openArticleModal(read, e)}
                 role="listitem"
                 aria-haspopup="dialog"
               >
-                <div className="read-meta">
-                  <span className="read-source-tag">{read.source}</span>
-                  <span className="read-time-tag">{read.readTime}</span>
+                <div className="sa-read-meta">
+                  <span className="sa-read-source-tag">{read.source}</span>
+                  <span className="sa-read-time-tag">{read.readTime}</span>
                 </div>
-                <h4 className="read-title">{read.title}</h4>
-                <p className="read-snippet">{read.summary}</p>
-                <span className="read-cta-text">Read Article Summary →</span>
+                <h4 className="sa-read-title">{read.title}</h4>
+                <p className="sa-read-snippet">{read.summary}</p>
+                <span className="sa-read-cta-text">Read Article Summary →</span>
               </button>
             ))}
           </div>
@@ -229,54 +229,54 @@ export default function SolutionsAwareness() {
       {/* Lightweight Accessible Educational Article Modal */}
       {activeArticle && (
         <div
-          className="article-modal-backdrop"
+          className="sa-article-modal-backdrop"
           onClick={closeArticleModal}
           role="presentation"
         >
           <div
             ref={modalRef}
-            className="article-modal-content"
+            className="sa-article-modal-content"
             role="dialog"
             aria-modal="true"
-            aria-labelledby="article-modal-title"
+            aria-labelledby="sa-article-modal-title"
             onClick={(e) => e.stopPropagation()}
           >
             <button
               ref={closeBtnRef}
               type="button"
-              className="article-modal-close-btn"
+              className="sa-article-modal-close-btn"
               onClick={closeArticleModal}
               aria-label="Close educational article modal"
             >
               ✕
             </button>
 
-            <div className="article-modal-header">
-              <div className="read-meta">
-                <span className="read-source-tag">{activeArticle.source}</span>
-                <span className="read-time-tag">{activeArticle.readTime}</span>
+            <div className="sa-article-modal-header">
+              <div className="sa-read-meta">
+                <span className="sa-read-source-tag">{activeArticle.source}</span>
+                <span className="sa-read-time-tag">{activeArticle.readTime}</span>
               </div>
-              <h3 id="article-modal-title" className="article-modal-title">
+              <h3 id="sa-article-modal-title" className="sa-article-modal-title">
                 {activeArticle.title}
               </h3>
             </div>
 
-            <div className="article-modal-body">
-              <div className="modal-section">
+            <div className="sa-article-modal-body">
+              <div className="sa-modal-section">
                 <h4>Summary</h4>
                 <p>{activeArticle.summary}</p>
               </div>
 
-              <div className="modal-section modal-key-takeaway">
+              <div className="sa-modal-section sa-modal-key-takeaway">
                 <h4>Key Takeaway</h4>
                 <p>{activeArticle.keyTakeaway}</p>
               </div>
             </div>
 
-            <div className="article-modal-footer">
+            <div className="sa-article-modal-footer">
               <button
                 type="button"
-                className="modal-btn-secondary"
+                className="sa-modal-btn-secondary"
                 onClick={closeArticleModal}
               >
                 Close
@@ -285,7 +285,7 @@ export default function SolutionsAwareness() {
                 href={activeArticle.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="modal-btn-primary"
+                className="sa-modal-btn-primary"
               >
                 Read Full Article ↗
               </a>

@@ -1,5 +1,5 @@
 import { useState } from "react";
-
+import "../styles.css";
 // Tabs available in the Getting Started guide.
 // Only "overview" and "features" have content today; the rest are
 // upcoming onboarding sections and render a "coming soon" placeholder
@@ -334,12 +334,59 @@ function GettingStarted() {
 {activeTab === "faq" && (
   <section className="getting-started-section">
     <div className="overview-content">
+
       <div className="overview-item">
+        <h4>01. Do I need an account to use Pollution Control Hub?</h4>
         <p>
-          This section of the Getting Started guide is coming soon.
-          We're working on it — check back shortly!
+          No. Most features are available without creating an account, allowing you
+          to explore air quality information and educational resources immediately.
         </p>
       </div>
+
+      <div className="overview-item">
+        <h4>02. How often is air quality data updated?</h4>
+        <p>
+          Air quality information is updated regularly based on the latest data
+          available from supported monitoring sources.
+        </p>
+      </div>
+
+      <div className="overview-item">
+        <h4>03. Why can AQI differ between nearby locations?</h4>
+        <p>
+          Pollution levels can vary due to traffic, weather conditions,
+          industrial activity, vegetation, and other local environmental
+          factors.
+        </p>
+      </div>
+
+      <div className="overview-item">
+        <h4>04. Can I use this platform for medical advice?</h4>
+        <p>
+          No. Pollution Control Hub provides environmental information to help
+          users understand air quality and should not replace professional
+          medical advice.
+        </p>
+      </div>
+
+      <div className="overview-item">
+        <h4>05. What should I do when the AQI is unhealthy?</h4>
+        <p>
+          Limit prolonged outdoor activities, follow local health guidance,
+          monitor AQI updates, and take extra precautions if you are part of a
+          sensitive group.
+        </p>
+      </div>
+
+      <div className="overview-item">
+        <h4>06. What devices can I use to access Pollution Control Hub?</h4>
+        <p>
+          Pollution Control Hub is designed to work in modern web browsers on
+          desktops, laptops, tablets, and mobile devices for easy access wherever
+          you are.
+        </p>
+      </div>
+
     </div>
   </section>
 )}

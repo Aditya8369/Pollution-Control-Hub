@@ -67,6 +67,23 @@ function notifyPersistenceError(err) {
 
 const memoryCache = new Map();
 
+/**
+ * Whether a cache entry has outlived the caller's freshness window.
+ *
+ * A missing or non-finite `ttl` means "no expiry" so existing callers that never
+ * cared about age keep their current behaviour.
+ *
+ * @param {any} entry - Cache entry with a `timestamp` field.
+ * @param {number} [ttl] - Maximum acceptable age in milliseconds.
+ * @returns {boolean}
+ */
+function isExpired(entry, ttl) {
+  if (!entry) return true;
+  if (typeof ttl !== 'number' || !Number.isFinite(ttl)) return false;
+  if (typeof entry.timestamp !== 'number') return true;
+  return Date.now() - entry.timestamp >= ttl;
+}
+
 async function cleanupExpiredEntries() {
   const ONE_DAY = 24 * 60 * 60 * 1000;
   const expired = Date.now() - ONE_DAY;
@@ -75,6 +92,10 @@ async function cleanupExpiredEntries() {
     if (value.timestamp && value.timestamp < expired) {
       memoryCache.delete(key);
     }
+  }
+
+  if (typeof indexedDB === 'undefined') {
+    return;
   }
 
   try {
@@ -104,14 +125,45 @@ export const cacheStore = {
     return () => errorListeners.delete(callback);
   },
 
-  /** @param {any} key */
-  getFromMemory(key) {
-    return memoryCache.get(key) || null;
+  /**
+   * Read an entry from the in-memory tier only.
+   *
+   * @param {any} key
+   * @param {number} [ttl] - When provided, entries older than `ttl` ms are treated as absent.
+   */
+  getFromMemory(key, ttl) {
+    const entry = memoryCache.get(key) || null;
+    if (!entry) return null;
+    if (isExpired(entry, ttl)) return null;
+    return entry;
+  },
+
+  /**
+   * Read an entry but only return it while it is still fresh.
+   *
+   * `get()` deliberately has no notion of age — it is the raw accessor. Callers that
+   * serve live data (air quality, wind, forecasts) must not use it directly, because
+   * entries survive in IndexedDB for a full day and would be replayed as if current.
+   * Use this instead so a stale entry reads as a miss and the caller re-fetches.
+   *
+   * @param {any} key
+   * @param {number} ttl - Maximum acceptable age in milliseconds.
+   * @returns {Promise<any|null>} The cache entry, or null when missing or stale.
+   */
+  async getFresh(key, ttl) {
+    const entry = await this.get(key);
+    if (!entry) return null;
+    if (isExpired(entry, ttl)) return null;
+    return entry;
   },
 
   get: async function (key) {
     if (memoryCache.has(key)) {
       return memoryCache.get(key);
+    }
+
+    if (typeof indexedDB === 'undefined') {
+      return null;
     }
 
     try {
@@ -151,6 +203,10 @@ export const cacheStore = {
 
     memoryCache.set(key, entry);
 
+    if (typeof indexedDB === 'undefined') {
+      return;
+    }
+
     try {
       await executeStoreOperation(
         'readwrite',
@@ -162,10 +218,13 @@ export const cacheStore = {
     }
   },
 
-  /** @param {any} key */
   async invalidate(key) {
     if (key) {
       memoryCache.delete(key);
+
+      if (typeof indexedDB === 'undefined') {
+        return;
+      }
 
       try {
         await executeStoreOperation(
@@ -178,6 +237,10 @@ export const cacheStore = {
       }
     } else {
       memoryCache.clear();
+
+      if (typeof indexedDB === 'undefined') {
+        return;
+      }
 
       try {
         await executeStoreOperation(
@@ -192,15 +255,18 @@ export const cacheStore = {
   },
 
   /**
+   * Check if a cache entry has exceeded its freshness TTL.
+   *
    * @param {any} key
-   * @param {any} ttl
+   * @param {number} ttlMs - Maximum acceptable age in milliseconds.
+   * @returns {Promise<boolean>}
    */
-  async isStale(key, ttl) {
-    const cached = memoryCache.get(key) || await this.get(key);
+  async isStale(key, ttlMs) {
+    const cached = memoryCache.get(key) || (await this.get(key));
 
     if (!cached) return true;
 
-    return Date.now() - cached.timestamp >= ttl;
+    return isExpired(cached, ttlMs);
   },
 
   /**

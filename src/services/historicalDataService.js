@@ -84,3 +84,38 @@ export async function fetchHistoricalData(lat, lon, years = 1) {
   
   return data;
 }
+
+/**
+ * Formats daily historical AQI/pollution entries into a CSV string with headers, ordered chronologically.
+ * @param {Array<object>} dailyData
+ * @param {string} [startDate]
+ * @param {string} [endDate]
+ * @returns {string} CSV string content
+ */
+export function formatHistoricalCSV(dailyData, startDate, endDate) {
+  if (!Array.isArray(dailyData) || dailyData.length === 0) {
+    return 'Date,AQI,PM2.5,PM10,NO2,Ozone,CO';
+  }
+
+  const filtered = dailyData
+    .filter((day) => {
+      if (!day || !day.date) return false;
+      if (startDate && day.date < startDate) return false;
+      if (endDate && day.date > endDate) return false;
+      return true;
+    })
+    .sort((a, b) => a.date.localeCompare(b.date));
+
+  const headers = ['Date', 'AQI', 'PM2.5', 'PM10', 'NO2', 'Ozone', 'CO'];
+  const rows = filtered.map((day) => [
+    day.date,
+    day.maxAqi != null ? day.maxAqi : (day.aqi != null ? day.aqi : ''),
+    day.pm25 != null ? day.pm25 : '',
+    day.pm10 != null ? day.pm10 : '',
+    day.no2 != null ? day.no2 : '',
+    day.ozone != null ? day.ozone : '',
+    day.co != null ? day.co : ''
+  ]);
+
+  return [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
+}

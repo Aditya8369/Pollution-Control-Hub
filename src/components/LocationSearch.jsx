@@ -1,10 +1,19 @@
 import { useState, useEffect, useRef } from 'react';
 import { searchLocations } from '../services/geocodingService';
+import PropTypes from "prop-types";
 
 const RECENT_SEARCHES_KEY = 'pollution_hub_recent_searches';
 const MAX_RECENT_SEARCHES = 5;
 
-/** @param {any} params */
+/** 
+ * Search input with autocomplete and recent-search history.
+ *
+ * @param {Object} props Component props.
+ * @param {(location: Object) => void} props.onLocationSelected Callback invoked
+ * when a location is selected.
+ * @param {string} [props.initialCityName] Initial city name shown in the input.
+ */
+
 export default function LocationSearch({ onLocationSelected, initialCityName }) {
   const [query, setQuery] = useState(initialCityName || '');
   const [suggestions, setSuggestions] = useState([]);
@@ -13,10 +22,12 @@ export default function LocationSearch({ onLocationSelected, initialCityName }) 
   const [isLoading, setIsLoading] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
   const [historyError, setHistoryError] = useState('');
+  const [searchError, setSearchError] = useState(null);
 
   const wrapperRef = useRef(null);
   const debounceTimerRef = useRef(null);
   const latestQueryRef = useRef('');
+  const abortControllerRef = useRef(null);
 
   useEffect(() => {
     // Load recent searches on mount.
@@ -73,7 +84,13 @@ export default function LocationSearch({ onLocationSelected, initialCityName }) 
     };
   }, []);
 
-  /** @param {any} location */
+  /** 
+ * @param {{
+ *   id: string|number,
+ *   name: string,
+ *   displayName: string
+ * }} location
+  */
   const saveRecentSearch = (location) => {
     const newRecent = [
       location,
@@ -99,7 +116,13 @@ export default function LocationSearch({ onLocationSelected, initialCityName }) 
     }
   };
 
-  /** @param {any} location */
+  /** 
+ * @param {{
+ *   id: string|number,
+ *   name: string,
+ *   displayName: string
+ * }} location
+  */
   const handleSelect = (location) => {
     setQuery(location.name);
     setIsOpen(false);
@@ -109,12 +132,22 @@ export default function LocationSearch({ onLocationSelected, initialCityName }) 
     onLocationSelected(location);
   };
 
-  /** @param {any} e */
+  /** 
+   *  @param {React.ChangeEvent<HTMLInputElement>} e
+  */
+
+useEffect(() => {
+  return () => {
+    abortControllerRef.current?.abort();
+  };
+}, []);
+
   const handleInputChange = (e) => {
     const val = e.target.value;
 
     setQuery(val);
     setActiveIndex(-1);
+    setSearchError(null);
 
     if (val.trim() === '') {
       setSuggestions([]);
@@ -131,19 +164,42 @@ export default function LocationSearch({ onLocationSelected, initialCityName }) 
 
     debounceTimerRef.current = setTimeout(async () => {
       latestQueryRef.current = val;
-      const results = await searchLocations(val);
+      setSearchError(null);
 
-      // Ignore this result if a newer search has started since this one fired.
-      if (latestQueryRef.current !== val) {
-        return;
+      abortControllerRef.current?.abort();
+      abortControllerRef.current = new AbortController();
+
+      try {
+        const results = await searchLocations(val, 5, abortControllerRef.current.signal);
+
+        // Ignore this result if a newer search has started since this one fired.
+        if (latestQueryRef.current !== val) {
+          return;
+        }
+
+        setSuggestions(results);
+      } catch (err) {
+          if (err.name === "AbortError") {
+            return;
+          }
+
+          if (latestQueryRef.current !== val) {
+            return;
+          }
+
+          setSuggestions([]);
+          setSearchError("Failed to fetch locations. Please check your network connection.");
+        } finally {
+        if (latestQueryRef.current === val) {
+          setIsLoading(false);
+        }
       }
-
-      setSuggestions(results);
-      setIsLoading(false);
     }, 300);
   };
 
-  /** @param {any} e */
+    /**
+   * @param {React.KeyboardEvent<HTMLInputElement>} e
+   */
   const handleKeyDown = (e) => {
     const items = query.trim() === '' ? recentSearches : suggestions;
 
@@ -178,6 +234,7 @@ export default function LocationSearch({ onLocationSelected, initialCityName }) 
   const showNoResults =
     query.trim() !== '' &&
     !isLoading &&
+    !searchError &&
     suggestions.length === 0;
 
   return (
@@ -190,6 +247,7 @@ export default function LocationSearch({ onLocationSelected, initialCityName }) 
         onChange={handleInputChange}
         onFocus={() => setIsOpen(true)}
         onKeyDown={handleKeyDown}
+        aria-label="Search for a city or location"
         aria-expanded={isOpen}
         aria-autocomplete="list"
         aria-controls="location-search-listbox"
@@ -209,7 +267,7 @@ export default function LocationSearch({ onLocationSelected, initialCityName }) 
         </div>
       )}
 
-      {isOpen && (showRecent || showSuggestions || showNoResults) && (
+      {isOpen && (showRecent || showSuggestions || showNoResults || searchError) && (
         <ul
           className="location-search-dropdown"
           id="location-search-listbox"
@@ -290,8 +348,41 @@ export default function LocationSearch({ onLocationSelected, initialCityName }) 
               No locations found for "{query}"
             </li>
           )}
+
+          {searchError && (
+            <li
+              className="location-search-error-item"
+              role="presentation"
+            >
+              <span className="error-message">⚠️ {searchError}</span>
+              <button
+                type="button"
+                className="location-search-retry-btn"
+                onClick={() => {
+                  handleInputChange({ target: { value: query } });
+                }}
+              >
+                Retry
+              </button>
+            </li>
+          )}
         </ul>
       )}
     </div>
   );
 }
+LocationSearch.propTypes = {
+  /**
+   * Called when the user selects a location.
+   */
+  onLocationSelected: PropTypes.func.isRequired,
+
+  /**
+   * Initial city displayed in the search input.
+   */
+  initialCityName: PropTypes.string,
+};
+
+LocationSearch.defaultProps = {
+  initialCityName: "",
+};

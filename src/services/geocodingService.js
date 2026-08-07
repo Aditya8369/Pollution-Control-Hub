@@ -7,7 +7,7 @@ const GEOCODING_CACHE_TTL = 1000 * 60 * 60 * 24; // 24 hours
  * @param {any} query
  * @param {any} count
  */
-export async function searchLocations(query, count = 5) {
+export async function searchLocations(query, count = 5, signal) {
   if (!query || query.trim() === '') return [];
 
   const trimmedQuery = query.trim().toLowerCase();
@@ -22,7 +22,7 @@ export async function searchLocations(query, count = 5) {
     const url = `${GEOCODING_BASE_URL}?name=${encodeURIComponent(query)}&count=${count}&language=en&format=json`;
 
     try {
-      const response = await fetch(url);
+      const response = await fetch(url, { signal });
       if (!response.ok) {
         throw new Error('Geocoding search failed');
       }
@@ -46,9 +46,12 @@ export async function searchLocations(query, count = 5) {
       await cacheStore.set(cacheKey, formattedResults);
       return formattedResults;
     } catch (error) {
-      console.error('Error fetching location data:', error);
-      return [];
-    }
+        if (error.name !== "AbortError") {
+          console.error("Error fetching location data:", error);
+        }
+
+         throw error;
+      }
   });
 }
 
