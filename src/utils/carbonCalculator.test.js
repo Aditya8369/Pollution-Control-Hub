@@ -15,6 +15,7 @@ describe('carbonCalculator utility', () => {
     expect(result.totalAnnualTonnes).toBeGreaterThan(0);
     expect(result.impactLevel.level).toBe('Moderate');
     expect(result.breakdown).toHaveLength(5);
+    expect(result.breakdown.every((item) => item.unit === 'kg CO₂e/month')).toBe(true);
   });
 
   it('determines High impact level for large emissions', () => {

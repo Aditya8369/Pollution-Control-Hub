@@ -61,7 +61,7 @@ export default function ScenarioSimulator({ current }) {
     setIsChartLoading(true);
     const timer = setTimeout(() => {
       setIsChartLoading(false);
-    }, 600);
+    }, 600); // 600ms delay for a smooth transition feel
 
     return () => clearTimeout(timer);
   }, [selectedScenarioId]);
