@@ -326,6 +326,8 @@ function SectionNav({ activeSection, onSectionChange, theme }) {
 
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef(null);
+  const mobileNavRef = useRef(null);
+  const hamburgerBtnRef = useRef(null);
 
   useEffect(() => {
     function handleClickOutside(event) {
@@ -337,6 +339,32 @@ function SectionNav({ activeSection, onSectionChange, theme }) {
     function handleKeyDown(event) {
       if (event.key === "Escape") {
         setIsMenuOpen(false);
+        hamburgerBtnRef.current?.focus();
+        return;
+      }
+
+      // Trap focus inside the open mobile menu so Tab/Shift+Tab can't
+      // escape onto the content sitting behind the overlay.
+      if (event.key === "Tab" && mobileNavRef.current) {
+        const focusableElements = mobileNavRef.current.querySelectorAll(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+        );
+        if (!focusableElements.length) return;
+
+        const firstElement = focusableElements[0];
+        const lastElement = focusableElements[focusableElements.length - 1];
+
+        if (event.shiftKey) {
+          if (document.activeElement === firstElement) {
+            event.preventDefault();
+            lastElement.focus();
+          }
+        } else {
+          if (document.activeElement === lastElement) {
+            event.preventDefault();
+            firstElement.focus();
+          }
+        }
       }
     }
 
@@ -350,149 +378,143 @@ function SectionNav({ activeSection, onSectionChange, theme }) {
     };
   }, [isMenuOpen]);
 
+  // While the mobile menu is open: prevent the page underneath from
+  // scrolling, and move focus onto the first menu item so keyboard/screen
+  // reader users land inside the trapped region right away.
+  useEffect(() => {
+    if (!isMobile || !isMenuOpen) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    const focusTimer = setTimeout(() => {
+      const firstFocusable = mobileNavRef.current?.querySelector(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+      );
+      firstFocusable?.focus();
+    }, 50);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      clearTimeout(focusTimer);
+    };
+  }, [isMobile, isMenuOpen]);
+
+  /** @param {any} id */
   const handleSectionClick = (id) => {
     onSectionChange(id);
     setIsMenuOpen(false);
   };
 
   return (
-    <header
-      className="section-nav"
-      ref={menuRef}
-      style={{
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-        width: "100%",
-      }}
-    >
-      {/* 
-        Refactored: CSS-based responsive logic directly embedded to prevent re-renders.
-      */}
-      <style>{`
-        .nav-desktop {
-          display: flex;
-          align-items: center;
-        }
-        .nav-mobile, .mobile-theme-switcher {
-          display: none !important;
-        }
-        
-        @media (max-width: 768px) {
-          .nav-desktop {
-            display: none !important;
-          }
-          .nav-mobile {
-            display: flex !important;
-            align-items: center;
-          }
-          .mobile-theme-switcher {
-            display: block !important;
-          }
-          .hamburger-btn {
-            border: 1px solid var(--line, #334155);
-            background: var(--card, #1e293b);
-            color: var(--ink, #fff);
-            border-radius: 50%;
-            width: 44px;
-            height: 44px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            cursor: pointer;
-            box-shadow: var(--shadow-sm);
-            padding: 0;
-          }
-          .mobile-dropdown {
-            display: none;
-          }
-          .mobile-dropdown.open {
-            display: flex;
-            position: absolute;
-            top: 100%;
-            left: 1rem;
-            right: 1rem;
-            margin-top: 0.5rem;
-            background: var(--card, #1e293b);
-            box-shadow: var(--shadow-lg);
-            border: 1px solid var(--line, #334155);
-            border-radius: var(--r-md, 8px);
-            padding: 0.5rem;
-            flex-direction: column;
-            gap: 0.5rem;
-            z-index: 50;
-          }
-          .mobile-dropdown button {
-            width: 100%;
-            text-align: center;
-            padding: 0.75rem 1rem;
-            border: none;
-            background: transparent;
-            color: var(--muted, #94a3b8);
-            border-radius: 999px;
-            font-weight: 700;
-            font-size: 0.9rem;
-            cursor: pointer;
-          }
-          .mobile-dropdown button.active {
-            background: linear-gradient(120deg, var(--brand, #0d9488), var(--sky, #0ea5e9));
-            color: #fff;
-          }
-        }
-      `}</style>
-
-      {/* --- DESKTOP LAYOUT --- */}
-      <nav className="nav-sections nav-desktop" aria-label="Main sections">
-        {sections.map((section) => (
-          <button
-            key={section.id}
-            type="button"
-            className={activeSection === section.id ? "active" : ""}
-            onClick={() => handleSectionClick(section.id)}
-          >
-            {section.label}
-          </button>
-        ))}
-        <div className="nav-divider"></div>
-        <ThemeSwitcher />
-      </nav>
-
-      {/* --- MOBILE LAYOUT --- */}
-      <nav className="nav-mobile" aria-label="Mobile navigation">
-        <button
-          className="hamburger-btn"
-          onClick={() => setIsMenuOpen(!isMenuOpen)}
-          aria-expanded={isMenuOpen}
-          aria-label="Toggle navigation"
-          aria-controls="mobile-navigation"
+    <>
+      {isMenuOpen && (
+        <div
+          className="mobile-nav-overlay"
+          onClick={() => setIsMenuOpen(false)}
+          aria-hidden="true"
+        />
+      )}
+      <header
+        className="section-nav"
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          width: "100%",
+          position: "relative",
+          zIndex: isMenuOpen ? 901 : undefined,
+        }}
+      >
+        <nav
+          aria-label="Main sections"
+          ref={menuRef}
+          style={{ display: "flex", alignItems: "center" }}
         >
-          <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
-            {isMenuOpen ? (
-              <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z" />
-            ) : (
-              <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z" />
-            )}
-          </svg>
-        </button>
+          <button
+            ref={hamburgerBtnRef}
+            className="hamburger-btn"
+            onClick={() => setIsMenuOpen(!isMenuOpen)}
+            aria-expanded={isMenuOpen}
+            aria-label="Toggle navigation"
+            aria-controls="mobile-navigation"
+            style={{
+              border: "1px solid var(--line)",
+              background: "var(--card)",
+              color: "var(--ink)",
+              borderRadius: "50%",
+              width: "44px",
+              height: "44px",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              cursor: "pointer",
+              boxShadow: "var(--shadow-sm)",
+              padding: 0,
+            }}
+          >
+            <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
+              {isMenuOpen ? (
+                <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z" />
+              ) : (
+                <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z" />
+              )}
+            </svg>
+          </button>
 
-        <div id="mobile-navigation" className={`mobile-dropdown ${isMenuOpen ? "open" : ""}`}>
-          {sections.map((section) => (
-            <button
-              key={section.id}
-              type="button"
-              className={activeSection === section.id ? "active" : ""}
-              onClick={() => handleSectionClick(section.id)}
+          {isMenuOpen && (
+            <nav
+              id="mobile-navigation"
+              ref={mobileNavRef}
+              style={{
+                position: "absolute",
+                top: "100%",
+                left: "1rem",
+                right: "1rem",
+                marginTop: "0.5rem",
+                background: "var(--card)",
+                boxShadow: "var(--shadow-lg)",
+                border: "1px solid var(--line)",
+                borderRadius: "var(--r-md)",
+                padding: "0.5rem",
+                display: "flex",
+                flexDirection: "column",
+                gap: "0.5rem",
+                zIndex: 950,
+              }}
             >
-              {section.label}
-            </button>
-          ))}
-        </div>
-      </nav>
+              {sections.map((section) => (
+                <button
+                  key={section.id}
+                  type="button"
+                  className={activeSection === section.id ? "active" : ""}
+                  onClick={() => handleSectionClick(section.id)}
+                  style={{
+                    width: "100%",
+                    textAlign: "center",
+                    padding: "0.75rem 1rem",
+                    border: "none",
+                    background:
+                      activeSection === section.id
+                        ? "linear-gradient(120deg, var(--brand), var(--sky))"
+                        : "transparent",
+                    color: activeSection === section.id ? "#fff" : "var(--muted)",
+                    borderRadius: "999px",
+                    fontWeight: "700",
+                    fontSize: "0.9rem",
+                    cursor: "pointer",
+                  }}
+                >
+                  {section.label}
+                </button>
+              ))}
+            </nav>
+          )}
+        </nav>
 
-      <div className="mobile-theme-switcher">
         <ThemeSwitcher />
-      </div>
-    </header>
+      </header>
+    </>
   );
 }
 
@@ -706,9 +728,22 @@ function AppContent() {
           if (requestId === geoRequestId.current) {
             setPosition({ lat, lon, cityName });
           }
-        } catch (err) {
-          console.warn("Reverse geocoding failed, keeping generic label.", err);
-        }
+        } 
+        catch (err) {
+    console.warn("Reverse geocoding failed, keeping generic label.", err);
+
+    if (requestId === geoRequestId.current) {
+        setLocationNotice(
+            "Couldn't retrieve your city name. Using your current coordinates instead."
+        );
+
+        setPosition({
+            lat,
+            lon,
+            cityName: "Your Current Location",
+        });
+    }
+}
       }, (error) => {
         if (requestId !== geoRequestId.current) return;
         console.warn("Geolocation is unavailable. Using the fallback location.");
@@ -1137,7 +1172,15 @@ function AppContent() {
             {activeSection === "Commute" && <Commute />}
             {activeSection === "Compare" && <CityCompare />}
             {activeSection === "CarbonCalculator" && (
-              <div className="content-grid carbon-calculator-layout">
+              <div
+                className="content-grid carbon-calculator-layout"
+                style={{
+                  maxWidth: "1200px",
+                  margin: "2rem auto",
+                  width: "100%",
+                  display: "block",
+                }}
+              >
                 <CarbonFootprintCalculator />
               </div>
             )}

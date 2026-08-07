@@ -981,6 +981,13 @@
   flex-shrink: 0;
 }
 
+.organ-icon-wrapper {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: help;
+}
+
 .divider-line {
   height: 1px;
   background: var(--line);
@@ -2595,6 +2602,14 @@
     padding: var(--sp-2) var(--sp-3);
     margin: 0 0 var(--sp-4);
   }
+
+  .mobile-nav-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.55);
+  z-index: 900;
+  animation: fadeIn 120ms ease forwards;
+ }
 
   .hero {
     margin: var(--sp-2) auto var(--sp-3);
