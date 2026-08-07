@@ -153,32 +153,60 @@ export default function HealthAdvisory() {
       <div className="panel-head">
         <h2>{t('healthAdvisory.title', { defaultValue: 'Health Advisory' })}</h2>
       </div>
-      
-      {/* Dynamic Tabs based on audience keys */}
-      <div className="tabs" style={{ display: 'flex', gap: '1rem', marginBottom: '1rem' }}>
-        {Object.keys(audiences).map(key => (
-          <button 
-            key={key} 
-            className={`tab-btn ${activeTab === key ? 'active' : ''}`}
-            onClick={() => setActiveTab(key)}
-            style={{ fontWeight: activeTab === key ? 'bold' : 'normal', padding: '0.5rem 1rem' }}
-          >
-            {audiences[key].label}
-          </button>
+
+      {/* Organ Impacts Grid */}
+      <h3 className="section-subtitle">{t('healthAdvisory.organSubtitle')}</h3>
+      <div className="advisory-grid">
+        {organImpacts.map((organ) => (
+          <article key={organ.title} className="advisory-card">
+            <div className="advisory-card-header">
+              <span
+                className="organ-icon-wrapper"
+                title={t('healthAdvisory.organIconTooltip', { organ: organ.title, defaultValue: `Impact on ${organ.title}` })}
+              >
+                {organ.icon}
+              </span>
+              <h3>{organ.title}</h3>
+            </div>
+            <p>{organ.impact}</p>
+          </article>
         ))}
       </div>
 
-      {/* Tab Content rendering selected audience tips */}
-      <div className="tab-content" style={{ marginBottom: '2rem' }}>
-        <p className="audience-desc" style={{ fontStyle: 'italic', marginBottom: '1rem' }}>
-          {audiences[activeTab].desc}
-        </p>
-        <ul className="tips-list" style={{ listStyle: 'none', padding: 0 }}>
-          {audiences[activeTab].tips.map((tip, idx) => (
-            <li key={idx} className="tip-item" style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '0.5rem' }}>
-              <span className="tip-icon" style={{ width: '24px', height: '24px' }}>{tip.icon}</span>
-              <div className="tip-text">
-                <strong>{tip.title}</strong> - {tip.detail} <span className={`badge ${tip.badgeClass}`}>{tip.priority}</span>
+      <div className="divider-line" />
+
+      {/* Interactive Tabs Section */}
+      <div className="tabs-container">
+        <div className="tabs-header">
+          <h3 className="section-subtitle">{t('healthAdvisory.tailoredSubtitle')}</h3>
+          <div className="tabs-list-buttons">
+            {Object.keys(audiences).map((key) => (
+              <button
+                key={key}
+                type="button"
+                className={`tab-btn ${activeTab === key ? 'active' : ''}`}
+                onClick={() => setActiveTab(key)}
+              >
+                {audiences[key].label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <p className="tab-description">{audiences[activeTab].desc}</p>
+
+        {/* Actionable Tips Grid */}
+        <div className="tips-grid">
+          {audiences[activeTab].tips.map((tip) => (
+            <div key={tip.title} className="tip-action-card">
+              <div className="tip-header">
+                <div
+                  className="tip-icon-wrapper"
+                  title={t('healthAdvisory.tipIconTooltip', { tip: tip.title, defaultValue: `${tip.title} icon` })}
+                >
+                  {tip.icon}
+                </div>
+                <span className={`priority-badge ${tip.badgeClass}`}>{tip.priority}</span>
               </div>
             </li>
           ))}
