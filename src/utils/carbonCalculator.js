@@ -53,7 +53,15 @@ const REDUCTION_TIPS_MAP = {
 };
 
 export function calculateCarbonFootprint(inputs = {}) {
-  const vehicleType = EMISSION_FACTORS.vehicle[inputs.vehicleType] ? inputs.vehicleType : 'petrol';
+  let vehicleType = inputs.vehicleType;
+
+if (!EMISSION_FACTORS.vehicle[vehicleType]) {
+  console.warn(
+    `Unknown vehicle type "${vehicleType}". Falling back to "petrol".`
+  );
+
+  vehicleType = "petrol";
+}
   const vehicleKm = Math.max(0, Number(inputs.vehicleKm) || 0);
   const electricityKwh = Math.max(0, Number(inputs.electricityKwh) || 0);
   const lpgCylinders = Math.max(0, Number(inputs.lpgCylinders) || 0);
