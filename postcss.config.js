@@ -8,7 +8,19 @@ export default {
             content: ["./index.html", "./src/**/*.{js,jsx,ts,tsx}"],
             defaultExtractor: (content) => content.match(/[\w-/:]+(?<!:)/g) || [],
             safelist: {
-              standard: [/^leaflet-/, /^recharts-/, /^theme-/],
+              standard: [
+                /^leaflet-/,
+                /^recharts-/,
+                /^theme-/,
+                // Classes composed dynamically in JSX (e.g. confidence-${level}, cols-${n})
+                /^confidence-/,
+                /^cols-/,
+                /^glossary-/,
+                /^sa-/,
+                /^priority-/,
+                /^difficulty-/,
+                /^hud-/,
+              ],
               deep: [/^leaflet/, /^recharts/],
             },
           }),
