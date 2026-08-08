@@ -337,11 +337,7 @@ function SectionNav({ activeSection, onSectionChange, theme }) {
   const mobileNavRef = useRef(null);
   const hamburgerBtnRef = useRef(null);
 
-  const [isMobile, setIsMobile] = useState(() =>
-    typeof window !== "undefined" && typeof window.matchMedia === "function"
-      ? window.matchMedia("(max-width: 768px)").matches
-      : false,
-  );
+  const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
     if (typeof window === "undefined" || typeof window.matchMedia !== "function") return;
@@ -845,22 +841,22 @@ function AppContent() {
           if (requestId === geoRequestId.current) {
             setPosition({ lat, lon, cityName });
           }
-        } 
+        }
         catch (err) {
-    console.warn("Reverse geocoding failed, keeping generic label.", err);
+          console.warn("Reverse geocoding failed, keeping generic label.", err);
 
-    if (requestId === geoRequestId.current) {
-        setLocationNotice(
-            "Couldn't retrieve your city name. Using your current coordinates instead."
-        );
+          if (requestId === geoRequestId.current) {
+            setLocationNotice(
+              "Couldn't retrieve your city name. Using your current coordinates instead."
+            );
 
-        setPosition({
-            lat,
-            lon,
-            cityName: "Your Current Location",
-        });
-    }
-}
+            setPosition({
+              lat,
+              lon,
+              cityName: "Your Current Location",
+            });
+          }
+        }
       }, (error) => {
         if (requestId !== geoRequestId.current) return;
         console.warn("Geolocation is unavailable. Using the fallback location.");
@@ -1277,8 +1273,8 @@ function AppContent() {
                       minHeight: "300px",
                     }}
                   >
-                  <div role="status" aria-live="polite">
-                    <div className="loading-spinner" />
+                    <div role="status" aria-live="polite">
+                      <div className="loading-spinner" />
                       <p style={{ marginTop: "1rem" }}>Loading games...</p>
                     </div>
                   </div>
