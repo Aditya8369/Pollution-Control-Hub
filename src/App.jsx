@@ -40,6 +40,8 @@ import CarbonFootprintCalculator from "./components/CarbonFootprintCalculator";
 import Leaderboard from "./components/Leaderboard";
 import EmbeddableWidgetGenerator from "./components/EmbeddableWidgetGenerator";
 import Glossary from "./components/Glossary";
+import BadgeNotification from "./components/BadgeNotification";
+import Achievements from "./components/Achievements";
 
 const AqiMissionGame = lazy(() => import("./components/AqiMissionGame"));
 const HotspotScoutGame = lazy(() => import("./components/HotspotScoutGame"));
@@ -328,6 +330,7 @@ function SectionNav({ activeSection, onSectionChange, theme }) {
     { id: "Commute", label: "Commute" },
     { id: "CarbonCalculator", label: "Carbon Calculator" },
     { id: "glossary", label: "Glossary" },
+    { id: "achievements", label: "Achievements" },
   ];
   // @ts-ignore
   const isDark = theme === "dark";
@@ -845,22 +848,22 @@ function AppContent() {
           if (requestId === geoRequestId.current) {
             setPosition({ lat, lon, cityName });
           }
-        } 
+        }
         catch (err) {
-    console.warn("Reverse geocoding failed, keeping generic label.", err);
+          console.warn("Reverse geocoding failed, keeping generic label.", err);
 
-    if (requestId === geoRequestId.current) {
-        setLocationNotice(
-            "Couldn't retrieve your city name. Using your current coordinates instead."
-        );
+          if (requestId === geoRequestId.current) {
+            setLocationNotice(
+              "Couldn't retrieve your city name. Using your current coordinates instead."
+            );
 
-        setPosition({
-            lat,
-            lon,
-            cityName: "Your Current Location",
-        });
-    }
-}
+            setPosition({
+              lat,
+              lon,
+              cityName: "Your Current Location",
+            });
+          }
+        }
       }, (error) => {
         if (requestId !== geoRequestId.current) return;
         console.warn("Geolocation is unavailable. Using the fallback location.");
@@ -1078,6 +1081,7 @@ function AppContent() {
         onSectionChange={setActiveSection}
         theme={theme}
       />
+      <BadgeNotification />
       <div id="main-content">
 
         {loading && !error ? (
@@ -1277,8 +1281,8 @@ function AppContent() {
                       minHeight: "300px",
                     }}
                   >
-                  <div role="status" aria-live="polite">
-                    <div className="loading-spinner" />
+                    <div role="status" aria-live="polite">
+                      <div className="loading-spinner" />
                       <p style={{ marginTop: "1rem" }}>Loading games...</p>
                     </div>
                   </div>
@@ -1319,6 +1323,14 @@ function AppContent() {
                 style={{ maxWidth: "1100px", margin: "2rem auto", width: "100%", display: "block" }}
               >
                 <Glossary />
+              </div>
+            )}
+            {activeSection === "achievements" && (
+              <div
+                className="content-grid achievements-layout"
+                style={{ maxWidth: "1100px", margin: "2rem auto", width: "100%", display: "block" }}
+              >
+                <Achievements />
               </div>
             )}
             <Footer />

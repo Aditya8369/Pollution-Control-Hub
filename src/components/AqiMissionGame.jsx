@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { ACTIONS, MISSIONS } from './aqiGameData';
 import { estimateAQI, getAQIBand } from '../services/airQualityService';
+import { eventBus } from '../core/events';
 
 /** @param {any} params */
 export default function AqiMissionGame({ current }) {
@@ -174,6 +175,13 @@ export default function AqiMissionGame({ current }) {
       deployedActions: [...deployedActions]
     });
     setGameState('completed');
+    eventBus.emit("AQI_MISSION_COMPLETED", {
+      success,
+      missionId: selectedMission.id,
+      improvement: results.improvement,
+      targetImprovement: selectedMission.targetImprovement,
+      isTimeout
+    });
   };
 
   // Point the ref at the current closure so the countdown's timeout uses the

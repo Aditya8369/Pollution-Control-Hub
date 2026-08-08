@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { calculateCleanRoute, UNMEASURED_SEGMENT_COLOR } from "../services/routePlanner";
 import { getAQIBand } from "../services/airQualityService";
+import { eventBus } from "../core/events";
 import {
   MapContainer,
   TileLayer,
@@ -186,6 +187,7 @@ const Commute = () => {
 
       if (allRoutesData.length > 0) {
         setMapCenter(allRoutesData[0].leafletCoords[0]);
+        eventBus.emit("ROUTE_PLANNED", { origin, destination, mode });
       }
       setRouteHistory((prev) => {
         const entry = { origin, destination, timestamp: new Date().toISOString() };
