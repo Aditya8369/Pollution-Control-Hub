@@ -10,6 +10,10 @@ import {
   Popup,
 } from "react-leaflet";
 
+function generateId() {
+  return Date.now().toString(36) + Math.random().toString(36).substr(2);
+}
+
 const LEGEND_ITEMS = [
   { range: "0–50", aqi: 25 },
   { range: "51–100", aqi: 75 },
@@ -220,7 +224,7 @@ const Commute = () => {
       const deduped = prev.filter(
         (loc) => loc.label.toLowerCase() !== label.toLowerCase()
       );
-      const updated = [...deduped, { id: crypto.randomUUID(), label, value: value.trim() }];
+      const updated = [...deduped, { id: generateId(), label, value: value.trim() }];
       localStorage.setItem(SAVED_LOCATIONS_KEY, JSON.stringify(updated));
       return updated;
     });
