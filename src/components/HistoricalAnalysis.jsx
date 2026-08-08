@@ -3,6 +3,7 @@ import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import CalendarHeatmap from './CalendarHeatmap';
 import { fetchHistoricalData, formatHistoricalCSV } from '../services/historicalDataService';
+import { dayAqi } from '../utils/historicalAggregate';
 
 /** @param {any} params */
 export default function HistoricalAnalysis({ position }) {
@@ -108,19 +109,22 @@ export default function HistoricalAnalysis({ position }) {
       const daysAnalysed = filtered.length;
       if (daysAnalysed === 0) return;
 
-      const aqis = filtered
-        .map(d => (d.maxAqi != null ? d.maxAqi : d.aqi))
-        .filter(v => v != null && !isNaN(v));
+      // Days the archive has no reading for carry a null AQI. They must not reach the
+      // statistics -- averaged in they read as 0, and compared numerically they satisfy
+      // `<= 50` and get filed under "Good".
+      const measuredDays = filtered.filter(d => dayAqi(d) != null);
+      const aqis = measuredDays.map(dayAqi);
+      const daysMeasured = measuredDays.length;
 
       const avgAqi = aqis.length > 0 ? Math.round(aqis.reduce((a, b) => a + b, 0) / aqis.length) : '-';
       const minAqi = aqis.length > 0 ? Math.min(...aqis) : '-';
       const maxAqi = aqis.length > 0 ? Math.max(...aqis) : '-';
 
-      const highestDay = filtered.find(d => (d.maxAqi != null ? d.maxAqi : d.aqi) === maxAqi);
-      const lowestDay = filtered.find(d => (d.maxAqi != null ? d.maxAqi : d.aqi) === minAqi);
+      const highestDay = measuredDays.find(d => dayAqi(d) === maxAqi);
+      const lowestDay = measuredDays.find(d => dayAqi(d) === minAqi);
 
       const calcAvg = (key) => {
-        const vals = filtered.map(d => d[key]).filter(v => typeof v === 'number' && !isNaN(v));
+        const vals = filtered.map(d => d[key]).filter(v => typeof v === 'number' && Number.isFinite(v));
         return vals.length > 0 ? (vals.reduce((a, b) => a + b, 0) / vals.length).toFixed(1) : 'N/A';
       };
 
@@ -131,8 +135,9 @@ export default function HistoricalAnalysis({ position }) {
       const avgCo = calcAvg('co');
 
       let goodDays = 0, moderateDays = 0, poorDays = 0, veryPoorDays = 0, hazardousDays = 0;
-      filtered.forEach(d => {
-        const val = d.maxAqi != null ? d.maxAqi : d.aqi;
+      const unmeasuredDays = daysAnalysed - daysMeasured;
+      measuredDays.forEach(d => {
+        const val = dayAqi(d);
         if (val <= 50) goodDays++;
         else if (val <= 100) moderateDays++;
         else if (val <= 200) poorDays++;
@@ -151,7 +156,14 @@ export default function HistoricalAnalysis({ position }) {
       const predominant = categories.reduce((prev, curr) => (curr.count > prev.count ? curr : prev), categories[0]);
 
       const observations = [];
-      observations.push(`Air quality remained predominantly ${predominant.name} during the selected reporting period.`);
+      if (daysMeasured === 0) {
+        observations.push(`No air quality measurements are available for the selected reporting period.`);
+      } else {
+        observations.push(`Air quality remained predominantly ${predominant.name} across the ${daysMeasured} day(s) with measurements.`);
+      }
+      if (unmeasuredDays > 0) {
+        observations.push(`${unmeasuredDays} of the ${daysAnalysed} day(s) in range had no readings and are excluded from these figures.`);
+      }
       if (highestDay) {
         observations.push(`Peak pollution occurred on ${highestDay.date} with an AQI of ${maxAqi}.`);
       }
@@ -240,6 +252,8 @@ export default function HistoricalAnalysis({ position }) {
       // 3. Summary Statistics Section
       addSectionHeader('Summary Statistics');
       addStatRow('Days Analysed', String(daysAnalysed));
+      // Stated explicitly so a reader can tell a clean average from a thin one.
+      addStatRow('Days With Readings', `${daysMeasured} of ${daysAnalysed}`);
       y += 2.5;
       addStatRow('Average AQI', String(avgAqi));
       addStatRow('Minimum AQI', String(minAqi));
@@ -525,11 +539,22 @@ export default function HistoricalAnalysis({ position }) {
       <div className="stats-row" style={{ marginBottom: '2rem' }}>
         <div className="stat-box" style={{ padding: '1rem', borderRadius: '0.5rem', background: 'rgba(0,0,0,0.05)', flex: '1 1 200px', minWidth: 0 }}>
           <p style={{ fontSize: '0.85rem', opacity: 0.7, margin: '0 0 0.25rem' }}>Overall Average AQI</p>
-          <p style={{ fontSize: '1.8rem', fontWeight: 700, margin: 0, fontFamily: '"Fraunces", serif' }}>{data.overallAvg}</p>
+          <p style={{ fontSize: '1.8rem', fontWeight: 700, margin: 0, fontFamily: '"Fraunces", serif' }}>
+            {data.overallAvg == null ? '—' : data.overallAvg}
+          </p>
         </div>
         <div className="stat-box" style={{ padding: '1rem', borderRadius: '0.5rem', background: 'rgba(0,0,0,0.05)', flex: '1 1 200px', minWidth: 0 }}>
           <p style={{ fontSize: '0.85rem', opacity: 0.7, margin: '0 0 0.25rem' }}>Days Recorded</p>
-          <p style={{ fontSize: '1.8rem', fontWeight: 700, margin: 0, fontFamily: '"Fraunces", serif' }}>{data.daily.length}</p>
+          {/* Days with an actual reading, not days present in the response. The two differ
+              wherever the archive has gaps, and the average above is over the former. */}
+          <p style={{ fontSize: '1.8rem', fontWeight: 700, margin: 0, fontFamily: '"Fraunces", serif' }}>
+            {data.daysWithReadings ?? data.daily.length}
+          </p>
+          {data.daysInRange > (data.daysWithReadings ?? data.daily.length) && (
+            <p style={{ fontSize: '0.75rem', opacity: 0.7, margin: '0.25rem 0 0' }}>
+              of {data.daysInRange} in range
+            </p>
+          )}
         </div>
       </div>
 
