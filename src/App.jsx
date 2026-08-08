@@ -340,11 +340,7 @@ function SectionNav({ activeSection, onSectionChange, theme }) {
   const mobileNavRef = useRef(null);
   const hamburgerBtnRef = useRef(null);
 
-  const [isMobile, setIsMobile] = useState(() =>
-    typeof window !== "undefined" && typeof window.matchMedia === "function"
-      ? window.matchMedia("(max-width: 768px)").matches
-      : false,
-  );
+  const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
     if (typeof window === "undefined" || typeof window.matchMedia !== "function") return;
