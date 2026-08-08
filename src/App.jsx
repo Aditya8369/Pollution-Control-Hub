@@ -40,6 +40,8 @@ import CarbonFootprintCalculator from "./components/CarbonFootprintCalculator";
 import Leaderboard from "./components/Leaderboard";
 import EmbeddableWidgetGenerator from "./components/EmbeddableWidgetGenerator";
 import Glossary from "./components/Glossary";
+import BadgeNotification from "./components/BadgeNotification";
+import Achievements from "./components/Achievements";
 
 const AqiMissionGame = lazy(() => import("./components/AqiMissionGame"));
 const HotspotScoutGame = lazy(() => import("./components/HotspotScoutGame"));
@@ -328,18 +330,17 @@ function SectionNav({ activeSection, onSectionChange, theme }) {
     { id: "Commute", label: "Commute" },
     { id: "CarbonCalculator", label: "Carbon Calculator" },
     { id: "glossary", label: "Glossary" },
+    { id: "achievements", label: "Achievements" },
   ];
   // @ts-ignore
   const isDark = theme === "dark";
 
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef(null);
+  const mobileNavRef = useRef(null);
+  const hamburgerBtnRef = useRef(null);
 
-  const [isMobile, setIsMobile] = useState(() =>
-    typeof window !== "undefined" && typeof window.matchMedia === "function"
-      ? window.matchMedia("(max-width: 768px)").matches
-      : false,
-  );
+  const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
     if (typeof window === "undefined" || typeof window.matchMedia !== "function") return;
@@ -367,6 +368,32 @@ function SectionNav({ activeSection, onSectionChange, theme }) {
     function handleKeyDown(event) {
       if (event.key === "Escape") {
         setIsMenuOpen(false);
+        hamburgerBtnRef.current?.focus();
+        return;
+      }
+
+      // Trap focus inside the open mobile menu so Tab/Shift+Tab can't
+      // escape onto the content sitting behind the overlay.
+      if (event.key === "Tab" && mobileNavRef.current) {
+        const focusableElements = mobileNavRef.current.querySelectorAll(
+          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+        );
+        if (!focusableElements.length) return;
+
+        const firstElement = focusableElements[0];
+        const lastElement = focusableElements[focusableElements.length - 1];
+
+        if (event.shiftKey) {
+          if (document.activeElement === firstElement) {
+            event.preventDefault();
+            lastElement.focus();
+          }
+        } else {
+          if (document.activeElement === lastElement) {
+            event.preventDefault();
+            firstElement.focus();
+          }
+        }
       }
     }
 
@@ -379,6 +406,28 @@ function SectionNav({ activeSection, onSectionChange, theme }) {
       document.removeEventListener("keydown", handleKeyDown);
     };
   }, [isMenuOpen]);
+
+  // While the mobile menu is open: prevent the page underneath from
+  // scrolling, and move focus onto the first menu item so keyboard/screen
+  // reader users land inside the trapped region right away.
+  useEffect(() => {
+    if (!isMobile || !isMenuOpen) return;
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    const focusTimer = setTimeout(() => {
+      const firstFocusable = mobileNavRef.current?.querySelector(
+        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
+      );
+      firstFocusable?.focus();
+    }, 50);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      clearTimeout(focusTimer);
+    };
+  }, [isMobile, isMenuOpen]);
 
   /** @param {any} id */
   const handleSectionClick = (id) => {
@@ -456,101 +505,114 @@ function SectionNav({ activeSection, onSectionChange, theme }) {
   }
 
   return (
-    <header
-      className="section-nav"
-      style={{
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-        width: "100%",
-      }}
-    >
-      <nav
-        aria-label="Main sections"
-        ref={menuRef}
-        style={{ display: "flex", alignItems: "center" }}
+    <>
+      {isMenuOpen && (
+        <div
+          className="mobile-nav-overlay"
+          onClick={() => setIsMenuOpen(false)}
+          aria-hidden="true"
+        />
+      )}
+      <header
+        className="section-nav"
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          width: "100%",
+          position: "relative",
+          zIndex: isMenuOpen ? 901 : undefined,
+        }}
       >
-        <button
-          className="hamburger-btn"
-          onClick={() => setIsMenuOpen(!isMenuOpen)}
-          aria-expanded={isMenuOpen}
-          aria-label="Toggle navigation"
-          aria-controls="mobile-navigation"
-          style={{
-            border: "1px solid var(--line)",
-            background: "var(--card)",
-            color: "var(--ink)",
-            borderRadius: "50%",
-            width: "44px",
-            height: "44px",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            cursor: "pointer",
-            boxShadow: "var(--shadow-sm)",
-            padding: 0,
-          }}
+        <nav
+          aria-label="Main sections"
+          ref={menuRef}
+          style={{ display: "flex", alignItems: "center" }}
         >
-          <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
-            {isMenuOpen ? (
-              <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z" />
-            ) : (
-              <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z" />
-            )}
-          </svg>
-        </button>
-
-        {isMenuOpen && (
-          <nav
-            id="mobile-navigation"
+          <button
+            ref={hamburgerBtnRef}
+            className="hamburger-btn"
+            onClick={() => setIsMenuOpen(!isMenuOpen)}
+            aria-expanded={isMenuOpen}
+            aria-label="Toggle navigation"
+            aria-controls="mobile-navigation"
             style={{
-              position: "absolute",
-              top: "100%",
-              left: "1rem",
-              right: "1rem",
-              marginTop: "0.5rem",
-              background: "var(--card)",
-              boxShadow: "var(--shadow-lg)",
               border: "1px solid var(--line)",
-              borderRadius: "var(--r-md)",
-              padding: "0.5rem",
+              background: "var(--card)",
+              color: "var(--ink)",
+              borderRadius: "50%",
+              width: "44px",
+              height: "44px",
               display: "flex",
-              flexDirection: "column",
-              gap: "0.5rem",
-              zIndex: 50,
+              alignItems: "center",
+              justifyContent: "center",
+              cursor: "pointer",
+              boxShadow: "var(--shadow-sm)",
+              padding: 0,
             }}
           >
-            {sections.map((section) => (
-              <button
-                key={section.id}
-                type="button"
-                className={activeSection === section.id ? "active" : ""}
-                onClick={() => handleSectionClick(section.id)}
-                style={{
-                  width: "100%",
-                  textAlign: "center",
-                  padding: "0.75rem 1rem",
-                  border: "none",
-                  background:
-                    activeSection === section.id
-                      ? "linear-gradient(120deg, var(--brand), var(--sky))"
-                      : "transparent",
-                  color: activeSection === section.id ? "#fff" : "var(--muted)",
-                  borderRadius: "999px",
-                  fontWeight: "700",
-                  fontSize: "0.9rem",
-                  cursor: "pointer",
-                }}
-              >
-                {section.label}
-              </button>
-            ))}
-          </nav>
-        )}
-      </nav>
+            <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
+              {isMenuOpen ? (
+                <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z" />
+              ) : (
+                <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z" />
+              )}
+            </svg>
+          </button>
 
-      <ThemeSwitcher />
-    </header>
+          {isMenuOpen && (
+            <nav
+              id="mobile-navigation"
+              ref={mobileNavRef}
+              style={{
+                position: "absolute",
+                top: "100%",
+                left: "1rem",
+                right: "1rem",
+                marginTop: "0.5rem",
+                background: "var(--card)",
+                boxShadow: "var(--shadow-lg)",
+                border: "1px solid var(--line)",
+                borderRadius: "var(--r-md)",
+                padding: "0.5rem",
+                display: "flex",
+                flexDirection: "column",
+                gap: "0.5rem",
+                zIndex: 950,
+              }}
+            >
+              {sections.map((section) => (
+                <button
+                  key={section.id}
+                  type="button"
+                  className={activeSection === section.id ? "active" : ""}
+                  onClick={() => handleSectionClick(section.id)}
+                  style={{
+                    width: "100%",
+                    textAlign: "center",
+                    padding: "0.75rem 1rem",
+                    border: "none",
+                    background:
+                      activeSection === section.id
+                        ? "linear-gradient(120deg, var(--brand), var(--sky))"
+                        : "transparent",
+                    color: activeSection === section.id ? "#fff" : "var(--muted)",
+                    borderRadius: "999px",
+                    fontWeight: "700",
+                    fontSize: "0.9rem",
+                    cursor: "pointer",
+                  }}
+                >
+                  {section.label}
+                </button>
+              ))}
+            </nav>
+          )}
+        </nav>
+
+        <ThemeSwitcher />
+      </header>
+    </>
   );
 }
 
@@ -782,8 +844,21 @@ function AppContent() {
           if (requestId === geoRequestId.current) {
             setPosition({ lat, lon, cityName });
           }
-        } catch (err) {
+        }
+        catch (err) {
           console.warn("Reverse geocoding failed, keeping generic label.", err);
+
+          if (requestId === geoRequestId.current) {
+            setLocationNotice(
+              "Couldn't retrieve your city name. Using your current coordinates instead."
+            );
+
+            setPosition({
+              lat,
+              lon,
+              cityName: "Your Current Location",
+            });
+          }
         }
       }, (error) => {
         if (requestId !== geoRequestId.current) return;
@@ -1002,6 +1077,7 @@ function AppContent() {
         onSectionChange={setActiveSection}
         theme={theme}
       />
+      <BadgeNotification />
       <div id="main-content">
 
         {loading && !error ? (
@@ -1201,8 +1277,8 @@ function AppContent() {
                       minHeight: "300px",
                     }}
                   >
-                  <div role="status" aria-live="polite">
-                    <div className="loading-spinner" />
+                    <div role="status" aria-live="polite">
+                      <div className="loading-spinner" />
                       <p style={{ marginTop: "1rem" }}>Loading games...</p>
                     </div>
                   </div>
@@ -1225,7 +1301,15 @@ function AppContent() {
             {activeSection === "Commute" && <Commute />}
             {activeSection === "Compare" && <CityCompare />}
             {activeSection === "CarbonCalculator" && (
-              <div className="content-grid carbon-calculator-layout">
+              <div
+                className="content-grid carbon-calculator-layout"
+                style={{
+                  maxWidth: "1200px",
+                  margin: "2rem auto",
+                  width: "100%",
+                  display: "block",
+                }}
+              >
                 <CarbonFootprintCalculator />
               </div>
             )}
@@ -1235,6 +1319,14 @@ function AppContent() {
                 style={{ maxWidth: "1100px", margin: "2rem auto", width: "100%", display: "block" }}
               >
                 <Glossary />
+              </div>
+            )}
+            {activeSection === "achievements" && (
+              <div
+                className="content-grid achievements-layout"
+                style={{ maxWidth: "1100px", margin: "2rem auto", width: "100%", display: "block" }}
+              >
+                <Achievements />
               </div>
             )}
             <Footer />

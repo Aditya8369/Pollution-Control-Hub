@@ -23,7 +23,7 @@ export function useSWR(
     const cached = cacheStore.getFromMemory(key);
     return cached ? cached.data : undefined;
   };
-  
+
   const [data, setData] = useState(getInitialData);
   const [error, setError] = useState(null);
   const [isValidating, setIsValidating] = useState(() => !getInitialData() && !!key);
@@ -35,14 +35,23 @@ export function useSWR(
   const dataRef = useRef(data);
   dataRef.current = data;
 
+  // Track the latest key to prevent stale async updates
+  const keyRef = useRef(key);
+
+  useEffect(() => {
+    keyRef.current = key;
+  }, [key]);
+
   // Handle key changes synchronously to avoid flash of old data
   const isKeyChanged = key !== currentKey;
-  
-  // Derive the display values immediately so we don't show old data
+
+  // Derive display values immediately so we don't show old data
   // while React is processing the state update
   const displayData = isKeyChanged ? getInitialData() : data;
   const displayError = isKeyChanged ? null : error;
-  const displayIsValidating = isKeyChanged ? (!getInitialData() && !!key) : isValidating;
+  const displayIsValidating = isKeyChanged
+    ? (!getInitialData() && !!key)
+    : isValidating;
 
   if (isKeyChanged) {
     setCurrentKey(key);
@@ -54,13 +63,20 @@ export function useSWR(
   const revalidate = useCallback(async (force = false) => {
     if (!key) return;
 
-    const isStale = await cacheStore.isStale(key, ttl);
+    const requestKey = key;
+
+    const isStale = await cacheStore.isStale(requestKey, ttl);
+
     if (!force && !isStale) {
-      const cached = await cacheStore.get(key);
+      const cached = await cacheStore.get(requestKey);
       if (cached && cached.data !== dataRef.current) {
-        setData(cached.data);
+        if (keyRef.current === requestKey) {
+          setData(cached.data);
+        }
       }
-      setIsValidating(false);
+      if (keyRef.current === requestKey) {
+        setIsValidating(false);
+      }
       return;
     }
 
@@ -115,5 +131,10 @@ export function useSWR(
     await revalidate(true);
   }, [key, revalidate]);
 
-  return { data: displayData, error: displayError, isValidating: displayIsValidating, mutate };
+  return {
+    data: displayData,
+    error: displayError,
+    isValidating: displayIsValidating,
+    mutate
+  };
 }

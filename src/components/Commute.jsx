@@ -50,6 +50,7 @@ const Commute = () => {
 
       if (allRoutesData.length > 0) {
         setMapCenter(allRoutesData[0].leafletCoords[0]);
+        eventBus.emit("ROUTE_PLANNED", { origin, destination, mode });
       }
       addHistoryEntry(origin, destination);
     } catch (error) {

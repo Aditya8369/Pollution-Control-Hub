@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { getAQIBand } from '../services/airQualityService';
 import { useTranslation } from 'react-i18next';
+import { eventBus } from '../core/events';
 import './MorningBriefing.css';
 
 /** @param {any} params */
@@ -8,7 +9,7 @@ export default function MorningBriefing({ current, trend, showTrigger, onDismiss
   const { t } = useTranslation();
   const [isVisible, setIsVisible] = useState(true);
   const [streak, setStreak] = useState(0);
-  
+
   useEffect(() => {
     if (showTrigger) {
       localStorage.removeItem('briefingDismissed');
@@ -28,15 +29,15 @@ export default function MorningBriefing({ current, trend, showTrigger, onDismiss
     // Check streak
     const lastCheckIn = localStorage.getItem('lastCheckIn');
     let currentStreak = parseInt(localStorage.getItem('appStreak') || '0', 10);
-    
+
     if (lastCheckIn !== todayStr) {
       if (lastCheckIn) {
         const lastDate = new Date(lastCheckIn);
         const today = new Date(todayStr);
-      // @ts-ignore
+        // @ts-ignore
         const diffTime = Math.abs(today - lastDate);
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-        
+
         if (diffDays === 1) {
           currentStreak += 1;
         } else {
@@ -49,6 +50,7 @@ export default function MorningBriefing({ current, trend, showTrigger, onDismiss
       localStorage.setItem('lastCheckIn', todayStr);
     }
     setStreak(currentStreak);
+    eventBus.emit('STREAK_UPDATED', { streak: currentStreak });
   }, []);
 
   if (!isVisible || !current) return null;
@@ -119,7 +121,7 @@ export default function MorningBriefing({ current, trend, showTrigger, onDismiss
           ✕
         </button>
       </div>
-      
+
       <div className="briefing-content">
         <div className="briefing-item">
           <span className="icon">{summaryIcon}</span>
@@ -128,7 +130,7 @@ export default function MorningBriefing({ current, trend, showTrigger, onDismiss
             <p>{summaryText}</p>
           </div>
         </div>
-        
+
         <div className="briefing-item">
           <span className="icon">📈</span>
           <div>
@@ -136,7 +138,7 @@ export default function MorningBriefing({ current, trend, showTrigger, onDismiss
             <p>{outlook}</p>
           </div>
         </div>
-        
+
         <div className="briefing-item">
           <span className="icon">💡</span>
           <div>

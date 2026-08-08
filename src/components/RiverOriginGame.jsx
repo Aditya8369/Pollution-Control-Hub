@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { shuffleArray } from "./hotspotGameUtils";
+import { eventBus } from "../core/events";
 
 const RIVERS = [
     {
@@ -102,6 +103,10 @@ export default function RiverOriginGame() {
 
             if (updated.size === RIVERS.length) {
                 setBestMistakes(saveBestMistakes(mistakes));
+                eventBus.emit("RIVER_ORIGIN_COMPLETED", {
+                    mistakes,
+                    totalRivers: RIVERS.length
+                });
             }
         } else {
             setMistakes((prev) => prev + 1);

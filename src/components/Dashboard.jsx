@@ -31,6 +31,34 @@ function shortTimeLabel(isoTime) {
   return new Date(isoTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 
+/**
+ * Renders a reading, or an em dash when the hour had no value.
+ *
+ * The service returns null for a missing reading rather than 0, so nothing here may
+ * print a bare number without checking — "0" would read as a measurement of clean air.
+ *
+ * @param {number|null|undefined} value
+ * @returns {string}
+ */
+function displayReading(value) {
+  return typeof value === 'number' && Number.isFinite(value) ? String(value) : '—';
+}
+
+/**
+ * Mean of whichever readings exist in a window, or null when none do.
+ *
+ * @param {any[]} items
+ * @param {string} field
+ * @returns {number|null}
+ */
+function averageOf(items, field) {
+  const values = (items || [])
+    .map((item) => item?.[field])
+    .filter((v) => typeof v === 'number' && Number.isFinite(v));
+  if (values.length === 0) return null;
+  return values.reduce((sum, v) => sum + v, 0) / values.length;
+}
+
 /** @param {any} params */
 function CustomTooltip({ active, payload }) {
   if (active && payload && payload.length) {
@@ -231,7 +259,14 @@ export default function Dashboard({
     { name: 'NO2', value: current.nitrogen_dioxide, limit: 25, impact: 'May irritate airways and aggravate respiratory diseases.', color: getPollutantColor(current.nitrogen_dioxide, 25) },
     { name: 'O3', value: current.ozone, limit: 100, impact: 'Can trigger asthma and reduce lung function.', color: getPollutantColor(current.ozone, 100) },
     { name: 'CO', value: current.carbon_monoxide, limit: 4000, impact: 'High levels reduce oxygen delivery to the body.', color: getPollutantColor(current.carbon_monoxide, 4000) }
-  ].map(p => ({ ...p, ratio: Math.max(10, (p.value / p.limit) * 100) }));
+  ].map(p => ({
+    ...p,
+    // An unmeasured pollutant gets the floor width rather than NaN, and its colour comes
+    // from getPollutantColor(null, …) which no longer resolves to the "well within" green.
+    ratio: typeof p.value === 'number' && Number.isFinite(p.value)
+      ? Math.max(10, (p.value / p.limit) * 100)
+      : 10
+  }));
 
   const getAqiTrendIndicator = () => {
     if (!trend || trend.length < 2) return null;
@@ -239,8 +274,11 @@ export default function Dashboard({
     if (windowSize === 0) return null;
     const recentData = trend.slice(-windowSize);
     const previousData = trend.slice(-windowSize * 2, -windowSize);
-    const recentAvg = recentData.reduce((sum, item) => sum + item.us_aqi, 0) / windowSize;
-    const previousAvg = previousData.reduce((sum, item) => sum + item.us_aqi, 0) / windowSize;
+    // Average only the hours that carry a reading; a null counted as 0 would show a
+    // fabricated "Improving" arrow whenever the feed had gaps.
+    const recentAvg = averageOf(recentData, 'us_aqi');
+    const previousAvg = averageOf(previousData, 'us_aqi');
+    if (recentAvg === null || previousAvg === null) return null;
     const diff = recentAvg - previousAvg;
     const threshold = 2;
     if (diff > threshold) return { label: '🔴 ↑ Worsening', color: '#ef4444' };
@@ -401,7 +439,7 @@ export default function Dashboard({
           <article className={`${styles.kpiCard} ${styles.aqi}`}>
             <h3>US AQI</h3>
             <div data-testid="aqi-value" className={styles.kpiValue} style={{ color: aqiBand.color }}>
-              {current.us_aqi}
+              {displayReading(current.us_aqi)}
             </div>
             <p data-testid="aqi-band-label">{aqiBand.label}</p>
             {aqiTrend && (
@@ -755,7 +793,7 @@ export default function Dashboard({
           <div className="share-card-hero-left">
             <span className="share-card-hero-sub">AIR QUALITY INDEX</span>
             <span className="share-card-hero-value" style={{ color: aqiBand.color }}>
-              {current.us_aqi}
+              {displayReading(current.us_aqi)}
             </span>
           </div>
           <div className="share-card-hero-pill" style={{ background: aqiBand.color }}>
