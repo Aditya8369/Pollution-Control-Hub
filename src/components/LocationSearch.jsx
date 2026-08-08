@@ -1,12 +1,86 @@
-import { useState, useEffect, useRef } from 'react';
+import { useReducer, useEffect, useRef } from 'react';
 import { searchLocations } from '../services/geocodingService';
 import PropTypes from "prop-types";
 
 const RECENT_SEARCHES_KEY = 'pollution_hub_recent_searches';
 const MAX_RECENT_SEARCHES = 5;
 
+const initialState = {
+  query: '',
+  suggestions: [],
+  recentSearches: [],
+  isOpen: false,
+  isLoading: false,
+  activeIndex: -1,
+  historyError: '',
+  searchError: null,
+};
+
+function searchReducer(state, action) {
+  switch (action.type) {
+    case 'SET_QUERY':
+      return { ...state, query: action.payload };
+    case 'SET_SUGGESTIONS':
+      return { ...state, suggestions: action.payload };
+    case 'SET_RECENT_SEARCHES':
+      return { ...state, recentSearches: action.payload };
+    case 'SET_IS_OPEN':
+      return { ...state, isOpen: action.payload };
+    case 'SET_IS_LOADING':
+      return { ...state, isLoading: action.payload };
+    case 'SET_ACTIVE_INDEX':
+      return { ...state, activeIndex: action.payload };
+    case 'SET_HISTORY_ERROR':
+      return { ...state, historyError: action.payload };
+    case 'SET_SEARCH_ERROR':
+      return { ...state, searchError: action.payload };
+    case 'RESET_SEARCH':
+      return {
+        ...state,
+        query: '',
+        suggestions: [],
+        searchError: null,
+        activeIndex: -1,
+        isOpen: false,
+      };
+    case 'UPDATE_INPUT':
+      return {
+        ...state,
+        query: action.payload,
+        activeIndex: -1,
+        searchError: null,
+        suggestions: action.payload.trim() === '' ? [] : state.suggestions,
+        isOpen: true,
+        isLoading: action.payload.trim() !== '',
+      };
+    case 'HANDLE_SUCCESS_RESULTS':
+      return {
+        ...state,
+        suggestions: action.payload,
+        isLoading: false,
+      };
+    case 'HANDLE_ERROR_RESULTS':
+      return {
+        ...state,
+        suggestions: [],
+        searchError: action.payload,
+        isLoading: false,
+      };
+    case 'SELECT_LOCATION':
+      return {
+        ...state,
+        query: action.payload.name,
+        isOpen: false,
+        suggestions: [],
+        activeIndex: -1,
+      };
+    default:
+      return state;
+  }
+}
+
 /** 
- * Search input with autocomplete and recent-search history.
+ * Search input with autocomplete and recent-search history managed via useReducer.
  *
  * @param {Object} props Component props.
  * @param {(location: Object) => void} props.onLocationSelected Callback invoked
@@ -15,14 +89,21 @@ const MAX_RECENT_SEARCHES = 5;
  */
 
 export default function LocationSearch({ onLocationSelected, initialCityName }) {
-  const [query, setQuery] = useState(initialCityName || '');
-  const [suggestions, setSuggestions] = useState([]);
-  const [recentSearches, setRecentSearches] = useState([]);
-  const [isOpen, setIsOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [activeIndex, setActiveIndex] = useState(-1);
-  const [historyError, setHistoryError] = useState('');
-  const [searchError, setSearchError] = useState(null);
+  const [state, dispatch] = useReducer(searchReducer, {
+    ...initialState,
+    query: initialCityName || '',
+  });
+
+  const {
+    query,
+    suggestions,
+    recentSearches,
+    isOpen,
+    isLoading,
+    activeIndex,
+    historyError,
+    searchError,
+  } = state;
 
   const wrapperRef = useRef(null);
   const debounceTimerRef = useRef(null);
@@ -39,19 +120,21 @@ export default function LocationSearch({ onLocationSelected, initialCityName }) 
         const parsed = JSON.parse(stored);
 
         if (Array.isArray(parsed)) {
-          setRecentSearches(parsed);
+          dispatch({ type: 'SET_RECENT_SEARCHES', payload: parsed });
         } else {
-          setRecentSearches([]);
-          setHistoryError(
-            'Recent searches could not be loaded. Starting with an empty search history.'
-          );
+          dispatch({ type: 'SET_RECENT_SEARCHES', payload: [] });
+          dispatch({
+            type: 'SET_HISTORY_ERROR',
+            payload: 'Recent searches could not be loaded. Starting with an empty search history.',
+          });
         }
       }
     } catch (error) {
-      setRecentSearches([]);
-      setHistoryError(
-        'Recent searches could not be loaded. Starting with an empty search history.'
-      );
+      dispatch({ type: 'SET_RECENT_SEARCHES', payload: [] });
+      dispatch({
+        type: 'SET_HISTORY_ERROR',
+        payload: 'Recent searches could not be loaded. Starting with an empty search history.',
+      });
 
       if (import.meta.env.DEV) {
         console.error('Failed to parse recent searches:', error);
@@ -66,7 +149,7 @@ export default function LocationSearch({ onLocationSelected, initialCityName }) 
       initialCityName !== 'auto' &&
       initialCityName !== 'Your Current Location'
     ) {
-      setQuery(initialCityName);
+      dispatch({ type: 'SET_QUERY', payload: initialCityName });
     }
   }, [initialCityName]);
 
@@ -74,7 +157,7 @@ export default function LocationSearch({ onLocationSelected, initialCityName }) 
     // Click outside handler to close dropdown.
     function handleClickOutside(event) {
       if (wrapperRef.current && !wrapperRef.current.contains(event.target)) {
-        setIsOpen(false);
+        dispatch({ type: 'SET_IS_OPEN', payload: false });
       }
     }
 
@@ -86,30 +169,31 @@ export default function LocationSearch({ onLocationSelected, initialCityName }) 
   }, []);
 
   /** 
- * @param {{
- *  id: string|number,
- *  name: string,
- *  displayName: string
- * }} location
-  */
+   * @param {{
+   *  id: string|number,
+   *  name: string,
+   *  displayName: string
+   * }} location
+   */
   const saveRecentSearch = (location) => {
     const newRecent = [
       location,
       ...recentSearches.filter((search) => search.id !== location.id),
     ].slice(0, MAX_RECENT_SEARCHES);
 
-    setRecentSearches(newRecent);
+    dispatch({ type: 'SET_RECENT_SEARCHES', payload: newRecent });
 
     try {
       localStorage.setItem(
         RECENT_SEARCHES_KEY,
         JSON.stringify(newRecent)
       );
-      setHistoryError('');
+      dispatch({ type: 'SET_HISTORY_ERROR', payload: '' });
     } catch (error) {
-      setHistoryError(
-        'Recent searches could not be saved. Your location selection still works normally.'
-      );
+      dispatch({
+        type: 'SET_HISTORY_ERROR',
+        payload: 'Recent searches could not be saved. Your location selection still works normally.',
+      });
 
       if (import.meta.env.DEV) {
         console.error('Failed to save recent searches:', error);
@@ -118,17 +202,14 @@ export default function LocationSearch({ onLocationSelected, initialCityName }) 
   };
 
   /** 
- * @param {{
- *  id: string|number,
- *  name: string,
- *  displayName: string
- * }} location
-  */
+   * @param {{
+   *  id: string|number,
+   *  name: string,
+   *  displayName: string
+   * }} location
+   */
   const handleSelect = (location) => {
-    setQuery(location.name);
-    setIsOpen(false);
-    setSuggestions([]);
-    setActiveIndex(-1);
+    dispatch({ type: 'SELECT_LOCATION', payload: location });
     saveRecentSearch(location);
     onLocationSelected(location);
   };
@@ -140,11 +221,7 @@ export default function LocationSearch({ onLocationSelected, initialCityName }) 
   }, []);
 
   const handleClear = () => {
-    setQuery('');
-    setSuggestions([]);
-    setSearchError(null);
-    setActiveIndex(-1);
-    setIsOpen(false);
+    dispatch({ type: 'RESET_SEARCH' });
     abortControllerRef.current?.abort();
     if (inputRef.current) {
       inputRef.current.focus();
@@ -154,18 +231,11 @@ export default function LocationSearch({ onLocationSelected, initialCityName }) 
   const handleInputChange = (e) => {
     const val = e.target.value;
 
-    setQuery(val);
-    setActiveIndex(-1);
-    setSearchError(null);
+    dispatch({ type: 'UPDATE_INPUT', payload: val });
 
     if (val.trim() === '') {
-      setSuggestions([]);
-      setIsOpen(true);
       return;
     }
-
-    setIsLoading(true);
-    setIsOpen(true);
 
     if (debounceTimerRef.current) {
       clearTimeout(debounceTimerRef.current);
@@ -173,7 +243,7 @@ export default function LocationSearch({ onLocationSelected, initialCityName }) 
 
     debounceTimerRef.current = setTimeout(async () => {
       latestQueryRef.current = val;
-      setSearchError(null);
+      dispatch({ type: 'SET_SEARCH_ERROR', payload: null });
 
       abortControllerRef.current?.abort();
       abortControllerRef.current = new AbortController();
@@ -186,22 +256,20 @@ export default function LocationSearch({ onLocationSelected, initialCityName }) 
           return;
         }
 
-        setSuggestions(results);
+        dispatch({ type: 'HANDLE_SUCCESS_RESULTS', payload: results });
       } catch (err) {
-          if (err.name === "AbortError") {
-            return;
-          }
-
-          if (latestQueryRef.current !== val) {
-            return;
-          }
-
-          setSuggestions([]);
-          setSearchError("Failed to fetch locations. Please check your network connection.");
-        } finally {
-        if (latestQueryRef.current === val) {
-          setIsLoading(false);
+        if (err.name === "AbortError") {
+          return;
         }
+
+        if (latestQueryRef.current !== val) {
+          return;
+        }
+
+        dispatch({
+          type: 'HANDLE_ERROR_RESULTS',
+          payload: "Failed to fetch locations. Please check your network connection.",
+        });
       }
     }, 300);
   };
@@ -214,12 +282,16 @@ export default function LocationSearch({ onLocationSelected, initialCityName }) 
 
     if (e.key === 'ArrowDown') {
       e.preventDefault();
-      setActiveIndex((prev) =>
-        prev < items.length - 1 ? prev + 1 : prev
-      );
+      dispatch({
+        type: 'SET_ACTIVE_INDEX',
+        payload: activeIndex < items.length - 1 ? activeIndex + 1 : activeIndex,
+      });
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
-      setActiveIndex((prev) => (prev > 0 ? prev - 1 : 0));
+      dispatch({
+        type: 'SET_ACTIVE_INDEX',
+        payload: activeIndex > 0 ? activeIndex - 1 : 0,
+      });
     } else if (e.key === 'Enter') {
       e.preventDefault();
 
@@ -230,8 +302,7 @@ export default function LocationSearch({ onLocationSelected, initialCityName }) 
         handleSelect(items[0]);
       }
     } else if (e.key === 'Escape') {
-      // @ts-ignore
-      e.setIsOpen(false);
+      dispatch({ type: 'SET_IS_OPEN', payload: false });
     }
   };
 
@@ -257,7 +328,7 @@ export default function LocationSearch({ onLocationSelected, initialCityName }) 
           placeholder="Search any city or location..."
           value={query}
           onChange={handleInputChange}
-          onFocus={() => setIsOpen(true)}
+          onFocus={() => dispatch({ type: 'SET_IS_OPEN', payload: true })}
           onKeyDown={handleKeyDown}
           aria-label="Search for a city or location"
           aria-expanded={isOpen}
