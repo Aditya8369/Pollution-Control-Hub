@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { usePopper } from 'react-popper';
 import { getAQIBand } from '../services/airQualityService';
 import PropTypes from "prop-types";
 
@@ -59,6 +60,25 @@ function computeTemporalMarkers(weeks) {
  
 export default function CalendarHeatmap({ data }) {
   const [activeTooltip, setActiveTooltip] = useState(null);
+  const [referenceElement, setReferenceElement] = useState(null);
+  const [popperElement, setPopperElement] = useState(null);
+  const { styles, attributes } = usePopper(referenceElement, popperElement, {
+    placement: 'top',
+    modifiers: [
+      {
+        name: 'offset',
+        options: {
+          offset: [0, 8],
+        },
+      },
+      {
+        name: 'preventOverflow',
+        options: {
+          padding: 8,
+        },
+      },
+    ],
+  });
 
   if (!data || data.length === 0) {
     return (
@@ -101,24 +121,19 @@ export default function CalendarHeatmap({ data }) {
    * @param {{label: string, color: string}} aqiBand
    
      */
-    const handleCellMouseEnter = (e, day, aqiBand) => {
-    const rect = e.currentTarget.getBoundingClientRect();
+  const handleCellMouseEnter = (e, day, aqiBand) => {
+    setReferenceElement(e.currentTarget);
     setActiveTooltip({
       date: day.date,
       maxAqi: day.maxAqi,
       label: aqiBand.label,
       color: aqiBand.color,
-      rect: {
-        left: rect.left,
-        top: rect.top,
-        width: rect.width,
-        height: rect.height,
-      },
     });
   };
 
   const handleCellMouseLeave = () => {
     setActiveTooltip(null);
+    setReferenceElement(null);
   };
 
   return (
@@ -198,27 +213,14 @@ export default function CalendarHeatmap({ data }) {
       {/* ── Adaptive Floating Portal Tooltip (Escapes all overflow clipping) ── */}
       {activeTooltip && (
         <div
+          ref={setPopperElement}
           className="calendar-floating-tooltip"
           style={{
-            position: 'fixed',
-            top:
-              activeTooltip.rect.top < 85
-                ? `${activeTooltip.rect.top + activeTooltip.rect.height + 8}px`
-                : `${activeTooltip.rect.top - 8}px`,
-            left: `${Math.max(
-              90,
-              Math.min(
-                (typeof window !== 'undefined' ? window.innerWidth : 1200) - 90,
-                activeTooltip.rect.left + activeTooltip.rect.width / 2
-              )
-            )}px`,
-            transform:
-              activeTooltip.rect.top < 85
-                ? 'translate(-50%, 0)'
-                : 'translate(-50%, -100%)',
+            ...styles.popper,
             zIndex: 99999,
             pointerEvents: 'none',
           }}
+          {...attributes.popper}
         >
           <div className="calendar-tooltip-date">{activeTooltip.date}</div>
           <div className="calendar-tooltip-body">
