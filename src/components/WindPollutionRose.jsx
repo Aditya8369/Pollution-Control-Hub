@@ -8,32 +8,27 @@ import {
   Tooltip,
   ResponsiveContainer
 } from "recharts";
-
-// 16 Cardinal Directions
-const DIRECTIONS = [
-  "N", "NNE", "NE", "ENE",
-  "E", "ESE", "SE", "SSE",
-  "S", "SSW", "SW", "WSW",
-  "W", "WNW", "NW", "NNW"
-];
-
-// Helper function to map wind degree (0-360) to 16 cardinal direction labels
-function getCardinalDirection(deg) {
-  const normalized = ((deg % 360) + 360) % 360;
-  const index = Math.round(normalized / 22.5) % 16;
-  return DIRECTIONS[index];
-}
+import { buildWindRose } from "../utils/windRose";
 
 export default function WindPollutionRose({ lat, lon, pollutant = "pm2_5" }) {
-  const [data, setData] = useState(null);
+  const [rose, setRose] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedPollutant, setSelectedPollutant] = useState(pollutant);
 
   useEffect(() => {
-    if (!lat || !lon) return;
+    // Number.isFinite, not truthiness. `!lat` rejects the equator and `!lon` rejects
+    // the prime meridian, so Quito, Nairobi, Kampala, Accra and Greenwich took the
+    // early return -- and because `loading` starts true and was only cleared after
+    // this guard, they sat on the loading spinner permanently.
+    if (!Number.isFinite(lat) || !Number.isFinite(lon)) {
+      setLoading(false);
+      setError("Wind data needs a valid location.");
+      return;
+    }
 
     let isMounted = true;
+    const controller = new AbortController();
     setLoading(true);
     setError(null);
 
@@ -41,7 +36,10 @@ export default function WindPollutionRose({ lat, lon, pollutant = "pm2_5" }) {
     const url = `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lon}&hourly=pm2_5,pm10,nitrogen_dioxide,ozone&past_days=3`;
     const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&hourly=wind_speed_10m,wind_direction_10m&past_days=3`;
 
-    Promise.all([fetch(url).then((res) => res.json()), fetch(weatherUrl).then((res) => res.json())])
+    Promise.all([
+      fetch(url, { signal: controller.signal }).then((res) => res.json()),
+      fetch(weatherUrl, { signal: controller.signal }).then((res) => res.json())
+    ])
       .then(([airRes, weatherRes]) => {
         if (!isMounted) return;
 
@@ -49,58 +47,11 @@ export default function WindPollutionRose({ lat, lon, pollutant = "pm2_5" }) {
           throw new Error("Invalid response format from weather/air-quality service.");
         }
 
-        const airHourly = airRes.hourly;
-        const weatherHourly = weatherRes.hourly;
-
-        // Group pollutant concentration and wind speed by 16 cardinal direction sectors
-        const groups = {};
-        DIRECTIONS.forEach((dir) => {
-          groups[dir] = { count: 0, pm2_5Sum: 0, pm10Sum: 0, no2Sum: 0, o3Sum: 0, windSpeedSum: 0 };
-        });
-
-        const len = Math.min(
-          airHourly.time?.length || 0,
-          weatherHourly.time?.length || 0
-        );
-
-        for (let i = 0; i < len; i++) {
-          const deg = weatherHourly.wind_direction_10m[i];
-          const speed = weatherHourly.wind_speed_10m[i];
-          const pm2_5 = airHourly.pm2_5[i];
-          const pm10 = airHourly.pm10[i];
-          const no2 = airHourly.nitrogen_dioxide[i];
-          const o3 = airHourly.ozone[i];
-
-          if (deg != null) {
-            const dir = getCardinalDirection(deg);
-            groups[dir].count += 1;
-            groups[dir].pm2_5Sum += pm2_5 || 0;
-            groups[dir].pm10Sum += pm10 || 0;
-            groups[dir].no2Sum += no2 || 0;
-            groups[dir].o3Sum += o3 || 0;
-            groups[dir].windSpeedSum += speed || 0;
-          }
-        }
-
-        const processed = DIRECTIONS.map((dir) => {
-          const g = groups[dir];
-          const cnt = g.count || 1;
-          return {
-            direction: dir,
-            pm2_5: Number((g.pm2_5Sum / cnt).toFixed(1)),
-            pm10: Number((g.pm10Sum / cnt).toFixed(1)),
-            nitrogen_dioxide: Number((g.no2Sum / cnt).toFixed(1)),
-            ozone: Number((g.o3Sum / cnt).toFixed(1)),
-            avgWindSpeed: Number((g.windSpeedSum / cnt).toFixed(1)),
-            frequency: g.count
-          };
-        });
-
-        setData(processed);
+        setRose(buildWindRose(airRes.hourly, weatherRes.hourly));
         setLoading(false);
       })
       .catch((err) => {
-        if (!isMounted) return;
+        if (!isMounted || err.name === "AbortError") return;
         console.error("Failed to load wind/pollution rose data", err);
         setError(err.message || "Failed to load wind & pollution data.");
         setLoading(false);
@@ -108,6 +59,7 @@ export default function WindPollutionRose({ lat, lon, pollutant = "pm2_5" }) {
 
     return () => {
       isMounted = false;
+      controller.abort();
     };
   }, [lat, lon]);
 
@@ -120,6 +72,16 @@ export default function WindPollutionRose({ lat, lon, pollutant = "pm2_5" }) {
     }),
     []
   );
+
+  const sectorByDirection = useMemo(() => {
+    const map = new Map();
+    for (const sector of rose?.sectors ?? []) {
+      map.set(sector.direction, sector);
+    }
+    return map;
+  }, [rose]);
+
+  const unsampled = rose ? rose.sectors.length - rose.sampledSectors : 0;
 
   return (
     <article className="chart-card wind-rose-card">
@@ -167,30 +129,60 @@ export default function WindPollutionRose({ lat, lon, pollutant = "pm2_5" }) {
         </div>
       )}
 
-      {!loading && !error && data && (
-        <div style={{ width: "100%", height: 320, marginTop: "1rem" }}>
-          <ResponsiveContainer width="100%" height="100%">
-            <RadarChart cx="50%" cy="50%" outerRadius="75%" data={data}>
-              <PolarGrid stroke="#cbd5e1" />
-              <PolarAngleAxis dataKey="direction" stroke="var(--text-primary, #0f172a)" tick={{ fontSize: 12, fontWeight: "bold" }} />
-              <PolarRadiusAxis angle={30} stroke="var(--muted, #94a3b8)" />
-              <Tooltip
-                formatter={(val, name) => [
-                  `${val} µg/m³`,
-                  pollutantLabels[name] || name
-                ]}
-                labelFormatter={(label) => `Wind Direction: ${label}`}
-              />
-              <Radar
-                name={selectedPollutant}
-                dataKey={selectedPollutant}
-                stroke="#0d9488"
-                fill="#0d9488"
-                fillOpacity={0.45}
-              />
-            </RadarChart>
-          </ResponsiveContainer>
+      {!loading && !error && rose && rose.totalObservations === 0 && (
+        <div data-testid="wind-rose-no-data" style={{ padding: "1.5rem", textAlign: "center", color: "var(--muted)" }}>
+          No wind direction readings were returned for this location.
         </div>
+      )}
+
+      {!loading && !error && rose && rose.totalObservations > 0 && (
+        <>
+          <div style={{ width: "100%", height: 320, marginTop: "1rem" }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <RadarChart cx="50%" cy="50%" outerRadius="75%" data={rose.sectors}>
+                <PolarGrid stroke="#cbd5e1" />
+                <PolarAngleAxis dataKey="direction" stroke="var(--text-primary, #0f172a)" tick={{ fontSize: 12, fontWeight: "bold" }} />
+                <PolarRadiusAxis angle={30} stroke="var(--muted, #94a3b8)" />
+                <Tooltip
+                  formatter={(val, name) => [
+                    // A sector with no observations reaches the chart as null and is
+                    // skipped by Recharts, but guard it so a future series that does
+                    // render nulls cannot print "0 µg/m³" for an unsampled direction.
+                    val == null ? "no readings" : `${val} µg/m³`,
+                    pollutantLabels[name] || name
+                  ]}
+                  labelFormatter={(label) => {
+                    const sector = sectorByDirection.get(label);
+                    if (!sector || !sector.hasData) {
+                      return `Wind Direction: ${label} — never observed`;
+                    }
+                    return `Wind Direction: ${label} (${sector.frequency} h, ${sector.frequencyPct}% of the time)`;
+                  }}
+                />
+                <Radar
+                  name={selectedPollutant}
+                  dataKey={selectedPollutant}
+                  stroke="#0d9488"
+                  fill="#0d9488"
+                  fillOpacity={0.45}
+                  connectNulls={false}
+                />
+              </RadarChart>
+            </ResponsiveContainer>
+          </div>
+
+          {/* How much data is behind the shape above. Without this a single-sector
+              spike is indistinguishable from a well-sampled compass. */}
+          <p
+            data-testid="wind-rose-coverage"
+            style={{ fontSize: "0.8rem", color: "var(--muted)", margin: "0.75rem 0 0", lineHeight: 1.5 }}
+          >
+            Based on {rose.totalObservations} hourly observations across{" "}
+            {rose.sampledSectors} of {rose.sectors.length} compass directions
+            {rose.dominantDirection ? `, most often from ${rose.dominantDirection}` : ""}.
+            {unsampled > 0 && ` ${unsampled} direction(s) were never observed and are left blank rather than plotted as zero.`}
+          </p>
+        </>
       )}
     </article>
   );
