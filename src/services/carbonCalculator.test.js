@@ -1,4 +1,4 @@
-import { calculateCarbonFootprint } from './carbonCalculator';
+import { calculateCarbonFootprint } from '../utils/carbonCalculator';
 
 describe('carbonCalculator - Specific Assertion Tests', () => {
   test('calculates exact expected carbon footprint for zero consumption', () => {
