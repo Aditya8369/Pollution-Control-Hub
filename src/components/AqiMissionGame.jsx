@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { ACTIONS, MISSIONS } from './aqiGameData';
 import { estimateAQI, getAQIBand } from '../services/airQualityService';
+import { eventBus } from '../core/events';
 
 /** @param {any} params */
 export default function AqiMissionGame({ current }) {
@@ -67,7 +68,14 @@ export default function AqiMissionGame({ current }) {
     setGameState('playing');
   };
 
-  // Countdown timer effect
+  // Always hold the latest evaluateMission so the interval can call it without
+  // listing currentPollutants/deployedActions as effect deps (which would tear
+  // down and recreate the interval — resetting the current second — on every
+  // policy toggle).
+  const evaluateMissionRef = useRef(null);
+
+  // Countdown timer effect — depends only on gameState so a policy toggle never
+  // restarts the clock.
   useEffect(() => {
     if (gameState !== 'playing') return;
 
@@ -75,7 +83,7 @@ export default function AqiMissionGame({ current }) {
       setTimeLeft((prev) => {
         if (prev <= 1) {
           clearInterval(timer);
-          evaluateMission(true); // End mission on timeout
+          evaluateMissionRef.current?.(true); // End mission on timeout
           return 0;
         }
         return prev - 1;
@@ -83,7 +91,7 @@ export default function AqiMissionGame({ current }) {
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [gameState, currentPollutants, deployedActions]);
+  }, [gameState]);
 
   // Toggle deployment of a policy/action
   /** @param {any} actionId */
@@ -167,7 +175,18 @@ export default function AqiMissionGame({ current }) {
       deployedActions: [...deployedActions]
     });
     setGameState('completed');
+    eventBus.emit("AQI_MISSION_COMPLETED", {
+      success,
+      missionId: selectedMission.id,
+      improvement: results.improvement,
+      targetImprovement: selectedMission.targetImprovement,
+      isTimeout
+    });
   };
+
+  // Point the ref at the current closure so the countdown's timeout uses the
+  // latest deployedActions/currentPollutants without restarting the interval.
+  evaluateMissionRef.current = evaluateMission;
 
   return (
     <section data-testid="aqi-mission-game" className="panel game-section" aria-labelledby="game-heading">

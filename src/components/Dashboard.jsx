@@ -17,14 +17,46 @@ import {
 import { useRef, useState, useEffect, useMemo } from "react";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
+import styles from "./Dashboard.module.css";
 import { useSWR } from "../hooks/useSWR";
 import { getAQIBand, getPollutantColor, get7DayForecast, fetch7DayForecast, getWeatherDetails } from "../services/airQualityService";
 import MorningBriefing from "./MorningBriefing";
 import { eventBus } from "../core/events";
 import ChallengesWidget from "./ChallengesWidget";
+import WindPollutionRose from "./WindPollutionRose";
+import Factoid from "./Factoid";
+
 /** @param {any} isoTime */
 function shortTimeLabel(isoTime) {
   return new Date(isoTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
+
+/**
+ * Renders a reading, or an em dash when the hour had no value.
+ *
+ * The service returns null for a missing reading rather than 0, so nothing here may
+ * print a bare number without checking — "0" would read as a measurement of clean air.
+ *
+ * @param {number|null|undefined} value
+ * @returns {string}
+ */
+function displayReading(value) {
+  return typeof value === 'number' && Number.isFinite(value) ? String(value) : '—';
+}
+
+/**
+ * Mean of whichever readings exist in a window, or null when none do.
+ *
+ * @param {any[]} items
+ * @param {string} field
+ * @returns {number|null}
+ */
+function averageOf(items, field) {
+  const values = (items || [])
+    .map((item) => item?.[field])
+    .filter((v) => typeof v === 'number' && Number.isFinite(v));
+  if (values.length === 0) return null;
+  return values.reduce((sum, v) => sum + v, 0) / values.length;
 }
 
 /** @param {any} params */
@@ -102,9 +134,6 @@ export default function Dashboard({
     };
   }, [mutateForecast]);
 
-  // Cities whose request failed carry null readings (see fetchCityComparisons). Charting
-  // them would draw a zero-height bar that reads as "clean air", so split them out and
-  // name them explicitly below the chart instead.
   const measuredCities = useMemo(
     () => (cityComparisons || []).filter((c) => !c.unavailable && c.aqi != null),
     [cityComparisons]
@@ -119,14 +148,6 @@ export default function Dashboard({
   const [isExporting, setIsExporting] = useState(false);
   const [exportError, setExportError] = useState(null);
   const [isSharing, setIsSharing] = useState(false);
-  
-  const [isBriefingDismissed, setIsBriefingDismissed] = useState(false);
-  const [showBriefingTrigger, setShowBriefingTrigger] = useState(0);
-
-  const handleShowBriefing = () => {
-    setIsBriefingDismissed(false);
-    setShowBriefingTrigger(prev => prev + 1);
-  };
 
   const exportReportAsPDF = async () => {
     if (!reportRef.current || isExporting) return;
@@ -178,7 +199,6 @@ export default function Dashboard({
       const safeCityName = cityName.replace(/[^a-z0-9]/gi, "-").toLowerCase();
       const fileName = `${safeCityName}-aqi-${new Date().toISOString().slice(0, 10)}.png`;
 
-      // Use native Web Share API on mobile if available
       if (navigator.share && navigator.canShare) {
         canvas.toBlob(async (blob) => {
           const file = new File([blob], fileName, { type: "image/png" });
@@ -239,7 +259,14 @@ export default function Dashboard({
     { name: 'NO2', value: current.nitrogen_dioxide, limit: 25, impact: 'May irritate airways and aggravate respiratory diseases.', color: getPollutantColor(current.nitrogen_dioxide, 25) },
     { name: 'O3', value: current.ozone, limit: 100, impact: 'Can trigger asthma and reduce lung function.', color: getPollutantColor(current.ozone, 100) },
     { name: 'CO', value: current.carbon_monoxide, limit: 4000, impact: 'High levels reduce oxygen delivery to the body.', color: getPollutantColor(current.carbon_monoxide, 4000) }
-  ].map(p => ({ ...p, ratio: Math.max(10, (p.value / p.limit) * 100) }));
+  ].map(p => ({
+    ...p,
+    // An unmeasured pollutant gets the floor width rather than NaN, and its colour comes
+    // from getPollutantColor(null, …) which no longer resolves to the "well within" green.
+    ratio: typeof p.value === 'number' && Number.isFinite(p.value)
+      ? Math.max(10, (p.value / p.limit) * 100)
+      : 10
+  }));
 
   const getAqiTrendIndicator = () => {
     if (!trend || trend.length < 2) return null;
@@ -247,8 +274,11 @@ export default function Dashboard({
     if (windowSize === 0) return null;
     const recentData = trend.slice(-windowSize);
     const previousData = trend.slice(-windowSize * 2, -windowSize);
-    const recentAvg = recentData.reduce((sum, item) => sum + item.us_aqi, 0) / windowSize;
-    const previousAvg = previousData.reduce((sum, item) => sum + item.us_aqi, 0) / windowSize;
+    // Average only the hours that carry a reading; a null counted as 0 would show a
+    // fabricated "Improving" arrow whenever the feed had gaps.
+    const recentAvg = averageOf(recentData, 'us_aqi');
+    const previousAvg = averageOf(previousData, 'us_aqi');
+    if (recentAvg === null || previousAvg === null) return null;
     const diff = recentAvg - previousAvg;
     const threshold = 2;
     if (diff > threshold) return { label: '🔴 ↑ Worsening', color: '#ef4444' };
@@ -262,7 +292,7 @@ export default function Dashboard({
     <>
       <section data-testid="dashboard" className="panel dashboard" ref={reportRef}>
         <MorningBriefing current={current} trend={trend} />
-        
+
         {exportError && (
           <div
             className="pdf-export-error-toast"
@@ -318,7 +348,7 @@ export default function Dashboard({
         )}
 
         <div className="panel-head" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-          <div className="dashboard-header-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '0.75rem', flexWrap: 'wrap' }}>
+          <div className={styles.dashboardHeaderRow}>
             <div style={{ minWidth: 0, flex: 1 }}>
               <h2>Real-Time Pollution Dashboard</h2>
               <p>
@@ -340,10 +370,10 @@ export default function Dashboard({
                 )}
               </p>
             </div>
-            <div className="dashboard-header-actions" style={{ display: 'flex', gap: '0.5rem', flexShrink: 0, flexWrap: 'wrap' }} data-html2canvas-ignore="true">
+            <div className={styles.dashboardHeaderActions} data-html2canvas-ignore="true">
               <button
                 type="button"
-                className="export-report-button"
+                className={styles.exportReportButton}
                 onClick={exportReportAsPDF}
                 disabled={isExporting}
                 data-html2canvas-ignore="true"
@@ -354,7 +384,7 @@ export default function Dashboard({
               </button>
               <button
                 type="button"
-                className="share-aqi-button"
+                className={styles.shareAQIButton}
                 onClick={shareAQICard}
                 disabled={isSharing}
                 data-html2canvas-ignore="true"
@@ -365,55 +395,51 @@ export default function Dashboard({
               </button>
             </div>
           </div>
-          <div className="dashboard-tools">
+          <div className={styles.dashboardTools}>
             <div
-  data-testid="time-range-selector"
-  className="range-switch"
-  role="tablist"
-  aria-label="Time range selector"
->
+              data-testid="time-range-selector"
+              className="range-switch"
+              role="tablist"
+              aria-label="Time range selector"
+            >
               {[6, 12, 24].map((range) => (
                 <button
-                key={range}
-type="button"
-role="tab"
-id={`time-tab-${range}`}
-aria-selected={timeRange===range}
-aria-controls="aqi-trend-chart"
-tabIndex={timeRange===range ? 0 : -1}
-onClick={() => onTimeRangeChange(range)}
-
-onKeyDown={(e) => {
-  if (e.key === "ArrowRight") {
-    const ranges = [6,12,24];
-    const next =
-      ranges[(ranges.indexOf(range)+1)%ranges.length];
-    onTimeRangeChange(next);
-  }
-
-  if (e.key === "ArrowLeft") {
-    const ranges=[6,12,24];
-    const prev =
-      ranges[(ranges.indexOf(range)-1+ranges.length)%ranges.length];
-    onTimeRangeChange(prev);
-  }
-}}
+                  key={range}
+                  type="button"
+                  role="tab"
+                  id={`time-tab-${range}`}
+                  aria-selected={timeRange === range}
+                  aria-controls="aqi-trend-chart"
+                  tabIndex={timeRange === range ? 0 : -1}
+                  onClick={() => onTimeRangeChange(range)}
+                  onKeyDown={(e) => {
+                    if (e.key === "ArrowRight") {
+                      const ranges = [6, 12, 24];
+                      const next = ranges[(ranges.indexOf(range) + 1) % ranges.length];
+                      onTimeRangeChange(next);
+                    }
+                    if (e.key === "ArrowLeft") {
+                      const ranges = [6, 12, 24];
+                      const prev = ranges[(ranges.indexOf(range) - 1 + ranges.length) % ranges.length];
+                      onTimeRangeChange(prev);
+                    }
+                  }}
                 >
                   {range}h
                 </button>
               ))}
             </div>
-            <p className="dashboard-meta">
+            <p className={styles.dashboardMeta}>
               {isRefreshing ? 'Updating...' : `Updated ${lastUpdated ? new Date(lastUpdated).toLocaleTimeString() : 'just now'}`}
             </p>
           </div>
         </div>
 
-        <div className="kpi-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(min(300px, 100%), 1fr))' }}>
-          <article className="kpi-card aqi">
+        <div className={styles.kpiGrid} style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(min(300px, 100%), 1fr))' }}>
+          <article className={`${styles.kpiCard} ${styles.aqi}`}>
             <h3>US AQI</h3>
-            <div data-testid="aqi-value" className="kpi-value" style={{ color: aqiBand.color }}>
-              {current.us_aqi}
+            <div data-testid="aqi-value" className={styles.kpiValue} style={{ color: aqiBand.color }}>
+              {displayReading(current.us_aqi)}
             </div>
             <p data-testid="aqi-band-label">{aqiBand.label}</p>
             {aqiTrend && (
@@ -426,7 +452,7 @@ onKeyDown={(e) => {
             </span>
           </article>
 
-          <article className="kpi-card chart-card" style={{ display: 'flex', flexDirection: 'column' }}>
+          <article className={`${styles.kpiCard} ${styles.chartCard}`} style={{ display: 'flex', flexDirection: 'column' }}>
             <h3>Pollutant Health Speedometer</h3>
             <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>
               Relative magnitude vs. WHO guidelines. Larger segments indicate higher severity.
@@ -456,10 +482,9 @@ onKeyDown={(e) => {
             </div>
           </article>
           <ChallengesWidget />
-
         </div>
 
-        <div data-testid="pollutants-grid" className="pollutants-grid">
+        <div data-testid="pollutants-grid" className={styles.pollutantsGrid}>
           {pollutants.map((p) => {
             const pct = Math.round((p.value / p.limit) * 100);
             const status =
@@ -473,13 +498,13 @@ onKeyDown={(e) => {
               <article
                 key={p.name}
                 data-testid={`pollutant-${p.name.toLowerCase().replace('.', '_')}`}
-                className="pollutant-card"
+                className={styles.pollutantCard}
                 style={{ borderLeft: `4px solid ${p.color}` }}
               >
-                <div className="pollutant-card-header">
+                <div className={styles.pollutantCardHeader}>
                   <h4>{p.name}</h4>
                   <span
-                    className="pollutant-status-pill"
+                    className={styles.pollutantStatusPill}
                     style={{ backgroundColor: status.bg, color: status.color }}
                   >
                     <span style={{
@@ -492,19 +517,19 @@ onKeyDown={(e) => {
                   </span>
                 </div>
 
-                <div className="pollutant-value-container">
-                  <span className="pollutant-value" style={{ color: p.color }}>{p.value}</span>
-                  <span className="pollutant-unit">µg/m³</span>
+                <div className={styles.pollutantValueContainer}>
+                  <span className={styles.pollutantValue} style={{ color: p.color }}>{p.value}</span>
+                  <span className={styles.pollutantUnit}>µg/m³</span>
                 </div>
 
-                <div className="pollutant-meta-info">
-                  <span className="pollutant-limit">WHO Limit: {p.limit} µg/m³</span>
-                  <span className="pollutant-percent" style={{ color: p.color }}>{pct}%</span>
+                <div className={styles.pollutantMetaInfo}>
+                  <span className={styles.pollutantLimit}>WHO Limit: {p.limit} µg/m³</span>
+                  <span className={styles.pollutantPercent} style={{ color: p.color }}>{pct}%</span>
                 </div>
 
-                <div className="pollutant-progress-track">
+                <div className={styles.pollutantProgressTrack}>
                   <div
-                    className="pollutant-progress-fill"
+                    className={styles.pollutantProgressFill}
                     style={{
                       width: `${Math.min(pct, 100)}%`,
                       backgroundColor: p.color
@@ -516,24 +541,26 @@ onKeyDown={(e) => {
           })}
         </div>
 
-        <div className="chart-grid">
-          <article className="chart-card forecast-card" style={{ gridColumn: '1 / -1' }}>
+        <Factoid label="Did You Know?" />
+
+        <div className={styles.chartGrid}>
+          <article className={`${styles.chartCard} ${styles.forecastCard}`} style={{ gridColumn: '1 / -1' }}>
             <h3>7-Day AQI & Weather Forecast</h3>
             {forecastError && <p style={{ color: 'var(--danger)', padding: '1rem' }}>Failed to load forecast data.</p>}
             {!forecastData && !forecastError && (
               <div
-role="status"
-aria-live="polite"
-style={{
-padding:'2rem',
-textAlign:'center',
-opacity:0.7
-}}
->
+                role="status"
+                aria-live="polite"
+                style={{
+                  padding: '2rem',
+                  textAlign: 'center',
+                  opacity: 0.7
+                }}
+              >
                 <span
-className="loading-spinner live-dot active"
-aria-hidden="true"
-                style={{ display: 'inline-block', marginRight: '0.5rem' }}></span>
+                  className="loading-spinner live-dot active"
+                  aria-hidden="true"
+                  style={{ display: 'inline-block', marginRight: '0.5rem' }}></span>
                 Loading 7-day forecast...
               </div>
             )}
@@ -594,7 +621,7 @@ aria-hidden="true"
                   const band = getAQIBand(day.aqi);
                   const isBest = day.aqi === minAqi;
                   const isWorst = day.aqi === maxAqi;
-                  
+
                   const formattedDate = new Date(day.date).toLocaleDateString(undefined, {
                     weekday: 'short',
                     month: 'short',
@@ -616,7 +643,6 @@ aria-hidden="true"
                         flexWrap: 'wrap'
                       }}
                     >
-                      {/* Date and Weather */}
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', minWidth: '150px' }}>
                         <span style={{ fontSize: '1.25rem' }} title={weather.label}>{weather.icon}</span>
                         <div style={{ display: 'flex', flexDirection: 'column' }}>
@@ -625,7 +651,6 @@ aria-hidden="true"
                         </div>
                       </div>
 
-                      {/* Animated AQI relative bar */}
                       <div style={{ flex: '1 1 200px', minWidth: '150px' }}>
                         <div style={{ height: '8px', width: '100%', background: 'var(--line)', borderRadius: '4px', overflow: 'hidden' }}>
                           <div
@@ -640,7 +665,6 @@ aria-hidden="true"
                         </div>
                       </div>
 
-                      {/* AQI Value and Band */}
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', minWidth: '120px' }}>
                         <span style={{ fontWeight: '700', fontSize: '1.1rem', color: band.color }}>{day.aqi}</span>
                         <span
@@ -658,7 +682,6 @@ aria-hidden="true"
                         </span>
                       </div>
 
-                      {/* Best/Worst highlights */}
                       {isBest && (
                         <span
                           style={{
@@ -696,14 +719,17 @@ aria-hidden="true"
             )}
           </article>
 
+          {/* Wind & Pollution Rose Chart */}
+          <WindPollutionRose lat={lat} lon={lon} />
+
           <article className="chart-card">
             <h3>AQI Trend ({timeRange}h)</h3>
             <div
-id="aqi-trend-chart"
-data-testid="aqi-trend-chart"
-role="tabpanel"
-aria-labelledby={`time-tab-${timeRange}`}
->
+              id="aqi-trend-chart"
+              data-testid="aqi-trend-chart"
+              role="tabpanel"
+              aria-labelledby={`time-tab-${timeRange}`}
+            >
               <ResponsiveContainer width="100%" height={280}>
                 <LineChart data={chartData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#d7e6e1" />
@@ -743,7 +769,7 @@ aria-labelledby={`time-tab-${timeRange}`}
         </div>
       </section>
 
-      {/* Hidden AQI Share Card — captured by html2canvas */}
+      {/* Hidden AQI Share Card */}
       <div
         ref={shareCardRef}
         aria-hidden="true"
@@ -752,7 +778,6 @@ aria-labelledby={`time-tab-${timeRange}`}
           borderColor: `${aqiBand.color}44`,
         }}
       >
-        {/* Header */}
         <div className="share-card-header">
           <span className="share-card-badge">POLLUTION CONTROL HUB</span>
           <span className="share-card-date">
@@ -764,12 +789,11 @@ aria-labelledby={`time-tab-${timeRange}`}
           {cityName}
         </h2>
 
-        {/* Hero AQI Box */}
         <div className="share-card-hero">
           <div className="share-card-hero-left">
             <span className="share-card-hero-sub">AIR QUALITY INDEX</span>
             <span className="share-card-hero-value" style={{ color: aqiBand.color }}>
-              {current.us_aqi}
+              {displayReading(current.us_aqi)}
             </span>
           </div>
           <div className="share-card-hero-pill" style={{ background: aqiBand.color }}>
@@ -777,7 +801,6 @@ aria-labelledby={`time-tab-${timeRange}`}
           </div>
         </div>
 
-        {/* Pollutant Metric Grid Tiles */}
         <div className="share-card-grid">
           {[
             { label: 'PM2.5', value: current.pm2_5, limit: 15 },
@@ -804,7 +827,6 @@ aria-labelledby={`time-tab-${timeRange}`}
           })}
         </div>
 
-        {/* Footer Branding */}
         <div className="share-card-footer">
           <span>🌍 Live Air Quality Status</span>
           <span>pollution-control-hub.vercel.app</span>

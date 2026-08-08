@@ -1,0 +1,702 @@
+/* ═══════════════════════════════════════════════════════════════════
+   GLOSSARY PAGE — Pollution & Air Quality Glossary
+   Scoped styles for src/components/Glossary.jsx
+   ═══════════════════════════════════════════════════════════════════ */
+
+.glossary-container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 2rem 1.25rem 4rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* ── Header Card ──────────────────────────────────────────────────── */
+.glossary-header-card {
+  background: linear-gradient(135deg, var(--card, #1e293b) 0%, var(--bg-card-alt, #0f172a) 100%);
+  border: 1px solid var(--line, #334155);
+  border-radius: 1rem;
+  padding: 2rem 2.25rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.glossary-header-card::before {
+  content: "";
+  position: absolute;
+  top: -40px;
+  right: -40px;
+  width: 220px;
+  height: 220px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(99,102,241,0.18) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.glossary-header-badge {
+  display: inline-block;
+  padding: 0.3rem 0.85rem;
+  background: rgba(99,102,241,0.15);
+  border: 1px solid rgba(99,102,241,0.4);
+  border-radius: 999px;
+  color: #a5b4fc;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  margin-bottom: 1rem;
+}
+
+.glossary-title {
+  font-size: clamp(1.5rem, 3vw, 2.2rem);
+  font-weight: 800;
+  color: var(--ink, #f8fafc);
+  margin: 0 0 0.6rem;
+  line-height: 1.2;
+}
+
+.glossary-subtitle {
+  color: var(--muted, #94a3b8);
+  font-size: 0.97rem;
+  line-height: 1.65;
+  margin: 0 0 1.5rem;
+  max-width: 680px;
+}
+
+/* ── Quick stat chips in header ── */
+.glossary-quick-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.glossary-quick-stat-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.75rem;
+  border: 1px solid;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s, transform 0.15s;
+  background: transparent;
+}
+
+.glossary-quick-stat-chip:hover {
+  opacity: 0.8;
+  transform: translateY(-1px);
+}
+
+.glossary-quick-stat-num {
+  background: rgba(255,255,255,0.15);
+  border-radius: 999px;
+  padding: 0 0.4rem;
+  font-size: 0.72rem;
+}
+
+/* ── Search Bar ───────────────────────────────────────────────────── */
+.glossary-search-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.glossary-search-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.glossary-search-icon {
+  position: absolute;
+  left: 1rem;
+  font-size: 1rem;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.glossary-search-input {
+  width: 100%;
+  padding: 0.85rem 3rem 0.85rem 2.8rem;
+  border: 2px solid var(--line, #334155);
+  border-radius: 0.75rem;
+  background: var(--card, #1e293b);
+  color: var(--ink, #f8fafc);
+  font-size: 1rem;
+  font-family: inherit;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  outline: none;
+}
+
+.glossary-search-input::placeholder {
+  color: var(--muted, #64748b);
+}
+
+.glossary-search-input:focus {
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99,102,241,0.2);
+}
+
+.glossary-search-clear {
+  position: absolute;
+  right: 0.85rem;
+  background: none;
+  border: none;
+  color: var(--muted, #64748b);
+  font-size: 0.9rem;
+  cursor: pointer;
+  padding: 0.25rem 0.4rem;
+  border-radius: 0.25rem;
+  transition: color 0.15s;
+}
+
+.glossary-search-clear:hover {
+  color: var(--ink, #f8fafc);
+}
+
+.glossary-search-hint {
+  font-size: 0.78rem;
+  color: var(--muted, #64748b);
+  padding-left: 0.25rem;
+}
+
+.glossary-search-hint kbd {
+  display: inline-block;
+  padding: 0.05rem 0.35rem;
+  background: var(--bg, #0f172a);
+  border: 1px solid var(--line, #334155);
+  border-radius: 0.25rem;
+  font-family: monospace;
+  font-size: 0.75rem;
+  color: var(--muted, #94a3b8);
+}
+
+/* ── Category Filter ──────────────────────────────────────────────── */
+.glossary-category-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.glossary-cat-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.4rem 0.9rem;
+  border: 1.5px solid var(--line, #334155);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted, #94a3b8);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.18s;
+}
+
+.glossary-cat-btn:hover {
+  border-color: var(--brand, #6366f1);
+  color: var(--ink, #f8fafc);
+}
+
+.glossary-cat-btn--active {
+  color: #f8fafc;
+}
+
+.glossary-cat-emoji {
+  font-size: 0.95rem;
+}
+
+.glossary-cat-count {
+  background: rgba(255,255,255,0.12);
+  border-radius: 999px;
+  padding: 0.05rem 0.4rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+/* ── Controls Row ─────────────────────────────────────────────────── */
+.glossary-controls-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.glossary-sort-group {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.glossary-sort-label {
+  font-size: 0.82rem;
+  color: var(--muted, #64748b);
+  font-weight: 600;
+}
+
+.glossary-sort-btn {
+  padding: 0.3rem 0.7rem;
+  border: 1.5px solid var(--line, #334155);
+  border-radius: 0.5rem;
+  background: transparent;
+  color: var(--muted, #94a3b8);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.glossary-sort-btn:hover {
+  border-color: var(--brand, #6366f1);
+  color: var(--ink, #f8fafc);
+}
+
+.glossary-sort-btn--active {
+  background: rgba(99,102,241,0.15);
+  border-color: #6366f1;
+  color: #a5b4fc;
+}
+
+/* ── Stats Bar ────────────────────────────────────────────────────── */
+.glossary-stats-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  font-size: 0.85rem;
+  color: var(--muted, #64748b);
+}
+
+.glossary-stats-count strong {
+  color: var(--ink, #f8fafc);
+  font-weight: 700;
+}
+
+.glossary-stats-filter em {
+  color: var(--brand, #a5b4fc);
+  font-style: normal;
+}
+
+/* ── Alphabet Nav ─────────────────────────────────────────────────── */
+.glossary-alpha-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2rem;
+  padding: 0.75rem;
+  background: var(--card, #1e293b);
+  border: 1px solid var(--line, #334155);
+  border-radius: 0.75rem;
+}
+
+.glossary-alpha-btn {
+  width: 2rem;
+  height: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 0.4rem;
+  background: transparent;
+  color: var(--ink, #f8fafc);
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.glossary-alpha-btn:hover {
+  background: rgba(99,102,241,0.2);
+  color: #a5b4fc;
+}
+
+.glossary-alpha-btn--disabled {
+  color: var(--line, #334155);
+  cursor: default;
+}
+
+/* ── Results Container ────────────────────────────────────────────── */
+.glossary-results {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+/* ── Letter Group ─────────────────────────────────────────────────── */
+.glossary-letter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  scroll-margin-top: 4rem;
+}
+
+.glossary-letter-heading {
+  display: flex;
+  align-items: center;
+  font-size: 1.4rem;
+  font-weight: 900;
+  color: #6366f1;
+  padding: 0.25rem 0;
+  border-bottom: 2px solid rgba(99,102,241,0.25);
+  margin-bottom: 0.25rem;
+}
+
+/* ── Glossary Card ────────────────────────────────────────────────── */
+.glossary-card {
+  background: var(--card, #1e293b);
+  border: 1.5px solid var(--line, #334155);
+  border-radius: 0.75rem;
+  overflow: hidden;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.glossary-card:hover {
+  border-color: rgba(99,102,241,0.5);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+}
+
+.glossary-card--expanded {
+  box-shadow: 0 6px 24px rgba(0,0,0,0.25);
+}
+
+.glossary-card-header {
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  padding: 1rem 1.25rem;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.glossary-card-title-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.glossary-card-term-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.glossary-card-term {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--ink, #f8fafc);
+  transition: color 0.15s;
+  line-height: 1.3;
+}
+
+.glossary-card-fullform {
+  font-size: 0.8rem;
+  color: var(--muted, #64748b);
+  font-weight: 400;
+  line-height: 1.3;
+}
+
+.glossary-card-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.glossary-category-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.2rem 0.6rem;
+  border: 1px solid;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  white-space: nowrap;
+  text-transform: capitalize;
+}
+
+.glossary-chevron {
+  color: var(--muted, #64748b);
+  font-size: 1rem;
+  transition: transform 0.2s;
+  display: block;
+  line-height: 1;
+}
+
+.glossary-chevron--up {
+  transform: rotate(180deg);
+}
+
+.glossary-card-preview {
+  font-size: 0.87rem;
+  color: var(--muted, #94a3b8);
+  margin: 0;
+  line-height: 1.5;
+  text-align: left;
+}
+
+/* ── Card body (expanded) ── */
+.glossary-card-body {
+  padding: 0 1.25rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  border-top: 1px solid var(--line, #334155);
+  margin-top: 0;
+  padding-top: 1rem;
+  animation: glossary-expand 0.2s ease;
+}
+
+@keyframes glossary-expand {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.glossary-definition {
+  font-size: 0.95rem;
+  color: var(--ink, #f1f5f9);
+  line-height: 1.7;
+  margin: 0;
+}
+
+.glossary-example-box {
+  background: rgba(99,102,241,0.08);
+  border-left: 3px solid #6366f1;
+  border-radius: 0 0.5rem 0.5rem 0;
+  padding: 0.75rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.glossary-example-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #a5b4fc;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.glossary-example-text {
+  font-size: 0.88rem;
+  color: var(--muted, #94a3b8);
+  line-height: 1.6;
+  margin: 0;
+  font-style: italic;
+}
+
+.glossary-related {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.glossary-related-label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--muted, #64748b);
+  white-space: nowrap;
+}
+
+.glossary-related-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.glossary-related-chip {
+  display: inline-block;
+  padding: 0.2rem 0.6rem;
+  background: rgba(99,102,241,0.12);
+  border: 1px solid rgba(99,102,241,0.3);
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #a5b4fc;
+}
+
+/* ── Search Highlight ─────────────────────────────────────────────── */
+.glossary-highlight {
+  background: rgba(250,204,21,0.3);
+  color: #fde047;
+  border-radius: 0.2rem;
+  padding: 0 0.15rem;
+}
+
+/* ── Empty State ──────────────────────────────────────────────────── */
+.glossary-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4rem 1.5rem;
+  text-align: center;
+  background: var(--card, #1e293b);
+  border: 1.5px dashed var(--line, #334155);
+  border-radius: 1rem;
+  gap: 0.5rem;
+}
+
+.glossary-empty-icon {
+  font-size: 3rem;
+  margin-bottom: 0.5rem;
+}
+
+.glossary-empty-title {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--ink, #f8fafc);
+  margin: 0;
+}
+
+.glossary-empty-text {
+  color: var(--muted, #64748b);
+  font-size: 0.9rem;
+  max-width: 380px;
+  margin: 0;
+}
+
+.glossary-empty-hint {
+  color: var(--brand, #6366f1);
+  font-size: 0.85rem;
+  margin: 0;
+}
+
+/* ── Pagination ───────────────────────────────────────────────────── */
+.glossary-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  padding: 1rem 0;
+}
+
+.glossary-page-btn {
+  padding: 0.45rem 1rem;
+  border: 1.5px solid var(--line, #334155);
+  border-radius: 0.5rem;
+  background: transparent;
+  color: var(--muted, #94a3b8);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.glossary-page-btn:hover:not(:disabled) {
+  border-color: #6366f1;
+  color: #a5b4fc;
+}
+
+.glossary-page-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.glossary-page-numbers {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.glossary-page-num {
+  width: 2.2rem;
+  height: 2.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid var(--line, #334155);
+  border-radius: 0.5rem;
+  background: transparent;
+  color: var(--muted, #94a3b8);
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.glossary-page-num:hover {
+  border-color: #6366f1;
+  color: #a5b4fc;
+}
+
+.glossary-page-num--active {
+  background: #6366f1;
+  border-color: #6366f1;
+  color: #fff;
+}
+
+.glossary-page-ellipsis {
+  color: var(--muted, #64748b);
+  padding: 0 0.15rem;
+}
+
+.glossary-page-info {
+  font-size: 0.8rem;
+  color: var(--muted, #64748b);
+  padding-left: 0.5rem;
+}
+
+/* ── Footer note ──────────────────────────────────────────────────── */
+.glossary-footer-note {
+  padding: 1rem 1.25rem;
+  background: var(--card, #1e293b);
+  border: 1px solid var(--line, #334155);
+  border-radius: 0.75rem;
+  text-align: center;
+}
+
+.glossary-footer-note p {
+  font-size: 0.82rem;
+  color: var(--muted, #64748b);
+  margin: 0;
+  line-height: 1.6;
+}
+
+/* ── Responsive ───────────────────────────────────────────────────── */
+@media (max-width: 640px) {
+  .glossary-container {
+    padding: 1rem 0.75rem 3rem;
+    gap: 1rem;
+  }
+
+  .glossary-header-card {
+    padding: 1.25rem 1rem;
+  }
+
+  .glossary-card-title-row {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .glossary-card-meta {
+    flex-direction: row;
+    justify-content: flex-start;
+  }
+
+  .glossary-controls-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .glossary-alpha-btn {
+    width: 1.7rem;
+    height: 1.7rem;
+    font-size: 0.72rem;
+  }
+
+  .glossary-pagination {
+    gap: 0.35rem;
+  }
+}

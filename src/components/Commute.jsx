@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { calculateCleanRoute } from "../services/routePlanner";
+import { calculateCleanRoute, UNMEASURED_SEGMENT_COLOR } from "../services/routePlanner";
 import { getAQIBand } from "../services/airQualityService";
+import { eventBus } from "../core/events";
 import {
   MapContainer,
   TileLayer,
@@ -43,6 +44,38 @@ const HISTORY_STORAGE_KEY = "commute-route-history";
 const SAVED_LOCATIONS_KEY = "commute-saved-locations";
 const MAX_HISTORY = 10;
 
+/**
+ * Renders a pollution figure, or an em dash when the planner could not measure one.
+ *
+ * The planner returns null for anything it could not measure. Interpolating that into a
+ * template would print "null µg/m³" or, worse, an empty unit that reads as zero.
+ *
+ * @param {string|number|null|undefined} value
+ * @param {string} unit
+ * @returns {string}
+ */
+function formatReading(value, unit) {
+  if (value === null || value === undefined || value === "") return "Not available";
+  return `${value} ${unit}`;
+}
+
+/**
+ * Describes how much of a route actually carried a pollution reading.
+ *
+ * @param {any} route
+ * @returns {string|null} A note to show under the route, or null when fully measured.
+ */
+function coverageNote(route) {
+  if (!route || route.totalCheckpoints == null) return null;
+  if (!route.measured) {
+    return "No pollution readings were available for this route.";
+  }
+  if (route.measuredCheckpoints < route.totalCheckpoints) {
+    return `Based on ${route.measuredCheckpoints} of ${route.totalCheckpoints} sample points — the rest could not be fetched.`;
+  }
+  return null;
+}
+
 function readRouteHistory() {
   try {
     const raw = localStorage.getItem(HISTORY_STORAGE_KEY);
@@ -70,6 +103,9 @@ const Commute = () => {
   const [geoError, setGeoError] = useState(null);
 
   const [routes, setRoutes] = useState([]);
+  // False once a search comes back with no usable pollution readings at all. The routes
+  // are still worth showing (they are real roads); the ranking is what becomes meaningless.
+  const [pollutionDataAvailable, setPollutionDataAvailable] = useState(true);
   const [activeRouteIndex, setActiveRouteIndex] = useState(0);
   const [searchId, setSearchId] = useState(0);
   const [mapCenter, setMapCenter] = useState([28.6139, 77.209]);
@@ -145,11 +181,13 @@ const Commute = () => {
       }));
 
       setRoutes(allRoutesData);
-      setActiveRouteIndex(0); // Cleanest route is first
+      setPollutionDataAvailable(routeResults.pollutionDataAvailable !== false);
+      setActiveRouteIndex(0); // Cleanest measured route is first
       setSearchId((prev) => prev + 1);
-      
+
       if (allRoutesData.length > 0) {
         setMapCenter(allRoutesData[0].leafletCoords[0]);
+        eventBus.emit("ROUTE_PLANNED", { origin, destination, mode });
       }
       setRouteHistory((prev) => {
         const entry = { origin, destination, timestamp: new Date().toISOString() };
@@ -395,10 +433,32 @@ const Commute = () => {
 
             {routes.length > 0 && (
               <>
+                {!pollutionDataAvailable && (
+                  <div
+                    className="commute-error-banner"
+                    role="status"
+                    data-testid="commute-no-pollution-data"
+                    style={{
+                      backgroundColor: "#fff7ed",
+                      border: "1px solid #fdba74",
+                      color: "#c2410c",
+                      padding: "0.75rem 1rem",
+                      borderRadius: "0.5rem",
+                      marginBottom: "1.5rem",
+                      fontSize: "0.9rem",
+                    }}
+                  >
+                    ⚠️ <strong>Air quality data unavailable.</strong> These routes are shown
+                    by distance and time only — none of them could be ranked for pollution,
+                    so no route is marked cleanest.
+                  </div>
+                )}
+
                 <div className="commute-stats" style={{ marginBottom: "1.5rem" }}>
                   <h3>Route Selected</h3>
                   {(() => {
                     const activeRoute = routes[activeRouteIndex];
+                    const note = coverageNote(activeRoute);
                     return (
                       <>
                         <p>
@@ -411,11 +471,20 @@ const Commute = () => {
                           Est. Time: <strong>{activeRoute.duration} mins</strong>
                         </p>
                         <p>
-                          Avg PM2.5: <strong>{activeRoute.pm25} µg/m³</strong>
+                          Avg PM2.5: <strong>{formatReading(activeRoute.pm25, "µg/m³")}</strong>
                         </p>
                         <p>
-                          Inhaled PM2.5 Dose: <strong>{activeRoute.inhaledDose} µg</strong>
+                          Inhaled PM2.5 Dose: <strong>{formatReading(activeRoute.inhaledDose, "µg")}</strong>
                         </p>
+                        {note && (
+                          <p
+                            className="commute-coverage-note"
+                            data-testid="commute-coverage-note"
+                            style={{ fontSize: "0.85rem", color: "#b45309", marginTop: "0.25rem" }}
+                          >
+                            {note}
+                          </p>
+                        )}
                       </>
                     );
                   })()}
@@ -426,7 +495,10 @@ const Commute = () => {
                   <div className="commute-route-list">
                     {routes.map((route, idx) => {
                       const isActive = idx === activeRouteIndex;
-                      const isCleanest = idx === 0;
+                      // Only a route we actually measured can be called the cleanest.
+                      // The planner sorts measured routes first, so index 0 is the
+                      // cleanest exactly when it carries a reading.
+                      const isCleanest = idx === 0 && route.measured !== false;
                       return (
                         <button
                           key={idx}
@@ -459,9 +531,15 @@ const Commute = () => {
                           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', color: '#4b5563' }}>
                             <span>⏱ {route.duration} min</span>
                             <span>📏 {route.distance} km</span>
-                            <span style={{ color: isCleanest ? '#059669' : '#b45309', fontWeight: '600' }}>
-                              ☁️ {route.pm25} µg/m³
-                            </span>
+                            {route.measured === false ? (
+                              <span style={{ color: '#64748b', fontWeight: '600' }}>
+                                ☁️ No reading
+                              </span>
+                            ) : (
+                              <span style={{ color: isCleanest ? '#059669' : '#b45309', fontWeight: '600' }}>
+                                ☁️ {route.pm25} µg/m³
+                              </span>
+                            )}
                           </div>
                         </button>
                       );
@@ -539,25 +617,35 @@ const Commute = () => {
                     const activeRoute = routes[activeRouteIndex];
                     if (activeRoute.segments && activeRoute.segments.length > 0) {
                       return activeRoute.segments.map((seg, index) => {
-                        const band = getAQIBand(seg.aqi);
+                        // getAQIBand(null) would fall through to "Good" and paint an
+                        // unmeasured stretch green, so unmeasured segments never reach it.
+                        const isMeasured = seg.measured !== false && seg.aqi != null;
+                        const band = isMeasured ? getAQIBand(seg.aqi) : null;
                         const startPt = seg.coordinates[0] ? seg.coordinates[0].join("-") : index;
-                        const segKey = `route-${searchId}-seg-${index}-aqi-${seg.aqi}-${startPt}`;
+                        const segKey = `route-${searchId}-seg-${index}-aqi-${seg.aqi ?? "na"}-${startPt}`;
 
                         return (
                           <Polyline
                             key={segKey}
                             positions={seg.coordinates}
-                            color={band.color}
+                            color={isMeasured ? band.color : UNMEASURED_SEGMENT_COLOR}
                             weight={7}
-                            opacity={1.0}
+                            opacity={isMeasured ? 1.0 : 0.55}
+                            dashArray={isMeasured ? undefined : "8 8"}
                           >
                             <Popup>
                               <div>
                                 <strong>Route Segment {index + 1}</strong>
                                 <br />
-                                AQI: {seg.aqi} — {band.label}
-                                <br />
-                                PM2.5: {seg.pm25} µg/m³
+                                {isMeasured ? (
+                                  <>
+                                    AQI: {seg.aqi} — {band.label}
+                                    <br />
+                                    PM2.5: {seg.pm25} µg/m³
+                                  </>
+                                ) : (
+                                  <>Air quality data unavailable for this stretch.</>
+                                )}
                               </div>
                             </Popup>
                           </Polyline>

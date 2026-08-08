@@ -24,26 +24,83 @@ export const CACHE_TTL = {
 };
 
 /**
- * Calculates the current hour index from an array of timestamps using the location's UTC offset.
+ * Formats "now, in the queried location's timezone" as an `YYYY-MM-DDTHH` stamp.
  *
- * @param {string[]} times - Array of ISO timestamp strings (e.g. "2026-03-31T14:00").
+ * Open-Meteo returns `hourly.time` in the location's local time when `timezone=auto` is
+ * set, and reports the offset it applied in `utc_offset_seconds`. Shifting the epoch by
+ * that offset and reading the UTC fields back out gives the local wall clock without
+ * depending on the *browser's* timezone, which is usually a different one.
+ *
  * @param {number} [utcOffsetSeconds=0] - The UTC offset in seconds for the queried location.
- * @returns {number} The array index corresponding to the current hour in the local timezone, or 0 if not found.
+ * @returns {string} e.g. "2026-08-03T08".
  */
-function getCurrentHourIndex(times, utcOffsetSeconds = 0) {
-  // Current time in the queried location's timezone
+export function localHourStamp(utcOffsetSeconds = 0) {
   const nowInLocation = new Date(Date.now() + utcOffsetSeconds * 1000);
-  const currentHour = nowInLocation.getUTCHours();
+  const year = nowInLocation.getUTCFullYear();
+  const month = String(nowInLocation.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(nowInLocation.getUTCDate()).padStart(2, '0');
+  const hour = String(nowInLocation.getUTCHours()).padStart(2, '0');
+  return `${year}-${month}-${day}T${hour}`;
+}
 
-  let index = -1;
+/**
+ * Locates the sample that represents "now" in a timestamp array.
+ *
+ * Matching is done on the full `YYYY-MM-DDTHH` prefix, not on the hour alone. Hour 08
+ * occurs once per day in the response, so an hour-only comparison will happily match
+ * yesterday's 08:00 and report a day-old reading as current — which is exactly what
+ * happened when the requested date window did not cover the location's local today.
+ *
+ * The strings are fixed-width and zero-padded, so a lexicographic comparison orders them
+ * chronologically and no date parsing is needed.
+ *
+ * @param {string[]} times - ISO timestamp strings (e.g. "2026-03-31T14:00"), ascending.
+ * @param {number} [utcOffsetSeconds=0] - The UTC offset in seconds for the queried location.
+ * @returns {{ index: number, exact: boolean, timestamp: string|null }}
+ *   `exact` is false whenever the current hour is absent and an older sample was used
+ *   instead, so callers can label the reading rather than present it as live.
+ */
+export function resolveCurrentIndex(times, utcOffsetSeconds = 0) {
+  if (!Array.isArray(times) || times.length === 0) {
+    return { index: -1, exact: false, timestamp: null };
+  }
+
+  const target = localHourStamp(utcOffsetSeconds);
+
   for (let i = times.length - 1; i >= 0; i--) {
-    const hour = parseInt(times[i].slice(11, 13), 10);
-    if (hour === currentHour) {
-      index = i;
-      break;
+    if (typeof times[i] === 'string' && times[i].slice(0, 13) === target) {
+      return { index: i, exact: true, timestamp: times[i] };
     }
   }
 
+  // No sample for the current hour. Fall back to the most recent one that is not in
+  // the future — never to index 0, which is the *oldest* sample in the window and was
+  // the previous behaviour.
+  let latestPast = -1;
+  for (let i = 0; i < times.length; i++) {
+    if (typeof times[i] !== 'string') continue;
+    if (times[i].slice(0, 13) <= target) latestPast = i;
+    else break;
+  }
+
+  if (latestPast === -1) {
+    // Everything we have is in the future; the earliest is the closest to now.
+    return { index: 0, exact: false, timestamp: times[0] ?? null };
+  }
+  return { index: latestPast, exact: false, timestamp: times[latestPast] };
+}
+
+/**
+ * Calculates the current hour index from an array of timestamps using the location's UTC offset.
+ *
+ * Thin wrapper over {@link resolveCurrentIndex} for callers that only need the position.
+ *
+ * @param {string[]} times - Array of ISO timestamp strings (e.g. "2026-03-31T14:00").
+ * @param {number} [utcOffsetSeconds=0] - The UTC offset in seconds for the queried location.
+ * @returns {number} The index of the current hour, or the newest usable sample.
+ */
+function getCurrentHourIndex(times, utcOffsetSeconds = 0) {
+  const { index } = resolveCurrentIndex(times, utcOffsetSeconds);
   return index === -1 ? 0 : index;
 }
 
@@ -55,16 +112,34 @@ function getCurrentHourIndex(times, utcOffsetSeconds = 0) {
  */
 
 /**
+ * The band used when there is no reading to classify.
+ *
+ * Grey, and outside the green-to-maroon scale, so "we don't know" cannot be mistaken for
+ * a measurement at either end of it.
+ *
+ * @type {AQIBand}
+ */
+export const UNKNOWN_AQI_BAND = { label: 'Unknown', color: '#94a3b8' };
+
+/**
  * Maps a numerical US AQI value to its corresponding qualitative category label and hex color code.
  *
- * @param {number} value - The numerical US AQI score (0 to 500+).
+ * A missing value returns {@link UNKNOWN_AQI_BAND} rather than falling through to 'Good'.
+ * The first comparison used to be `value <= 50`, and both `null <= 50` and `undefined`
+ * handling made absent data render as green "Good" — the single most misleading thing
+ * this app can display.
+ *
+ * @param {number|null|undefined} value - The numerical US AQI score (0 to 500+).
  * @returns {AQIBand} An object containing the descriptive category label and matching hex color string.
  *
  * @example
  * const band = getAQIBand(42);
  * // Returns { label: 'Good', color: '#1f9d55' }
+ * @example
+ * getAQIBand(null); // { label: 'Unknown', color: '#94a3b8' }
  */
 export function getAQIBand(value) {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return UNKNOWN_AQI_BAND;
   if (value <= 50) return { label: 'Good', color: '#1f9d55' };
   if (value <= 100) return { label: 'Moderate', color: '#f59e0b' };
   if (value <= 150) return { label: 'Unhealthy (Sensitive)', color: '#f97316' };
@@ -76,15 +151,22 @@ export function getAQIBand(value) {
 /**
  * Determines a color indicator for a specific pollutant level based on its safety threshold limit ratio.
  *
- * @param {number} value - Current measured pollutant concentration.
+ * A missing reading returns the neutral {@link UNKNOWN_AQI_BAND} colour. `null / limit`
+ * evaluates to 0 in JavaScript, so without this guard an absent pollutant painted the
+ * same green as a concentration well inside the limit.
+ *
+ * @param {number|null|undefined} value - Current measured pollutant concentration.
  * @param {number} limit - Safe standard limit threshold concentration.
  * @returns {string} Hexadecimal color code representing the ratio severity.
  *
  * @example
  * const color = getPollutantColor(25, 50);
  * // Returns '#1f9d55' (Good)
+ * @example
+ * getPollutantColor(null, 50); // '#94a3b8' (Unknown)
  */
 export function getPollutantColor(value, limit) {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return UNKNOWN_AQI_BAND.color;
   const ratio = value / limit;
   if (ratio <= 0.5) return '#1f9d55'; // Good (well within)
   if (ratio <= 1.0) return '#f59e0b'; // Moderate (approaching limit)
@@ -210,14 +292,37 @@ export async function fetchLocalGrid(lat, lon, topN = 6, signal) {
 function computeConfidence(hourly, times) {
   const POLLUTANT_FIELDS = ['pm2_5', 'pm10', 'carbon_monoxide', 'nitrogen_dioxide', 'ozone', 'us_aqi'];
 
-  const validFields = POLLUTANT_FIELDS.filter((f) => {
-    const arr = hourly[f];
-    return arr && arr.length > 0 && arr.some((v) => v != null && !isNaN(v));
-  }).length;
+  const sampleCount = Array.isArray(times) ? times.length : 0;
+  if (sampleCount === 0) {
+    return { confidenceScore: 'Low', dataCompleteness: 0 };
+  }
 
-  const dataCompleteness = Math.round((validFields / POLLUTANT_FIELDS.length) * 100);
-  const sampleRatio = Math.min(1, times.length / 24);
-  const score = dataCompleteness * 0.5 + sampleRatio * 100 * 0.5;
+  // Count the readings that are actually numbers, not the fields that contain at least
+  // one. The previous `.some()` test passed on a series of 47 nulls and a single value,
+  // which reported 100% complete for a response that was 96% gaps.
+  let presentReadings = 0;
+  let expectedReadings = 0;
+
+  for (const field of POLLUTANT_FIELDS) {
+    const series = hourly[field];
+    expectedReadings += sampleCount;
+    if (!Array.isArray(series)) continue;
+    for (let i = 0; i < sampleCount; i++) {
+      const value = series[i];
+      if (typeof value === 'number' && Number.isFinite(value)) presentReadings += 1;
+    }
+  }
+
+  const dataCompleteness = expectedReadings === 0
+    ? 0
+    : Math.round((presentReadings / expectedReadings) * 100);
+
+  // How much of a 24-hour window we were given, independent of whether it has values in
+  // it. The two terms are multiplied rather than averaged: a response can be trusted only
+  // if it covers the window *and* has readings in it. Averaging them let a payload with
+  // 24 timestamps and zero values score 50 and come back "Medium".
+  const sampleRatio = Math.min(1, sampleCount / 24);
+  const score = dataCompleteness * sampleRatio;
 
   const confidenceScore = score >= 80 ? 'High' : score >= 50 ? 'Medium' : 'Low';
 
@@ -225,15 +330,54 @@ function computeConfidence(hourly, times) {
 }
 
 /**
+ * Reads one hourly sample, keeping a missing value missing.
+ *
+ * The previous `Math.round(series?.[idx] ?? 0)` turned an absent reading into a hard
+ * `0 µg/m³` — which `getAQIBand` then labelled "Good" in green. Rounding null to zero is
+ * not a safe default here; it is the least safe one available.
+ *
+ * @param {any} series - An hourly value array from the payload.
+ * @param {number} idx - Index to read.
+ * @returns {number|null} The rounded reading, or null when it is absent.
+ */
+function readingAt(series, idx) {
+  const value = Array.isArray(series) ? series[idx] : undefined;
+  if (typeof value !== 'number' || !Number.isFinite(value)) return null;
+  return Math.round(value);
+}
+
+/**
+ * Fetches historical air quality data for a custom date range.
+ * @param {number} lat
+ * @param {number} lon
+ * @param {string} startDate - ISO date string (YYYY-MM-DD)
+ * @param {string} endDate - ISO date string (YYYY-MM-DD)
+ * @param {AbortSignal} [signal]
+ */
+export async function fetchHistoricalRange(lat, lon, startDate, endDate, signal) {
+  if (!isValidCoord(lat, lon)) return null;
+  const url = `${BASE_URL}?latitude=${lat}&longitude=${lon}&hourly=pm2_5,pm10,carbon_monoxide,nitrogen_dioxide,ozone,us_aqi&timezone=auto&start_date=${startDate}&end_date=${endDate}`;
+
+  const response = await fetch(url, { signal });
+  if (!response.ok) {
+    throw new Error('Failed to fetch historical AQI data for the selected range.');
+  }
+  return response.json();
+}
+
+/**
  * Air Quality metrics record for a single point in time.
+ * Every reading is nullable: `null` means the hour had no value, and is deliberately
+ * distinct from `0`, which means a measured concentration of zero.
+ *
  * @typedef {Object} CurrentAQIData
  * @property {string} time - Time corresponding to measurements.
- * @property {number} pm2_5 - Fine particulate concentration (PM2.5).
- * @property {number} pm10 - Coarse particulate concentration (PM10).
- * @property {number} carbon_monoxide - CO level concentration.
- * @property {number} nitrogen_dioxide - NO2 level concentration.
- * @property {number} ozone - O3 level concentration.
- * @property {number} us_aqi - Aggregate US AQI score.
+ * @property {number|null} pm2_5 - Fine particulate concentration (PM2.5).
+ * @property {number|null} pm10 - Coarse particulate concentration (PM10).
+ * @property {number|null} carbon_monoxide - CO level concentration.
+ * @property {number|null} nitrogen_dioxide - NO2 level concentration.
+ * @property {number|null} ozone - O3 level concentration.
+ * @property {number|null} us_aqi - Aggregate US AQI score.
  */
 
 /**
@@ -244,6 +388,8 @@ function computeConfidence(hourly, times) {
  * @property {GridPoint[]} nearbyPoints - Surrounding regional spatial grid metrics.
  * @property {'High'|'Medium'|'Low'} confidenceScore - Confidence rating based on available data completeness.
  * @property {number} dataCompleteness - Completeness percentage score (0 to 100).
+ * @property {boolean} isCurrentHour - True when `current` really is the location's current hour.
+ * @property {string|null} readingTime - Local timestamp the reading was taken from.
  */
 
 /**
@@ -271,15 +417,16 @@ export async function fetchAirQualityByCoords(lat, lon, signal, skipGrid = false
   const cached = await cacheStore.getFresh(cacheKey, CACHE_TTL.CURRENT);
   if (cached && cached.data) return cached.data;
 
-  const today = new Date();
-  const yesterday = new Date(today);
-
-  yesterday.setDate(today.getDate() - 1);
-
-  const startDate = yesterday.toISOString().split('T')[0];
-  const endDate = today.toISOString().split('T')[0];
-
-  const url = `${BASE_URL}?latitude=${lat}&longitude=${lon}&hourly=pm2_5,pm10,carbon_monoxide,nitrogen_dioxide,sulphur_dioxide,ozone,us_aqi&timezone=auto&start_date=${startDate}&end_date=${endDate}`;
+  // Ask for the window in *relative* terms rather than as explicit dates.
+  //
+  // The previous code built start_date/end_date from `toISOString()`, which is always
+  // UTC, while `timezone=auto` makes the response local to the queried coordinates. For
+  // anywhere far enough east of UTC the local date runs a day ahead during the morning,
+  // so today was never requested and the reading labelled "current" came from yesterday.
+  //
+  // `past_days`/`forecast_days` are resolved server-side against the location's own
+  // timezone, which is the only place that knows what "today" means there.
+  const url = `${BASE_URL}?latitude=${lat}&longitude=${lon}&hourly=pm2_5,pm10,carbon_monoxide,nitrogen_dioxide,sulphur_dioxide,ozone,us_aqi&timezone=auto&past_days=1&forecast_days=1`;
 
   /**
    * Internal worker execution helper.
@@ -388,30 +535,30 @@ export async function fetchAirQualityByCoords(lat, lon, signal, skipGrid = false
   }
   const hourly = data.hourly || {};
   const times = hourly.time || [];
-  const idx = getCurrentHourIndex(
-    times,
-    data.utc_offset_seconds ?? 0
-  );
+  const resolved = resolveCurrentIndex(times, data.utc_offset_seconds ?? 0);
+  const idx = resolved.index === -1 ? 0 : resolved.index;
   const current = {
     time: times[idx],
-    pm2_5: Math.round(hourly.pm2_5?.[idx] ?? 0),
-    pm10: Math.round(hourly.pm10?.[idx] ?? 0),
-    carbon_monoxide: Math.round(hourly.carbon_monoxide?.[idx] ?? 0),
-    nitrogen_dioxide: Math.round(hourly.nitrogen_dioxide?.[idx] ?? 0),
-    sulfur_dioxide: Math.round(hourly.sulfur_dioxide?.[idx] ?? hourly.sulphur_dioxide?.[idx] ?? 0),
-    ozone: Math.round(hourly.ozone?.[idx] ?? 0),
-    us_aqi: Math.round(hourly.us_aqi?.[idx] ?? 0)
+    pm2_5: readingAt(hourly.pm2_5, idx),
+    pm10: readingAt(hourly.pm10, idx),
+    carbon_monoxide: readingAt(hourly.carbon_monoxide, idx),
+    nitrogen_dioxide: readingAt(hourly.nitrogen_dioxide, idx),
+    sulfur_dioxide: readingAt(hourly.sulfur_dioxide, idx) ?? readingAt(hourly.sulphur_dioxide, idx),
+    ozone: readingAt(hourly.ozone, idx),
+    us_aqi: readingAt(hourly.us_aqi, idx)
   };
 
   const startIndex = Math.max(0, idx - 23);
 
+  // Gaps stay null so the chart breaks the line instead of drawing it down to zero,
+  // which reads as "the air suddenly got clean" rather than "we have no reading".
   const trend = times
     .slice(startIndex, idx + 1)
     .map((time, i) => ({
       time,
-      pm2_5: Math.round(hourly.pm2_5?.[startIndex + i] ?? 0),
-      pm10: Math.round(hourly.pm10?.[startIndex + i] ?? 0),
-      us_aqi: Math.round(hourly.us_aqi?.[startIndex + i] ?? 0)
+      pm2_5: readingAt(hourly.pm2_5, startIndex + i),
+      pm10: readingAt(hourly.pm10, startIndex + i),
+      us_aqi: readingAt(hourly.us_aqi, startIndex + i)
     }));
 
   const nearbyPoints = skipGrid ? [] : await fetchLocalGrid(lat, lon, 6, signal);
@@ -422,7 +569,12 @@ export async function fetchAirQualityByCoords(lat, lon, signal, skipGrid = false
     trend,
     nearbyPoints,
     confidenceScore,
-    dataCompleteness
+    dataCompleteness,
+    // True only when a sample for the location's actual current hour was found. When it
+    // is false the reading is the newest one available, not a live one, and the UI should
+    // say so instead of stamping it "just updated".
+    isCurrentHour: resolved.exact,
+    readingTime: resolved.timestamp
   };
 
   cacheStore.set(cacheKey, result);
@@ -562,7 +714,17 @@ export async function fetchCityComparisons(signal) {
  * const estimates = estimateWeeklyMonthlyAverages([{ us_aqi: 100 }, { us_aqi: 110 }]);
  */
 export function estimateWeeklyMonthlyAverages(trend) {
-  const dayAverage = trend.reduce((acc, item) => acc + item.us_aqi, 0) / (trend.length || 1);
+  // Hours with no reading are skipped rather than counted as zero. Averaging a null in
+  // as 0 drags the projection down and makes a gappy day look cleaner than it was.
+  const measured = (trend || [])
+    .map((item) => item?.us_aqi)
+    .filter((v) => typeof v === 'number' && Number.isFinite(v));
+
+  if (measured.length === 0) {
+    return { weekly: null, monthly: null, prediction: null };
+  }
+
+  const dayAverage = measured.reduce((acc, v) => acc + v, 0) / measured.length;
   const weekly = Math.round(dayAverage * 1.05);
   const monthly = Math.round(dayAverage * 1.12);
 
@@ -597,6 +759,15 @@ export function estimateExposureTime(trend, currentAQI, threshold = 120) {
     return null;
   }
 
+  // The endpoints of the window may be gaps; the slope has to be taken between two
+  // readings that exist, and there is nothing to extrapolate from fewer than two.
+  const measured = trend.filter(
+    (item) => typeof item?.us_aqi === 'number' && Number.isFinite(item.us_aqi)
+  );
+  if (measured.length < 2 || typeof currentAQI !== 'number' || !Number.isFinite(currentAQI)) {
+    return null;
+  }
+
   if (currentAQI >= threshold) {
     return {
       message: "Already above the recommended exposure threshold.",
@@ -604,11 +775,11 @@ export function estimateExposureTime(trend, currentAQI, threshold = 120) {
     };
   }
 
-  const firstAQI = trend[0].us_aqi;
-  const lastAQI = trend[trend.length - 1].us_aqi;
+  const firstAQI = measured[0].us_aqi;
+  const lastAQI = measured[measured.length - 1].us_aqi;
 
-  // Average AQI change , per hour over the last 24 hrs 
-  const slope = (lastAQI - firstAQI) / (trend.length - 1);
+  // Average AQI change , per hour over the last 24 hrs
+  const slope = (lastAQI - firstAQI) / (measured.length - 1);
 
   if (slope <= 0) {
     return {

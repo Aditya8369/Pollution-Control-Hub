@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { pm25ToAQI, calculateCleanRoute } from './routePlanner';
+import { pm25ToAQI, calculateCleanRoute, UNMEASURED_SEGMENT_COLOR } from './routePlanner';
 
 describe('routePlanner - AQI Polyline Heatmap & Route Segmentation', () => {
   beforeEach(() => {
@@ -20,7 +20,11 @@ describe('routePlanner - AQI Polyline Heatmap & Route Segmentation', () => {
     it('handles invalid or edge case values gracefully', () => {
       expect(pm25ToAQI(null)).toBe(0);
       expect(pm25ToAQI(undefined)).toBe(0);
+
+      const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
       expect(pm25ToAQI(-5)).toBe(0);
+      expect(warnSpy).toHaveBeenCalled();
+      warnSpy.mockRestore();
     });
   });
 
@@ -98,7 +102,10 @@ describe('routePlanner - AQI Polyline Heatmap & Route Segmentation', () => {
       expect(firstSeg.color).toBe('#f59e0b');
     });
 
-    it('handles AQI API failure gracefully by falling back to safe defaults', async () => {
+    // This case used to assert that a pollution outage still produced a coloured,
+    // ranked route — which only held because every failed reading became 25.0 µg/m³.
+    // Per #544 the route is still returned, but now as explicitly unmeasured.
+    it('returns the route unranked and unmeasured when the AQI API fails', async () => {
       globalThis.fetch = vi.fn((url) => {
         if (url.includes('nominatim')) {
           const q = new URL(url).searchParams.get('q');
@@ -120,8 +127,17 @@ describe('routePlanner - AQI Polyline Heatmap & Route Segmentation', () => {
       });
 
       const result = await calculateCleanRoute('Start', 'Dest', 'driving');
-      expect(result.cleanestRoute.segments.length).toBeGreaterThan(0);
-      expect(result.cleanestRoute.segments[0].color).toBeDefined();
+
+      // No route may be recommended on data that was never measured.
+      expect(result.cleanestRoute).toBeNull();
+      expect(result.pollutionDataAvailable).toBe(false);
+
+      // The path itself still comes back, drawn but not scored.
+      const [route] = result.allRoutes;
+      expect(route.segments.length).toBeGreaterThan(0);
+      expect(route.segments[0].color).toBe(UNMEASURED_SEGMENT_COLOR);
+      expect(route.measured).toBe(false);
+      expect(route.pm25).toBeNull();
     });
   });
 });

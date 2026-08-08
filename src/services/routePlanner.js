@@ -7,7 +7,11 @@ import { getAQIBand } from './airQualityService';
  * @returns {number} Corresponding US AQI integer.
  */
 export function pm25ToAQI(pm) {
-  if (pm == null || isNaN(pm) || pm < 0) return 0;
+  if (pm == null || isNaN(pm)) return 0;
+  if (pm < 0) {
+    console.warn(`pm25ToAQI received negative PM2.5 value: ${pm}`);
+    return 0;
+  }
   if (pm <= 12.0) return Math.round(((50 - 0) / (12.0 - 0)) * (pm - 0) + 0);
   if (pm <= 35.4) return Math.round(((100 - 51) / (35.4 - 12.1)) * (pm - 12.1) + 51);
   if (pm <= 55.4) return Math.round(((150 - 101) / (55.4 - 35.5)) * (pm - 35.5) + 101);
@@ -51,22 +55,91 @@ const geocodeLocation = async (locationName) => {
 /**
  * Fetches the current PM2.5 air pollution level for a specific geographic coordinate.
  *
+ * Returns `null` — not a substitute concentration — when the reading cannot be obtained.
+ * The planner ranks routes by the pollution it measures along them, so a placeholder here
+ * does not stay a placeholder: it becomes the average, the inhaled dose, the segment
+ * colour, and ultimately the route we tell someone to walk down. An unknown reading has
+ * to stay recognisably unknown all the way to the UI.
+ *
  * @param {number} lon - The longitude coordinate.
  * @param {number} lat - The latitude coordinate.
- * @returns {Promise<number>} A promise that resolves to the PM2.5 concentration level.
+ * @returns {Promise<number|null>} PM2.5 concentration in µg/m³, or null if unavailable.
  */
 const getSegmentPollution = async (lon, lat) => {
   try {
     const response = await fetch(
       `https://air-quality-api.open-meteo.com/v1/air-quality?latitude=${lat}&longitude=${lon}&current=pm2_5`
     );
-    if (!response.ok) return 25.0; // Fallback Moderate PM2.5 if request fails
+    if (!response.ok) return null;
     const data = await response.json();
-    return data.current?.pm2_5 ?? 25.0;
+    const value = data.current?.pm2_5;
+    if (typeof value !== 'number' || !Number.isFinite(value) || value < 0) return null;
+    return value;
   } catch {
-    return 25.0; // Fallback PM2.5 when network is unavailable
+    return null;
   }
 };
+
+/**
+ * Picks the sample points along a route, without repeats.
+ *
+ * The five fractional positions collapse onto each other for short routes — a two-point
+ * geometry yields [0, 0, 1, 1, 1] — which would otherwise fire duplicate requests and
+ * produce zero-length segments.
+ *
+ * @param {number} pointCount - Number of coordinates in the route geometry.
+ * @returns {number[]} Ascending, de-duplicated indices into the geometry.
+ */
+export function routeCheckpoints(pointCount) {
+  if (!Number.isFinite(pointCount) || pointCount <= 0) return [];
+  const last = pointCount - 1;
+  const raw = [
+    0,
+    Math.floor(pointCount * 0.25),
+    Math.floor(pointCount * 0.5),
+    Math.floor(pointCount * 0.75),
+    last,
+  ];
+  return [...new Set(raw.filter((i) => i >= 0 && i <= last))].sort((a, b) => a - b);
+}
+
+/**
+ * Summarises a set of checkpoint readings, ignoring the ones that could not be fetched.
+ *
+ * @param {(number|null)[]} readings - Per-checkpoint PM2.5 values; null where unavailable.
+ * @returns {{ average: number|null, highest: number|null, lowest: number|null,
+ *             measuredCount: number, totalCount: number, coverage: number }}
+ */
+export function summarisePm25(readings) {
+  const measured = readings.filter(
+    (v) => typeof v === 'number' && Number.isFinite(v)
+  );
+  const totalCount = readings.length;
+  const measuredCount = measured.length;
+  const coverage = totalCount === 0 ? 0 : measuredCount / totalCount;
+
+  if (measuredCount === 0) {
+    return { average: null, highest: null, lowest: null, measuredCount, totalCount, coverage };
+  }
+
+  const sum = measured.reduce((acc, v) => acc + v, 0);
+  return {
+    average: parseFloat((sum / measuredCount).toFixed(1)),
+    highest: Math.max(...measured),
+    lowest: Math.min(...measured),
+    measuredCount,
+    totalCount,
+    coverage,
+  };
+}
+
+/**
+ * Colour used for a stretch of route whose pollution could not be measured.
+ *
+ * Deliberately outside the AQI palette — a grey line reads as "no data", whereas any
+ * green/amber/red would read as a measurement.
+ */
+export const UNMEASURED_SEGMENT_COLOR = '#94a3b8';
 
 const MODE_PROFILES = {
   driving: {
@@ -101,35 +174,52 @@ const MODE_PROFILES = {
  * @property {number[][]} geometry - Array of [longitude, latitude] coordinates making up the path.
  * @property {string} distance - Total distance in kilometers.
  * @property {string} duration - Estimated travel time in minutes.
- * @property {string} pm25 - Average PM2.5 concentration along the route.
- * @property {string} inhaledDose - Estimated inhaled PM2.5 dosage in micrograms (µg).
+ * @property {string|null} pm25 - Average PM2.5 along the route, or null when nothing was measured.
+ * @property {string|null} inhaledDose - Estimated inhaled PM2.5 dosage in µg, or null when unmeasured.
  * @property {string} mode - The mode of transport used ('driving', 'biking', or 'foot').
  * @property {number} multiplier - Mode-specific exposure multiplier.
- * @property {number} exposureScore - Calculated score used to rank the route (lower is cleaner).
- * @property {string} highestPm - Maximum PM2.5 concentration encountered on the route.
- * @property {string} lowestPm - Minimum PM2.5 concentration encountered on the route.
+ * @property {number|null} exposureScore - Score used to rank the route (lower is cleaner); null when unmeasured.
+ * @property {string|null} highestPm - Maximum PM2.5 encountered, or null when unmeasured.
+ * @property {string|null} lowestPm - Minimum PM2.5 encountered, or null when unmeasured.
+ * @property {boolean} measured - True when at least one checkpoint returned a reading.
+ * @property {number} measuredCheckpoints - How many checkpoints returned a reading.
+ * @property {number} totalCheckpoints - How many checkpoints were sampled.
+ * @property {number} coverage - measuredCheckpoints / totalCheckpoints, in the range 0–1.
  */
 
 /**
  * Calculates the cleanest route between two locations by evaluating PM2.5 exposure across alternative paths.
  *
+ * Pollution readings that cannot be fetched are left as null rather than replaced with a
+ * stand-in concentration. A route with no readings at all is returned with null metrics,
+ * is sorted behind every measured route, and is never chosen as `cleanestRoute` — so the
+ * app can say "we could not measure this" instead of recommending a road on invented data.
+ *
  * @param {string} originText - The starting location address or name.
  * @param {string} destinationText - The destination address or name.
  * @param {'driving' | 'biking' | 'foot'} [mode="driving"] - The method of transportation.
- * @returns {Promise<{ cleanestRoute: EvaluatedRoute, allRoutes: EvaluatedRoute[] }>} An object containing the optimal route and all evaluated alternatives sorted by exposure score.
+ * @returns {Promise<{ cleanestRoute: EvaluatedRoute|null, allRoutes: EvaluatedRoute[],
+ *                     pollutionDataAvailable: boolean, rankedRouteCount: number,
+ *                     totalRouteCount: number }>} The optimal route (null when nothing could
+ *   be measured), every evaluated alternative, and how much of the ranking is real.
  * @throws {Error} Throws an error if routing calculation or geocoding fails.
  *
  * @example
  * const routeData = await calculateCleanRoute("Andheri, Mumbai", "Bandra, Mumbai", "driving");
- * console.log(`Cleanest route dose: ${routeData.cleanestRoute.inhaledDose} µg`);
+ * if (routeData.pollutionDataAvailable) {
+ *   console.log(`Cleanest route dose: ${routeData.cleanestRoute.inhaledDose} µg`);
+ * }
  */
 export const calculateCleanRoute = async (originText, destinationText, mode = "driving") => {
   try {
     const activeMode = MODE_PROFILES[mode] ? mode : "driving";
     const modeConfig = MODE_PROFILES[activeMode];
 
-    const originCoords = await geocodeLocation(originText);
-    const destCoords = await geocodeLocation(destinationText);
+    // The two geocodes are independent — run them together instead of serially.
+    const [originCoords, destCoords] = await Promise.all([
+      geocodeLocation(originText),
+      geocodeLocation(destinationText),
+    ]);
 
     const osrmUrl = `https://router.project-osrm.org/route/v1/${modeConfig.osrmProfile}/${originCoords[0]},${originCoords[1]};${destCoords[0]},${destCoords[1]}?alternatives=true&geometries=geojson`;
 
@@ -143,38 +233,37 @@ export const calculateCleanRoute = async (originText, destinationText, mode = "d
 
     for (const route of routes) {
       const coordinates = route.geometry.coordinates;
+      const checkpoints = routeCheckpoints(coordinates.length);
 
-      const checkpoints = [
-        0, 
-        Math.floor(coordinates.length * 0.25), 
-        Math.floor(coordinates.length * 0.5), 
-        Math.floor(coordinates.length * 0.75), 
-        coordinates.length - 1, 
-      ];
+      const pmValues = await Promise.all(
+        checkpoints.map((idx) => {
+          const pt = coordinates[idx];
+          return getSegmentPollution(pt[0], pt[1]);
+        })
+      );
 
-      const pmPromises = checkpoints.map(idx => {
-        const pt = coordinates[idx];
-        return getSegmentPollution(pt[0], pt[1]);
-      });
-      
-      const pmValues = await Promise.all(pmPromises);
+      const stats = summarisePm25(pmValues);
+      const measured = stats.measuredCount > 0;
+      const avgPm25 = stats.average;
 
-      const totalPm = pmValues.reduce((sum, val) => sum + val, 0);
-      const maxPm = Math.max(...pmValues);
-      const minPm = Math.min(...pmValues);
-
-      const avgPm25 = parseFloat((totalPm / pmValues.length).toFixed(1));
       const distanceKm = route.distance / 1000;
-      
       const modeDurationMins = Math.max(1, Math.round((distanceKm / modeConfig.speedKmH) * 60));
-      
+
+      // Distance and time come from the routing engine, so they stand on their own.
+      // Everything derived from a concentration only exists when one was measured.
       const durationHours = modeDurationMins / 60;
       const respirationRateM3H = (modeConfig.respirationRateLmin * 60) / 1000;
-      const inhaledDoseUg = (avgPm25 * modeConfig.cabinFilterFactor * durationHours * respirationRateM3H).toFixed(1);
+      const inhaledDoseUg = measured
+        ? (avgPm25 * modeConfig.cabinFilterFactor * durationHours * respirationRateM3H).toFixed(1)
+        : null;
 
-      const exposureScore = distanceKm * avgPm25 * modeConfig.multiplier;
+      // A route with no readings gets no score, so it cannot win the ranking below.
+      const exposureScore = measured ? distanceKm * avgPm25 * modeConfig.multiplier : null;
 
-      // Build colored AQI polyline segments along consecutive route geometry sections
+      // Build coloured AQI polyline segments along consecutive route geometry sections.
+      // A segment is only coloured when both of its endpoints were actually measured —
+      // interpolating from a single endpoint would spread one reading over ground it
+      // never covered.
       const segments = [];
       for (let k = 0; k < checkpoints.length - 1; k++) {
         const startIndex = checkpoints[k];
@@ -185,7 +274,24 @@ export const calculateCleanRoute = async (originText, destinationText, mode = "d
           .slice(startIndex, endIndex + 1)
           .map(pt => [pt[1], pt[0]]); // Leaflet format [lat, lon]
 
-        const segmentPm25 = parseFloat(((pmValues[k] + pmValues[k + 1]) / 2).toFixed(1));
+        const startPm = pmValues[k];
+        const endPm = pmValues[k + 1];
+        const bothMeasured =
+          typeof startPm === 'number' && typeof endPm === 'number';
+
+        if (!bothMeasured) {
+          segments.push({
+            coordinates: sectionCoords,
+            aqi: null,
+            category: 'Unavailable',
+            color: UNMEASURED_SEGMENT_COLOR,
+            pm25: null,
+            measured: false,
+          });
+          continue;
+        }
+
+        const segmentPm25 = parseFloat(((startPm + endPm) / 2).toFixed(1));
         const segmentAqi = pm25ToAQI(segmentPm25);
         const band = getAQIBand(segmentAqi);
 
@@ -195,20 +301,34 @@ export const calculateCleanRoute = async (originText, destinationText, mode = "d
           category: band.label,
           color: band.color,
           pm25: segmentPm25,
+          measured: true,
         });
       }
 
-      // If segments is empty (e.g. coordinates length < 2), fallback to single segment
+      // If segments is empty (e.g. coordinates length < 2), fall back to a single segment
       if (segments.length === 0 && coordinates.length >= 2) {
-        const segmentAqi = pm25ToAQI(avgPm25);
-        const band = getAQIBand(segmentAqi);
-        segments.push({
-          coordinates: coordinates.map(pt => [pt[1], pt[0]]),
-          aqi: segmentAqi,
-          category: band.label,
-          color: band.color,
-          pm25: avgPm25,
-        });
+        const leafletCoords = coordinates.map(pt => [pt[1], pt[0]]);
+        if (measured) {
+          const segmentAqi = pm25ToAQI(avgPm25);
+          const band = getAQIBand(segmentAqi);
+          segments.push({
+            coordinates: leafletCoords,
+            aqi: segmentAqi,
+            category: band.label,
+            color: band.color,
+            pm25: avgPm25,
+            measured: true,
+          });
+        } else {
+          segments.push({
+            coordinates: leafletCoords,
+            aqi: null,
+            category: 'Unavailable',
+            color: UNMEASURED_SEGMENT_COLOR,
+            pm25: null,
+            measured: false,
+          });
+        }
       }
 
       evaluatedRoutes.push({
@@ -216,21 +336,39 @@ export const calculateCleanRoute = async (originText, destinationText, mode = "d
         segments: segments,
         distance: distanceKm.toFixed(2),
         duration: String(modeDurationMins),
-        pm25: avgPm25.toFixed(1),
+        pm25: measured ? avgPm25.toFixed(1) : null,
         inhaledDose: inhaledDoseUg,
         mode: activeMode,
         multiplier: modeConfig.multiplier,
         exposureScore: exposureScore,
-        highestPm: maxPm.toFixed(1),
-        lowestPm: minPm.toFixed(1),
+        highestPm: measured ? stats.highest.toFixed(1) : null,
+        lowestPm: measured ? stats.lowest.toFixed(1) : null,
+        measured,
+        measuredCheckpoints: stats.measuredCount,
+        totalCheckpoints: stats.totalCount,
+        coverage: stats.coverage,
       });
     }
 
-    evaluatedRoutes.sort((a, b) => a.exposureScore - b.exposureScore);
+    // Rank only on measured exposure. Routes we know nothing about sort to the end
+    // rather than to the front, which is where a null would land in a numeric sort.
+    evaluatedRoutes.sort((a, b) => {
+      if (a.measured !== b.measured) return a.measured ? -1 : 1;
+      if (!a.measured) return 0;
+      return a.exposureScore - b.exposureScore;
+    });
+
+    const cleanestRoute = evaluatedRoutes.find((r) => r.measured) || null;
+    const measuredRoutes = evaluatedRoutes.filter((r) => r.measured);
 
     return {
-      cleanestRoute: evaluatedRoutes[0],
+      cleanestRoute,
       allRoutes: evaluatedRoutes,
+      // Lets the UI say "we ranked 2 of 3 routes" instead of quietly presenting a
+      // partial ranking as a complete one.
+      pollutionDataAvailable: measuredRoutes.length > 0,
+      rankedRouteCount: measuredRoutes.length,
+      totalRouteCount: evaluatedRoutes.length,
     };
   } catch (error) {
     console.error("Routing Error:", error);

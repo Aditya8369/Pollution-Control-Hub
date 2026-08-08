@@ -255,15 +255,18 @@ export const cacheStore = {
   },
 
   /**
+   * Check if a cache entry has exceeded its freshness TTL.
+   *
    * @param {any} key
-   * @param {any} ttl
+   * @param {number} ttlMs - Maximum acceptable age in milliseconds.
+   * @returns {Promise<boolean>}
    */
-  async isStale(key, ttl) {
-    const cached = memoryCache.get(key) || await this.get(key);
+  async isStale(key, ttlMs) {
+    const cached = memoryCache.get(key) || (await this.get(key));
 
     if (!cached) return true;
 
-    return Date.now() - cached.timestamp >= ttl;
+    return isExpired(cached, ttlMs);
   },
 
   /**

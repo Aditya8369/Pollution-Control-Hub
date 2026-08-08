@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { calculateCarbonFootprint } from '../utils/carbonCalculator';
+import './CarbonFootprintCalculator.css';
 
 const HISTORY_STORAGE_KEY = 'carbon_calculator_history';
 

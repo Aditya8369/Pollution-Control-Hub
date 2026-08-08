@@ -1,0 +1,618 @@
+[
+  {
+    "term": "AQI",
+    "fullForm": "Air Quality Index",
+    "category": "measurement",
+    "definition": "A standardized numerical scale (0–500) used to communicate how polluted the air is. Lower values indicate cleaner air. The US AQI is divided into six color-coded categories from Good (0–50) to Hazardous (301–500).",
+    "example": "An AQI of 42 means the air is Good; an AQI of 201 means Very Unhealthy and outdoor activity should be limited.",
+    "relatedTerms": ["PM2.5", "PM10", "O3", "NO2"]
+  },
+  {
+    "term": "PM2.5",
+    "fullForm": "Fine Particulate Matter (≤2.5 µm)",
+    "category": "pollutant",
+    "definition": "Microscopic solid or liquid particles with a diameter of 2.5 micrometers or smaller. They are so fine they can penetrate deep into the lungs and enter the bloodstream, causing serious health effects.",
+    "example": "Vehicle exhaust, cigarette smoke, and wildfire smoke are major sources of PM2.5.",
+    "relatedTerms": ["PM10", "AQI", "IAQI"]
+  },
+  {
+    "term": "PM10",
+    "fullForm": "Coarse Particulate Matter (≤10 µm)",
+    "category": "pollutant",
+    "definition": "Inhalable particles with a diameter of 10 micrometers or smaller, including dust, pollen, and mold. Though larger than PM2.5, they can still irritate the airways and worsen respiratory conditions.",
+    "example": "Construction sites, unpaved roads, and agricultural activities generate high PM10 levels.",
+    "relatedTerms": ["PM2.5", "AQI", "TSP"]
+  },
+  {
+    "term": "O3",
+    "fullForm": "Ground-level Ozone",
+    "category": "pollutant",
+    "definition": "A reactive gas formed when NOx and VOCs react in sunlight. Unlike stratospheric ozone (which protects us), ground-level ozone is a lung irritant and a key component of smog.",
+    "example": "Ozone levels peak on hot, sunny afternoons in cities with heavy traffic.",
+    "relatedTerms": ["NOx", "VOC", "Smog", "Photochemical Smog"]
+  },
+  {
+    "term": "NO2",
+    "fullForm": "Nitrogen Dioxide",
+    "category": "pollutant",
+    "definition": "A reddish-brown gas primarily from vehicle engines and power plants. It irritates the respiratory system and contributes to the formation of smog and acid rain.",
+    "example": "Cities near highways and industrial zones typically record higher NO2 concentrations.",
+    "relatedTerms": ["NOx", "O3", "Acid Rain"]
+  },
+  {
+    "term": "NOx",
+    "fullForm": "Nitrogen Oxides",
+    "category": "pollutant",
+    "definition": "A group of gases including NO and NO2 produced by combustion at high temperatures. NOx plays a central role in ozone formation and contributes to smog and acid rain.",
+    "example": "Diesel engines emit significantly more NOx than petrol engines.",
+    "relatedTerms": ["NO2", "O3", "Combustion"]
+  },
+  {
+    "term": "SO2",
+    "fullForm": "Sulfur Dioxide",
+    "category": "pollutant",
+    "definition": "A colorless gas with a sharp smell, released primarily by burning coal and oil. SO2 can cause respiratory harm and is the primary precursor to acid rain.",
+    "example": "Industrial facilities near coal-fired power plants typically record elevated SO2 levels.",
+    "relatedTerms": ["Acid Rain", "NOx", "Combustion"]
+  },
+  {
+    "term": "CO",
+    "fullForm": "Carbon Monoxide",
+    "category": "pollutant",
+    "definition": "A colorless, odorless gas produced by incomplete combustion of fossil fuels. CO binds to hemoglobin in the blood, reducing the blood's ability to carry oxygen, and can be fatal at high concentrations.",
+    "example": "Running a vehicle engine in a closed garage can rapidly build up lethal CO concentrations.",
+    "relatedTerms": ["CO2", "Combustion", "GHG"]
+  },
+  {
+    "term": "CO2",
+    "fullForm": "Carbon Dioxide",
+    "category": "pollutant",
+    "definition": "A greenhouse gas produced by burning fossil fuels, deforestation, and biological respiration. While not directly toxic at ambient concentrations, CO2 is the primary driver of climate change.",
+    "example": "Global CO2 concentrations surpassed 420 ppm in 2023, the highest in at least 3 million years.",
+    "relatedTerms": ["GHG", "Carbon Footprint", "Climate Change", "CO"]
+  },
+  {
+    "term": "VOC",
+    "fullForm": "Volatile Organic Compounds",
+    "category": "pollutant",
+    "definition": "Organic chemicals that easily evaporate at room temperature. VOCs react with NOx in sunlight to form ground-level ozone and are found in paints, fuels, solvents, and vehicle exhaust.",
+    "example": "The 'new car smell' is a mix of VOCs off-gassing from plastics and adhesives.",
+    "relatedTerms": ["O3", "NOx", "Photochemical Smog"]
+  },
+  {
+    "term": "Lead (Pb)",
+    "fullForm": "Atmospheric Lead",
+    "category": "pollutant",
+    "definition": "A toxic heavy metal released from smelters, battery manufacturing, and historically from leaded petrol. Even at low levels, lead causes neurological damage, especially in children.",
+    "example": "Following the ban on leaded petrol, atmospheric lead levels dropped over 90% in many countries.",
+    "relatedTerms": ["Heavy Metals", "TSP"]
+  },
+  {
+    "term": "IAQI",
+    "fullForm": "Individual AQI",
+    "category": "measurement",
+    "definition": "The sub-index AQI calculated for a single pollutant. The overall AQI is the maximum of all individual AQIs. This helps identify which pollutant is driving the air quality on a given day.",
+    "example": "If PM2.5 IAQI is 120 and O3 IAQI is 85, the reported AQI is 120.",
+    "relatedTerms": ["AQI", "PM2.5", "O3"]
+  },
+  {
+    "term": "NAAQs",
+    "fullForm": "National Ambient Air Quality Standards",
+    "category": "regulation",
+    "definition": "Legally enforceable limits set by national authorities (e.g. CPCB in India, EPA in the USA) for outdoor air pollutant concentrations designed to protect public health.",
+    "example": "India's NAAQS for PM2.5 is 60 µg/m³ (annual mean), stricter than many developing nations but still above WHO guidelines.",
+    "relatedTerms": ["WHO Guidelines", "EPA", "CPCB"]
+  },
+  {
+    "term": "WHO Guidelines",
+    "fullForm": "World Health Organization Air Quality Guidelines",
+    "category": "regulation",
+    "definition": "International benchmarks for safe pollutant levels based on global health evidence. The 2021 WHO guidelines are more stringent than most national standards, including reducing the PM2.5 annual mean from 10 to 5 µg/m³.",
+    "example": "Most Indian cities exceed WHO PM2.5 guidelines by 5–10× on an annual average.",
+    "relatedTerms": ["NAAQs", "PM2.5", "AQI"]
+  },
+  {
+    "term": "EPA",
+    "fullForm": "Environmental Protection Agency",
+    "category": "regulation",
+    "definition": "The U.S. federal agency responsible for protecting human health and the environment. The EPA sets and enforces national air quality standards and calculates the US AQI scale used globally.",
+    "example": "The EPA revised its PM2.5 annual standard from 12 µg/m³ to 9 µg/m³ in 2024.",
+    "relatedTerms": ["NAAQs", "AQI", "CPCB"]
+  },
+  {
+    "term": "CPCB",
+    "fullForm": "Central Pollution Control Board",
+    "category": "regulation",
+    "definition": "India's apex body for pollution control under the Ministry of Environment, Forest and Climate Change. CPCB sets national emission standards, monitors air quality through CAAQMS, and publishes the national AQI.",
+    "example": "CPCB operates hundreds of Continuous Ambient Air Quality Monitoring Stations (CAAQMS) across India.",
+    "relatedTerms": ["NAAQs", "EPA", "AQI"]
+  },
+  {
+    "term": "µg/m³",
+    "fullForm": "Micrograms per Cubic Meter",
+    "category": "measurement",
+    "definition": "The standard unit used to express concentrations of air pollutants such as PM2.5 and PM10. It measures the mass (in micrograms) of a pollutant present in one cubic meter of air.",
+    "example": "The WHO recommends PM2.5 concentrations stay below 15 µg/m³ for a 24-hour mean.",
+    "relatedTerms": ["PM2.5", "PM10", "AQI"]
+  },
+  {
+    "term": "ppb",
+    "fullForm": "Parts Per Billion",
+    "category": "measurement",
+    "definition": "A unit of concentration used for gaseous pollutants like O3, NO2, SO2, and CO. One ppb means one molecule of the pollutant per billion molecules of air.",
+    "example": "The EPA's 8-hour ozone standard is 70 ppb.",
+    "relatedTerms": ["ppm", "O3", "NO2", "AQI"]
+  },
+  {
+    "term": "ppm",
+    "fullForm": "Parts Per Million",
+    "category": "measurement",
+    "definition": "A unit of gas concentration one thousand times larger than ppb. Used for higher-concentration gases like CO, which is measured in ppm rather than ppb.",
+    "example": "CO levels above 9 ppm for 8 hours are considered dangerous.",
+    "relatedTerms": ["ppb", "CO", "AQI"]
+  },
+  {
+    "term": "Smog",
+    "fullForm": "Smoke + Fog",
+    "category": "phenomenon",
+    "definition": "A type of air pollution that forms a thick, hazy layer over urban areas. There are two main types: industrial smog (sulfurous, from coal burning) and photochemical smog (from vehicle and industrial emissions reacting in sunlight).",
+    "example": "Delhi's winter smog is a mix of crop stubble burning, vehicle emissions, and cold, stagnant air.",
+    "relatedTerms": ["Photochemical Smog", "PM2.5", "O3", "Inversion"]
+  },
+  {
+    "term": "Photochemical Smog",
+    "fullForm": "Photochemical Smog",
+    "category": "phenomenon",
+    "definition": "A secondary air pollution event caused when NOx and VOCs react under ultraviolet sunlight to produce ozone and other harmful oxidants. Common in sunny, car-heavy cities.",
+    "example": "Los Angeles is historically famous for photochemical smog due to its sunny climate and heavy vehicle use.",
+    "relatedTerms": ["Smog", "O3", "NOx", "VOC"]
+  },
+  {
+    "term": "Inversion",
+    "fullForm": "Temperature Inversion",
+    "category": "phenomenon",
+    "definition": "An atmospheric condition where a layer of warm air traps cooler air (and its pollutants) close to the ground, preventing vertical mixing and causing pollution to accumulate. Common in winter mornings and valleys.",
+    "example": "Winter inversions in Delhi can cause AQI levels to spike above 400 even when emissions are similar to cleaner periods.",
+    "relatedTerms": ["Smog", "Mixing Height", "Boundary Layer"]
+  },
+  {
+    "term": "Acid Rain",
+    "fullForm": "Acid Deposition",
+    "category": "phenomenon",
+    "definition": "Rain, snow, or fog that is abnormally acidic (pH below 5.6) due to SO2 and NOx emissions reacting with water vapor in the atmosphere. It damages forests, lakes, soil, and buildings.",
+    "example": "Acid rain caused significant forest dieback in parts of Europe and North America during the 1970s–80s.",
+    "relatedTerms": ["SO2", "NOx", "pH"]
+  },
+  {
+    "term": "Haze",
+    "fullForm": "Atmospheric Haze",
+    "category": "phenomenon",
+    "definition": "Reduced visibility caused by fine particles and gases scattering and absorbing light. Haze is often an indicator of elevated PM2.5 concentrations.",
+    "example": "A visibility below 10 km is typically classified as haze; below 1 km indicates fog or dense smog.",
+    "relatedTerms": ["PM2.5", "Smog", "Visibility"]
+  },
+  {
+    "term": "Visibility",
+    "fullForm": "Atmospheric Visibility",
+    "category": "phenomenon",
+    "definition": "The furthest distance at which objects can be clearly seen, measured in kilometers. Visibility degrades as particulate matter and gases scatter light. It is often used as a proxy for air quality.",
+    "example": "On severe pollution days in Beijing, visibility can drop below 200 meters.",
+    "relatedTerms": ["Haze", "PM2.5", "Smog"]
+  },
+  {
+    "term": "GHG",
+    "fullForm": "Greenhouse Gas",
+    "category": "climate",
+    "definition": "Gases that trap heat in the Earth's atmosphere, causing the greenhouse effect and global warming. Major GHGs include CO2, methane (CH4), nitrous oxide (N2O), and water vapor.",
+    "example": "The global warming potential (GWP) of methane is about 84 times that of CO2 over 20 years.",
+    "relatedTerms": ["CO2", "Carbon Footprint", "Climate Change", "CH4"]
+  },
+  {
+    "term": "Carbon Footprint",
+    "fullForm": "Carbon Footprint",
+    "category": "climate",
+    "definition": "The total amount of greenhouse gases, measured in CO2 equivalent (CO2e), generated by an individual, organization, event, or product. It includes both direct emissions (e.g., driving) and indirect emissions (e.g., food production).",
+    "example": "The average Indian's carbon footprint is about 1.9 tonnes CO2e per year, compared to 15 tonnes for an average American.",
+    "relatedTerms": ["GHG", "CO2", "CO2e"]
+  },
+  {
+    "term": "CO2e",
+    "fullForm": "Carbon Dioxide Equivalent",
+    "category": "climate",
+    "definition": "A universal unit for measuring the global warming potential of various greenhouse gases relative to CO2. It allows comparison of different GHGs on a single scale.",
+    "example": "1 tonne of methane equals approximately 28 tonnes of CO2e over a 100-year timeframe.",
+    "relatedTerms": ["CO2", "GHG", "Carbon Footprint", "GWP"]
+  },
+  {
+    "term": "GWP",
+    "fullForm": "Global Warming Potential",
+    "category": "climate",
+    "definition": "A measure of how much heat a greenhouse gas traps in the atmosphere over a specific time period (typically 100 years), relative to CO2. Used to compare the climate impact of different gases.",
+    "example": "Nitrous oxide (N2O) has a GWP of 265, meaning it traps 265 times more heat than CO2 over 100 years.",
+    "relatedTerms": ["CO2e", "GHG", "CH4"]
+  },
+  {
+    "term": "CH4",
+    "fullForm": "Methane",
+    "category": "climate",
+    "definition": "A potent greenhouse gas produced by livestock digestion, rice paddies, landfills, and natural gas leaks. Though shorter-lived than CO2, methane has a much higher warming effect in the near term.",
+    "example": "Agriculture (especially cattle) accounts for about 30% of global methane emissions.",
+    "relatedTerms": ["GHG", "GWP", "CO2e"]
+  },
+  {
+    "term": "Climate Change",
+    "fullForm": "Anthropogenic Climate Change",
+    "category": "climate",
+    "definition": "Long-term shifts in global temperature and weather patterns driven primarily by human activities, especially the burning of fossil fuels which releases GHGs. Effects include sea-level rise, extreme weather events, and disrupted ecosystems.",
+    "example": "Global average surface temperature has risen by approximately 1.2°C above pre-industrial levels as of 2023.",
+    "relatedTerms": ["GHG", "CO2", "Carbon Footprint"]
+  },
+  {
+    "term": "Particulate Matter",
+    "fullForm": "Particulate Matter (PM)",
+    "category": "pollutant",
+    "definition": "A mixture of solid particles and liquid droplets suspended in the air. Classified by size: PM10 (≤10 µm), PM2.5 (≤2.5 µm), and ultrafine particles (≤0.1 µm). Smaller particles are more dangerous as they penetrate deeper into the body.",
+    "example": "Power plants, vehicles, and wildfires are the largest sources of PM pollution globally.",
+    "relatedTerms": ["PM2.5", "PM10", "TSP", "AQI"]
+  },
+  {
+    "term": "TSP",
+    "fullForm": "Total Suspended Particles",
+    "category": "pollutant",
+    "definition": "All airborne particles regardless of size, including those larger than PM10. TSP was the primary measure of air quality before size-specific standards (PM10, PM2.5) were introduced.",
+    "example": "Dusty, arid regions often report high TSP levels even when PM2.5 is moderate.",
+    "relatedTerms": ["PM10", "PM2.5", "Particulate Matter"]
+  },
+  {
+    "term": "Combustion",
+    "fullForm": "Combustion",
+    "category": "source",
+    "definition": "The chemical process of burning fuel (wood, coal, petrol, diesel, natural gas) with oxygen to produce energy. Combustion generates CO2, water, and pollutants including CO, NOx, SO2, and particulate matter.",
+    "example": "Incomplete combustion in older diesel engines produces significantly more soot (black carbon) than modern engines.",
+    "relatedTerms": ["CO", "CO2", "NOx", "SO2", "Black Carbon"]
+  },
+  {
+    "term": "Black Carbon",
+    "fullForm": "Black Carbon (BC)",
+    "category": "pollutant",
+    "definition": "The sooty black fraction of PM2.5, produced by incomplete combustion. Black carbon is a potent short-lived climate pollutant and a direct health hazard; it is a strong absorber of solar radiation.",
+    "example": "Diesel vehicles and cook stoves burning solid fuels are the primary sources of black carbon.",
+    "relatedTerms": ["PM2.5", "Combustion", "GHG"]
+  },
+  {
+    "term": "Secondary Pollutant",
+    "fullForm": "Secondary Pollutant",
+    "category": "phenomenon",
+    "definition": "A pollutant formed in the atmosphere through chemical reactions between primary pollutants and other molecules. Unlike primary pollutants (which are emitted directly), secondary pollutants are not directly discharged from a source.",
+    "example": "Ground-level ozone is a secondary pollutant formed when NOx and VOCs react in sunlight.",
+    "relatedTerms": ["O3", "Photochemical Smog", "Primary Pollutant", "NOx"]
+  },
+  {
+    "term": "Primary Pollutant",
+    "fullForm": "Primary Pollutant",
+    "category": "phenomenon",
+    "definition": "A pollutant emitted directly from an identifiable source into the atmosphere. Common primary pollutants include CO, SO2, NOx, and PM from combustion, industrial, and natural sources.",
+    "example": "CO from vehicle exhaust is a primary pollutant; ozone formed from that CO in the atmosphere is secondary.",
+    "relatedTerms": ["Secondary Pollutant", "Combustion", "SO2"]
+  },
+  {
+    "term": "Emission Factor",
+    "fullForm": "Emission Factor",
+    "category": "measurement",
+    "definition": "A representative value that quantifies the amount of a pollutant released per unit of activity (e.g. kg of CO2 per litre of petrol burned). Used in carbon calculators and national emission inventories.",
+    "example": "The emission factor for petrol is about 2.31 kg CO2 per litre burned.",
+    "relatedTerms": ["Carbon Footprint", "CO2e", "Combustion"]
+  },
+  {
+    "term": "Emission Inventory",
+    "fullForm": "Emission Inventory",
+    "category": "regulation",
+    "definition": "A comprehensive database that quantifies the amount of pollutants released into the atmosphere from various sources (vehicles, industry, agriculture, etc.) in a defined area over a defined time period.",
+    "example": "India's National Emission Inventory is maintained by CPCB and updated periodically.",
+    "relatedTerms": ["Emission Factor", "CPCB", "EPA"]
+  },
+  {
+    "term": "Dispersion",
+    "fullForm": "Atmospheric Dispersion",
+    "category": "phenomenon",
+    "definition": "The process by which pollutants spread and dilute as they move through the atmosphere, driven by wind speed, turbulence, and atmospheric stability. Poor dispersion (e.g., during inversions) leads to pollution buildup.",
+    "example": "Pollution dispersion is worst on calm, cold nights when the boundary layer is shallow.",
+    "relatedTerms": ["Inversion", "Boundary Layer", "Wind"]
+  },
+  {
+    "term": "Boundary Layer",
+    "fullForm": "Planetary Boundary Layer",
+    "category": "phenomenon",
+    "definition": "The lowest layer of the atmosphere, directly influenced by the Earth's surface. Pollutants are primarily contained within this layer. A shallow boundary layer (common in winter nights) traps pollutants and worsens air quality.",
+    "example": "In Delhi winters, the boundary layer can shrink to just 200–300 m, concentrating pollutants to hazardous levels.",
+    "relatedTerms": ["Inversion", "Dispersion", "Mixing Height"]
+  },
+  {
+    "term": "Mixing Height",
+    "fullForm": "Mixing Height",
+    "category": "phenomenon",
+    "definition": "The height above the ground up to which atmospheric mixing occurs. A low mixing height confines pollutants near the surface; a high mixing height allows them to dilute over a greater volume.",
+    "example": "Mixing heights of less than 500 m often correlate with hazardous AQI readings in Indian cities.",
+    "relatedTerms": ["Boundary Layer", "Inversion", "Dispersion"]
+  },
+  {
+    "term": "CAAQMS",
+    "fullForm": "Continuous Ambient Air Quality Monitoring Station",
+    "category": "measurement",
+    "definition": "Automated, fixed monitoring stations that continuously measure ambient concentrations of multiple pollutants (PM2.5, PM10, NO2, SO2, CO, O3) and transmit data in real time.",
+    "example": "CPCB operates over 800 CAAQMS stations across India's major cities.",
+    "relatedTerms": ["CPCB", "AQI", "PM2.5"]
+  },
+  {
+    "term": "Mobile Monitoring",
+    "fullForm": "Mobile Air Quality Monitoring",
+    "category": "measurement",
+    "definition": "Air quality measurement conducted using sensors mounted on vehicles, drones, or carried by pedestrians to capture high-resolution spatial data that fixed stations cannot provide.",
+    "example": "Google Street View cars equipped with Aclima sensors have mapped street-level pollution in cities like London.",
+    "relatedTerms": ["CAAQMS", "Low-cost Sensor", "PM2.5"]
+  },
+  {
+    "term": "Low-cost Sensor",
+    "fullForm": "Low-cost Air Quality Sensor",
+    "category": "measurement",
+    "definition": "Compact, affordable pollution monitoring devices (typically electrochemical or optical) that sacrifice some accuracy for wider deployment. Useful for identifying pollution hotspots and filling data gaps between official monitors.",
+    "example": "PurpleAir sensors are popular low-cost PM2.5 monitors used by citizens and researchers worldwide.",
+    "relatedTerms": ["CAAQMS", "Mobile Monitoring", "PM2.5"]
+  },
+  {
+    "term": "Stub Burning",
+    "fullForm": "Crop Residue Burning",
+    "category": "source",
+    "definition": "The practice of setting fire to leftover crop stalks after harvest to quickly clear fields. A major seasonal source of PM2.5 and black carbon pollution in South Asia, especially in Punjab and Haryana before the Delhi winter.",
+    "example": "Satellite data shows thousands of fire hotspots in Punjab and Haryana every October–November, coinciding with Delhi's worst air quality period.",
+    "relatedTerms": ["PM2.5", "Black Carbon", "Smog"]
+  },
+  {
+    "term": "Vehicular Pollution",
+    "fullForm": "Vehicular Emissions",
+    "category": "source",
+    "definition": "Air pollutants emitted by motor vehicles, including CO, NOx, VOCs, PM2.5, and black carbon from exhaust, as well as non-exhaust PM from tyre and brake wear.",
+    "example": "Delhi's vehicle fleet of over 11 million is one of the largest contributors to its chronic air quality problem.",
+    "relatedTerms": ["NOx", "CO", "PM2.5", "Black Carbon"]
+  },
+  {
+    "term": "Industrial Pollution",
+    "fullForm": "Industrial Air Pollution",
+    "category": "source",
+    "definition": "Emissions of pollutants from manufacturing, power generation, mining, and other industrial processes. Common pollutants include SO2, NOx, particulate matter, and toxic metals.",
+    "example": "Thermal power plants burning coal are the single largest source of SO2 emissions in India.",
+    "relatedTerms": ["SO2", "NOx", "PM10", "Heavy Metals"]
+  },
+  {
+    "term": "Indoor Air Pollution",
+    "fullForm": "Indoor Air Pollution",
+    "category": "health",
+    "definition": "Contamination of indoor air by pollutants from cooking fuels, tobacco smoke, building materials, VOCs from paints and furniture, and penetration of outdoor air. Can be 2–5× worse than outdoor air in poorly ventilated homes.",
+    "example": "Burning solid fuels like wood or dung for cooking causes severe indoor PM2.5 exposure, linked to 3.2 million deaths annually.",
+    "relatedTerms": ["PM2.5", "VOC", "CO", "Health Effects"]
+  },
+  {
+    "term": "Exposure",
+    "fullForm": "Pollution Exposure",
+    "category": "health",
+    "definition": "The amount of a pollutant a person comes into contact with over time. Calculated as concentration × duration × breathing rate. Exposure is the key metric linking pollution levels to health outcomes.",
+    "example": "A cyclist commuting on a busy road has 3–5× higher PM2.5 exposure than someone traveling the same route by car.",
+    "relatedTerms": ["Inhalation Dose", "Health Effects", "PM2.5"]
+  },
+  {
+    "term": "Inhalation Dose",
+    "fullForm": "Inhaled Dose",
+    "category": "health",
+    "definition": "The actual mass of pollutant particles deposited in the respiratory tract, calculated from exposure concentration and the person's ventilation rate (breathing volume per minute). Physical activity greatly increases inhaled dose.",
+    "example": "A jogger breathing at 30 L/min inhales 6× more PM2.5 per hour than a resting person breathing at 5 L/min.",
+    "relatedTerms": ["Exposure", "PM2.5", "Health Effects"]
+  },
+  {
+    "term": "Health Effects",
+    "fullForm": "Air Pollution Health Effects",
+    "category": "health",
+    "definition": "The range of physical harms caused by exposure to air pollutants, from short-term irritation (coughing, eye irritation) to chronic diseases (COPD, cardiovascular disease, lung cancer) and premature death.",
+    "example": "The WHO estimates outdoor air pollution causes approximately 4.2 million premature deaths per year globally.",
+    "relatedTerms": ["PM2.5", "O3", "Exposure", "COPD"]
+  },
+  {
+    "term": "COPD",
+    "fullForm": "Chronic Obstructive Pulmonary Disease",
+    "category": "health",
+    "definition": "A group of chronic inflammatory lung diseases (including emphysema and chronic bronchitis) that obstruct airflow. Long-term exposure to air pollutants, especially PM2.5 and SO2, is a major risk factor.",
+    "example": "India has one of the highest COPD burdens globally, partly attributed to indoor and outdoor air pollution.",
+    "relatedTerms": ["Health Effects", "PM2.5", "SO2", "Indoor Air Pollution"]
+  },
+  {
+    "term": "Asthma",
+    "fullForm": "Bronchial Asthma",
+    "category": "health",
+    "definition": "A chronic inflammatory airway disease characterized by reversible airflow obstruction, wheezing, and breathlessness. Air pollution—especially O3, PM2.5, and NOx—can trigger and worsen asthma attacks.",
+    "example": "Asthma emergency room visits increase on high-ozone days, particularly in children.",
+    "relatedTerms": ["O3", "PM2.5", "NO2", "Health Effects"]
+  },
+  {
+    "term": "Cardiovascular Effects",
+    "fullForm": "Cardiovascular Health Effects",
+    "category": "health",
+    "definition": "Damage to the heart and blood vessels caused by air pollution. Fine particles (PM2.5) entering the bloodstream can cause inflammation, arterial stiffening, and increased risk of heart attack and stroke.",
+    "example": "Studies show a 10 µg/m³ increase in PM2.5 is associated with a 6–13% increased risk of cardiovascular mortality.",
+    "relatedTerms": ["PM2.5", "Health Effects", "Exposure"]
+  },
+  {
+    "term": "Sensitive Groups",
+    "fullForm": "Pollution-sensitive Population Groups",
+    "category": "health",
+    "definition": "People who are more vulnerable to the health effects of air pollution, including children, the elderly, pregnant women, and those with pre-existing respiratory or cardiovascular conditions.",
+    "example": "Health advisories typically recommend that sensitive groups avoid outdoor activity when AQI exceeds 100.",
+    "relatedTerms": ["AQI", "Health Effects", "COPD", "Asthma"]
+  },
+  {
+    "term": "Air Purifier",
+    "fullForm": "Indoor Air Purifier",
+    "category": "health",
+    "definition": "A device that filters indoor air to remove pollutants, primarily PM2.5, using HEPA filters, activated carbon, or electrostatic precipitation. Most effective in enclosed, well-sealed spaces.",
+    "example": "A HEPA air purifier in a bedroom can reduce indoor PM2.5 by 80–90% on high-pollution days.",
+    "relatedTerms": ["HEPA", "Indoor Air Pollution", "PM2.5"]
+  },
+  {
+    "term": "HEPA",
+    "fullForm": "High-Efficiency Particulate Air",
+    "category": "health",
+    "definition": "A filter standard requiring capture of at least 99.97% of particles ≥0.3 µm in diameter. HEPA filters are the gold standard for removing PM2.5 and smaller particles from indoor air.",
+    "example": "True HEPA filters are rated at minimum 99.97% efficiency at 0.3 µm, the most penetrating particle size.",
+    "relatedTerms": ["Air Purifier", "PM2.5", "Indoor Air Pollution"]
+  },
+  {
+    "term": "Mask / Respirator",
+    "fullForm": "Respiratory Protective Equipment",
+    "category": "health",
+    "definition": "Protective face coverings worn to reduce inhalation of airborne pollutants. N95/FFP2 respirators filter at least 95% of particles ≥0.3 µm; surgical masks offer far less protection against PM2.5.",
+    "example": "N95 masks worn correctly can reduce PM2.5 inhalation by up to 95% compared to no mask.",
+    "relatedTerms": ["PM2.5", "Exposure", "Inhalation Dose"]
+  },
+  {
+    "term": "Carbon Neutral",
+    "fullForm": "Carbon Neutral",
+    "category": "climate",
+    "definition": "Achieving net-zero CO2 emissions by balancing the amount of CO2 released with an equivalent amount offset or removed from the atmosphere. Distinct from net-zero, which covers all GHGs.",
+    "example": "Many companies claim carbon neutrality by purchasing carbon offsets, though the quality and permanence of those offsets varies widely.",
+    "relatedTerms": ["Net Zero", "Carbon Offset", "Carbon Footprint"]
+  },
+  {
+    "term": "Net Zero",
+    "fullForm": "Net-Zero Emissions",
+    "category": "climate",
+    "definition": "A state where the total greenhouse gases emitted into the atmosphere are balanced by the total amount removed. Covers all GHGs, not just CO2. Many countries have set net-zero targets for 2050.",
+    "example": "India has pledged to achieve net-zero emissions by 2070.",
+    "relatedTerms": ["Carbon Neutral", "Carbon Offset", "GHG"]
+  },
+  {
+    "term": "Carbon Offset",
+    "fullForm": "Carbon Offset",
+    "category": "climate",
+    "definition": "A reduction or removal of greenhouse gas emissions in one place used to compensate for emissions made elsewhere. Examples include tree planting, renewable energy projects, and methane capture.",
+    "example": "A carbon offset of 1 tonne CO2e theoretically compensates for 1 tonne emitted elsewhere.",
+    "relatedTerms": ["Carbon Neutral", "Net Zero", "Carbon Footprint"]
+  },
+  {
+    "term": "Renewable Energy",
+    "fullForm": "Renewable Energy",
+    "category": "climate",
+    "definition": "Energy generated from naturally replenishing sources—solar, wind, hydro, geothermal, and biomass—that produce little or no air pollution or GHG emissions during operation.",
+    "example": "India's solar capacity surpassed 70 GW in 2023, making it one of the world's top solar markets.",
+    "relatedTerms": ["GHG", "Carbon Footprint", "Net Zero"]
+  },
+  {
+    "term": "Electric Vehicle",
+    "fullForm": "Battery Electric Vehicle (BEV)",
+    "category": "source",
+    "definition": "A vehicle powered entirely by electric motors drawing energy from rechargeable batteries with zero tailpipe emissions. Reduces local air pollution (NOx, PM2.5) significantly compared to combustion engine vehicles, though lifecycle emissions depend on the electricity grid's source.",
+    "example": "EVs in India charged from coal-heavy grids still emit ~50% less lifecycle CO2e than petrol cars.",
+    "relatedTerms": ["Vehicular Pollution", "Carbon Footprint", "NOx"]
+  },
+  {
+    "term": "Public Transit",
+    "fullForm": "Public Transportation",
+    "category": "source",
+    "definition": "Shared transportation services including buses, metro trains, suburban rail, and trams. Per-capita emissions are significantly lower than private vehicle use, making public transit a key lever for reducing urban air pollution.",
+    "example": "A full metro train replaces approximately 1,000 private car trips, dramatically reducing NOx and PM2.5 on that corridor.",
+    "relatedTerms": ["Vehicular Pollution", "Carbon Footprint", "Electric Vehicle"]
+  },
+  {
+    "term": "Green Space",
+    "fullForm": "Urban Green Space",
+    "category": "health",
+    "definition": "Parks, trees, and vegetation in urban areas that provide partial filtration of PM through leaf surfaces, cooling effects that reduce ozone, and mental health co-benefits. While green spaces are not a substitute for emission reductions, they provide measurable air quality improvements locally.",
+    "example": "Street trees in dense urban canyons can reduce local PM2.5 concentrations by 7–24%.",
+    "relatedTerms": ["PM2.5", "Health Effects", "O3"]
+  },
+  {
+    "term": "Biogenic Emissions",
+    "fullForm": "Biogenic Emissions",
+    "category": "source",
+    "definition": "Natural emissions of gases and particles from vegetation, soil, and oceans. Major biogenic compounds include isoprene and terpenes from trees, which can react with NOx to form ozone and secondary organic aerosols.",
+    "example": "Forests emit large quantities of terpenes; in the presence of human NOx pollution, these can form significant amounts of secondary PM2.5.",
+    "relatedTerms": ["VOC", "O3", "Secondary Pollutant"]
+  },
+  {
+    "term": "Dust Storm",
+    "fullForm": "Dust Storm / Haboob",
+    "category": "phenomenon",
+    "definition": "A meteorological phenomenon where strong winds lift large quantities of dust and sand into the atmosphere, causing dramatic AQI spikes. In India, dust storms from the Thar Desert regularly affect northern cities.",
+    "example": "The May 2018 dust storm in Rajasthan saw PM10 readings exceed 10,000 µg/m³ in some locations.",
+    "relatedTerms": ["PM10", "TSP", "AQI"]
+  },
+  {
+    "term": "Wildfire Smoke",
+    "fullForm": "Wildfire Smoke",
+    "category": "source",
+    "definition": "Smoke from large-scale vegetation fires containing high concentrations of PM2.5, CO, VOCs, and toxins like acrolein and formaldehyde. Wildfire smoke can travel thousands of kilometers.",
+    "example": "Australian wildfire smoke in 2019–20 was detected as far as South America and raised PM2.5 levels in New Zealand to hazardous levels.",
+    "relatedTerms": ["PM2.5", "Black Carbon", "VOC"]
+  },
+  {
+    "term": "Satellite Data",
+    "fullForm": "Satellite-derived Air Quality Data",
+    "category": "measurement",
+    "definition": "Air quality estimates derived from Earth observation satellites (e.g. Sentinel-5P, MODIS) that measure light scattered or absorbed by atmospheric pollutants. Provides global coverage but at coarser resolution than ground monitors.",
+    "example": "Sentinel-5P's TROPOMI instrument maps daily global NO2 and O3 columns at 3.5 km resolution.",
+    "relatedTerms": ["CAAQMS", "AQI", "PM2.5"]
+  },
+  {
+    "term": "Aerosol",
+    "fullForm": "Atmospheric Aerosol",
+    "category": "pollutant",
+    "definition": "Tiny solid or liquid particles suspended in a gas (the atmosphere). Aerosols include both natural (dust, sea salt, volcanic ash) and anthropogenic (soot, sulfates, nitrates) particles. They affect air quality, visibility, and climate.",
+    "example": "Sulfate aerosols produced by SO2 emissions have a net cooling effect on climate, partially offsetting greenhouse warming.",
+    "relatedTerms": ["PM2.5", "PM10", "Black Carbon", "Secondary Pollutant"]
+  },
+  {
+    "term": "Troposphere",
+    "fullForm": "Troposphere",
+    "category": "phenomenon",
+    "definition": "The lowest layer of the Earth's atmosphere (0–12 km altitude) where weather occurs and where most air pollution is concentrated. All the pollutants we breathe are found here.",
+    "example": "Ground-level ozone forms in the troposphere, unlike the beneficial ozone layer in the stratosphere above.",
+    "relatedTerms": ["Boundary Layer", "O3", "Stratosphere"]
+  },
+  {
+    "term": "Stratosphere",
+    "fullForm": "Stratosphere",
+    "category": "phenomenon",
+    "definition": "The atmospheric layer above the troposphere (12–50 km). Contains the ozone layer, which shields the Earth from ultraviolet radiation. Stratospheric ozone is beneficial, unlike ground-level ozone.",
+    "example": "CFCs from refrigerants were responsible for the Antarctic ozone hole discovered in 1985.",
+    "relatedTerms": ["O3", "Troposphere"]
+  },
+  {
+    "term": "Ozone Layer",
+    "fullForm": "Stratospheric Ozone Layer",
+    "category": "phenomenon",
+    "definition": "A region of the stratosphere containing a high concentration of ozone (O3) that absorbs most of the Sun's ultraviolet-B radiation, protecting life on Earth from DNA damage and skin cancer.",
+    "example": "The Montreal Protocol (1987) successfully reduced CFC emissions and allowed partial recovery of the ozone layer.",
+    "relatedTerms": ["O3", "Stratosphere", "UV"]
+  },
+  {
+    "term": "Heavy Metals",
+    "fullForm": "Atmospheric Heavy Metals",
+    "category": "pollutant",
+    "definition": "Metallic trace elements (lead, cadmium, mercury, arsenic, chromium) released from industrial processes, mining, and combustion. Heavy metals accumulate in the food chain and cause neurological, renal, and carcinogenic effects.",
+    "example": "Mercury from coal-fired power plants bioaccumulates in fish, posing risks to communities that rely heavily on fish consumption.",
+    "relatedTerms": ["Lead (Pb)", "Industrial Pollution", "TSP"]
+  },
+  {
+    "term": "Deposition",
+    "fullForm": "Atmospheric Deposition",
+    "category": "phenomenon",
+    "definition": "The transfer of pollutants from the atmosphere to the Earth's surface, either as wet deposition (rain, snow carrying pollutants) or dry deposition (particles settling or gases being absorbed by surfaces).",
+    "example": "Nitrogen deposition from NOx emissions is altering nutrient cycles in forests and coastal waters worldwide.",
+    "relatedTerms": ["Acid Rain", "NOx", "SO2"]
+  },
+  {
+    "term": "Eutrophication",
+    "fullForm": "Atmospheric Nitrogen Eutrophication",
+    "category": "phenomenon",
+    "definition": "Excessive nutrient enrichment of water bodies or soils caused by nitrogen deposition from air pollutants (mainly NOx and NH3). Leads to algal blooms, oxygen depletion, and loss of biodiversity.",
+    "example": "Baltic Sea algal blooms are partly fueled by nitrogen deposition from European industry and agriculture.",
+    "relatedTerms": ["Deposition", "NOx", "Acid Rain"]
+  }
+]
