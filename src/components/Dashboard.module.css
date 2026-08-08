@@ -273,4 +273,9 @@
     width: 100%;
     justify-content: flex-start;
   }
+
+  .chartCard,
+  .aqi {
+    grid-column: 1 / -1;
+  }
 }

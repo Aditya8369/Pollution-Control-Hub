@@ -340,11 +340,17 @@ function SectionNav({ activeSection, onSectionChange, theme }) {
   const mobileNavRef = useRef(null);
   const hamburgerBtnRef = useRef(null);
 
-  const [isMobile, setIsMobile] = useState(false);
+  const [isMobile, setIsMobile] = useState(() => {
+    if (typeof window !== "undefined" && typeof window.matchMedia === "function") {
+      return window.matchMedia("(max-width: 1024px)").matches;
+    }
+    return false;
+  });
 
   useEffect(() => {
     if (typeof window === "undefined" || typeof window.matchMedia !== "function") return;
-    const mediaQuery = window.matchMedia("(max-width: 768px)");
+    const mediaQuery = window.matchMedia("(max-width: 1024px)");
+    setIsMobile(mediaQuery.matches);
     /** @param {any} e */
     const handler = (e) => setIsMobile(e.matches);
 
@@ -579,6 +585,9 @@ function SectionNav({ activeSection, onSectionChange, theme }) {
                 flexDirection: "column",
                 gap: "0.5rem",
                 zIndex: 950,
+                maxHeight: "calc(100vh - 6rem)",
+                overflowY: "auto",
+                WebkitOverflowScrolling: "touch",
               }}
             >
               {sections.map((section) => (

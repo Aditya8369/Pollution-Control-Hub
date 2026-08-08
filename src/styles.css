@@ -5600,6 +5600,8 @@ a {
 
 .nav-sections {
   display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
   gap: var(--sp-2);
   background: var(--card);
   border: 1px solid var(--line);
@@ -5739,6 +5741,7 @@ a {
   border-radius: var(--r-md);
   padding: var(--sp-4);
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--sp-3);
   box-shadow: var(--shadow-sm);
@@ -5839,6 +5842,18 @@ a {
   transition:
     box-shadow 240ms var(--ease),
     transform 240ms var(--ease);
+}
+
+.kpi-card {
+  background: var(--card);
+  border-radius: var(--r-md);
+  border: 1px solid var(--line);
+  padding: var(--sp-4) var(--sp-4) var(--sp-5);
+  box-shadow: var(--shadow-sm);
+  transition:
+    box-shadow 220ms var(--ease),
+    transform 220ms var(--ease);
+  min-width: 0;
 }
 
 .panel-head {
@@ -6151,7 +6166,7 @@ a {
   font-size: 13.5px;
 }
 
-@media (max-width: 700px) {
+@media (max-width: 899px) {
   .advisory-grid {
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   }
@@ -6164,6 +6179,237 @@ a {
 .three-col h3 {
   margin-bottom: var(--sp-2);
   font-size: 0.98rem;
+}
+
+/* ============================================================
+   Pollen & Allergen Forecast Layout
+   ============================================================ */
+.pollen-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--sp-4);
+  margin-top: var(--sp-4);
+}
+
+.pollen-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  padding: var(--sp-4);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  transition: transform 180ms var(--ease), box-shadow 180ms var(--ease);
+}
+
+.pollen-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.pollen-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.pollen-icon-wrapper {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--r-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pollen-icon {
+  width: 20px;
+  height: 20px;
+}
+
+.pollen-icon-wrapper.tree-bg {
+  background: color-mix(in srgb, var(--brand) 10%, transparent);
+  color: var(--brand);
+}
+.pollen-icon-wrapper.grass-bg {
+  background: color-mix(in srgb, var(--sky) 10%, transparent);
+  color: var(--sky);
+}
+.pollen-icon-wrapper.weed-bg {
+  background: color-mix(in srgb, var(--danger) 10%, transparent);
+  color: var(--danger);
+}
+.pollen-icon-wrapper.mold-bg {
+  background: color-mix(in srgb, var(--accent) 10%, transparent);
+  color: var(--accent);
+}
+
+.pollen-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--ink);
+  font-family: "Space Grotesk", sans-serif;
+  margin-top: auto;
+}
+
+.pollen-unit {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--muted);
+}
+
+.pollen-card h3 {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--ink);
+  margin: 0.25rem 0 0 0;
+}
+
+.pollen-card p {
+  font-size: 0.8rem;
+  color: var(--muted);
+  margin: 0;
+  line-height: 1.4;
+}
+
+.priority-badge {
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  text-transform: uppercase;
+}
+
+.badge-success {
+  background: #f0fdf4;
+  color: #16a34a;
+}
+
+.badge-warning {
+  background: #fff7ed;
+  color: #ea580c;
+}
+
+.badge-danger {
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+.badge-info {
+  background: #f0f9ff;
+  color: #0284c7;
+}
+
+.pollen-card.highlight-card {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+/* ============================================================
+   Sun Safety & UV Advisor Layout
+   ============================================================ */
+.sun-safety-metrics {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--sp-4);
+  margin-top: var(--sp-4);
+  margin-bottom: var(--sp-4);
+}
+
+.sun-safety-card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  padding: var(--sp-4);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  transition: transform 180ms var(--ease), box-shadow 180ms var(--ease);
+}
+
+.sun-safety-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.sun-safety-icon {
+  font-size: 1.5rem;
+  margin-bottom: 0.25rem;
+}
+
+.sun-safety-value,
+.sun-safety-risk {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--ink);
+  font-family: "Space Grotesk", sans-serif;
+  margin-top: auto;
+}
+
+.sun-safety-card h3 {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--ink);
+  margin: 0;
+}
+
+.sun-safety-card p {
+  font-size: 0.8rem;
+  color: var(--muted);
+  margin: 0;
+  line-height: 1.4;
+}
+
+.sun-safety-recommendations {
+  margin-top: var(--sp-5);
+  padding: var(--sp-4) var(--sp-5);
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow-sm);
+}
+
+.sun-safety-recommendations h3 {
+  font-family: "Space Grotesk", sans-serif;
+  font-size: 0.88rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--brand);
+  margin-bottom: var(--sp-3);
+}
+
+.sun-safety-recommendations ul {
+  padding-left: var(--sp-4);
+  margin: 0 0 var(--sp-3) 0;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.sun-safety-disclaimer {
+  font-size: 0.75rem;
+  color: var(--muted);
+  line-height: 1.4;
+  margin: 0;
+}
+
+.sun-safety-button {
+  padding: 0.5rem 1rem;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--ink);
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 180ms var(--ease);
+}
+
+.sun-safety-button:hover {
+  background: color-mix(in srgb, var(--sky) 8%, transparent);
+  border-color: var(--sky);
+  color: var(--sky);
 }
 
 .community-form {
