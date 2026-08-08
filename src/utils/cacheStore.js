@@ -14,13 +14,21 @@ function openDB() {
     request.onupgradeneeded = (event) => {
       // @ts-ignore
       const database = event.target.result;
+      let currentVersion = event.oldVersion;
 
-      if (!database.objectStoreNames.contains(STORE_NAME)) {
-        const store = database.createObjectStore(STORE_NAME, {
-          keyPath: 'key',
-        });
-
-        store.createIndex('timestamp', 'timestamp', { unique: false });
+      while (currentVersion < DB_VERSION) {
+        switch (currentVersion) {
+          case 0:
+            if (!database.objectStoreNames.contains(STORE_NAME)) {
+              const store = database.createObjectStore(STORE_NAME, {
+                keyPath: 'key',
+              });
+              store.createIndex('timestamp', 'timestamp', { unique: false });
+            }
+            break;
+          // Add cases for future version migrations here
+        }
+        currentVersion++;
       }
     };
 
