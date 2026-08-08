@@ -28,6 +28,7 @@ export default function LocationSearch({ onLocationSelected, initialCityName }) 
   const debounceTimerRef = useRef(null);
   const latestQueryRef = useRef('');
   const abortControllerRef = useRef(null);
+  const inputRef = useRef(null);
 
   useEffect(() => {
     // Load recent searches on mount.
@@ -86,9 +87,9 @@ export default function LocationSearch({ onLocationSelected, initialCityName }) 
 
   /** 
  * @param {{
- *   id: string|number,
- *   name: string,
- *   displayName: string
+ *  id: string|number,
+ *  name: string,
+ *  displayName: string
  * }} location
   */
   const saveRecentSearch = (location) => {
@@ -118,9 +119,9 @@ export default function LocationSearch({ onLocationSelected, initialCityName }) 
 
   /** 
  * @param {{
- *   id: string|number,
- *   name: string,
- *   displayName: string
+ *  id: string|number,
+ *  name: string,
+ *  displayName: string
  * }} location
   */
   const handleSelect = (location) => {
@@ -132,15 +133,23 @@ export default function LocationSearch({ onLocationSelected, initialCityName }) 
     onLocationSelected(location);
   };
 
-  /** 
-   *  @param {React.ChangeEvent<HTMLInputElement>} e
-  */
+  useEffect(() => {
+    return () => {
+      abortControllerRef.current?.abort();
+    };
+  }, []);
 
-useEffect(() => {
-  return () => {
+  const handleClear = () => {
+    setQuery('');
+    setSuggestions([]);
+    setSearchError(null);
+    setActiveIndex(-1);
+    setIsOpen(false);
     abortControllerRef.current?.abort();
+    if (inputRef.current) {
+      inputRef.current.focus();
+    }
   };
-}, []);
 
   const handleInputChange = (e) => {
     const val = e.target.value;
@@ -197,9 +206,9 @@ useEffect(() => {
     }, 300);
   };
 
-    /**
-   * @param {React.KeyboardEvent<HTMLInputElement>} e
-   */
+  /**
+    * @param {React.KeyboardEvent<HTMLInputElement>} e
+    */
   const handleKeyDown = (e) => {
     const items = query.trim() === '' ? recentSearches : suggestions;
 
@@ -221,7 +230,8 @@ useEffect(() => {
         handleSelect(items[0]);
       }
     } else if (e.key === 'Escape') {
-      setIsOpen(false);
+      // @ts-ignore
+      e.setIsOpen(false);
     }
   };
 
@@ -239,21 +249,45 @@ useEffect(() => {
 
   return (
     <div className="location-search-wrapper" ref={wrapperRef}>
-      <input
-        type="text"
-        className="location-search-input"
-        placeholder="Search any city or location..."
-        value={query}
-        onChange={handleInputChange}
-        onFocus={() => setIsOpen(true)}
-        onKeyDown={handleKeyDown}
-        aria-label="Search for a city or location"
-        aria-expanded={isOpen}
-        aria-autocomplete="list"
-        aria-controls="location-search-listbox"
-        aria-describedby={historyError ? 'location-search-history-error' : undefined}
-        role="combobox"
-      />
+      <div className="location-search-input-container" style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+        <input
+          ref={inputRef}
+          type="text"
+          className="location-search-input"
+          placeholder="Search any city or location..."
+          value={query}
+          onChange={handleInputChange}
+          onFocus={() => setIsOpen(true)}
+          onKeyDown={handleKeyDown}
+          aria-label="Search for a city or location"
+          aria-expanded={isOpen}
+          aria-autocomplete="list"
+          aria-controls="location-search-listbox"
+          aria-describedby={historyError ? 'location-search-history-error' : undefined}
+          role="combobox"
+        />
+
+        {query.length > 0 && (
+          <button
+            type="button"
+            className="location-search-clear-btn"
+            onClick={handleClear}
+            aria-label="Clear search"
+            style={{
+              position: 'absolute',
+              right: '12px',
+              background: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+              fontSize: '16px',
+              color: '#666',
+              padding: '0 4px'
+            }}
+          >
+            ✕
+          </button>
+        )}
+      </div>
 
       {isLoading && <span className="location-search-spinner" />}
 
@@ -371,15 +405,16 @@ useEffect(() => {
     </div>
   );
 }
+
 LocationSearch.propTypes = {
   /**
-   * Called when the user selects a location.
-   */
+    * Called when the user selects a location.
+    */
   onLocationSelected: PropTypes.func.isRequired,
 
   /**
-   * Initial city displayed in the search input.
-   */
+    * Initial city displayed in the search input.
+    */
   initialCityName: PropTypes.string,
 };
 
