@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { shuffleArray, getHighestAQI, getHighScore, saveHighScore } from "./hotspotGameUtils";
+import { eventBus } from "../core/events";
 
 /** @param {any} params */
 function HotspotScoutGame({ nearbyPoints }) {
@@ -38,7 +39,7 @@ function HotspotScoutGame({ nearbyPoints }) {
 
     const winner = getHighestAQI(round);
 
-    if (spot.aqi === winner.aqi) {
+    if (spot.areaName === winner.areaName) {
       setScore(prev => prev + 1);
       setStreak(prev => prev + 1);
     } else {
@@ -53,6 +54,10 @@ function HotspotScoutGame({ nearbyPoints }) {
       const updatedHighScore = saveHighScore(score);
       setHighScore(updatedHighScore);
       setGameOver(true);
+      eventBus.emit("HOTSPOT_SCOUT_COMPLETED", {
+        score,
+        totalRounds: TOTAL_ROUNDS
+      });
       return;
     }
     setRoundNumber(prev => prev + 1);

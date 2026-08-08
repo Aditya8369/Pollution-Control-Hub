@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   ACTIVITIES,
   HOURS_IN_DAY,
@@ -21,17 +21,13 @@ export default function ExposureCalculator({ currentAqi = 100 }) {
   const [newActivityType, setNewActivityType] = useState("outdoor_walking");
   const [newHours, setNewHours] = useState(1);
 
-  // Date.now() collides for two activities added in the same millisecond, which
-  // duplicates the React key. A counter cannot.
-  const nextId = useRef(5);
-
   const handleAddActivity = (e) => {
     e.preventDefault();
     const hours = Number(newHours);
     if (!Number.isFinite(hours) || hours <= 0) return;
     setActivities((prev) => [
       ...prev,
-      { id: nextId.current++, type: newActivityType, hours },
+      { id: crypto.randomUUID(), type: newActivityType, hours },
     ]);
     setNewHours(1);
   };

@@ -49,7 +49,7 @@ const PRESET_SCENARIOS = [
 export default function ScenarioSimulator({ current }) {
   const [selectedScenarioId, setSelectedScenarioId] = useState(PRESET_SCENARIOS[0].id);
   const [customEvPct, setCustomEvPct] = useState(30);
-
+  
   const currentPm25 = current?.pm2_5 || 35;
   const currentNo2 = current?.nitrogen_dioxide || 28;
 
@@ -93,6 +93,16 @@ export default function ScenarioSimulator({ current }) {
 
   return (
     <article className="chart-card scenario-simulator-card" style={{ gridColumn: "1 / -1", width: "100%" }}>
+      {/* NEW: Accessibility CSS injected here for distinct keyboard focus styling */}
+      <style>{`
+        .accessible-scenario-btn:focus-visible,
+        .accessible-slider:focus-visible {
+          outline: 3px solid var(--brand, #0d9488) !important;
+          outline-offset: 2px !important;
+          box-shadow: 0 0 0 4px rgba(13, 148, 136, 0.3) !important;
+        }
+      `}</style>
+
       <div style={{ marginBottom: "1.25rem" }}>
         <h3 style={{ margin: 0 }}>🔮 Interactive "What-If" Scenario Simulator</h3>
         <p style={{ fontSize: "0.85rem", color: "var(--muted, #94a3b8)", margin: "0.25rem 0 0 0" }}>
@@ -100,7 +110,6 @@ export default function ScenarioSimulator({ current }) {
         </p>
       </div>
 
-      {/* Side-by-Side Horizontal Split Layout */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "1.5rem", alignItems: "start" }}>
         
         {/* Left Column: Preset Buttons & Controls */}
@@ -112,6 +121,7 @@ export default function ScenarioSimulator({ current }) {
                 <button
                   key={scenario.id}
                   type="button"
+                  className="accessible-scenario-btn"
                   onClick={() => setSelectedScenarioId(scenario.id)}
                   style={{
                     textAlign: "left",
@@ -120,7 +130,7 @@ export default function ScenarioSimulator({ current }) {
                     border: isSelected ? "2px solid var(--brand, #0d9488)" : "1px solid var(--line, #334155)",
                     background: isSelected ? "rgba(13, 148, 136, 0.15)" : "var(--bg-card-alt, rgba(255, 255, 255, 0.03))",
                     cursor: "pointer",
-                    transition: "all 0.2s ease"
+                    transition: "all 0.2s ease",
                   }}
                 >
                   <div
@@ -162,6 +172,7 @@ export default function ScenarioSimulator({ current }) {
                 step="5"
                 value={customEvPct}
                 onChange={(e) => setCustomEvPct(Number(e.target.value))}
+                className="accessible-slider"
                 style={{ width: "100%", cursor: "pointer", accentColor: "var(--brand, #0d9488)" }}
               />
             </div>
@@ -192,7 +203,7 @@ export default function ScenarioSimulator({ current }) {
             </div>
           </div>
 
-          <div style={{ width: "100%", height: 260 }}>
+          <div style={{ width: "100%", height: 260, display: "flex", justifyContent: "center", alignItems: "center" }}>
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={chartData} margin={{ top: 15, right: 20, left: 0, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--line, #334155)" />

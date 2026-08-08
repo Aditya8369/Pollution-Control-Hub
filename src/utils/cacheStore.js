@@ -14,13 +14,21 @@ function openDB() {
     request.onupgradeneeded = (event) => {
       // @ts-ignore
       const database = event.target.result;
+      let currentVersion = event.oldVersion;
 
-      if (!database.objectStoreNames.contains(STORE_NAME)) {
-        const store = database.createObjectStore(STORE_NAME, {
-          keyPath: 'key',
-        });
-
-        store.createIndex('timestamp', 'timestamp', { unique: false });
+      while (currentVersion < DB_VERSION) {
+        switch (currentVersion) {
+          case 0:
+            if (!database.objectStoreNames.contains(STORE_NAME)) {
+              const store = database.createObjectStore(STORE_NAME, {
+                keyPath: 'key',
+              });
+              store.createIndex('timestamp', 'timestamp', { unique: false });
+            }
+            break;
+          // Add cases for future version migrations here
+        }
+        currentVersion++;
       }
     };
 
@@ -255,15 +263,18 @@ export const cacheStore = {
   },
 
   /**
+   * Check if a cache entry has exceeded its freshness TTL.
+   *
    * @param {any} key
-   * @param {any} ttl
+   * @param {number} ttlMs - Maximum acceptable age in milliseconds.
+   * @returns {Promise<boolean>}
    */
-  async isStale(key, ttl) {
-    const cached = memoryCache.get(key) || await this.get(key);
+  async isStale(key, ttlMs) {
+    const cached = memoryCache.get(key) || (await this.get(key));
 
     if (!cached) return true;
 
-    return Date.now() - cached.timestamp >= ttl;
+    return isExpired(cached, ttlMs);
   },
 
   /**

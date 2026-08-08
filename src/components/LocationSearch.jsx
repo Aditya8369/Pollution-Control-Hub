@@ -1,23 +1,115 @@
-import { useState, useEffect, useRef } from 'react';
+import { useReducer, useEffect, useRef } from 'react';
 import { searchLocations } from '../services/geocodingService';
+import PropTypes from "prop-types";
 
 const RECENT_SEARCHES_KEY = 'pollution_hub_recent_searches';
 const MAX_RECENT_SEARCHES = 5;
 
-/** @param {any} params */
+const initialState = {
+  query: '',
+  suggestions: [],
+  recentSearches: [],
+  isOpen: false,
+  isLoading: false,
+  activeIndex: -1,
+  historyError: '',
+  searchError: null,
+};
+
+function searchReducer(state, action) {
+  switch (action.type) {
+    case 'SET_QUERY':
+      return { ...state, query: action.payload };
+    case 'SET_SUGGESTIONS':
+      return { ...state, suggestions: action.payload };
+    case 'SET_RECENT_SEARCHES':
+      return { ...state, recentSearches: action.payload };
+    case 'SET_IS_OPEN':
+      return { ...state, isOpen: action.payload };
+    case 'SET_IS_LOADING':
+      return { ...state, isLoading: action.payload };
+    case 'SET_ACTIVE_INDEX':
+      return { ...state, activeIndex: action.payload };
+    case 'SET_HISTORY_ERROR':
+      return { ...state, historyError: action.payload };
+    case 'SET_SEARCH_ERROR':
+      return { ...state, searchError: action.payload };
+    case 'RESET_SEARCH':
+      return {
+        ...state,
+        query: '',
+        suggestions: [],
+        searchError: null,
+        activeIndex: -1,
+        isOpen: false,
+      };
+    case 'UPDATE_INPUT':
+      return {
+        ...state,
+        query: action.payload,
+        activeIndex: -1,
+        searchError: null,
+        suggestions: action.payload.trim() === '' ? [] : state.suggestions,
+        isOpen: true,
+        isLoading: action.payload.trim() !== '',
+      };
+    case 'HANDLE_SUCCESS_RESULTS':
+      return {
+        ...state,
+        suggestions: action.payload,
+        isLoading: false,
+      };
+    case 'HANDLE_ERROR_RESULTS':
+      return {
+        ...state,
+        suggestions: [],
+        searchError: action.payload,
+        isLoading: false,
+      };
+    case 'SELECT_LOCATION':
+      return {
+        ...state,
+        query: action.payload.name,
+        isOpen: false,
+        suggestions: [],
+        activeIndex: -1,
+      };
+    default:
+      return state;
+  }
+}
+
+/** 
+ * Search input with autocomplete and recent-search history managed via useReducer.
+ *
+ * @param {Object} props Component props.
+ * @param {(location: Object) => void} props.onLocationSelected Callback invoked
+ * when a location is selected.
+ * @param {string} [props.initialCityName] Initial city name shown in the input.
+ */
+
 export default function LocationSearch({ onLocationSelected, initialCityName }) {
-  const [query, setQuery] = useState(initialCityName || '');
-  const [suggestions, setSuggestions] = useState([]);
-  const [recentSearches, setRecentSearches] = useState([]);
-  const [isOpen, setIsOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [activeIndex, setActiveIndex] = useState(-1);
-  const [historyError, setHistoryError] = useState('');
-  const [searchError, setSearchError] = useState(null);
+  const [state, dispatch] = useReducer(searchReducer, {
+    ...initialState,
+    query: initialCityName || '',
+  });
+
+  const {
+    query,
+    suggestions,
+    recentSearches,
+    isOpen,
+    isLoading,
+    activeIndex,
+    historyError,
+    searchError,
+  } = state;
 
   const wrapperRef = useRef(null);
   const debounceTimerRef = useRef(null);
   const latestQueryRef = useRef('');
+  const abortControllerRef = useRef(null);
+  const inputRef = useRef(null);
 
   useEffect(() => {
     // Load recent searches on mount.
@@ -28,19 +120,21 @@ export default function LocationSearch({ onLocationSelected, initialCityName }) 
         const parsed = JSON.parse(stored);
 
         if (Array.isArray(parsed)) {
-          setRecentSearches(parsed);
+          dispatch({ type: 'SET_RECENT_SEARCHES', payload: parsed });
         } else {
-          setRecentSearches([]);
-          setHistoryError(
-            'Recent searches could not be loaded. Starting with an empty search history.'
-          );
+          dispatch({ type: 'SET_RECENT_SEARCHES', payload: [] });
+          dispatch({
+            type: 'SET_HISTORY_ERROR',
+            payload: 'Recent searches could not be loaded. Starting with an empty search history.',
+          });
         }
       }
     } catch (error) {
-      setRecentSearches([]);
-      setHistoryError(
-        'Recent searches could not be loaded. Starting with an empty search history.'
-      );
+      dispatch({ type: 'SET_RECENT_SEARCHES', payload: [] });
+      dispatch({
+        type: 'SET_HISTORY_ERROR',
+        payload: 'Recent searches could not be loaded. Starting with an empty search history.',
+      });
 
       if (import.meta.env.DEV) {
         console.error('Failed to parse recent searches:', error);
@@ -55,7 +149,7 @@ export default function LocationSearch({ onLocationSelected, initialCityName }) 
       initialCityName !== 'auto' &&
       initialCityName !== 'Your Current Location'
     ) {
-      setQuery(initialCityName);
+      dispatch({ type: 'SET_QUERY', payload: initialCityName });
     }
   }, [initialCityName]);
 
@@ -63,7 +157,7 @@ export default function LocationSearch({ onLocationSelected, initialCityName }) 
     // Click outside handler to close dropdown.
     function handleClickOutside(event) {
       if (wrapperRef.current && !wrapperRef.current.contains(event.target)) {
-        setIsOpen(false);
+        dispatch({ type: 'SET_IS_OPEN', payload: false });
       }
     }
 
@@ -74,25 +168,32 @@ export default function LocationSearch({ onLocationSelected, initialCityName }) 
     };
   }, []);
 
-  /** @param {any} location */
+  /** 
+   * @param {{
+   *  id: string|number,
+   *  name: string,
+   *  displayName: string
+   * }} location
+   */
   const saveRecentSearch = (location) => {
     const newRecent = [
       location,
       ...recentSearches.filter((search) => search.id !== location.id),
     ].slice(0, MAX_RECENT_SEARCHES);
 
-    setRecentSearches(newRecent);
+    dispatch({ type: 'SET_RECENT_SEARCHES', payload: newRecent });
 
     try {
       localStorage.setItem(
         RECENT_SEARCHES_KEY,
         JSON.stringify(newRecent)
       );
-      setHistoryError('');
+      dispatch({ type: 'SET_HISTORY_ERROR', payload: '' });
     } catch (error) {
-      setHistoryError(
-        'Recent searches could not be saved. Your location selection still works normally.'
-      );
+      dispatch({
+        type: 'SET_HISTORY_ERROR',
+        payload: 'Recent searches could not be saved. Your location selection still works normally.',
+      });
 
       if (import.meta.env.DEV) {
         console.error('Failed to save recent searches:', error);
@@ -100,32 +201,41 @@ export default function LocationSearch({ onLocationSelected, initialCityName }) 
     }
   };
 
-  /** @param {any} location */
+  /** 
+   * @param {{
+   *  id: string|number,
+   *  name: string,
+   *  displayName: string
+   * }} location
+   */
   const handleSelect = (location) => {
-    setQuery(location.name);
-    setIsOpen(false);
-    setSuggestions([]);
-    setActiveIndex(-1);
+    dispatch({ type: 'SELECT_LOCATION', payload: location });
     saveRecentSearch(location);
     onLocationSelected(location);
   };
 
-  /** @param {any} e */
+  useEffect(() => {
+    return () => {
+      abortControllerRef.current?.abort();
+    };
+  }, []);
+
+  const handleClear = () => {
+    dispatch({ type: 'RESET_SEARCH' });
+    abortControllerRef.current?.abort();
+    if (inputRef.current) {
+      inputRef.current.focus();
+    }
+  };
+
   const handleInputChange = (e) => {
     const val = e.target.value;
 
-    setQuery(val);
-    setActiveIndex(-1);
-    setSearchError(null);
+    dispatch({ type: 'UPDATE_INPUT', payload: val });
 
     if (val.trim() === '') {
-      setSuggestions([]);
-      setIsOpen(true);
       return;
     }
-
-    setIsLoading(true);
-    setIsOpen(true);
 
     if (debounceTimerRef.current) {
       clearTimeout(debounceTimerRef.current);
@@ -133,42 +243,55 @@ export default function LocationSearch({ onLocationSelected, initialCityName }) 
 
     debounceTimerRef.current = setTimeout(async () => {
       latestQueryRef.current = val;
-      setSearchError(null);
+      dispatch({ type: 'SET_SEARCH_ERROR', payload: null });
+
+      abortControllerRef.current?.abort();
+      abortControllerRef.current = new AbortController();
+
       try {
-        const results = await searchLocations(val);
+        const results = await searchLocations(val, 5, abortControllerRef.current.signal);
 
         // Ignore this result if a newer search has started since this one fired.
         if (latestQueryRef.current !== val) {
           return;
         }
 
-        setSuggestions(results);
+        dispatch({ type: 'HANDLE_SUCCESS_RESULTS', payload: results });
       } catch (err) {
+        if (err.name === "AbortError") {
+          return;
+        }
+
         if (latestQueryRef.current !== val) {
           return;
         }
-        setSuggestions([]);
-        setSearchError('Failed to fetch locations. Please check your network connection.');
-      } finally {
-        if (latestQueryRef.current === val) {
-          setIsLoading(false);
-        }
+
+        dispatch({
+          type: 'HANDLE_ERROR_RESULTS',
+          payload: "Failed to fetch locations. Please check your network connection.",
+        });
       }
     }, 300);
   };
 
-  /** @param {any} e */
+  /**
+    * @param {React.KeyboardEvent<HTMLInputElement>} e
+    */
   const handleKeyDown = (e) => {
     const items = query.trim() === '' ? recentSearches : suggestions;
 
     if (e.key === 'ArrowDown') {
       e.preventDefault();
-      setActiveIndex((prev) =>
-        prev < items.length - 1 ? prev + 1 : prev
-      );
+      dispatch({
+        type: 'SET_ACTIVE_INDEX',
+        payload: activeIndex < items.length - 1 ? activeIndex + 1 : activeIndex,
+      });
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
-      setActiveIndex((prev) => (prev > 0 ? prev - 1 : 0));
+      dispatch({
+        type: 'SET_ACTIVE_INDEX',
+        payload: activeIndex > 0 ? activeIndex - 1 : 0,
+      });
     } else if (e.key === 'Enter') {
       e.preventDefault();
 
@@ -179,7 +302,7 @@ export default function LocationSearch({ onLocationSelected, initialCityName }) 
         handleSelect(items[0]);
       }
     } else if (e.key === 'Escape') {
-      setIsOpen(false);
+      dispatch({ type: 'SET_IS_OPEN', payload: false });
     }
   };
 
@@ -197,21 +320,45 @@ export default function LocationSearch({ onLocationSelected, initialCityName }) 
 
   return (
     <div className="location-search-wrapper" ref={wrapperRef}>
-      <input
-        type="text"
-        className="location-search-input"
-        placeholder="Search any city or location..."
-        value={query}
-        onChange={handleInputChange}
-        onFocus={() => setIsOpen(true)}
-        onKeyDown={handleKeyDown}
-        aria-label="Search for a city or location"
-        aria-expanded={isOpen}
-        aria-autocomplete="list"
-        aria-controls="location-search-listbox"
-        aria-describedby={historyError ? 'location-search-history-error' : undefined}
-        role="combobox"
-      />
+      <div className="location-search-input-container" style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+        <input
+          ref={inputRef}
+          type="text"
+          className="location-search-input"
+          placeholder="Search any city or location..."
+          value={query}
+          onChange={handleInputChange}
+          onFocus={() => dispatch({ type: 'SET_IS_OPEN', payload: true })}
+          onKeyDown={handleKeyDown}
+          aria-label="Search for a city or location"
+          aria-expanded={isOpen}
+          aria-autocomplete="list"
+          aria-controls="location-search-listbox"
+          aria-describedby={historyError ? 'location-search-history-error' : undefined}
+          role="combobox"
+        />
+
+        {query.length > 0 && (
+          <button
+            type="button"
+            className="location-search-clear-btn"
+            onClick={handleClear}
+            aria-label="Clear search"
+            style={{
+              position: 'absolute',
+              right: '12px',
+              background: 'transparent',
+              border: 'none',
+              cursor: 'pointer',
+              fontSize: '16px',
+              color: '#666',
+              padding: '0 4px'
+            }}
+          >
+            ✕
+          </button>
+        )}
+      </div>
 
       {isLoading && <span className="location-search-spinner" />}
 
@@ -329,3 +476,19 @@ export default function LocationSearch({ onLocationSelected, initialCityName }) 
     </div>
   );
 }
+
+LocationSearch.propTypes = {
+  /**
+    * Called when the user selects a location.
+    */
+  onLocationSelected: PropTypes.func.isRequired,
+
+  /**
+    * Initial city displayed in the search input.
+    */
+  initialCityName: PropTypes.string,
+};
+
+LocationSearch.defaultProps = {
+  initialCityName: "",
+};

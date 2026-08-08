@@ -9,6 +9,7 @@ const MAX_IMAGE_SIZE_BYTES = 500 * 1024; // 500 KB
 const STORAGE_WARN_THRESHOLD = 5 * 1024 * 1024; // 5 MB warning
 const MAX_TITLE_LENGTH = 120;
 const MAX_DESCRIPTION_LENGTH = 2000;
+const MAX_COMMENT_LENGTH = 500;
 const HASHTAGS = ['#TreePlanting', '#StubbleBurning', '#CleanAir'];
 
 /**
@@ -128,6 +129,7 @@ export default function CommunityHub() {
   const [isProcessingImage, setIsProcessingImage] = useState(false);
   const [locationCoords, setLocationCoords] = useState(null);
   const [locationStatus, setLocationStatus] = useState('idle');
+  const [commentDrafts, setCommentDrafts] = useState({});
 
   useEffect(() => {
     try {
@@ -145,6 +147,9 @@ export default function CommunityHub() {
       if (e.name === 'QuotaExceededError' || e.code === 22) {
         console.error('localStorage quota exceeded. Pruning oldest reports...');
         // Remove oldest/lowest-vote reports until write succeeds
+        // Lowest-value first: fewest votes, then oldest. We drop victims in
+        // this order but keep `pruned` in the original (newest-first) display
+        // order so the surviving reports aren't reordered.
         const sorted = [...reports].sort((a, b) => {
           if (a.votes !== b.votes) return a.votes - b.votes;
           // @ts-ignore
@@ -152,13 +157,15 @@ export default function CommunityHub() {
         });
 
         let pruned = [...reports];
+        let victimIdx = 0;
         while (pruned.length > 0) {
           try {
             localStorage.setItem(STORAGE_KEY, JSON.stringify(pruned));
             setReports(pruned);
             break;
           } catch {
-            pruned.shift(); // remove lowest-value report
+            const victim = sorted[victimIdx++]; // remove lowest-value report
+            pruned = pruned.filter((r) => r !== victim);
           }
         }
 
@@ -231,6 +238,7 @@ export default function CommunityHub() {
       moderationNotes: "",
       latitude: locationCoords ? locationCoords.latitude : null,
       longitude: locationCoords ? locationCoords.longitude : null,
+      comments: [],
     };
 
     setReports((prev) => [newReport, ...prev]);
@@ -332,6 +340,32 @@ export default function CommunityHub() {
     );
 
     setVotedIds((prev) => new Set(prev).add(id));
+  };
+
+  /** @param {string} reportId */
+  const addComment = (reportId) => {
+    const text = (commentDrafts[reportId] || '').trim().slice(0, MAX_COMMENT_LENGTH);
+    if (!text) return;
+
+    setReports((prev) =>
+      prev.map((report) => {
+        if (report.id !== reportId) return report;
+        const comments = Array.isArray(report.comments) ? report.comments : [];
+        return {
+          ...report,
+          comments: [
+            ...comments,
+            {
+              id: crypto.randomUUID(),
+              text,
+              createdAt: new Date().toISOString(),
+            },
+          ],
+        };
+      })
+    );
+
+    setCommentDrafts((prev) => ({ ...prev, [reportId]: '' }));
   };
 
   const filteredReports = reports.filter((report) => {
@@ -475,6 +509,59 @@ export default function CommunityHub() {
                   >
                     {isVoted ? 'Voted' : 'Upvote (+1)'}
                   </button>
+                </div>
+
+                <div className="report-comments" style={{ marginTop: '12px', borderTop: '1px solid var(--line)', paddingTop: '12px' }}>
+                  <p style={{ margin: '0 0 8px 0', fontSize: '0.85rem', fontWeight: 600 }}>
+                    Comments ({(report.comments || []).length})
+                  </p>
+                  {(report.comments || []).length === 0 ? (
+                    <p style={{ margin: '0 0 8px 0', fontSize: '0.85rem', color: 'var(--muted)' }}>
+                      No comments yet.
+                    </p>
+                  ) : (
+                    <ul style={{ listStyle: 'none', margin: '0 0 10px 0', padding: 0, display: 'grid', gap: '8px' }}>
+                      {(report.comments || []).map((comment) => (
+                        <li
+                          key={comment.id}
+                          style={{
+                            fontSize: '0.9rem',
+                            padding: '8px 10px',
+                            background: 'var(--panel)',
+                            borderRadius: '6px',
+                          }}
+                        >
+                          <p style={{ margin: 0 }}>{comment.text}</p>
+                          <small style={{ color: 'var(--muted)' }}>
+                            {new Date(comment.createdAt).toLocaleString()}
+                          </small>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  <form
+                    onSubmit={(event) => {
+                      event.preventDefault();
+                      addComment(report.id);
+                    }}
+                    style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}
+                  >
+                    <textarea
+                      value={commentDrafts[report.id] || ''}
+                      maxLength={MAX_COMMENT_LENGTH}
+                      placeholder="Add a comment..."
+                      onChange={(event) =>
+                        setCommentDrafts((prev) => ({
+                          ...prev,
+                          [report.id]: event.target.value,
+                        }))
+                      }
+                      style={{ flex: 1, minHeight: '60px', resize: 'vertical' }}
+                    />
+                    <button type="submit" style={{ padding: '6px 12px', whiteSpace: 'nowrap' }}>
+                      Post
+                    </button>
+                  </form>
                 </div>
               </div>
             );

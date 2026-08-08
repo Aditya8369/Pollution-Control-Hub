@@ -1,0 +1,223 @@
+name: Manage Available for Contribution Label
+
+on:
+  issues:
+    types:
+      - opened
+      - assigned
+      - unassigned
+
+permissions:
+  issues: write
+  contents: read
+
+jobs:
+  manage-label:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Manage Available for Contribution label
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const issue = context.payload.issue;
+            const action = context.payload.action;
+
+            const labelName = "Available for contribution";
+
+            // --------------------------------------------------
+            // Create the label if it does not already exist
+            // --------------------------------------------------
+            try {
+              await github.rest.issues.getLabel({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                name: labelName
+              });
+            } catch (error) {
+              if (error.status === 404) {
+                await github.rest.issues.createLabel({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  name: labelName,
+                  color: "0E8A16",
+                  description: "Issue is available for contribution"
+                });
+
+                console.log(`Created label: ${labelName}`);
+              } else {
+                throw error;
+              }
+            }
+
+            // --------------------------------------------------
+            // Function to add label
+            // --------------------------------------------------
+            async function addLabel() {
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                labels: [labelName]
+              });
+
+              console.log(`Added "${labelName}" to issue #${issue.number}`);
+            }
+
+            // --------------------------------------------------
+            // Function to remove label
+            // --------------------------------------------------
+            async function removeLabel() {
+              try {
+                await github.rest.issues.removeLabel({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: issue.number,
+                  name: labelName
+                });
+
+                console.log(
+                  `Removed "${labelName}" from issue #${issue.number}`
+                );
+              } catch (error) {
+                // Label may not exist on the issue
+                if (error.status === 404) {
+                  console.log("Label is not present on this issue.");
+                } else {
+                  throw error;
+                }
+              }
+            }
+
+            // --------------------------------------------------
+            // Check whether issue has a linked PR
+            // --------------------------------------------------
+            async function hasLinkedPR() {
+              try {
+                const timeline =
+                  await github.rest.issues.listEventsForTimeline({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    issue_number: issue.number,
+                    per_page: 100
+                  });
+
+                for (const event of timeline.data) {
+
+                  // Cross-referenced PR
+                  if (
+                    event.event === "cross-referenced" &&
+                    event.source &&
+                    event.source.issue &&
+                    event.source.issue.pull_request
+                  ) {
+                    return true;
+                  }
+
+                  // Connected PR
+                  if (
+                    event.event === "connected" &&
+                    event.source &&
+                    event.source.issue &&
+                    event.source.issue.pull_request
+                  ) {
+                    return true;
+                  }
+                }
+
+                return false;
+
+              } catch (error) {
+                console.log(
+                  "Could not determine linked PR status:",
+                  error.message
+                );
+
+                return false;
+              }
+            }
+
+            // --------------------------------------------------
+            // 1. ISSUE ASSIGNED
+            // --------------------------------------------------
+            if (action === "assigned") {
+              console.log(
+                `Issue #${issue.number} has been assigned to someone.`
+              );
+
+              // Remove the label whenever someone is assigned.
+              await removeLabel();
+
+              return;
+            }
+
+            // --------------------------------------------------
+            // 2. ISSUE OPENED
+            // --------------------------------------------------
+            if (action === "opened") {
+
+              // If nobody is assigned
+              if (issue.assignees.length === 0) {
+
+                const linkedPR = await hasLinkedPR();
+
+                if (!linkedPR) {
+                  await addLabel();
+                } else {
+                  console.log(
+                    `Issue #${issue.number} has a linked PR. Label not added.`
+                  );
+                }
+
+              } else {
+                console.log(
+                  `Issue #${issue.number} already has an assignee.`
+                );
+              }
+
+              return;
+            }
+
+            // --------------------------------------------------
+            // 3. ISSUE UNASSIGNED
+            // --------------------------------------------------
+            if (action === "unassigned") {
+
+              console.log(
+                `Issue #${issue.number} was unassigned.`
+              );
+
+              // Check whether the person/bot performing the
+              // unassignment is a bot.
+              const actor = context.actor || "";
+
+              const isBot =
+                actor.endsWith("[bot]") ||
+                context.payload.sender?.type === "Bot";
+
+              if (!isBot) {
+                console.log(
+                  `Unassignment was performed by ${actor}, not a bot.`
+                );
+                return;
+              }
+
+              // Make sure nobody else is assigned
+              if (issue.assignees.length !== 0) {
+                console.log(
+                  "Another assignee is still present. Label not added."
+                );
+                return;
+              }
+
+              // Don't label issues that already have a PR
+              const linkedPR = await hasLinkedPR();
+
+              if (!linkedPR) {
+                await addLabel();
+              } else {
+                console.log(
+                  `Issue #${issue.number} has a linked PR. Label not added.`
+                );
+              }
+            }
