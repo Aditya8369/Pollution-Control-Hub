@@ -81,6 +81,8 @@ function AppControls({
     <section className="app-controls" aria-label="Live controls">
       <div
         className="control-group"
+        role="group"
+        aria-label="City selection controls"
         style={{
           display: "flex",
           alignItems: "center",
@@ -107,7 +109,7 @@ function AppControls({
         </button>
       </div>
 
-      <div className="control-group status">
+      <div className="control-group status" role="group" aria-label="Live feed status">
         <span className={`live-dot ${isRefreshing ? "active" : ""}`} />
         <p>
           {isRefreshing
@@ -116,7 +118,7 @@ function AppControls({
         </p>
       </div>
 
-      <div className="control-group actions">
+      <div className="control-group actions" role="group" aria-label="Data refresh actions">
         <button type="button" onClick={() => eventBus.emit('FORCE_REFRESH')} disabled={isRefreshing}>Refresh Now</button>
         <small>
           Last updated:{" "}
