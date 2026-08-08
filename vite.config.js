@@ -11,6 +11,9 @@ export default defineConfig({
       injectRegister: "auto",
       workbox: {
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
+        // The main bundle is larger than workbox's 2 MiB default; raise the
+        // precache limit so the service worker can cache it.
+        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/air-quality-api\.open-meteo\.com\/.*$/i,
@@ -62,6 +65,12 @@ export default defineConfig({
       devOptions: { enabled: false },
     }),
   ],
+  build: {
+    // es2022 supports top-level await, which @axe-core/react uses behind the
+    // DEV-only dynamic import in main.jsx. Without this the production build
+    // fails with "Top-level await is not available in the configured target".
+    target: "es2022",
+  },
   test: {
     environment: "jsdom",
     globals: true,
