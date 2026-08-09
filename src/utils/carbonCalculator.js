@@ -1,18 +1,6 @@
-export const EMISSION_FACTORS = {
-  vehicle: {
-    petrol: 0.192,
-    diesel: 0.171,
-    ev: 0.053,
-    motorbike: 0.082
-  },
-  electricity: 0.82,
-  lpg: 42.5,
-  publicTransit: 0.045,
-  flights: {
-    shortHaul: 150,
-    longHaul: 600
-  }
-};
+import { EMISSION_FACTORS } from '../constants/emissions';
+
+export { EMISSION_FACTORS };
 
 const REDUCTION_TIPS_MAP = {
   vehicle: {
@@ -55,13 +43,13 @@ const REDUCTION_TIPS_MAP = {
 export function calculateCarbonFootprint(inputs = {}) {
   let vehicleType = inputs.vehicleType;
 
-if (!EMISSION_FACTORS.vehicle[vehicleType]) {
-  console.warn(
-    `Unknown vehicle type "${vehicleType}". Falling back to "petrol".`
-  );
+  if (!EMISSION_FACTORS.vehicle[vehicleType]) {
+    console.warn(
+      `Unknown vehicle type "${vehicleType}". Falling back to "petrol".`
+    );
 
-  vehicleType = "petrol";
-}
+    vehicleType = "petrol";
+  }
   const vehicleKm = Math.max(0, Number(inputs.vehicleKm) || 0);
   const electricityKwh = Math.max(0, Number(inputs.electricityKwh) || 0);
   const lpgCylinders = Math.max(0, Number(inputs.lpgCylinders) || 0);
