@@ -10290,3 +10290,29 @@ a {
   max-width: 320px;
   z-index: 1000;
 }
+
+/* ── Calendar heatmap: days with no reading ──────────────────────────────
+ * A day inside the range that the archive holds no reading for. Distinct from
+ * .calendar-day.empty, which is structural padding outside the range entirely.
+ * Hatched rather than flat so "no data" reads without relying on colour alone.
+ *
+ * Appended here rather than beside the other .calendar-day rules because those
+ * are declared twice in this file (see #433) and the later block wins.
+ */
+.calendar-day-nodata {
+  opacity: 0.55;
+  background-image: repeating-linear-gradient(
+    45deg,
+    rgba(255, 255, 255, 0.35) 0,
+    rgba(255, 255, 255, 0.35) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+}
+
+.calendar-legend-coverage {
+  margin: 0.75rem 0 0;
+  font-size: 0.8rem;
+  color: var(--muted);
+  line-height: 1.5;
+}
