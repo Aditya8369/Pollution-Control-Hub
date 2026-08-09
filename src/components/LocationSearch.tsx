@@ -18,3 +18,20 @@
      <div>
        <input
          type="text"
+
++--- a/src/components/LocationSearch.tsx
++@@ -10,7 +10,7 @@ import React from 'react';
++ 
++ const LocationSearch: React.FC = () => {
++   // Call to useEffect inside functional component
++-  useEffect(() => {
+++  React.useEffect(() => {
++     // Effect logic here
++   }, []);
++ 
++   return (
++     <div>
++       {/* Component JSX */}
++     </div>
++   );
++ };
