@@ -37,7 +37,7 @@ function readGeotaggedCommunityReports() {
  * @param {{direction: number, speed: number}|null} [props.windData]
  */
 
-export default function LocationMap({ center, nearbyPoints, confidenceScore, windData }) {
+export default function LocationMap({ center, nearbyPoints, confidenceScore, windData, windError }) {
   const [showWind, setShowWind] = useState(false);
   const [showCommunityReports, setShowCommunityReports] = useState(false);
   const [communityReports, setCommunityReports] = useState(() => readGeotaggedCommunityReports());
@@ -89,14 +89,15 @@ export default function LocationMap({ center, nearbyPoints, confidenceScore, win
         <div style={{ minWidth: 0, flex: 1 }}>
           <h2>Location-Based Tracking</h2>
           <p>Nearby pollution intensity map and hotspots</p>
+          {windError && <p className="error-banner">Wind data unavailable: {windError}</p>}
         </div>
         <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-          <button 
-            type="button" 
+          <button
+            type="button"
             onClick={() => setShowCommunityReports(!showCommunityReports)}
-            style={{ 
-              fontSize: '0.85rem', 
-              padding: '0.5rem 1rem', 
+            style={{
+              fontSize: '0.85rem',
+              padding: '0.5rem 1rem',
               flexShrink: 0,
               backgroundColor: showCommunityReports ? '#ef4444' : '#8b5cf6',
               color: 'white',
@@ -112,12 +113,12 @@ export default function LocationMap({ center, nearbyPoints, confidenceScore, win
             {showCommunityReports ? 'Hide Community Reports' : 'Show Community Reports'}
           </button>
           {windData && (
-            <button 
-              type="button" 
+            <button
+              type="button"
               onClick={() => setShowWind(!showWind)}
-              style={{ 
-                fontSize: '0.85rem', 
-                padding: '0.5rem 1rem', 
+              style={{
+                fontSize: '0.85rem',
+                padding: '0.5rem 1rem',
                 flexShrink: 0,
                 backgroundColor: showWind ? '#ef4444' : '#3b82f6',
                 color: 'white',
@@ -192,7 +193,7 @@ export default function LocationMap({ center, nearbyPoints, confidenceScore, win
       {showWind && windData && (
         <div className="wind-insight" style={{ padding: '1rem', backgroundColor: 'var(--bg-card-alt, #f8fafc)', borderRadius: '0.5rem', marginTop: '1rem', borderLeft: '4px solid #3b82f6' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
-            <svg viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="2" style={{ width: '20px', height: '20px', transform: 'rotate(180deg)', flexShrink: 0 }}><path d="M12 2v20M12 22l-4-4M12 22l4-4"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="2" style={{ width: '20px', height: '20px', transform: 'rotate(180deg)', flexShrink: 0 }}><path d="M12 2v20M12 22l-4-4M12 22l4-4" /></svg>
             <strong>Wind Legend:</strong>
             <span style={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>Arrows indicate the direction wind is blowing.</span>
           </div>
@@ -258,6 +259,7 @@ LocationMap.propTypes = {
     direction: PropTypes.number.isRequired,
     speed: PropTypes.number.isRequired,
   }),
+  windError: PropTypes.string,
 };
 
 LocationMap.defaultProps = {

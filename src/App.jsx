@@ -709,7 +709,7 @@ function AppContent() {
     (!aqiData && isAqiValidating) || (!cityComparisons && isCitiesValidating);
   const isRefreshing =
     (isAqiValidating || isCitiesValidating || isWindValidating) && !!aqiData;
-  const error = (aqiError || citiesError || windError)?.message || "";
+  const error = (aqiError || citiesError)?.message || "";
 
   const [lastUpdated, setLastUpdated] = useState("");
   const [autoRefreshSeconds, setAutoRefreshSeconds] = useState(
@@ -1178,6 +1178,7 @@ function AppContent() {
                   nearbyPoints={nearbyPoints}
                   confidenceScore={confidenceScore}
                   windData={windData}
+                  windError={windError?.message}
                 />
 
                 <AlertsPanel
