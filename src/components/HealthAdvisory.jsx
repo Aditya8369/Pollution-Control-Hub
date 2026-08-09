@@ -1,4 +1,4 @@
-import { useState, memo } from 'react';
+import { useState, useEffect, memo } from 'react';
 import { useTranslation } from 'react-i18next';
 
 // -----------------------------------------------------------------------------
@@ -102,11 +102,72 @@ const PlayIcon = memo(() => (
 ));
 
 // -----------------------------------------------------------------------------
+// 1b. USER HEALTH PROFILE (voluntary, persisted locally on this device)
+// -----------------------------------------------------------------------------
+const HEALTH_PROFILE_STORAGE_KEY = 'pch_health_profile';
+
+const HEALTH_CONDITIONS = [
+  { id: 'asthma', label: 'Asthma' },
+  { id: 'heartDisease', label: 'Heart Disease' },
+  { id: 'allergies', label: 'Allergies' },
+  { id: 'copd', label: 'COPD / Chronic Lung Condition' },
+  { id: 'pregnancy', label: 'Pregnancy' }
+];
+
+const CONDITION_ADVISORY_MESSAGES = {
+  asthma: 'Keep your rescue inhaler within reach and avoid outdoor exertion when AQI is elevated — pollutants can trigger airway inflammation quickly.',
+  heartDisease: 'Avoid strenuous outdoor activity during poor air quality; fine particulates (PM2.5) are linked to increased cardiovascular strain.',
+  allergies: 'Check pollen and particulate levels before heading out, and keep windows closed on high-AQI days to limit allergen and pollutant exposure.',
+  copd: 'Monitor symptoms closely on poor air quality days and keep prescribed medication accessible; consider an N95 mask for unavoidable outdoor exposure.',
+  pregnancy: 'Limit prolonged outdoor exposure on high-pollution days, as fine particulates have been associated with risks to maternal and fetal health.'
+};
+
+function loadHealthProfile() {
+  try {
+    if (typeof window === 'undefined') return [];
+    const raw = window.localStorage.getItem(HEALTH_PROFILE_STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) return parsed;
+    }
+  } catch (err) {
+    console.warn(`Error reading localStorage key "${HEALTH_PROFILE_STORAGE_KEY}":`, err);
+  }
+  return [];
+}
+
+// -----------------------------------------------------------------------------
 // 2. MAIN COMPONENT
 // -----------------------------------------------------------------------------
 export default function HealthAdvisory() {
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState('general');
+  const [healthConditions, setHealthConditions] = useState(loadHealthProfile);
+  const hasSensitiveProfile = healthConditions.length > 0;
+
+  // Persist the user's voluntary health profile locally on this device.
+  useEffect(() => {
+    try {
+      if (typeof window !== 'undefined') {
+        window.localStorage.setItem(HEALTH_PROFILE_STORAGE_KEY, JSON.stringify(healthConditions));
+      }
+    } catch (err) {
+      console.warn(`Error writing to localStorage key "${HEALTH_PROFILE_STORAGE_KEY}":`, err);
+    }
+  }, [healthConditions]);
+
+  // If the user has opted in with any condition, surface the sensitive-group tab by default.
+  useEffect(() => {
+    if (hasSensitiveProfile) {
+      setActiveTab('sensitive');
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const toggleHealthCondition = (id) => {
+    setHealthConditions((prev) =>
+      prev.includes(id) ? prev.filter((c) => c !== id) : [...prev, id]
+    );
+  };
 
   // Now using the memoized icon components instead of inline SVGs
   const organImpacts = [
@@ -154,6 +215,32 @@ export default function HealthAdvisory() {
         <h2>{t('healthAdvisory.title', { defaultValue: 'Health Advisory' })}</h2>
       </div>
 
+      {/* Voluntary Health Profile */}
+      <div className="health-profile-section" data-testid="health-profile-section">
+        <h3 className="section-subtitle">
+          {t('healthAdvisory.profile.title', { defaultValue: 'Your Health Profile (optional)' })}
+        </h3>
+        <p className="tab-description">
+          {t('healthAdvisory.profile.desc', {
+            defaultValue: 'Voluntarily add any pre-existing conditions to get tailored, higher-priority guidance. Stored only on this device.'
+          })}
+        </p>
+        <div className="health-conditions-list">
+          {HEALTH_CONDITIONS.map((condition) => (
+            <label key={condition.id} className="health-condition-checkbox">
+              <input
+                type="checkbox"
+                checked={healthConditions.includes(condition.id)}
+                onChange={() => toggleHealthCondition(condition.id)}
+              />
+              {t(`healthAdvisory.profile.conditions.${condition.id}`, { defaultValue: condition.label })}
+            </label>
+          ))}
+        </div>
+      </div>
+
+      <div className="divider-line" />
+
       {/* Organ Impacts Grid */}
       <h3 className="section-subtitle">{t('healthAdvisory.organSubtitle')}</h3>
       <div className="advisory-grid">
@@ -194,6 +281,26 @@ export default function HealthAdvisory() {
         </div>
 
         <p className="tab-description">{audiences[activeTab].desc}</p>
+
+        {/* Personalized Advisory (shown with higher prominence for opted-in users) */}
+        {hasSensitiveProfile && (
+          <div className="personalized-advisory-banner" data-testid="personalized-advisory-banner">
+            <h3>{t('healthAdvisory.profile.personalizedTitle', { defaultValue: '⚠️ Personalized Guidance For You' })}</h3>
+            <ul>
+              {healthConditions.map((id) => (
+                <li key={id}>
+                  <strong>
+                    {t(`healthAdvisory.profile.conditions.${id}`, {
+                      defaultValue: HEALTH_CONDITIONS.find((c) => c.id === id)?.label || id
+                    })}
+                    :
+                  </strong>{' '}
+                  {t(`healthAdvisory.profile.messages.${id}`, { defaultValue: CONDITION_ADVISORY_MESSAGES[id] })}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         {/* Actionable Tips Grid */}
         <ul className="tips-grid">

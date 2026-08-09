@@ -6141,6 +6141,51 @@ a {
   grid-template-columns: repeat(3, 1fr);
 }
 
+.health-profile-section {
+  margin-bottom: var(--sp-4);
+}
+
+.health-conditions-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-3);
+  margin-top: var(--sp-2);
+}
+
+.health-condition-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  padding: 6px 12px;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.personalized-advisory-banner {
+  background: rgba(220, 38, 38, 0.08);
+  border: 1px solid #dc2626;
+  border-radius: var(--r-md);
+  padding: var(--sp-4);
+  margin-bottom: var(--sp-4);
+}
+
+.personalized-advisory-banner h3 {
+  color: #dc2626;
+  margin-top: 0;
+}
+
+.personalized-advisory-banner ul {
+  margin: 0;
+  padding-left: 1.2rem;
+}
+
+.personalized-advisory-banner li {
+  margin-bottom: 6px;
+}
+
 .advisory-card {
   background: var(--card);
   border-radius: var(--r-md);
@@ -6232,14 +6277,17 @@ a {
   background: color-mix(in srgb, var(--brand) 10%, transparent);
   color: var(--brand);
 }
+
 .pollen-icon-wrapper.grass-bg {
   background: color-mix(in srgb, var(--sky) 10%, transparent);
   color: var(--sky);
 }
+
 .pollen-icon-wrapper.weed-bg {
   background: color-mix(in srgb, var(--danger) 10%, transparent);
   color: var(--danger);
 }
+
 .pollen-icon-wrapper.mold-bg {
   background: color-mix(in srgb, var(--accent) 10%, transparent);
   color: var(--accent);
@@ -10301,13 +10349,11 @@ a {
  */
 .calendar-day-nodata {
   opacity: 0.55;
-  background-image: repeating-linear-gradient(
-    45deg,
-    rgba(255, 255, 255, 0.35) 0,
-    rgba(255, 255, 255, 0.35) 1px,
-    transparent 1px,
-    transparent 3px
-  );
+  background-image: repeating-linear-gradient(45deg,
+      rgba(255, 255, 255, 0.35) 0,
+      rgba(255, 255, 255, 0.35) 1px,
+      transparent 1px,
+      transparent 3px);
 }
 
 .calendar-legend-coverage {
