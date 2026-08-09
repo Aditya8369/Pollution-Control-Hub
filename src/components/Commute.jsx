@@ -2,13 +2,11 @@ import React, { useState } from "react";
 import { calculateCleanRoute } from "../services/routePlanner";
 import { useGeolocation } from "../hooks/useGeolocation";
 import { useRouteHistory } from "../hooks/useRouteHistory";
+import { getAQIBand } from "../services/airQualityService";
 import CommuteForm from "./CommuteForm";
 import RouteResults from "./RouteResults";
 import RouteMap from "./RouteMap";
-
-function generateId() {
-  return Date.now().toString(36) + Math.random().toString(36).substr(2);
-}
+import "leaflet/dist/leaflet.css";
 
 const LEGEND_ITEMS = [
   { range: "0–50", aqi: 25 },
@@ -21,14 +19,12 @@ const LEGEND_ITEMS = [
   range: item.range,
   ...getAQIBand(item.aqi),
 }));
-import "leaflet/dist/leaflet.css";
 
 const Commute = () => {
   const [origin, setOrigin] = useState("");
   const [destination, setDestination] = useState("");
   const [mode, setMode] = useState("driving");
   const [isCalculating, setIsCalculating] = useState(false);
-
   const [routes, setRoutes] = useState([]);
   const [pollutionDataAvailable, setPollutionDataAvailable] = useState(true);
   const [activeRouteIndex, setActiveRouteIndex] = useState(0);
@@ -49,7 +45,6 @@ const Commute = () => {
   const handleRouteSearch = async (e) => {
     e.preventDefault();
     setIsCalculating(true);
-
     try {
       // @ts-ignore
       const routeResults = await calculateCleanRoute(origin, destination, mode);
@@ -57,21 +52,17 @@ const Commute = () => {
         ...r,
         leafletCoords: r.geometry.map((coord) => [coord[1], coord[0]])
       }));
-
       setRoutes(allRoutesData);
       setPollutionDataAvailable(routeResults.pollutionDataAvailable !== false);
       setActiveRouteIndex(0);
       setSearchId((prev) => prev + 1);
-
       if (allRoutesData.length > 0) {
         setMapCenter(allRoutesData[0].leafletCoords[0]);
         eventBus.emit("ROUTE_PLANNED", { origin, destination, mode });
       }
       addHistoryEntry(origin, destination);
     } catch (error) {
-      alert(
-        "Error calculating route. Ensure the locations are spelled correctly.",
-      );
+      alert("Error calculating route. Ensure the locations are spelled correctly.");
       console.error(error);
     } finally {
       setIsCalculating(false);
@@ -83,118 +74,56 @@ const Commute = () => {
     setDestination(entry.destination);
   };
 
-  const saveLocation = (value) => {
-    const label = newLocationLabel.trim();
-    if (!label || !value.trim()) return;
-
-    setSavedLocations((prev) => {
-      const deduped = prev.filter(
-        (loc) => loc.label.toLowerCase() !== label.toLowerCase()
-      );
-      const updated = [...deduped, { id: generateId(), label, value: value.trim() }];
-      localStorage.setItem(SAVED_LOCATIONS_KEY, JSON.stringify(updated));
-      return updated;
-    });
-    setNewLocationLabel("");
-  };
-
-  const deleteSavedLocation = (id) => {
-    setSavedLocations((prev) => {
-      const updated = prev.filter((loc) => loc.id !== id);
-      localStorage.setItem(SAVED_LOCATIONS_KEY, JSON.stringify(updated));
-      return updated;
-    });
-  };
-
   const applySavedLocation = (value, field) => {
     if (field === "origin") setOrigin(value);
     else setDestination(value);
   };
 
   return (
-    <div style={{ maxWidth: "1200px", margin: "0 auto", padding: "0 1rem" }}>
-      <div className="content-card" style={{ padding: "2.5rem" }}>
-        <h2 className="commute-title" style={{ marginTop: 0 }}>
-          Clean Route Planner
-        </h2>
-
-        {geoError && (
-          <div
-            className="commute-error-banner"
-            role="alert"
-            style={{
-              backgroundColor: "#fff7ed",
-              border: "1px solid #fdba74",
-              color: "#c2410c",
-              padding: "0.75rem 1rem",
-              borderRadius: "0.5rem",
-              marginBottom: "1.5rem",
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              fontSize: "0.9rem"
-            }}
+    <div className="commute-container">
+      <h2>Clean Route Planner</h2>
+      {geoError && (
+        <div className="geo-error-banner">
+          ⚠️ Reverse Geocoding Notice: {geoError}
+          <button
+            onClick={() => setGeoError(null)}
+            style={{ background: "none", border: "none", color: "#c2410c", fontWeight: "bold", cursor: "pointer", paddingLeft: "1rem" }}
           >
-            <span>⚠️ <strong>Reverse Geocoding Notice:</strong> {geoError}</span>
-            <button
-              type="button"
-              onClick={() => setGeoError(null)}
-              style={{
-                background: "none",
-                border: "none",
-                color: "#c2410c",
-                fontWeight: "bold",
-                cursor: "pointer",
-                paddingLeft: "1rem"
-              }}
-            >
-              ×
-            </button>
-          </div>
-        )}
-
-        <div className="commute-layout">
-          <div className="commute-sidebar">
-            <CommuteForm
-              origin={origin}
-              setOrigin={setOrigin}
-              destination={destination}
-              setDestination={setDestination}
-              mode={mode}
-              setMode={setMode}
-              isCalculating={isCalculating}
-              isLocating={isLocating}
-              handleGetLocation={handleGetLocation}
-              handleRouteSearch={handleRouteSearch}
-              savedLocations={savedLocations}
-              applySavedLocation={applySavedLocation}
-              deleteSavedLocation={deleteSavedLocation}
-              newLocationLabel={newLocationLabel}
-              setNewLocationLabel={setNewLocationLabel}
-              saveLocation={saveLocation}
-            />
-
-            <RouteResults
-              routes={routes}
-              activeRouteIndex={activeRouteIndex}
-              setActiveRouteIndex={setActiveRouteIndex}
-              pollutionDataAvailable={pollutionDataAvailable}
-              mode={mode}
-              routeHistory={routeHistory}
-              applyHistoryEntry={applyHistoryEntry}
-            />
-          </div>
-
-          <RouteMap
-            mapCenter={mapCenter}
-            routes={routes}
-            activeRouteIndex={activeRouteIndex}
-            origin={origin}
-            destination={destination}
-            searchId={searchId}
-          />
+            ×
+          </button>
         </div>
-      </div>
+      )}
+      <CommuteForm
+        origin={origin}
+        setOrigin={setOrigin}
+        destination={destination}
+        setDestination={setDestination}
+        mode={mode}
+        setMode={setMode}
+        isCalculating={isCalculating}
+        isLocating={isLocating}
+        handleGetLocation={handleGetLocation}
+        handleRouteSearch={handleRouteSearch}
+        savedLocations={savedLocations}
+        applySavedLocation={applySavedLocation}
+        deleteSavedLocation={deleteSavedLocation}
+        newLocationLabel={newLocationLabel}
+        setNewLocationLabel={setNewLocationLabel}
+        saveLocation={saveLocation}
+      />
+      <RouteResults
+        routes={routes}
+        activeRouteIndex={activeRouteIndex}
+        setActiveRouteIndex={setActiveRouteIndex}
+        pollutionDataAvailable={pollutionDataAvailable}
+      />
+      <RouteMap
+        routes={routes}
+        activeRouteIndex={activeRouteIndex}
+        mapCenter={mapCenter}
+        searchId={searchId}
+        legendItems={LEGEND_ITEMS}
+      />
     </div>
   );
 };
