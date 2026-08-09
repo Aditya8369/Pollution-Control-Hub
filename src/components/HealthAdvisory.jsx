@@ -208,32 +208,14 @@ export default function HealthAdvisory() {
                 </div>
                 <span className={`priority-badge ${tip.badgeClass}`}>{tip.priority}</span>
               </div>
-              <div className="tip-body">
-                <h4>{tip.title}</h4>
-                <p>{tip.detail}</p>
-              </div>
+              <h3 className="tip-title">{tip.title}</h3>
+              <p className="tip-detail">{tip.detail}</p>
             </li>
           ))}
         </ul>
       </div>
 
-      {/* Organ Impacts Section */}
-      <div className="organ-impacts">
-        <h3>{t('healthAdvisory.organsTitle', { defaultValue: 'Organ Impacts' })}</h3>
-        <ul className="organ-list" style={{ listStyle: 'none', padding: 0, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1rem' }}>
-          {organImpacts.map((organ, idx) => (
-            <li key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', background: 'rgba(255,255,255,0.05)', padding: '1rem', borderRadius: '8px' }}>
-              <span className="organ-icon-wrapper" style={{ width: '32px', height: '32px', flexShrink: 0, color: 'var(--brand, #0d9488)' }}>
-                {organ.icon}
-              </span>
-              <div>
-                <strong style={{ display: 'block', marginBottom: '0.25rem' }}>{organ.title}</strong>
-                <span style={{ fontSize: '0.85rem' }}>{organ.impact}</span>
-              </div>
-            </li>
-          ))}
-        </ul>
-      </div>
+
     </section>
   );
 }
