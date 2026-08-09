@@ -196,9 +196,9 @@ export default function HealthAdvisory() {
         <p className="tab-description">{audiences[activeTab].desc}</p>
 
         {/* Actionable Tips Grid */}
-        <div className="tips-grid">
+        <ul className="tips-grid">
           {audiences[activeTab].tips.map((tip) => (
-            <div key={tip.title} className="tip-action-card">
+            <li key={tip.title} className="tip-action-card">
               <div className="tip-header">
                 <div
                   className="tip-icon-wrapper"
@@ -210,28 +210,12 @@ export default function HealthAdvisory() {
               </div>
               <h3 className="tip-title">{tip.title}</h3>
               <p className="tip-detail">{tip.detail}</p>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Organ Impacts Section */}
-      <div className="organ-impacts">
-        <h3>{t('healthAdvisory.organsTitle', { defaultValue: 'Organ Impacts' })}</h3>
-        <ul className="organ-list" style={{ listStyle: 'none', padding: 0, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1rem' }}>
-          {organImpacts.map((organ, idx) => (
-            <li key={idx} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', background: 'rgba(255,255,255,0.05)', padding: '1rem', borderRadius: '8px' }}>
-              <span className="organ-icon-wrapper" style={{ width: '32px', height: '32px', flexShrink: 0, color: 'var(--brand, #0d9488)' }}>
-                {organ.icon}
-              </span>
-              <div>
-                <strong style={{ display: 'block', marginBottom: '0.25rem' }}>{organ.title}</strong>
-                <span style={{ fontSize: '0.85rem' }}>{organ.impact}</span>
-              </div>
             </li>
           ))}
         </ul>
       </div>
+
+
     </section>
   );
 }

@@ -6,6 +6,21 @@ import CommuteForm from "./CommuteForm";
 import RouteResults from "./RouteResults";
 import RouteMap from "./RouteMap";
 
+function generateId() {
+  return Date.now().toString(36) + Math.random().toString(36).substr(2);
+}
+
+const LEGEND_ITEMS = [
+  { range: "0–50", aqi: 25 },
+  { range: "51–100", aqi: 75 },
+  { range: "101–150", aqi: 125 },
+  { range: "151–200", aqi: 175 },
+  { range: "201–300", aqi: 250 },
+  { range: "301+", aqi: 350 },
+].map((item) => ({
+  range: item.range,
+  ...getAQIBand(item.aqi),
+}));
 import "leaflet/dist/leaflet.css";
 
 const Commute = () => {
@@ -66,6 +81,29 @@ const Commute = () => {
   const applyHistoryEntry = (entry) => {
     setOrigin(entry.origin);
     setDestination(entry.destination);
+  };
+
+  const saveLocation = (value) => {
+    const label = newLocationLabel.trim();
+    if (!label || !value.trim()) return;
+
+    setSavedLocations((prev) => {
+      const deduped = prev.filter(
+        (loc) => loc.label.toLowerCase() !== label.toLowerCase()
+      );
+      const updated = [...deduped, { id: generateId(), label, value: value.trim() }];
+      localStorage.setItem(SAVED_LOCATIONS_KEY, JSON.stringify(updated));
+      return updated;
+    });
+    setNewLocationLabel("");
+  };
+
+  const deleteSavedLocation = (id) => {
+    setSavedLocations((prev) => {
+      const updated = prev.filter((loc) => loc.id !== id);
+      localStorage.setItem(SAVED_LOCATIONS_KEY, JSON.stringify(updated));
+      return updated;
+    });
   };
 
   const applySavedLocation = (value, field) => {
