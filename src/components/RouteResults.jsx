@@ -17,39 +17,68 @@ function coverageNote(route) {
   return null;
 }
 
+/**
+ * Recently planned routes, offered as one-click refills for the search form.
+ *
+ * Rendered on both branches of RouteResults — with results and without — so it lives
+ * in one place rather than being duplicated between them.
+ *
+ * @param {{ entries: any[], onSelect: (entry: any) => void }} props
+ */
+function RecentRoutes({ entries, onSelect }) {
+  if (entries.length === 0) return null;
+
+  return (
+    <div className="commute-history" data-testid="commute-history">
+      <h3>Recent Routes</h3>
+      <ul className="commute-history-list">
+        {entries.map((entry, index) => (
+          <li key={`${entry.timestamp}-${index}`}>
+            <button
+              type="button"
+              className="commute-history-item"
+              onClick={() => onSelect(entry)}
+            >
+              {entry.origin} → {entry.destination}
+            </button>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+RecentRoutes.propTypes = {
+  entries: PropTypes.array.isRequired,
+  onSelect: PropTypes.func.isRequired,
+};
+
+const noop = () => { };
+
 export default function RouteResults({
-  routes,
-  activeRouteIndex,
-  setActiveRouteIndex,
-  pollutionDataAvailable,
-  mode,
-  routeHistory,
-  applyHistoryEntry,
+  routes = [],
+  activeRouteIndex = 0,
+  setActiveRouteIndex = noop,
+  pollutionDataAvailable = true,
+  mode = "",
+  // Defaulted rather than required: a call site that forgets these should lose the
+  // Recent Routes list, not take the whole Clean Route Planner tab down with a
+  // TypeError before it paints. That is exactly what happened in #667.
+  routeHistory = [],
+  applyHistoryEntry = noop,
 }) {
   if (routes.length === 0) {
-    return (
-      routeHistory.length > 0 && (
-        <div className="commute-history">
-          <h3>Recent Routes</h3>
-          <ul className="commute-history-list">
-            {routeHistory.map((entry, index) => (
-              <li key={`${entry.timestamp}-${index}`}>
-                <button
-                  type="button"
-                  className="commute-history-item"
-                  onClick={() => applyHistoryEntry(entry)}
-                >
-                  {entry.origin} → {entry.destination}
-                </button>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )
-    );
+    return <RecentRoutes entries={routeHistory} onSelect={applyHistoryEntry} />;
   }
 
   const activeRoute = routes[activeRouteIndex];
+
+  // activeRouteIndex is reset to 0 on each search, but a stale index (or a shorter
+  // results set) would otherwise dereference undefined below.
+  if (!activeRoute) {
+    return <RecentRoutes entries={routeHistory} onSelect={applyHistoryEntry} />;
+  }
+
   const note = coverageNote(activeRoute);
 
   return (
@@ -115,6 +144,7 @@ export default function RouteResults({
                 type="button"
                 className={`commute-route-option ${isActive ? 'active' : ''}`}
                 onClick={() => setActiveRouteIndex(idx)}
+                aria-pressed={isActive}
                 style={{
                   display: 'block',
                   width: '100%',
@@ -157,34 +187,17 @@ export default function RouteResults({
         </div>
       </div>
 
-      {routeHistory.length > 0 && (
-        <div className="commute-history">
-          <h3>Recent Routes</h3>
-          <ul className="commute-history-list">
-            {routeHistory.map((entry, index) => (
-              <li key={`${entry.timestamp}-${index}`}>
-                <button
-                  type="button"
-                  className="commute-history-item"
-                  onClick={() => applyHistoryEntry(entry)}
-                >
-                  {entry.origin} → {entry.destination}
-                </button>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
+      <RecentRoutes entries={routeHistory} onSelect={applyHistoryEntry} />
     </>
   );
 }
 
 RouteResults.propTypes = {
-  routes: PropTypes.array.isRequired,
-  activeRouteIndex: PropTypes.number.isRequired,
-  setActiveRouteIndex: PropTypes.func.isRequired,
-  pollutionDataAvailable: PropTypes.bool.isRequired,
-  mode: PropTypes.string.isRequired,
-  routeHistory: PropTypes.array.isRequired,
-  applyHistoryEntry: PropTypes.func.isRequired,
+  routes: PropTypes.array,
+  activeRouteIndex: PropTypes.number,
+  setActiveRouteIndex: PropTypes.func,
+  pollutionDataAvailable: PropTypes.bool,
+  mode: PropTypes.string,
+  routeHistory: PropTypes.array,
+  applyHistoryEntry: PropTypes.func,
 };
