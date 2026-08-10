@@ -111,7 +111,7 @@ describe('readContributionStats', () => {
   });
 
   it('survives localStorage throwing', () => {
-    vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+    vi.spyOn(Object.getPrototypeOf(localStorage), 'getItem').mockImplementation(() => {
       throw new Error('SecurityError');
     });
 
