@@ -34,6 +34,9 @@ import {
   fetchWindData,
 } from "./services/airQualityService";
 import { eventBus } from "./core/events";
+// Imported for its side effect: it subscribes to QUIZ_COMPLETED so the count is
+// recorded whether or not the leaderboard has ever been mounted.
+import "./utils/contributionStats";
 import { ThemeProvider, useTheme } from "./context/ThemeContext";
 import ThemeSwitcher from "./components/ThemeSwitcher";
 import CarbonFootprintCalculator from "./components/CarbonFootprintCalculator";
