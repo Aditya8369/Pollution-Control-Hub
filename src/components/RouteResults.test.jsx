@@ -118,7 +118,9 @@ describe('RouteResults - mode label', () => {
   });
 
   it('falls back to the mode prop when the route does not carry one', () => {
-    const { mode, ...withoutMode } = measuredRoute;
+    const withoutMode = { ...measuredRoute };
+    delete withoutMode.mode;
+
     render(<RouteResults routes={[withoutMode]} mode="biking" pollutionDataAvailable />);
     expect(screen.getByText('biking')).toBeInTheDocument();
   });
