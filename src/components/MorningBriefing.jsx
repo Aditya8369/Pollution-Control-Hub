@@ -1,8 +1,35 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { getAQIBand } from '../services/airQualityService';
 import { useTranslation } from 'react-i18next';
 import { eventBus } from '../core/events';
+import { localDayKey } from '../utils/localDay';
+import { nextStreak } from '../utils/checkInStreak';
 import './MorningBriefing.css';
+
+const STREAK_KEY = 'appStreak';
+const LAST_CHECK_IN_KEY = 'lastCheckIn';
+const DISMISSED_KEY = 'briefingDismissed';
+
+/** @param {string} key */
+function readStorage(key) {
+  try {
+    return localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * @param {string} key
+ * @param {string} value
+ */
+function writeStorage(key, value) {
+  try {
+    localStorage.setItem(key, value);
+  } catch {
+    // Private mode or a full quota — the streak still shows for this session.
+  }
+}
 
 /** @param {any} params */
 export default function MorningBriefing({ current, trend, showTrigger, onDismiss }) {
@@ -12,52 +39,67 @@ export default function MorningBriefing({ current, trend, showTrigger, onDismiss
 
   useEffect(() => {
     if (showTrigger) {
-      localStorage.removeItem('briefingDismissed');
+      try {
+        localStorage.removeItem(DISMISSED_KEY);
+      } catch {
+        // Nothing to clear if storage is unavailable.
+      }
       setIsVisible(true);
     }
   }, [showTrigger]);
 
+  // Held in a ref so checkIn stays referentially stable. The visibility listener
+  // below is registered once, and a checkIn that changed identity would leave it
+  // calling a stale closure.
+  const onDismissRef = useRef(onDismiss);
   useEffect(() => {
-    // Check dismissal
-    const todayStr = new Date().toISOString().split('T')[0];
-    const dismissedOn = localStorage.getItem('briefingDismissed');
-    if (dismissedOn === todayStr) {
+    onDismissRef.current = onDismiss;
+  }, [onDismiss]);
+
+  const checkIn = useCallback(() => {
+    const todayKey = localDayKey();
+
+    if (readStorage(DISMISSED_KEY) === todayKey) {
       setIsVisible(false);
-      if (onDismiss) onDismiss();
+      onDismissRef.current?.();
     }
 
-    // Check streak
-    const lastCheckIn = localStorage.getItem('lastCheckIn');
-    let currentStreak = parseInt(localStorage.getItem('appStreak') || '0', 10);
+    const { streak: currentStreak, changed } = nextStreak(
+      readStorage(LAST_CHECK_IN_KEY),
+      todayKey,
+      readStorage(STREAK_KEY)
+    );
 
-    if (lastCheckIn !== todayStr) {
-      if (lastCheckIn) {
-        const lastDate = new Date(lastCheckIn);
-        const today = new Date(todayStr);
-        // @ts-ignore
-        const diffTime = Math.abs(today - lastDate);
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-
-        if (diffDays === 1) {
-          currentStreak += 1;
-        } else {
-          currentStreak = 1;
-        }
-      } else {
-        currentStreak = 1;
-      }
-      localStorage.setItem('appStreak', currentStreak.toString());
-      localStorage.setItem('lastCheckIn', todayStr);
+    if (changed) {
+      writeStorage(STREAK_KEY, String(currentStreak));
+      writeStorage(LAST_CHECK_IN_KEY, todayKey);
     }
+
     setStreak(currentStreak);
     eventBus.emit('STREAK_UPDATED', { streak: currentStreak });
+  }, []);
+
+  useEffect(() => {
+    checkIn();
+
+    // A tab left open across local midnight would otherwise keep showing
+    // yesterday's streak until reloaded. Re-checking when the tab is brought back
+    // to the foreground ties the update to the user actually returning, rather
+    // than to a timer that would advance a streak for an unattended tab.
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') checkIn();
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+    // Mount-only on purpose: checkIn is stable via useCallback, so re-running this
+    // would only tear the listener down and re-add it.
   }, []);
 
   if (!isVisible || !current) return null;
 
   const handleDismiss = () => {
-    const todayStr = new Date().toISOString().split('T')[0];
-    localStorage.setItem('briefingDismissed', todayStr);
+    writeStorage(DISMISSED_KEY, localDayKey());
     setIsVisible(false);
     if (onDismiss) onDismiss();
   };
