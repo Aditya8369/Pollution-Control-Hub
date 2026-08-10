@@ -1,10 +1,53 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { getAQIBand } from "../services/airQualityService";
+import { buildEmbedSnippet } from "../utils/widgetEmbed";
+import { copyText } from "../utils/copyToClipboard";
 
-export default function EmbeddableWidgetGenerator({ cityName = "Delhi", lat = 28.6139, lon = 77.209, currentAqi = 113 }) {
+/**
+ * Renders a pollutant reading, or an em dash when there isn't one.
+ *
+ * The preview is captioned "Live Preview" and the panel copy promises a
+ * "real-time live air quality badge", so a hardcoded figure here is a fabricated
+ * measurement — the same thing #499, #544 and #546 were about. If a reading was
+ * not passed in, the widget says so.
+ *
+ * @param {number|null|undefined} value
+ * @returns {string}
+ */
+function formatPollutant(value) {
+  if (typeof value !== "number" || !Number.isFinite(value)) return "—";
+  return `${value} µg/m³`;
+}
+
+/**
+ * A translucent version of a band colour, for the status pill background.
+ *
+ * @param {string} hex - A #rrggbb colour.
+ * @returns {string}
+ */
+function tint(hex) {
+  const value = hex.replace("#", "");
+  const r = parseInt(value.slice(0, 2), 16);
+  const g = parseInt(value.slice(2, 4), 16);
+  const b = parseInt(value.slice(4, 6), 16);
+  return `rgba(${r}, ${g}, ${b}, 0.15)`;
+}
+
+export default function EmbeddableWidgetGenerator({
+  cityName = "Delhi",
+  lat = 28.6139,
+  lon = 77.209,
+  // No stand-in AQI. getAQIBand already returns a neutral "Unknown" band for a
+  // missing value, so an absent reading reads as absent rather than as 113.
+  currentAqi = null,
+  pm25 = null,
+  no2 = null,
+}) {
   const [theme, setTheme] = useState("dark");
   const [size, setSize] = useState("medium");
   const [showPollutants, setShowPollutants] = useState(true);
-  const [copied, setCopied] = useState(false);
+  const [copyState, setCopyState] = useState("idle");
+  const copyTimerRef = useRef(null);
 
   // Determine widget size dimensions
   const getDimensions = () => {
@@ -15,24 +58,32 @@ export default function EmbeddableWidgetGenerator({ cityName = "Delhi", lat = 28
 
   const dimensions = getDimensions();
 
-  // Generate embed snippet for third-party websites
-  const embedSnippet = `<div id="pollution-hub-widget" data-city="${cityName}" data-lat="${lat}" data-lon="${lon}" data-theme="${theme}" data-size="${size}"></div>\n<script src="https://pollution-control-hub.vercel.app/widget.js" async></script>`;
+  // Every control the panel exposes has to reach the markup, including
+  // showPollutants — which used to change the preview and nothing else.
+  const embedSnippet = buildEmbedSnippet({
+    cityName,
+    lat,
+    lon,
+    theme,
+    size,
+    showPollutants,
+  });
 
-  const handleCopy = () => {
-    navigator.clipboard.writeText(embedSnippet);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+  useEffect(() => () => clearTimeout(copyTimerRef.current), []);
+
+  const handleCopy = async () => {
+    const succeeded = await copyText(embedSnippet);
+    setCopyState(succeeded ? "copied" : "failed");
+
+    clearTimeout(copyTimerRef.current);
+    copyTimerRef.current = setTimeout(() => setCopyState("idle"), 2500);
   };
 
-  // Helper for AQI status color
-  const getAqiStatus = (aqi) => {
-    if (aqi <= 50) return { status: "Good", color: "#22c55e", bg: "rgba(34, 197, 94, 0.15)" };
-    if (aqi <= 100) return { status: "Moderate", color: "#f59e0b", bg: "rgba(245, 158, 11, 0.15)" };
-    if (aqi <= 150) return { status: "Unhealthy (Sensitive)", color: "#f97316", bg: "rgba(249, 115, 22, 0.15)" };
-    return { status: "Unhealthy", color: "#ef4444", bg: "rgba(239, 68, 68, 0.15)" };
-  };
-
-  const aqiInfo = getAqiStatus(currentAqi);
+  // Banding comes from the shared helper rather than a fourth local copy of the
+  // scale. The local one stopped at 150, so an AQI of 450 in Delhi rendered
+  // identically to 160 and disagreed with the dashboard one tab over.
+  const band = getAQIBand(currentAqi);
+  const aqiInfo = { status: band.label, color: band.color, bg: tint(band.color) };
 
   return (
     <section data-testid="embeddable-widget-page" className="panel widget-generator-panel" style={{ width: "100%" }}>
@@ -142,11 +193,17 @@ export default function EmbeddableWidgetGenerator({ cityName = "Delhi", lat = 28
               <button
                 type="button"
                 onClick={handleCopy}
+                data-testid="widget-copy-button"
                 style={{
                   padding: "0.4rem 0.85rem",
                   borderRadius: "6px",
                   border: "none",
-                  backgroundColor: copied ? "#22c55e" : "var(--brand, #0d9488)",
+                  backgroundColor:
+                    copyState === "copied"
+                      ? "#22c55e"
+                      : copyState === "failed"
+                        ? "#ef4444"
+                        : "var(--brand, #0d9488)",
                   color: "#fff",
                   fontWeight: "bold",
                   fontSize: "0.82rem",
@@ -154,7 +211,11 @@ export default function EmbeddableWidgetGenerator({ cityName = "Delhi", lat = 28
                   transition: "all 0.2s ease"
                 }}
               >
-                {copied ? "✓ Copied Code!" : "Copy HTML"}
+                {copyState === "copied"
+                  ? "✓ Copied Code!"
+                  : copyState === "failed"
+                    ? "Copy failed — select and copy"
+                    : "Copy HTML"}
               </button>
             </div>
 
@@ -236,8 +297,11 @@ export default function EmbeddableWidgetGenerator({ cityName = "Delhi", lat = 28
               </div>
 
               <div style={{ display: "flex", alignItems: "baseline", gap: "0.6rem", marginTop: "1rem" }}>
-                <span style={{ fontSize: "3.2rem", fontWeight: "900", lineHeight: "1", color: aqiInfo.color, letterSpacing: "-0.02em" }}>
-                  {currentAqi}
+                <span
+                  data-testid="widget-preview-aqi"
+                  style={{ fontSize: "3.2rem", fontWeight: "900", lineHeight: "1", color: aqiInfo.color, letterSpacing: "-0.02em" }}
+                >
+                  {Number.isFinite(currentAqi) ? currentAqi : "—"}
                 </span>
                 <span style={{ fontSize: "0.85rem", fontWeight: "600", opacity: 0.6 }}>US AQI</span>
               </div>
@@ -255,10 +319,16 @@ export default function EmbeddableWidgetGenerator({ cityName = "Delhi", lat = 28
                 }}
               >
                 <div>
-                  <span style={{ opacity: 0.6 }}>PM2.5:</span> <strong style={{ marginLeft: "0.2rem" }}>35 µg/m³</strong>
+                  <span style={{ opacity: 0.6 }}>PM2.5:</span>{" "}
+                  <strong data-testid="widget-preview-pm25" style={{ marginLeft: "0.2rem" }}>
+                    {formatPollutant(pm25)}
+                  </strong>
                 </div>
                 <div>
-                  <span style={{ opacity: 0.6 }}>NO2:</span> <strong style={{ marginLeft: "0.2rem" }}>28 µg/m³</strong>
+                  <span style={{ opacity: 0.6 }}>NO2:</span>{" "}
+                  <strong data-testid="widget-preview-no2" style={{ marginLeft: "0.2rem" }}>
+                    {formatPollutant(no2)}
+                  </strong>
                 </div>
               </div>
             )}
