@@ -1271,7 +1271,9 @@ function AppContent() {
                   cityName={position.cityName}
                   lat={position.lat}
                   lon={position.lon}
-                  currentAqi={current?.us_aqi || 113}
+                  currentAqi={current?.us_aqi ?? null}
+                  pm25={current?.pm2_5 ?? null}
+                  no2={current?.nitrogen_dioxide ?? null}
                 />
               </div>
             )}
