@@ -116,6 +116,9 @@ const Commute = () => {
         activeRouteIndex={activeRouteIndex}
         setActiveRouteIndex={setActiveRouteIndex}
         pollutionDataAvailable={pollutionDataAvailable}
+        mode={mode}
+        routeHistory={routeHistory}
+        applyHistoryEntry={applyHistoryEntry}
       />
       <RouteMap
         routes={routes}
