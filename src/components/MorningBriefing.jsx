@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { getAQIBand } from '../services/airQualityService';
 import { useTranslation } from 'react-i18next';
 import { eventBus } from '../core/events';
@@ -48,12 +48,20 @@ export default function MorningBriefing({ current, trend, showTrigger, onDismiss
     }
   }, [showTrigger]);
 
+  // Held in a ref so checkIn stays referentially stable. The visibility listener
+  // below is registered once, and a checkIn that changed identity would leave it
+  // calling a stale closure.
+  const onDismissRef = useRef(onDismiss);
+  useEffect(() => {
+    onDismissRef.current = onDismiss;
+  }, [onDismiss]);
+
   const checkIn = useCallback(() => {
     const todayKey = localDayKey();
 
     if (readStorage(DISMISSED_KEY) === todayKey) {
       setIsVisible(false);
-      if (onDismiss) onDismiss();
+      onDismissRef.current?.();
     }
 
     const { streak: currentStreak, changed } = nextStreak(
@@ -69,7 +77,7 @@ export default function MorningBriefing({ current, trend, showTrigger, onDismiss
 
     setStreak(currentStreak);
     eventBus.emit('STREAK_UPDATED', { streak: currentStreak });
-  }, [onDismiss]);
+  }, []);
 
   useEffect(() => {
     checkIn();
@@ -84,7 +92,8 @@ export default function MorningBriefing({ current, trend, showTrigger, onDismiss
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    // Mount-only on purpose: checkIn is stable via useCallback, so re-running this
+    // would only tear the listener down and re-add it.
   }, []);
 
   if (!isVisible || !current) return null;
