@@ -3,6 +3,8 @@ import { calculateCleanRoute } from "../services/routePlanner";
 import { useGeolocation } from "../hooks/useGeolocation";
 import { useRouteHistory } from "../hooks/useRouteHistory";
 import { getAQIBand } from "../services/airQualityService";
+import { eventBus } from "../core/events";
+import { describeRouteError } from "../utils/routeErrors";
 import CommuteForm from "./CommuteForm";
 import RouteResults from "./RouteResults";
 import RouteMap from "./RouteMap";
@@ -30,6 +32,7 @@ const Commute = () => {
   const [activeRouteIndex, setActiveRouteIndex] = useState(0);
   const [searchId, setSearchId] = useState(0);
   const [mapCenter, setMapCenter] = useState([28.6139, 77.209]);
+  const [routeError, setRouteError] = useState(null);
 
   const { isLocating, geoError, setGeoError, handleGetLocation } = useGeolocation(setOrigin);
   const {
@@ -42,12 +45,47 @@ const Commute = () => {
     deleteSavedLocation,
   } = useRouteHistory();
 
+  /**
+   * Fire-and-forget bookkeeping that runs after a successful search.
+   *
+   * @param {boolean} hasRoutes - Whether the search produced at least one route.
+   */
+  const recordSearchSideEffects = (hasRoutes) => {
+    try {
+      addHistoryEntry(origin, destination);
+    } catch (error) {
+      console.error("Could not record route history:", error);
+    }
+
+    if (!hasRoutes) return;
+
+    try {
+      eventBus.emit("ROUTE_PLANNED", { origin, destination, mode });
+    } catch (error) {
+      console.error("Could not emit ROUTE_PLANNED:", error);
+    }
+  };
+
   const handleRouteSearch = async (e) => {
     e.preventDefault();
     setIsCalculating(true);
+    setRouteError(null);
+
+    let routeResults;
     try {
       // @ts-ignore
-      const routeResults = await calculateCleanRoute(origin, destination, mode);
+      routeResults = await calculateCleanRoute(origin, destination, mode);
+    } catch (error) {
+      console.error("Route search failed:", error);
+      setRouteError(describeRouteError(error));
+      setIsCalculating(false);
+      return;
+    }
+
+    // Past this point the search succeeded. Nothing below is allowed to report
+    // itself as a routing failure — that is what turned a missing import into
+    // "Error calculating route" on every successful search (#668).
+    try {
       const allRoutesData = routeResults.allRoutes.map(r => ({
         ...r,
         leafletCoords: r.geometry.map((coord) => [coord[1], coord[0]])
@@ -58,12 +96,11 @@ const Commute = () => {
       setSearchId((prev) => prev + 1);
       if (allRoutesData.length > 0) {
         setMapCenter(allRoutesData[0].leafletCoords[0]);
-        eventBus.emit("ROUTE_PLANNED", { origin, destination, mode });
       }
-      addHistoryEntry(origin, destination);
-    } catch (error) {
-      alert("Error calculating route. Ensure the locations are spelled correctly.");
-      console.error(error);
+
+      // History and achievements are bookkeeping. A failure in either should cost
+      // the user that bookkeeping, not the routes they just waited for.
+      recordSearchSideEffects(allRoutesData.length > 0);
     } finally {
       setIsCalculating(false);
     }
@@ -88,6 +125,36 @@ const Commute = () => {
           <button
             onClick={() => setGeoError(null)}
             style={{ background: "none", border: "none", color: "#c2410c", fontWeight: "bold", cursor: "pointer", paddingLeft: "1rem" }}
+          >
+            ×
+          </button>
+        </div>
+      )}
+      {routeError && (
+        <div
+          className="commute-error-banner"
+          role="alert"
+          data-testid="commute-route-error"
+          style={{
+            backgroundColor: "#fef2f2",
+            border: "1px solid #fca5a5",
+            color: "#b91c1c",
+            padding: "0.75rem 1rem",
+            borderRadius: "0.5rem",
+            marginBottom: "1rem",
+            fontSize: "0.9rem",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: "1rem",
+          }}
+        >
+          <span>⚠️ {routeError}</span>
+          <button
+            type="button"
+            onClick={() => setRouteError(null)}
+            aria-label="Dismiss route error"
+            style={{ background: "none", border: "none", color: "#b91c1c", fontWeight: "bold", cursor: "pointer" }}
           >
             ×
           </button>

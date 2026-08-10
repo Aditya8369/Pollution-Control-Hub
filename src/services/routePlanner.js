@@ -48,7 +48,9 @@ const geocodeLocation = async (locationName) => {
   if (!response.ok) throw new Error(`Failed to geocode: ${locationName}`);
   const data = await response.json();
 
-  if (data.length === 0) throw new Error("Location not found");
+  // Both endpoints are geocoded together, so naming the one that failed is the
+  // difference between an actionable message and "one of these is wrong".
+  if (data.length === 0) throw new Error(`Location not found: ${locationName}`);
   return [parseFloat(data[0].lon), parseFloat(data[0].lat)];
 };
 
