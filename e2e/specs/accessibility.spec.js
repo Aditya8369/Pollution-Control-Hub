@@ -1,14 +1,13 @@
 /**
  * e2e/specs/accessibility.spec.js
  *
- * Baseline accessibility checks to prevent regressions in ARIA roles,
- * keyboard navigation, and semantic structure.
- *
- * These are lightweight DOM-based checks (no axe-core dependency required),
- * suitable for the initial testing infrastructure.
+ * Comprehensive accessibility checks including:
+ * - Lightweight DOM-based checks (ARIA, landmarks, keyboard)
+ * - Automated WCAG 2.1 AA compliance audits via axe-core
  */
 
 import { test, expect } from '../helpers/fixtures.js';
+import AxeBuilder from '@axe-core/playwright';
 
 // ── Landmark structure ───────────────────────────────────────────────────────
 
@@ -63,7 +62,6 @@ test.describe('Interactive element labels', () => {
       const btn = navButtons.nth(i);
       const text = (await btn.textContent() ?? '').trim();
       const ariaLabel = await btn.getAttribute('aria-label');
-      // Every button must have either visible text or an aria-label
       expect(text.length > 0 || (ariaLabel ?? '').length > 0).toBe(true);
     }
   });
@@ -83,7 +81,6 @@ test.describe('ARIA roles and live regions', () => {
   });
 
   test('loading spinner is wrapped in an ARIA live region', async ({ page }) => {
-    // Intercept with a slow response to catch the loading state
     await page.route('**/air-quality-api.open-meteo.com/**', async (route) => {
       await new Promise((r) => setTimeout(r, 500));
       route.abort('failed');
@@ -92,11 +89,9 @@ test.describe('ARIA roles and live regions', () => {
     await page.goto('/');
 
     const liveRegion = page.locator('[role="status"][aria-live="polite"]');
-    // Spinner wrapper should be an ARIA live region so screen readers announce loading
     if (await liveRegion.isVisible({ timeout: 2_000 })) {
       await expect(liveRegion).toHaveAttribute('role', 'status');
       await expect(liveRegion).toHaveAttribute('aria-live', 'polite');
-      // The decorative spinner inside must NOT have aria-hidden on the wrapper
       const spinner = liveRegion.locator('.loading-spinner');
       await expect(spinner).toBeVisible();
     }
@@ -107,10 +102,8 @@ test.describe('ARIA roles and live regions', () => {
 
 test.describe('Keyboard navigation', () => {
   test('can Tab to and activate the Quiz nav button via keyboard', async ({ mockPage }) => {
-    // Focus the first nav button, then Tab through to Quiz
     await mockPage.locator('nav[aria-label="Main sections"] button').first().focus();
 
-    // Press Tab until we reach "Quiz"
     let found = false;
     for (let i = 0; i < 10; i++) {
       const focused = await mockPage.evaluate(() => document.activeElement?.textContent?.trim());
@@ -125,7 +118,6 @@ test.describe('Keyboard navigation', () => {
       await mockPage.keyboard.press('Enter');
       await expect(mockPage.locator('[data-testid="quiz-section"]')).toBeVisible({ timeout: 5_000 });
     }
-    // If Tab order doesn't reach Quiz in 10 steps it may be in a different order — non-fatal
   });
 
   test('Escape key closes the location-notice banner if present', async ({ page, context }) => {
@@ -143,9 +135,7 @@ test.describe('Keyboard navigation', () => {
     const notice = page.locator('.location-notice');
     if (await notice.isVisible({ timeout: 3_000 })) {
       await page.keyboard.press('Escape');
-      // Either dismissed or still visible — just check no crash occurred
       await notice.isVisible({ timeout: 1_000 }).catch(() => false);
-      // Not asserting either way — just ensuring no JS error
     }
   });
 });
@@ -174,38 +164,123 @@ test('time range selector uses tablist semantics', async ({ mockPage }) => {
 
 test('selected time range tab controls the chart', async ({ mockPage }) => {
   const selectedTab = mockPage.locator('[role="tab"][aria-selected="true"]');
-
-  await expect(selectedTab).toHaveAttribute(
-    'aria-controls',
-    'aqi-trend-chart'
-  );
+  await expect(selectedTab).toHaveAttribute('aria-controls', 'aqi-trend-chart');
 });
 
 test('clicking a time range updates the selected tab', async ({ mockPage }) => {
   const tab12 = mockPage.locator('#time-tab-12');
-
   await tab12.click();
-
   await expect(tab12).toHaveAttribute('aria-selected', 'true');
 });
 
 test('time range tabs can receive keyboard focus', async ({ mockPage }) => {
   const firstTab = mockPage.locator('[role="tab"]').first();
-
   await firstTab.focus();
-
   await expect(firstTab).toBeFocused();
 });
 
 test('all time range tabs expose required ARIA attributes', async ({ mockPage }) => {
   const tabs = mockPage.locator('[role="tab"]');
-
   const count = await tabs.count();
 
   for (let i = 0; i < count; i++) {
     const tab = tabs.nth(i);
-
     await expect(tab).toHaveAttribute('id', /time-tab-/);
     await expect(tab).toHaveAttribute('aria-controls', 'aqi-trend-chart');
   }
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// ── axe-core automated WCAG audits ───────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════════
+
+test.describe('axe-core WCAG 2.1 AA compliance', () => {
+  test('homepage has no critical or serious accessibility violations', async ({ page }) => {
+    await page.goto('/');
+    const results = await new AxeBuilder({ page })
+      .withTags(['wcag2a', 'wcag2aa', 'wcag21aa'])
+      .analyze();
+
+    const criticalAndSerious = results.violations.filter((v) =>
+      ['critical', 'serious'].includes(v.impact)
+    );
+    expect(criticalAndSerious).toEqual([]);
+  });
+
+  test('dashboard passes automated accessibility audit', async ({ page }) => {
+    await page.goto('/');
+    await page.waitForSelector('[data-testid="dashboard"]', { timeout: 10_000 });
+
+    const results = await new AxeBuilder({ page })
+      .withTags(['wcag2a', 'wcag2aa'])
+      .analyze();
+
+    const criticalAndSerious = results.violations.filter((v) =>
+      ['critical', 'serious'].includes(v.impact)
+    );
+    expect(criticalAndSerious).toEqual([]);
+  });
+
+  test('location map is accessible', async ({ page }) => {
+    await page.goto('/');
+    const mapNav = page.locator('nav[aria-label="Main sections"] button', { hasText: /Map/i });
+    if (await mapNav.isVisible()) {
+      await mapNav.click();
+      await page.waitForTimeout(800);
+    }
+
+    const results = await new AxeBuilder({ page })
+      .withTags(['wcag2a', 'wcag2aa'])
+      .analyze();
+
+    const criticalAndSerious = results.violations.filter((v) =>
+      ['critical', 'serious'].includes(v.impact)
+    );
+    expect(criticalAndSerious).toEqual([]);
+  });
+
+  test('community hub form has no accessibility violations', async ({ page }) => {
+    await page.goto('/');
+    const communityNav = page.locator('nav[aria-label="Main sections"] button', { hasText: /Community/i });
+    if (await communityNav.isVisible()) {
+      await communityNav.click();
+      await page.waitForTimeout(800);
+    }
+
+    const results = await new AxeBuilder({ page }).analyze();
+    const criticalAndSerious = results.violations.filter((v) =>
+      ['critical', 'serious'].includes(v.impact)
+    );
+    expect(criticalAndSerious).toEqual([]);
+  });
+
+  test('health advisory panel passes axe-core audit', async ({ page }) => {
+    await page.goto('/');
+    const healthNav = page.locator('nav[aria-label="Main sections"] button', { hasText: /Health/i });
+    if (await healthNav.isVisible()) {
+      await healthNav.click();
+      await page.waitForTimeout(800);
+    }
+
+    const results = await new AxeBuilder({ page })
+      .withTags(['wcag2a', 'wcag2aa'])
+      .analyze();
+
+    const criticalAndSerious = results.violations.filter((v) =>
+      ['critical', 'serious'].includes(v.impact)
+    );
+    expect(criticalAndSerious).toEqual([]);
+  });
+
+  test('dark mode maintains accessibility compliance', async ({ page }) => {
+    await page.goto('/');
+    await page.locator('button[aria-label="Toggle Theme"]').click();
+    await page.waitForTimeout(500);
+
+    const results = await new AxeBuilder({ page }).analyze();
+    const criticalAndSerious = results.violations.filter((v) =>
+      ['critical', 'serious'].includes(v.impact)
+    );
+    expect(criticalAndSerious).toEqual([]);
+  });
 });
