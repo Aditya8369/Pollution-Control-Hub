@@ -276,6 +276,12 @@ export const cacheStore = {
   async deduplicate(key, fetcher) {
     if (!key) return null;
 
+    // Serve from memory cache if already resolved
+    const cached = this.getFromMemory(key);
+    if (cached) {
+      return cached.data;
+    }
+
     if (inFlight.has(key)) {
       return inFlight.get(key);
     }
