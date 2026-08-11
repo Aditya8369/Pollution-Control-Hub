@@ -6,10 +6,30 @@ import { eventBus } from '../core/events';
 import PropTypes from "prop-types";
 
 const COMMUNITY_REPORTS_STORAGE_KEY = 'pollution-community-reports';
+const SYMPTOM_REPORTS_STORAGE_KEY = 'pollution-symptom-reports';
 
 function readGeotaggedCommunityReports() {
   try {
     const raw = localStorage.getItem(COMMUNITY_REPORTS_STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter(
+      (report) =>
+        report &&
+        typeof report.latitude === 'number' &&
+        typeof report.longitude === 'number' &&
+        !isNaN(report.latitude) &&
+        !isNaN(report.longitude)
+    );
+  } catch {
+    return [];
+  }
+}
+
+function readGeotaggedSymptomReports() {
+  try {
+    const raw = localStorage.getItem(SYMPTOM_REPORTS_STORAGE_KEY);
     if (!raw) return [];
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [];
@@ -41,6 +61,8 @@ export default function LocationMap({ center, nearbyPoints, confidenceScore, win
   const [showWind, setShowWind] = useState(false);
   const [showCommunityReports, setShowCommunityReports] = useState(false);
   const [communityReports, setCommunityReports] = useState(() => readGeotaggedCommunityReports());
+  const [showSymptomReports, setShowSymptomReports] = useState(false);
+  const [symptomReports, setSymptomReports] = useState(() => readGeotaggedSymptomReports());
 
   useEffect(() => {
     const updateReports = () => {
@@ -58,6 +80,26 @@ export default function LocationMap({ center, nearbyPoints, confidenceScore, win
 
     return () => {
       eventBus.off('COMMUNITY_REPORT_SUBMITTED', updateReports);
+      window.removeEventListener('storage', handleStorage);
+    };
+  }, []);
+
+  useEffect(() => {
+    const updateSymptomReports = () => {
+      setSymptomReports(readGeotaggedSymptomReports());
+    };
+
+    eventBus.on('SYMPTOM_REPORT_SUBMITTED', updateSymptomReports);
+
+    const handleStorage = (e) => {
+      if (!e.key || e.key === SYMPTOM_REPORTS_STORAGE_KEY) {
+        updateSymptomReports();
+      }
+    };
+    window.addEventListener('storage', handleStorage);
+
+    return () => {
+      eventBus.off('SYMPTOM_REPORT_SUBMITTED', updateSymptomReports);
       window.removeEventListener('storage', handleStorage);
     };
   }, []);
@@ -83,6 +125,13 @@ export default function LocationMap({ center, nearbyPoints, confidenceScore, win
     iconAnchor: [14, 14]
   });
 
+  const symptomReportIcon = L.divIcon({
+    className: 'symptom-report-marker-icon',
+    html: `<div style="background-color: #dc2626; color: white; border: 2px solid white; border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,0.3); font-size: 14px; line-height: 1;">🤒</div>`,
+    iconSize: [28, 28],
+    iconAnchor: [14, 14],
+  });
+
   return (
     <section data-testid="location-map" className="panel">
       <div className="panel-head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.75rem' }}>
@@ -92,6 +141,26 @@ export default function LocationMap({ center, nearbyPoints, confidenceScore, win
           {windError && <p className="error-banner">Wind data unavailable: {windError}</p>}
         </div>
         <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+          <button
+            type="button"
+            onClick={() => setShowSymptomReports(!showSymptomReports)}
+            style={{
+              fontSize: '0.85rem',
+              padding: '0.5rem 1rem',
+              flexShrink: 0,
+              backgroundColor: showSymptomReports ? '#ef4444' : '#f97316',
+              color: 'white',
+              border: 'none',
+              borderRadius: '0.375rem',
+              cursor: 'pointer',
+              fontWeight: '600',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+              transition: 'background-color 0.2s',
+              minHeight: '44px'
+            }}
+          >
+            {showSymptomReports ? 'Hide Symptom Reports' : 'Show Symptom Reports'}
+          </button>
           <button
             type="button"
             onClick={() => setShowCommunityReports(!showCommunityReports)}
@@ -181,6 +250,24 @@ export default function LocationMap({ center, nearbyPoints, confidenceScore, win
                   {report.createdAt && (
                     <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '4px' }}>
                       {new Date(report.createdAt).toLocaleString()}
+                    </div>
+                  )}
+                </div>
+              </Popup>
+            </Marker>
+          ))}
+          {showSymptomReports && symptomReports.map((report) => (
+            <Marker
+              key={`symptom-report-${report.id}`}
+              position={[report.latitude, report.longitude]}
+              icon={symptomReportIcon}
+            >
+              <Popup>
+                <div className="symptom-report-popup">
+                  <strong>{(report.symptoms || []).join(', ')}</strong>
+                  {report.timestamp && (
+                    <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '4px' }}>
+                      {new Date(report.timestamp).toLocaleString()}
                     </div>
                   )}
                 </div>

@@ -25,6 +25,7 @@ import { eventBus } from "../core/events";
 import ChallengesWidget from "./ChallengesWidget";
 import WindPollutionRose from "./WindPollutionRose";
 import Factoid from "./Factoid";
+import SymptomReportButton from "./SymptomReportButton";
 
 /** @param {any} isoTime */
 function shortTimeLabel(isoTime) {
@@ -393,6 +394,7 @@ export default function Dashboard({
               >
                 {isSharing ? "Generating..." : "Share AQI"}
               </button>
+              <SymptomReportButton fallbackPosition={lat && lon ? { lat, lon } : null} />
             </div>
           </div>
           <div className={styles.dashboardTools}>
