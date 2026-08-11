@@ -1,24 +1,25 @@
 import { cacheStore } from '../utils/cacheStore';
+import type { LocationResult } from '../types/airQuality';
 
 const GEOCODING_BASE_URL = 'https://geocoding-api.open-meteo.com/v1/search';
 const GEOCODING_CACHE_TTL = 1000 * 60 * 60 * 24; // 24 hours
 
-/**
- * @param {any} query
- * @param {any} count
- */
-export async function searchLocations(query, count = 5, signal) {
+export async function searchLocations(
+  query: string,
+  count = 5,
+  signal?: AbortSignal
+): Promise<LocationResult[]> {
   if (!query || query.trim() === '') return [];
 
   const trimmedQuery = query.trim().toLowerCase();
   const cacheKey = `geo_search_${trimmedQuery}_${count}`;
 
   const cached = await cacheStore.get(cacheKey);
-  if (cached && cached.data && !await cacheStore.isStale(cacheKey, GEOCODING_CACHE_TTL)) {
+  if (cached && cached.data && !(await cacheStore.isStale(cacheKey, GEOCODING_CACHE_TTL))) {
     return cached.data;
   }
 
-  return cacheStore.deduplicate(cacheKey, async () => {
+  return cacheStore.deduplicate(cacheKey, async (): Promise<LocationResult[]> => {
     const url = `${GEOCODING_BASE_URL}?name=${encodeURIComponent(query)}&count=${count}&language=en&format=json`;
 
     try {
@@ -30,14 +31,13 @@ export async function searchLocations(query, count = 5, signal) {
       const data = await response.json();
       if (!data.results) return [];
 
-      const formattedResults = data.results.map((result) => ({
+      const formattedResults: LocationResult[] = data.results.map((result: any) => ({
         id: result.id,
         name: result.name,
-        admin1: result.admin1, // State/Province
+        admin1: result.admin1,
         country: result.country,
         lat: result.latitude,
         lon: result.longitude,
-        // Create a formatted display string e.g., "Paris, Île-de-France, France"
         displayName: [result.name, result.admin1, result.country]
           .filter(Boolean)
           .join(', ')
@@ -45,13 +45,11 @@ export async function searchLocations(query, count = 5, signal) {
 
       await cacheStore.set(cacheKey, formattedResults);
       return formattedResults;
-    } catch (error) {
-        if (error.name !== "AbortError") {
-          console.error("Error fetching location data:", error);
-        }
-
-         throw error;
+    } catch (error: any) {
+      if (error.name !== 'AbortError') {
+        console.error('Error fetching location data:', error);
       }
+      throw error;
+    }
   });
 }
-
