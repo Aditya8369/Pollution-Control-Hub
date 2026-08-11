@@ -1,5 +1,15 @@
 import "@testing-library/jest-dom";
 import { vi } from "vitest";
+import { server } from './mocks/server.js';
+
+// Start MSW before all tests
+beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
+
+// Reset handlers after each test for isolation
+afterEach(() => server.resetHandlers());
+
+// Close server after all tests
+afterAll(() => server.close());
 
 vi.mock("react-i18next", () => ({
   useTranslation: () => ({
