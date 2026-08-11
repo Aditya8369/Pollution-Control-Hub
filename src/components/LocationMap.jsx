@@ -3,10 +3,20 @@ import { MapContainer, TileLayer, CircleMarker, Popup, Marker } from 'react-leaf
 import { useState, useEffect } from 'react';
 import L from 'leaflet';
 import { eventBus } from '../core/events';
+import { getPollutantColor } from '../services/airQualityService';
 import PropTypes from "prop-types";
 
 const COMMUNITY_REPORTS_STORAGE_KEY = 'pollution-community-reports';
 const SYMPTOM_REPORTS_STORAGE_KEY = 'pollution-symptom-reports';
+
+const POLLUTANT_LAYERS = [
+  { key: 'aqi', label: 'AQI' },
+  { key: 'pm2_5', label: 'PM2.5', limit: 15 },
+  { key: 'pm10', label: 'PM10', limit: 45 },
+  { key: 'nitrogen_dioxide', label: 'NO₂', limit: 25 },
+  { key: 'ozone', label: 'O₃', limit: 100 },
+  { key: 'carbon_monoxide', label: 'CO', limit: 4000 },
+];
 
 function readGeotaggedCommunityReports() {
   try {
@@ -63,7 +73,7 @@ export default function LocationMap({ center, nearbyPoints, confidenceScore, win
   const [communityReports, setCommunityReports] = useState(() => readGeotaggedCommunityReports());
   const [showSymptomReports, setShowSymptomReports] = useState(false);
   const [symptomReports, setSymptomReports] = useState(() => readGeotaggedSymptomReports());
-
+  const [selectedLayer, setSelectedLayer] = useState('aqi');
   useEffect(() => {
     const updateReports = () => {
       setCommunityReports(readGeotaggedCommunityReports());
@@ -132,6 +142,15 @@ export default function LocationMap({ center, nearbyPoints, confidenceScore, win
     iconAnchor: [14, 14],
   });
 
+  const activeLayer = POLLUTANT_LAYERS.find((l) => l.key === selectedLayer) || POLLUTANT_LAYERS[0];
+
+  const getMarkerColor = (point) => {
+    if (selectedLayer === 'aqi') {
+      return point.aqi > 150 ? '#b91c1c' : point.aqi > 100 ? '#f97316' : '#16a34a';
+    }
+    return getPollutantColor(point.pollutants?.[selectedLayer], activeLayer.limit);
+  };
+
   return (
     <section data-testid="location-map" className="panel">
       <div className="panel-head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.75rem' }}>
@@ -141,6 +160,30 @@ export default function LocationMap({ center, nearbyPoints, confidenceScore, win
           {windError && <p className="error-banner">Wind data unavailable: {windError}</p>}
         </div>
         <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+          <label
+            htmlFor="pollutant-layer-select"
+            style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem', fontWeight: '600' }}
+          >
+            Layer:
+            <select
+              id="pollutant-layer-select"
+              data-testid="pollutant-layer-select"
+              value={selectedLayer}
+              onChange={(e) => setSelectedLayer(e.target.value)}
+              style={{
+                fontSize: '0.85rem',
+                padding: '0.5rem 0.75rem',
+                borderRadius: '0.375rem',
+                border: '1px solid var(--border-color, #e2e8f0)',
+                minHeight: '44px',
+                cursor: 'pointer'
+              }}
+            >
+              {POLLUTANT_LAYERS.map((layer) => (
+                <option key={layer.key} value={layer.key}>{layer.label}</option>
+              ))}
+            </select>
+          </label>
           <button
             type="button"
             onClick={() => setShowSymptomReports(!showSymptomReports)}
@@ -219,13 +262,18 @@ export default function LocationMap({ center, nearbyPoints, confidenceScore, win
               center={[point.lat, point.lon]}
               radius={Math.max(12, point.aqi / 8)}
               pathOptions={{
-                color: point.aqi > 150 ? '#b91c1c' : point.aqi > 100 ? '#f97316' : '#16a34a',
+                color: getMarkerColor(point),
                 fillOpacity: confidenceScore === 'Low' ? 0.25 : 0.55
               }}
             >
               <Popup>
                 <strong>{point.areaName}</strong>
                 <br />AQI: {point.aqi}
+                {selectedLayer !== 'aqi' && (
+                  <>
+                    <br />{activeLayer.label}: {point.pollutants?.[selectedLayer] ?? 'N/A'} µg/m³
+                  </>
+                )}
               </Popup>
             </CircleMarker>
           ))}
@@ -331,6 +379,13 @@ LocationMap.propTypes = {
       lon: PropTypes.number.isRequired,
       areaName: PropTypes.string.isRequired,
       aqi: PropTypes.number.isRequired,
+      pollutants: PropTypes.shape({
+        pm2_5: PropTypes.number,
+        pm10: PropTypes.number,
+        nitrogen_dioxide: PropTypes.number,
+        ozone: PropTypes.number,
+        carbon_monoxide: PropTypes.number,
+      }),
     })
   ).isRequired,
 
