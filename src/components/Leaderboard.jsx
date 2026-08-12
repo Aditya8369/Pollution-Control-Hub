@@ -1,59 +1,77 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
+import { eventBus } from "../core/events";
+import {
+  readContributionStats,
+  recordQuizAnswers,
+  POINT_VALUES,
+  STATS_CHANGED_EVENT,
+} from "../utils/contributionStats";
 
-// Point breakdown constants matching issue requirements
+// Point breakdown constants matching issue requirements. The weights come from
+// the scoring module so the table and the arithmetic cannot drift apart.
 const POINT_SYSTEM = [
-  { action: "Verified Report Submitted", points: 50, badge: "🛡️ Verified" },
-  { action: "New Report Submitted", points: 10, badge: "📝 Contributor" },
-  { action: "Quiz Answer Completed", points: 1, badge: "🧠 Learner" },
+  { action: "Verified Report Submitted", points: POINT_VALUES.verifiedReport, badge: "🛡️ Verified" },
+  { action: "New Report Submitted", points: POINT_VALUES.report, badge: "📝 Contributor" },
+  { action: "Quiz Answer Completed", points: POINT_VALUES.quizAnswer, badge: "🧠 Learner" },
 ];
 
-const INITIAL_MOCK_LEADERBOARD = [
-  { id: 1, name: "Aarav Sharma", points: 420, reports: 6, verified: 5, quizzes: 70, avatar: "👨‍💻" },
-  { id: 2, name: "Ananya Patel", points: 365, reports: 8, verified: 4, quizzes: 65, avatar: "👩‍🔬" },
-  { id: 3, name: "Rohan Gupta", points: 290, reports: 5, verified: 3, quizzes: 40, avatar: "🌱" },
-  { id: 4, name: "Priya Singh", points: 215, reports: 4, verified: 2, quizzes: 15, avatar: "🛰️" },
-  { id: 5, name: "Vikram Verma", points: 180, reports: 3, verified: 2, quizzes: 30, avatar: "🚴" },
+/**
+ * Illustrative entries, so the board is not empty on a fresh install.
+ *
+ * Flagged as samples and labelled as such in the table. They are not real people
+ * and the panel should not imply they are — the visitor's own row is the only one
+ * carrying real numbers until there is a backend behind this (#152).
+ */
+const SAMPLE_CONTRIBUTORS = [
+  { id: "sample-1", name: "Aarav Sharma", points: 420, reports: 6, verified: 5, quizzes: 70, avatar: "👨‍💻", isSample: true },
+  { id: "sample-2", name: "Ananya Patel", points: 365, reports: 8, verified: 4, quizzes: 65, avatar: "👩‍🔬", isSample: true },
+  { id: "sample-3", name: "Rohan Gupta", points: 290, reports: 5, verified: 3, quizzes: 40, avatar: "🌱", isSample: true },
+  { id: "sample-4", name: "Priya Singh", points: 215, reports: 4, verified: 2, quizzes: 15, avatar: "🛰️", isSample: true },
+  { id: "sample-5", name: "Vikram Verma", points: 180, reports: 3, verified: 2, quizzes: 30, avatar: "🚴", isSample: true },
 ];
-
-const USER_STORAGE_KEY = "pollution-hub-user-points";
 
 export default function Leaderboard() {
-  const [userStats, setUserStats] = useState(() => {
-    try {
-      const saved = localStorage.getItem(USER_STORAGE_KEY);
-      return saved
-        ? JSON.parse(saved)
-        : { name: "You (Guest)", points: 125, reports: 2, verified: 1, quizzes: 55, avatar: "🌟" };
-    } catch {
-      return { name: "You (Guest)", points: 125, reports: 2, verified: 1, quizzes: 55, avatar: "🌟" };
-    }
-  });
+  // Derived from what the app recorded, not from a seed. A visitor who has done
+  // nothing sees zeros.
+  const [stats, setStats] = useState(() => readContributionStats());
 
-  const [leaderboard, setLeaderboard] = useState([]);
+  const refresh = useCallback(() => setStats(readContributionStats()), []);
 
   useEffect(() => {
-    // Combine user stats with community leaderboard and rank by total points
-    const combined = [...INITIAL_MOCK_LEADERBOARD, { ...userStats, isCurrentUser: true }];
-    combined.sort((a, b) => b.points - a.points);
-    setLeaderboard(combined);
-  }, [userStats]);
+    refresh();
+
+    eventBus.on(STATS_CHANGED_EVENT, refresh);
+    eventBus.on("COMMUNITY_REPORT_SUBMITTED", refresh);
+
+    return () => {
+      eventBus.off(STATS_CHANGED_EVENT, refresh);
+      eventBus.off("COMMUNITY_REPORT_SUBMITTED", refresh);
+    };
+  }, [refresh]);
+
+  const userRow = useMemo(
+    () => ({
+      id: "current-user",
+      name: "You (Guest)",
+      avatar: "🌟",
+      isCurrentUser: true,
+      ...stats,
+    }),
+    [stats]
+  );
+
+  const leaderboard = useMemo(
+    () => [...SAMPLE_CONTRIBUTORS, userRow].sort((a, b) => b.points - a.points),
+    [userRow]
+  );
 
   const currentUserRank = leaderboard.findIndex((item) => item.isCurrentUser) + 1;
 
-  // Handler to simulate point earning for testing UI updates
-  const addPoints = (amount, type) => {
-    setUserStats((prev) => {
-      const updated = {
-        ...prev,
-        points: prev.points + amount,
-        reports: type === "report" ? prev.reports + 1 : prev.reports,
-        verified: type === "verified" ? prev.verified + 1 : prev.verified,
-        quizzes: type === "quiz" ? prev.quizzes + 1 : prev.quizzes,
-      };
-      localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(updated));
-      return updated;
-    });
-  };
+  // Dev-only seeding, so the ranking can be exercised without filing real reports.
+  // It writes through the same recording path as the app, rather than inventing a
+  // separate total — and it is not present in a production build.
+  const isDev = Boolean(import.meta.env?.DEV);
+  const simulateQuiz = () => recordQuizAnswers(10);
 
   return (
     <section data-testid="leaderboard-page" className="panel leaderboard-panel">
@@ -79,13 +97,13 @@ export default function Leaderboard() {
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
-          <span style={{ fontSize: "2.5rem" }}>{userStats.avatar}</span>
+          <span style={{ fontSize: "2.5rem" }}>{userRow.avatar}</span>
           <div>
             <h3 style={{ margin: 0, fontSize: "1.25rem", color: "var(--ink, #f8fafc)" }}>
-              {userStats.name} <span style={{ fontSize: "0.8rem", color: "var(--brand, #0d9488)", background: "rgba(13, 148, 136, 0.15)", padding: "0.2rem 0.5rem", borderRadius: "999px" }}>Current User</span>
+              {userRow.name} <span style={{ fontSize: "0.8rem", color: "var(--brand, #0d9488)", background: "rgba(13, 148, 136, 0.15)", padding: "0.2rem 0.5rem", borderRadius: "999px" }}>Current User</span>
             </h3>
-            <p style={{ margin: "0.25rem 0 0 0", color: "var(--muted, #94a3b8)", fontSize: "0.9rem" }}>
-              {userStats.verified} Verified Reports • {userStats.reports} Submissions • {userStats.quizzes} Quizzes Answered
+            <p data-testid="leaderboard-user-summary" style={{ margin: "0.25rem 0 0 0", color: "var(--muted, #94a3b8)", fontSize: "0.9rem" }}>
+              {stats.verified} Verified Reports • {stats.reports} Submissions • {stats.quizzes} Quizzes Answered
             </p>
           </div>
         </div>
@@ -93,11 +111,14 @@ export default function Leaderboard() {
         <div style={{ display: "flex", gap: "1.5rem", alignItems: "center" }}>
           <div style={{ textAlign: "center" }}>
             <span style={{ fontSize: "0.75rem", textTransform: "uppercase", color: "var(--muted)", letterSpacing: "0.05em" }}>Your Rank</span>
-            <div style={{ fontSize: "1.75rem", fontWeight: "bold", color: "var(--sky, #38bdf8)" }}>#{currentUserRank}</div>
+            {/* findIndex returns -1 before the list exists, which rendered "#0". */}
+            <div data-testid="leaderboard-user-rank" style={{ fontSize: "1.75rem", fontWeight: "bold", color: "var(--sky, #38bdf8)" }}>
+              {currentUserRank > 0 ? `#${currentUserRank}` : "—"}
+            </div>
           </div>
           <div style={{ textAlign: "center" }}>
             <span style={{ fontSize: "0.75rem", textTransform: "uppercase", color: "var(--muted)", letterSpacing: "0.05em" }}>Total Points</span>
-            <div style={{ fontSize: "1.75rem", fontWeight: "bold", color: "#f59e0b" }}>{userStats.points} pts</div>
+            <div data-testid="leaderboard-user-points" style={{ fontSize: "1.75rem", fontWeight: "bold", color: "#f59e0b" }}>{userRow.points} pts</div>
           </div>
         </div>
       </div>
@@ -136,7 +157,8 @@ export default function Leaderboard() {
 
               return (
                 <tr
-                  key={user.name}
+                  key={user.id}
+                  data-testid={user.isCurrentUser ? "leaderboard-user-row" : undefined}
                   style={{
                     borderBottom: "1px solid var(--line)",
                     backgroundColor: user.isCurrentUser ? "rgba(13, 148, 136, 0.08)" : "transparent",
@@ -148,6 +170,11 @@ export default function Leaderboard() {
                     <span style={{ marginRight: "0.5rem" }}>{user.avatar}</span>
                     {user.name}
                     {user.isCurrentUser && <span style={{ marginLeft: "0.5rem", fontSize: "0.75rem", color: "var(--brand)" }}>(You)</span>}
+                    {user.isSample && (
+                      <span style={{ marginLeft: "0.5rem", fontSize: "0.7rem", color: "var(--muted)", border: "1px solid var(--line)", padding: "0.1rem 0.35rem", borderRadius: "999px" }}>
+                        sample
+                      </span>
+                    )}
                   </td>
                   <td style={{ padding: "0.85rem 0.5rem" }}>{user.verified}</td>
                   <td style={{ padding: "0.85rem 0.5rem" }}>{user.reports}</td>
@@ -162,13 +189,23 @@ export default function Leaderboard() {
         </table>
       </div>
 
-      {/* Developer Action Simulator for Testing */}
-      <div style={{ marginTop: "2rem", paddingTop: "1rem", borderTop: "1px dashed var(--line)", display: "flex", gap: "0.5rem", alignItems: "center", flexWrap: "wrap" }}>
-        <span style={{ fontSize: "0.8rem", color: "var(--muted)" }}>Simulate Action:</span>
-        <button type="button" className="btn-secondary text-sm" style={{ padding: "0.25rem 0.6rem" }} onClick={() => addPoints(10, "report")}>+10 New Report</button>
-        <button type="button" className="btn-secondary text-sm" style={{ padding: "0.25rem 0.6rem" }} onClick={() => addPoints(50, "verified")}>+50 Verified Report</button>
-        <button type="button" className="btn-secondary text-sm" style={{ padding: "0.25rem 0.6rem" }} onClick={() => addPoints(1, "quiz")}>+1 Quiz Answer</button>
-      </div>
+      <p style={{ marginTop: "1.5rem", fontSize: "0.8rem", color: "var(--muted)" }}>
+        Your figures come from the reports you've filed and the quizzes you've
+        answered on this device. The other contributors are sample data — there is no
+        shared backend behind this board yet.
+      </p>
+
+      {/* Dev-only. Shipping this to production let any visitor click their way up
+          the ranking, which — together with the seeded starting figures — meant no
+          number on this panel corresponded to anything. */}
+      {isDev && (
+        <div data-testid="leaderboard-dev-tools" style={{ marginTop: "2rem", paddingTop: "1rem", borderTop: "1px dashed var(--line)", display: "flex", gap: "0.5rem", alignItems: "center", flexWrap: "wrap" }}>
+          <span style={{ fontSize: "0.8rem", color: "var(--muted)" }}>Dev only:</span>
+          <button type="button" className="btn-secondary text-sm" style={{ padding: "0.25rem 0.6rem" }} onClick={simulateQuiz}>
+            Record 10 quiz answers
+          </button>
+        </div>
+      )}
     </section>
   );
 }
