@@ -123,7 +123,9 @@ describe('SymptomReportButton - focus management', () => {
         openDialog();
 
         const dialog = screen.getByRole('dialog');
-        const focusable = dialog.querySelectorAll('button:not([disabled]), input:not([disabled])');
+        const focusable = /** @type {NodeListOf<HTMLElement>} */ (
+            dialog.querySelectorAll('button:not([disabled]), input:not([disabled])')
+        );
         const first = focusable[0];
         const last = focusable[focusable.length - 1];
 
@@ -138,7 +140,9 @@ describe('SymptomReportButton - focus management', () => {
         openDialog();
 
         const dialog = screen.getByRole('dialog');
-        const focusable = dialog.querySelectorAll('button:not([disabled]), input:not([disabled])');
+        const focusable = /** @type {NodeListOf<HTMLElement>} */ (
+            dialog.querySelectorAll('button:not([disabled]), input:not([disabled])')
+        );
         const first = focusable[0];
         const last = focusable[focusable.length - 1];
 
