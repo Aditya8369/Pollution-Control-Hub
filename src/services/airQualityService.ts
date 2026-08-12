@@ -221,9 +221,9 @@ function isValidCoord(lat: number, lon: number): boolean {
  * @param {AbortSignal} [signal] - Optional signal to abort the fetch request.
  * @returns {Promise<number|null>} Calculated AQI rounded to nearest integer, or null on error.
  */
-async function fetchGridPointAqi(lat: number, lon: number, signal?: AbortSignal): Promise<number | null> {
+async function fetchGridPointAqi(lat: number, lon: number, signal?: AbortSignal): Promise<{ aqi: number; pollutants: GridPoint['pollutants'] } | null> {
   if (!isValidCoord(lat, lon)) return null;
-  const url = `${BASE_URL}?latitude=${lat}&longitude=${lon}&hourly=us_aqi&timezone=auto&forecast_days=1`;
+  const url = `${BASE_URL}?latitude=${lat}&longitude=${lon}&hourly=us_aqi,pm2_5,pm10,nitrogen_dioxide,ozone,carbon_monoxide&timezone=auto&forecast_days=1`;
   const response = await fetch(url, { signal });
   if (!response.ok) return null;
   const data = await response.json();
@@ -232,7 +232,16 @@ async function fetchGridPointAqi(lat: number, lon: number, signal?: AbortSignal)
     times,
     data.utc_offset_seconds ?? 0
   );
-  return Math.round(data.hourly?.us_aqi?.[idx] ?? 0);
+  return {
+    aqi: Math.round(data.hourly?.us_aqi?.[idx] ?? 0),
+    pollutants: {
+      pm2_5: data.hourly?.pm2_5?.[idx] ?? null,
+      pm10: data.hourly?.pm10?.[idx] ?? null,
+      nitrogen_dioxide: data.hourly?.nitrogen_dioxide?.[idx] ?? null,
+      ozone: data.hourly?.ozone?.[idx] ?? null,
+      carbon_monoxide: data.hourly?.carbon_monoxide?.[idx] ?? null,
+    }
+  };
 }
 
 /**
@@ -277,12 +286,19 @@ export async function fetchLocalGrid(
     gridOffsets.map(async ({ dx, dy }, i) => {
       const gLat = parseFloat((lat + dy * GRID_STEP).toFixed(4));
       const gLon = parseFloat((lon + dx * GRID_STEP).toFixed(4));
-      const aqi = await fetchGridPointAqi(gLat, gLon, signal);
+      const point = await fetchGridPointAqi(gLat, gLon, signal);
       return {
         id: `grid-${i}`,
         lat: gLat,
         lon: gLon,
-        aqi: aqi ?? 0,
+        aqi: point?.aqi ?? 0,
+        pollutants: point?.pollutants ?? {
+          pm2_5: null,
+          pm10: null,
+          nitrogen_dioxide: null,
+          ozone: null,
+          carbon_monoxide: null,
+        },
         areaName: DIRECTION_LABELS[`${dx},${dy}`] || `Zone ${i + 1}`
       };
     })

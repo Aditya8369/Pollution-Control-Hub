@@ -23,6 +23,13 @@ export interface GridPoint {
     lon: number;
     aqi: number;
     areaName: string;
+    pollutants: {
+        pm2_5: number | null;
+        pm10: number | null;
+        nitrogen_dioxide: number | null;
+        ozone: number | null;
+        carbon_monoxide: number | null;
+    };
 }
 
 /** One entry in the 24h trend series (subset of PollutantMetrics used for charts). */
