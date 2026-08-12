@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import L from 'leaflet';
 import { eventBus } from '../core/events';
 import { getPollutantColor } from '../services/airQualityService';
+import { useCommunityReports } from '../hooks/useCommunityReports';
 import PropTypes from "prop-types";
 
 const COMMUNITY_REPORTS_STORAGE_KEY = 'pollution-community-reports';
@@ -18,24 +19,6 @@ const POLLUTANT_LAYERS = [
   { key: 'carbon_monoxide', label: 'CO', limit: 4000 },
 ];
 
-function readGeotaggedCommunityReports() {
-  try {
-    const raw = localStorage.getItem(COMMUNITY_REPORTS_STORAGE_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return [];
-    return parsed.filter(
-      (report) =>
-        report &&
-        typeof report.latitude === 'number' &&
-        typeof report.longitude === 'number' &&
-        !isNaN(report.latitude) &&
-        !isNaN(report.longitude)
-    );
-  } catch {
-    return [];
-  }
-}
 
 function readGeotaggedSymptomReports() {
   try {
@@ -70,29 +53,10 @@ function readGeotaggedSymptomReports() {
 export default function LocationMap({ center, nearbyPoints, confidenceScore, windData, windError }) {
   const [showWind, setShowWind] = useState(false);
   const [showCommunityReports, setShowCommunityReports] = useState(false);
-  const [communityReports, setCommunityReports] = useState(() => readGeotaggedCommunityReports());
+  const communityReports = useCommunityReports();
   const [showSymptomReports, setShowSymptomReports] = useState(false);
   const [symptomReports, setSymptomReports] = useState(() => readGeotaggedSymptomReports());
   const [selectedLayer, setSelectedLayer] = useState('aqi');
-  useEffect(() => {
-    const updateReports = () => {
-      setCommunityReports(readGeotaggedCommunityReports());
-    };
-
-    eventBus.on('COMMUNITY_REPORT_SUBMITTED', updateReports);
-
-    const handleStorage = (e) => {
-      if (!e.key || e.key === COMMUNITY_REPORTS_STORAGE_KEY) {
-        updateReports();
-      }
-    };
-    window.addEventListener('storage', handleStorage);
-
-    return () => {
-      eventBus.off('COMMUNITY_REPORT_SUBMITTED', updateReports);
-      window.removeEventListener('storage', handleStorage);
-    };
-  }, []);
 
   useEffect(() => {
     const updateSymptomReports = () => {
