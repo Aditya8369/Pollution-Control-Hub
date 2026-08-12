@@ -1,4 +1,9 @@
 node_modules/
 dist/
+
+# Captured tool output. These get produced while debugging and are easy to commit
+# by accident — lint-check.txt was 43 KB of stale ESLint console output sitting in
+# the repository root.
 tsc_errors.txt
-dist/
+lint-check.txt
+*.log
