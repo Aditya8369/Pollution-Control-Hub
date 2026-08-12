@@ -6,7 +6,9 @@ import App from "./App";
 import "./styles.css";
 import "leaflet/dist/leaflet.css";
 
-const updateSW = registerSW({
+// The returned update function is not used: onNeedRefresh only logs, and nothing
+// offers the visitor a "reload to update" control yet.
+registerSW({
   onNeedRefresh() {
     console.log("[PWA] New content available — reload to update.");
   },

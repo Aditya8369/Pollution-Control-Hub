@@ -118,7 +118,7 @@ async function cleanupExpiredEntries() {
         cursor.continue();
       }
     };
-  } catch (err) {
+  } catch (_err) {
     // Ignore cleanup errors
   }
 }

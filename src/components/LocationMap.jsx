@@ -7,7 +7,6 @@ import { getPollutantColor } from '../services/airQualityService';
 import { useCommunityReports } from '../hooks/useCommunityReports';
 import PropTypes from "prop-types";
 
-const COMMUNITY_REPORTS_STORAGE_KEY = 'pollution-community-reports';
 const SYMPTOM_REPORTS_STORAGE_KEY = 'pollution-symptom-reports';
 
 const POLLUTANT_LAYERS = [

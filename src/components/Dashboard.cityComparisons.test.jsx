@@ -1,7 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import Dashboard from './Dashboard';
-import * as airQualityService from '../services/airQualityService';
 import { cacheStore } from '../utils/cacheStore';
 
 globalThis.ResizeObserver = class ResizeObserver {

@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { getAQIBand } from '../services/airQualityService';
 import { useTranslation } from 'react-i18next';
 import { eventBus } from '../core/events';
 import { localDayKey } from '../utils/localDay';
@@ -144,7 +143,6 @@ export default function MorningBriefing({ current, trend, showTrigger, onDismiss
   }
 
   // Health tip
-  const aqiBand = getAQIBand(current.us_aqi);
   let healthTip = t('briefing.tips.enjoy');
   if (current.us_aqi <= 50) healthTip = t('briefing.tips.good');
   else if (current.us_aqi <= 100) healthTip = t('briefing.tips.moderate');
