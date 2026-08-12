@@ -38,4 +38,21 @@ export default [
       },
     },
   },
+
+  // Test files reach for a few globals the app itself does not: `process` to pin a
+  // timezone, and the DOM constructors needed to dispatch events and stub storage.
+  // Without these they read as undefined identifiers rather than as real problems.
+  {
+    files: ['src/**/*.{test,spec}.{js,jsx,ts,tsx}', 'src/setupTests.js'],
+    languageOptions: {
+      globals: {
+        process: 'readonly',
+        globalThis: 'readonly',
+        Event: 'readonly',
+        CustomEvent: 'readonly',
+        Storage: 'readonly',
+        HTMLElement: 'readonly',
+      },
+    },
+  },
 ];

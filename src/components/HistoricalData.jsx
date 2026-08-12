@@ -5,7 +5,10 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsi
 import { fetchHistoricalRange } from "../services/airQualityService";
 import { formatHistoricalCSV } from "../services/historicalDataService";
 
-const toISODate = (date) => date.toISOString().split("T")[0];
+// Use the local calendar date, not toISOString() (which converts to UTC and,
+// in UTC+ timezones like IST, rolls the date forward by a day in the evening).
+const toISODate = (date) =>
+    `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 
 /** @param {any} params */
 export default function HistoricalData({ position }) {

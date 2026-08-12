@@ -7,7 +7,11 @@ import { getAQIBand } from './airQualityService';
  * @returns {number} Corresponding US AQI integer.
  */
 export function pm25ToAQI(pm) {
-  if (pm == null || isNaN(pm) || pm < 0) return 0;
+  if (pm == null || isNaN(pm)) return 0;
+  if (pm < 0) {
+    console.warn(`pm25ToAQI received negative PM2.5 value: ${pm}`);
+    return 0;
+  }
   if (pm <= 12.0) return Math.round(((50 - 0) / (12.0 - 0)) * (pm - 0) + 0);
   if (pm <= 35.4) return Math.round(((100 - 51) / (35.4 - 12.1)) * (pm - 12.1) + 51);
   if (pm <= 55.4) return Math.round(((150 - 101) / (55.4 - 35.5)) * (pm - 35.5) + 101);
@@ -44,7 +48,9 @@ const geocodeLocation = async (locationName) => {
   if (!response.ok) throw new Error(`Failed to geocode: ${locationName}`);
   const data = await response.json();
 
-  if (data.length === 0) throw new Error("Location not found");
+  // Both endpoints are geocoded together, so naming the one that failed is the
+  // difference between an actionable message and "one of these is wrong".
+  if (data.length === 0) throw new Error(`Location not found: ${locationName}`);
   return [parseFloat(data[0].lon), parseFloat(data[0].lat)];
 };
 

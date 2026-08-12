@@ -81,3 +81,45 @@ test("deduplicate returns null for empty key", async () => {
 
   expect(result).toBeNull();
 });
+test("deduplicate stores resolved result in memoryCache for subsequent get calls", async () => {
+  const fetcher = vi.fn().mockResolvedValue({ aqi: 95 });
+
+  // First deduplicated fetch
+  const result1 = await cacheStore.deduplicate("mem-key", fetcher);
+  expect(result1).toEqual({ aqi: 95 });
+  expect(fetcher).toHaveBeenCalledTimes(1);
+
+  // Subsequent get() should serve from memoryCache instantly — no new fetch
+  const fromCache = await cacheStore.get("mem-key");
+  expect(fromCache).not.toBeNull();
+  expect(fromCache.data).toEqual({ aqi: 95 });
+
+  // Calling deduplicate again with same key should NOT trigger fetcher again
+  const fetcher2 = vi.fn().mockResolvedValue({ aqi: 999 });
+  const result2 = await cacheStore.deduplicate("mem-key", fetcher2);
+  expect(result2).toEqual({ aqi: 95 }); // old cached value
+  expect(fetcher2).not.toHaveBeenCalled();
+});
+
+test("deduplicate populates memoryCache even when fetcher is slow", async () => {
+  let resolveFetcher;
+  const slowFetcher = () =>
+    new Promise((resolve) => {
+      resolveFetcher = resolve;
+    });
+
+  const p1 = cacheStore.deduplicate("slow-key", slowFetcher);
+  const p2 = cacheStore.deduplicate("slow-key", slowFetcher);
+
+  // Resolve the underlying fetch
+  resolveFetcher({ pm25: 35 });
+
+  const [r1, r2] = await Promise.all([p1, p2]);
+  expect(r1).toEqual({ pm25: 35 });
+  expect(r2).toEqual({ pm25: 35 });
+
+  // Memory cache should now have the value
+  const cached = cacheStore.getFromMemory("slow-key");
+  expect(cached).not.toBeNull();
+  expect(cached.data).toEqual({ pm25: 35 });
+});

@@ -1,20 +1,19 @@
-import { useState } from "react";
-
-// Activity type definitions with pollution intake multipliers
-const ACTIVITIES = [
-  { id: "indoor_purified", label: "🏠 Indoors (with Air Purifier)", multiplier: 0.3, description: "Lowest intake, filtered air" },
-  { id: "indoor_standard", label: "🏢 Indoors (Standard / Office / Home)", multiplier: 0.7, description: "Moderate protection from ambient air" },
-  { id: "outdoor_walking", label: "🚶 Outdoor Walking / Light Activity", multiplier: 1.5, description: "Higher respiration rate outdoors" },
-  { id: "commute_transit", label: "🚗 Traffic Commute (Car / Bus / Auto)", multiplier: 2.5, description: "Direct exposure to vehicle exhaust spikes" },
-  { id: "outdoor_exercise", label: "🏃 Outdoor Exercise / Jogging / Cycling", multiplier: 3.5, description: "Heavy breathing drastically increases particulate intake" },
-];
-
-const WHO_DAILY_EXPOSURE_LIMIT = 360; // Equivalent benchmark for safe 24h exposure at WHO PM2.5 baseline
+import { useMemo, useState } from "react";
+import {
+  ACTIVITIES,
+  HOURS_IN_DAY,
+  SAFE_DAILY_EXPOSURE,
+  WHO_PM25_24H_GUIDELINE,
+  calculateExposure,
+  getActivity,
+} from "../utils/exposureModel";
 
 export default function ExposureCalculator({ currentAqi = 100 }) {
+  // Adds up to a full 24 hours. The previous default totalled 20, while the summary
+  // underneath it has always been labelled "/ 24 hrs".
   const [activities, setActivities] = useState([
     { id: 1, type: "indoor_purified", hours: 8 },
-    { id: 2, type: "indoor_standard", hours: 10 },
+    { id: 2, type: "indoor_standard", hours: 14 },
     { id: 3, type: "commute_transit", hours: 1 },
     { id: 4, type: "outdoor_exercise", hours: 1 },
   ]);
@@ -24,10 +23,11 @@ export default function ExposureCalculator({ currentAqi = 100 }) {
 
   const handleAddActivity = (e) => {
     e.preventDefault();
-    if (newHours <= 0) return;
+    const hours = Number(newHours);
+    if (!Number.isFinite(hours) || hours <= 0) return;
     setActivities((prev) => [
       ...prev,
-      { id: Date.now(), type: newActivityType, hours: Number(newHours) },
+      { id: crypto.randomUUID(), type: newActivityType, hours },
     ]);
     setNewHours(1);
   };
@@ -36,31 +36,31 @@ export default function ExposureCalculator({ currentAqi = 100 }) {
     setActivities((prev) => prev.filter((item) => item.id !== id));
   };
 
-  // Calculate total logged hours and total weighted exposure score
-  const totalLoggedHours = activities.reduce((sum, item) => sum + item.hours, 0);
-
-  const totalExposureScore = Math.round(
-    activities.reduce((sum, item) => {
-      const actDef = ACTIVITIES.find((a) => a.id === item.type) || ACTIVITIES[1];
-      return sum + item.hours * actDef.multiplier * currentAqi;
-    }, 0)
+  // Scored in µg/m³·h against the WHO 24-hour guideline expressed in the same units.
+  // The old score multiplied hours by the raw AQI and compared the result to a constant,
+  // so the ratio scaled with AQI and a clean-air day still read "HIGH EXPOSURE RISK".
+  const result = useMemo(
+    () => calculateExposure(activities, currentAqi),
+    [activities, currentAqi]
   );
 
-  const pctOfSafeLimit = Math.round((totalExposureScore / WHO_DAILY_EXPOSURE_LIMIT) * 100);
-
-  const getSeverityPill = (score) => {
-    if (score <= WHO_DAILY_EXPOSURE_LIMIT) return { label: "SAFE EXPOSURE", color: "#22c55e", bg: "rgba(34, 197, 94, 0.15)" };
-    if (score <= WHO_DAILY_EXPOSURE_LIMIT * 2) return { label: "MODERATE RISK", color: "#f59e0b", bg: "rgba(245, 158, 11, 0.15)" };
-    return { label: "HIGH EXPOSURE RISK", color: "#ef4444", bg: "rgba(239, 68, 68, 0.15)" };
-  };
-
-  const severity = getSeverityPill(totalExposureScore);
+  const {
+    exposure: totalExposureScore,
+    ambientPm25,
+    totalHours: totalLoggedHours,
+    percentOfGuideline: pctOfSafeLimit,
+    severity,
+    dayCoverage,
+  } = result;
 
   return (
     <section data-testid="exposure-calculator-page" className="panel exposure-calculator-panel">
       <div className="panel-head" style={{ marginBottom: "1.5rem" }}>
         <h2>🧮 Personal Exposure Calculator</h2>
-        <p>Log your daily activities to calculate your cumulative pollution intake score based on ambient AQI ({currentAqi}).</p>
+        <p>
+          Log your daily activities to estimate your cumulative PM2.5 intake. Ambient AQI{" "}
+          {currentAqi} corresponds to about <strong>{ambientPm25} µg/m³</strong> of PM2.5.
+        </p>
       </div>
 
       {/* Summary Score Card */}
@@ -94,17 +94,29 @@ export default function ExposureCalculator({ currentAqi = 100 }) {
           >
             {severity.label}
           </span>
-          <h3 style={{ margin: 0, fontSize: "2rem", color: "var(--ink, #f8fafc)" }}>
-            {totalExposureScore} <span style={{ fontSize: "1rem", color: "var(--muted)" }}>exposure pts</span>
+          <h3 data-testid="exposure-score" style={{ margin: 0, fontSize: "2rem", color: "var(--ink, #f8fafc)" }}>
+            {totalExposureScore} <span style={{ fontSize: "1rem", color: "var(--muted)" }}>µg/m³·h inhaled</span>
           </h3>
           <p style={{ margin: "0.25rem 0 0 0", color: "var(--muted)", fontSize: "0.9rem" }}>
-            Total Logged: <strong>{totalLoggedHours} / 24 hrs</strong>
+            Total Logged: <strong>{totalLoggedHours} / {HOURS_IN_DAY} hrs</strong>
           </p>
+          {dayCoverage && (
+            <p
+              data-testid="exposure-day-coverage"
+              style={{ margin: "0.25rem 0 0 0", color: "#f59e0b", fontSize: "0.85rem" }}
+            >
+              {dayCoverage === "short"
+                ? `Your routine covers less than a full day, so this sits below a ${HOURS_IN_DAY}-hour guideline by construction.`
+                : `Your routine adds up to more than ${HOURS_IN_DAY} hours.`}
+            </p>
+          )}
         </div>
 
         <div style={{ textAlign: "right", minWidth: "180px" }}>
-          <div style={{ fontSize: "0.85rem", color: "var(--muted)", marginBottom: "0.25rem" }}>vs. Safe Benchmark</div>
-          <div style={{ fontSize: "1.5rem", fontWeight: "bold", color: severity.color }}>
+          <div style={{ fontSize: "0.85rem", color: "var(--muted)", marginBottom: "0.25rem" }}>
+            vs. WHO 24h guideline ({SAFE_DAILY_EXPOSURE} µg/m³·h)
+          </div>
+          <div data-testid="exposure-percent" style={{ fontSize: "1.5rem", fontWeight: "bold", color: severity.color }}>
             {pctOfSafeLimit}%
           </div>
           <div style={{ height: "6px", width: "100%", background: "var(--line)", borderRadius: "3px", overflow: "hidden", marginTop: "0.35rem" }}>
@@ -120,6 +132,12 @@ export default function ExposureCalculator({ currentAqi = 100 }) {
         </div>
       </div>
 
+      <p style={{ fontSize: "0.8rem", color: "var(--muted)", margin: "-1rem 0 1.5rem 0" }}>
+        Intake is estimated as hours × activity multiplier × ambient PM2.5, giving
+        µg/m³·h. The benchmark is the WHO 24-hour PM2.5 guideline of{" "}
+        {WHO_PM25_24H_GUIDELINE} µg/m³ sustained for a day ({SAFE_DAILY_EXPOSURE} µg/m³·h).
+      </p>
+
       {/* Activity Entry Form & Logged List */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))", gap: "1.5rem" }}>
         {/* Form */}
@@ -127,8 +145,9 @@ export default function ExposureCalculator({ currentAqi = 100 }) {
           <h3 style={{ margin: "0 0 1rem 0", fontSize: "1.1rem" }}>Add Activity Routine</h3>
           <form onSubmit={handleAddActivity} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
             <div>
-              <label style={{ display: "block", fontSize: "0.85rem", marginBottom: "0.4rem", color: "var(--muted)" }}>Activity Type</label>
+              <label htmlFor="exposure-activity-type" style={{ display: "block", fontSize: "0.85rem", marginBottom: "0.4rem", color: "var(--muted)" }}>Activity Type</label>
               <select
+                id="exposure-activity-type"
                 value={newActivityType}
                 onChange={(e) => setNewActivityType(e.target.value)}
                 style={{
@@ -150,8 +169,9 @@ export default function ExposureCalculator({ currentAqi = 100 }) {
             </div>
 
             <div>
-              <label style={{ display: "block", fontSize: "0.85rem", marginBottom: "0.4rem", color: "var(--muted)" }}>Duration (Hours)</label>
+              <label htmlFor="exposure-duration" style={{ display: "block", fontSize: "0.85rem", marginBottom: "0.4rem", color: "var(--muted)" }}>Duration (Hours)</label>
               <input
+                id="exposure-duration"
                 type="number"
                 min="0.5"
                 max="24"
@@ -197,8 +217,8 @@ export default function ExposureCalculator({ currentAqi = 100 }) {
           ) : (
             <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "0.75rem" }}>
               {activities.map((item) => {
-                const actDef = ACTIVITIES.find((a) => a.id === item.type) || ACTIVITIES[1];
-                const itemPoints = Math.round(item.hours * actDef.multiplier * currentAqi);
+                const actDef = getActivity(item.type);
+                const itemPoints = Math.round(item.hours * actDef.multiplier * ambientPm25);
 
                 return (
                   <li
@@ -220,7 +240,7 @@ export default function ExposureCalculator({ currentAqi = 100 }) {
                       </div>
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-                      <span style={{ fontWeight: "bold", color: "var(--brand)", fontSize: "0.95rem" }}>+{itemPoints} pts</span>
+                      <span style={{ fontWeight: "bold", color: "var(--brand)", fontSize: "0.95rem" }}>+{itemPoints} µg/m³·h</span>
                       <button
                         type="button"
                         onClick={() => handleRemoveActivity(item.id)}
