@@ -1,38 +1,19 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { SAFE_LIMITS } from "../constants/cities";
 import { useLocalStorageSet } from "../hooks/useLocalStorageSet";
+import {
+  HAZARDOUS_AQI_THRESHOLD,
+  alertEntryKey,
+  alertSignature,
+  buildWarnings,
+  clearAlertHistory,
+  formatAlertTimestamp,
+  readAlertHistory,
+  recordAlerts,
+  writeAlertHistory,
+} from "../utils/alertHistory";
 
-const HISTORY_KEY = "aqi-alert-history";
-const MAX_HISTORY = 50;
-const HAZARDOUS_AQI_THRESHOLD = 200;
 const PUSH_ALERTS_KEY = "push-alerts-enabled";
 const PUSH_ALERTS_FLAG = "enabled";
-
-/** @param {any} current */
-function buildWarnings(current) {
-  const warnings = [];
-  if (current.pm2_5 > SAFE_LIMITS.pm2_5)
-    warnings.push(
-      "PM2.5 is high. Wear a certified mask and avoid heavy outdoor exercise.",
-    );
-  if (current.pm10 > SAFE_LIMITS.pm10)
-    warnings.push(
-      "PM10 is elevated. Keep windows closed during peak traffic hours.",
-    );
-  if (current.nitrogen_dioxide > SAFE_LIMITS.nitrogen_dioxide)
-    warnings.push(
-      "NO2 levels are unsafe. Reduce roadside exposure if possible.",
-    );
-  if (current.ozone > SAFE_LIMITS.ozone)
-    warnings.push(
-      "Ozone levels are high. Limit outdoor activity during peak sunlight hours.",
-    );
-  if (current.us_aqi > 120)
-    warnings.push(
-      "AQI suggests unhealthy conditions. Avoid outdoor activities today.",
-    );
-  return warnings;
-}
 
 /** @param {any} params */
 export default function AlertsPanel({
@@ -41,18 +22,15 @@ export default function AlertsPanel({
   confidenceScore,
   exposureEstimate,
 }) {
-  const [permission, setPermission] = useState(
-    "Notification" in window ? Notification.permission : "denied",
+  // "unsupported" rather than "denied" when the API is absent. iOS Safari and in-app
+  // webviews have no Notification constructor at all, and telling those visitors they
+  // have blocked notifications — with instructions for unblocking them — describes a
+  // setting that does not exist on their device.
+  const [permission, setPermission] = useState(() =>
+    "Notification" in window ? Notification.permission : "unsupported",
   );
 
-  const [alertHistory, setAlertHistory] = useState(() => {
-    try {
-      const stored = localStorage.getItem(HISTORY_KEY);
-      return stored ? JSON.parse(stored) : [];
-    } catch (_e) {
-      return [];
-    }
-  });
+  const [alertHistory, setAlertHistory] = useState(readAlertHistory);
 
   // Persist alert toggle state via the existing useLocalStorageSet hook.
   // The set contains PUSH_ALERTS_FLAG ('enabled') when alerts are on.
@@ -60,53 +38,48 @@ export default function AlertsPanel({
     useLocalStorageSet(PUSH_ALERTS_KEY);
   const alertsEnabled = hasAlertFlag(PUSH_ALERTS_FLAG);
 
-  // Separate ref for history deduplication — does not affect notification behavior
-  const lastHistorySignature = useRef("");
-
   // Keep every hook call unconditional (Rules of Hooks). Guard `current` inside
   // the hooks and bail out before rendering the JSX further down.
-  const warnings = useMemo(() => (current ? buildWarnings(current) : []), [current]);
+  const warnings = useMemo(() => buildWarnings(current), [current]);
   const lastNotified = useRef("");
 
   useEffect(() => {
-    if (!("Notification" in window)) return;
-
     if (!warnings.length) {
       lastNotified.current = "";
       return;
     }
 
-    const signature = `${cityName}:${warnings.join("|")}`;
-    if (lastNotified.current === signature) return;
+    const signature = alertSignature(cityName, warnings);
 
-    // Append to history only when the warning set is new
-    if (lastHistorySignature.current !== signature) {
-      lastHistorySignature.current = signature;
-      const timestamp = new Date().toLocaleString();
-      const newEntries = warnings.map((w) => ({
-        timestamp,
-        city: cityName,
-        aqi: current.us_aqi,
-        warning: w,
-      }));
-      setAlertHistory((prev) => {
-        const updated = [...newEntries, ...prev].slice(0, MAX_HISTORY);
-        try {
-          localStorage.setItem(HISTORY_KEY, JSON.stringify(updated));
-        } catch (_e) {
-          // Quota exceeded — skip persist
-        }
-        return updated;
-      });
+    // Recording the alert no longer sits behind a Notification check. History is a log
+    // of what the app displayed; it has nothing to do with whether the browser can send
+    // a notification. Guarding both together meant iOS Safari and in-app webviews — a
+    // large share of this app's traffic — showed "No alert history yet." forever.
+    //
+    // The de-duplication key is read back from the stored log rather than kept in a ref,
+    // so it survives a reload. That is what made every page load append the same
+    // warnings again. Reading storage instead of `alertHistory` also keeps this effect
+    // out of its own dependency list and the write out of a setState updater.
+    const { history, changed } = recordAlerts(readAlertHistory(), {
+      cityName,
+      aqi: current?.us_aqi,
+      warnings,
+    });
+
+    if (changed) {
+      writeAlertHistory(history);
+      setAlertHistory(history);
     }
 
-    // Browser push notification: only fire when permission is granted,
-    // alerts are enabled by the user, and AQI exceeds the hazardous threshold.
-    // Deduplication is enforced via lastNotified ref (same signature = no repeat).
+    if (!("Notification" in window)) return;
+
+    // Only fire when permission is granted, alerts are enabled by the user, and AQI
+    // exceeds the hazardous threshold. Same signature = no repeat.
     if (
       permission === "granted" &&
       alertsEnabled &&
-      current.us_aqi > HAZARDOUS_AQI_THRESHOLD
+      current?.us_aqi > HAZARDOUS_AQI_THRESHOLD &&
+      lastNotified.current !== signature
     ) {
       new Notification("⚠️ Hazardous Pollution Alert", {
         body: `${cityName}: AQI ${current.us_aqi} — ${warnings[0]}`,
@@ -123,11 +96,7 @@ export default function AlertsPanel({
   };
 
   const handleClearHistory = () => {
-    try {
-      localStorage.removeItem(HISTORY_KEY);
-    } catch (_e) {
-      // ignore
-    }
+    clearAlertHistory();
     setAlertHistory([]);
   };
 
@@ -314,9 +283,10 @@ export default function AlertsPanel({
         ) : (
           <ul className="alert-history-list">
             {alertHistory.map((entry, i) => (
-              <li key={i} className="alert-history-item">
+              <li key={alertEntryKey(entry, i)} className="alert-history-item">
                 <span className="alert-history-meta">
-                  {entry.timestamp} · {entry.city} · AQI {entry.aqi}
+                  {formatAlertTimestamp(entry)} · {entry.city} · AQI{" "}
+                  {entry.aqi ?? "—"}
                 </span>
                 <span className="alert-history-warning">{entry.warning}</span>
               </li>
