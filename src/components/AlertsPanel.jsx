@@ -1,29 +1,32 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { SAFE_LIMITS } from "../constants/cities";
 import { useLocalStorageSet } from "../hooks/useLocalStorageSet";
+import { useNotificationSettings } from "../hooks/useNotificationSettings";
+import NotificationSettings from "./NotificationSettings";
 
 const HISTORY_KEY = "aqi-alert-history";
 const MAX_HISTORY = 50;
-const HAZARDOUS_AQI_THRESHOLD = 200;
 const PUSH_ALERTS_KEY = "push-alerts-enabled";
 const PUSH_ALERTS_FLAG = "enabled";
 
-/** @param {any} current */
-function buildWarnings(current) {
+/**
+ * @param {any} current
+ * @param {any} thresholds - per-pollutant thresholds from notification settings
+ */
+function buildWarnings(current, thresholds) {
   const warnings = [];
-  if (current.pm2_5 > SAFE_LIMITS.pm2_5)
+  if (current.pm2_5 > thresholds.pm2_5)
     warnings.push(
       "PM2.5 is high. Wear a certified mask and avoid heavy outdoor exercise.",
     );
-  if (current.pm10 > SAFE_LIMITS.pm10)
+  if (current.pm10 > thresholds.pm10)
     warnings.push(
       "PM10 is elevated. Keep windows closed during peak traffic hours.",
     );
-  if (current.nitrogen_dioxide > SAFE_LIMITS.nitrogen_dioxide)
+  if (current.nitrogen_dioxide > thresholds.nitrogen_dioxide)
     warnings.push(
       "NO2 levels are unsafe. Reduce roadside exposure if possible.",
     );
-  if (current.ozone > SAFE_LIMITS.ozone)
+  if (current.ozone > thresholds.ozone)
     warnings.push(
       "Ozone levels are high. Limit outdoor activity during peak sunlight hours.",
     );
@@ -60,12 +63,20 @@ export default function AlertsPanel({
     useLocalStorageSet(PUSH_ALERTS_KEY);
   const alertsEnabled = hasAlertFlag(PUSH_ALERTS_FLAG);
 
+  // Custom AQI threshold, per-pollutant thresholds, and quiet hours (localStorage-backed)
+  const { settings: notificationSettings, updateSettings, isWithinQuietHours } =
+    useNotificationSettings();
+  const [showSettings, setShowSettings] = useState(false);
+
   // Separate ref for history deduplication — does not affect notification behavior
   const lastHistorySignature = useRef("");
 
   // Keep every hook call unconditional (Rules of Hooks). Guard `current` inside
   // the hooks and bail out before rendering the JSX further down.
-  const warnings = useMemo(() => (current ? buildWarnings(current) : []), [current]);
+  const warnings = useMemo(
+    () => (current ? buildWarnings(current, notificationSettings.pollutantThresholds) : []),
+    [current, notificationSettings.pollutantThresholds],
+  );
   const lastNotified = useRef("");
 
   useEffect(() => {
@@ -101,19 +112,29 @@ export default function AlertsPanel({
     }
 
     // Browser push notification: only fire when permission is granted,
-    // alerts are enabled by the user, and AQI exceeds the hazardous threshold.
+    // alerts are enabled by the user, AQI exceeds the user's custom threshold,
+    // and we're not inside their configured quiet hours.
     // Deduplication is enforced via lastNotified ref (same signature = no repeat).
     if (
       permission === "granted" &&
       alertsEnabled &&
-      current.us_aqi > HAZARDOUS_AQI_THRESHOLD
+      current.us_aqi > notificationSettings.aqiThreshold &&
+      !isWithinQuietHours()
     ) {
       new Notification("⚠️ Hazardous Pollution Alert", {
         body: `${cityName}: AQI ${current.us_aqi} — ${warnings[0]}`,
       });
       lastNotified.current = signature;
     }
-  }, [warnings, cityName, current?.us_aqi, permission, alertsEnabled]);
+  }, [
+    warnings,
+    cityName,
+    current?.us_aqi,
+    permission,
+    alertsEnabled,
+    notificationSettings.aqiThreshold,
+    isWithinQuietHours,
+  ]);
 
   const requestNotificationPermission = () => {
     if (!("Notification" in window)) return;
@@ -135,10 +156,36 @@ export default function AlertsPanel({
 
   return (
     <section data-testid="alerts-panel" className="panel">
-      <div className="panel-head">
-        <h2>Alerts &amp; Notifications</h2>
-        <p>Health warnings based on safe pollutant thresholds</p>
+      <div
+        className="panel-head"
+        style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}
+      >
+        <div>
+          <h2>Alerts &amp; Notifications</h2>
+          <p>Health warnings based on safe pollutant thresholds</p>
+        </div>
+        <button
+          type="button"
+          onClick={() => setShowSettings((prev) => !prev)}
+          aria-label="Open notification settings"
+          data-testid="notification-settings-toggle"
+          className="notif-gear-btn"
+        >
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2">
+            <circle cx="12" cy="12" r="3" />
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+          </svg>
+        </button>
+
       </div>
+
+      {showSettings && (
+        <NotificationSettings
+          settings={notificationSettings}
+          onUpdate={updateSettings}
+          onClose={() => setShowSettings(false)}
+        />
+      )}
 
       {permission === "default" && (
         <div
@@ -205,7 +252,7 @@ export default function AlertsPanel({
               }}
             >
               Receive a browser notification when AQI exceeds{" "}
-              {HAZARDOUS_AQI_THRESHOLD} (hazardous level)
+              {notificationSettings.aqiThreshold}
             </span>
           </div>
 
