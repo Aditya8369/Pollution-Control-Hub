@@ -14,11 +14,11 @@ export async function searchLocations(
   const trimmedQuery = query.trim().toLowerCase();
   const cacheKey = `geo_search_${trimmedQuery}_${count}`;
 
-  const cached = await cacheStore.get(cacheKey);
-  if (cached && cached.data && !(await cacheStore.isStale(cacheKey, GEOCODING_CACHE_TTL))) {
-    return cached.data;
-  }
-
+  // The freshness window is passed to deduplicate() rather than checked separately
+  // beforehand. The manual pre-check that used to sit here was overruled by
+  // deduplicate(), which served the entry from memory whatever its age — so a result
+  // older than the 24-hour TTL was returned by the very call that had just decided it
+  // was too old to use.
   return cacheStore.deduplicate(cacheKey, async (): Promise<LocationResult[]> => {
     const url = `${GEOCODING_BASE_URL}?name=${encodeURIComponent(query)}&count=${count}&language=en&format=json`;
 
@@ -43,7 +43,8 @@ export async function searchLocations(
           .join(', ')
       }));
 
-      await cacheStore.set(cacheKey, formattedResults);
+      // deduplicate() writes the resolved value under `cacheKey`, so writing it here as
+      // well only stored the same payload twice with two different timestamps.
       return formattedResults;
     } catch (error: any) {
       if (error.name !== 'AbortError') {
@@ -51,5 +52,5 @@ export async function searchLocations(
       }
       throw error;
     }
-  });
+  }, { ttl: GEOCODING_CACHE_TTL });
 }
