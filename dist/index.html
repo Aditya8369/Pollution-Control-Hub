@@ -4,15 +4,70 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content="Pollution Control Hub — track and manage pollution control data." />
+    <meta name="theme-color" content="#1f9d55" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="PollutionHub" />
     <title>Pollution Control Hub</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌍</text></svg>">
+    <link rel="apple-touch-icon" href="/pwa-192x192.svg" />
+    <link rel="manifest" href="/manifest.json" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet" />
-    <script type="module" crossorigin src="/assets/index-1L8278He.js"></script>
-    <link rel="stylesheet" crossorigin href="/assets/index-666WafhM.css">
+    <script type="module" crossorigin src="/assets/index-CZRYJ4Ne.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-Cgy5sYd7.css">
   </head>
   <body>
     <div id="root"></div>
   </body>
 </html>
+
++diff --git a/index.html b/index.html
++index 3a2b5c6..7d8e9f0 100644
++--- a/index.html
++@@ -10,7 +10,7 @@
++       <h1 style="color: red;">Welcome to My Website</h1>
++       <p style="font-size: 20px;">This is a sample paragraph.</p>
++     </header>
++-    <div style="background-color: #f0f0f0; padding: 20px;">
+++    <div class="content">
++       <article style="margin-bottom: 20px;">
++         <h2 style="color: blue;">About Us</h2>
++         <p style="font-size: 18px;">We are a team of developers dedicated to creating innovative solutions.</p>
++@@ -25,7 +25,7 @@
++       <article style="margin-bottom: 20px;">
++         <h2 style="color: blue;">Our Services</h2>
++         <ul style="list-style-type: none; padding: 0;">
++-          <li style="display: inline-block; margin-right: 10px;"><a href="#" style="text-decoration: none; color: green;">Web Design</a></li>
+++          <li class="service-item"><a href="#" style="text-decoration: none; color: green;">Web Design</a></li>
++           <li class="service-item"><a href="#" style="text-decoration: none; color: green;">Web Development</a></li>
++           <li class="service-item"><a href="#" style="text-decoration: none; color: green;">SEO Optimization</a></li>
++         </ul>
++       </article>
++     </div>
++-    <footer style="background-color: #333; color: white; text-align: center; padding: 10px;">
+++    <footer class="footer">
++       <p>&copy; 2023 My Website. All rights reserved.</p>
++     </footer>
++   </body>
++ </html>
++
++<style>
++.content {
++  background-color: #f0f0f0;
++  padding: 20px;
++}
++
++.footer {
++  background-color: #333;
++  color: white;
++  text-align: center;
++  padding: 10px;
++}
++
++.service-item {
++  display: inline-block;
++  margin-right: 10px;
++}
++</style>
