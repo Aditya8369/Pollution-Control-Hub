@@ -727,7 +727,16 @@ export async function fetchCityComparisons(signal?: AbortSignal): Promise<CityCo
     CITY_COORDINATES.map(async (city) => {
       try {
         const key = `aqi_lite_${city.lat}_${city.lon}`;
-        const result = await cacheStore.deduplicate(key, () => fetchAirQualityByCoords(city.lat, city.lon, signal, true));
+        // The TTL is the point of this key. Auto-refresh invalidates the key the whole
+        // comparison list is cached under, not the twelve per-city keys underneath it,
+        // so with no freshness window these readings were replayed from the first load
+        // for as long as the tab stayed open — only a manual refresh, which clears the
+        // entire store, ever moved them.
+        const result = await cacheStore.deduplicate(
+          key,
+          () => fetchAirQualityByCoords(city.lat, city.lon, signal, true),
+          { ttl: CACHE_TTL.CURRENT }
+        );
 
         return {
           city: city.name,
