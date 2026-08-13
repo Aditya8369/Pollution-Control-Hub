@@ -44,18 +44,15 @@ export default function AlertsPanel({
   confidenceScore,
   exposureEstimate,
 }) {
-  const [permission, setPermission] = useState(
-    "Notification" in window ? Notification.permission : "denied",
+  // "unsupported" rather than "denied" when the API is absent. iOS Safari and in-app
+  // webviews have no Notification constructor at all, and telling those visitors they
+  // have blocked notifications — with instructions for unblocking them — describes a
+  // setting that does not exist on their device.
+  const [permission, setPermission] = useState(() =>
+    "Notification" in window ? Notification.permission : "unsupported",
   );
 
-  const [alertHistory, setAlertHistory] = useState(() => {
-    try {
-      const stored = localStorage.getItem(HISTORY_KEY);
-      return stored ? JSON.parse(stored) : [];
-    } catch (_e) {
-      return [];
-    }
-  });
+  const [alertHistory, setAlertHistory] = useState(readAlertHistory);
 
   // Persist alert toggle state via the existing useLocalStorageSet hook.
   // The set contains PUSH_ALERTS_FLAG ('enabled') when alerts are on.
@@ -80,35 +77,31 @@ export default function AlertsPanel({
   const lastNotified = useRef("");
 
   useEffect(() => {
-    if (!("Notification" in window)) return;
-
     if (!warnings.length) {
       lastNotified.current = "";
       return;
     }
 
-    const signature = `${cityName}:${warnings.join("|")}`;
-    if (lastNotified.current === signature) return;
+    const signature = alertSignature(cityName, warnings);
 
-    // Append to history only when the warning set is new
-    if (lastHistorySignature.current !== signature) {
-      lastHistorySignature.current = signature;
-      const timestamp = new Date().toLocaleString();
-      const newEntries = warnings.map((w) => ({
-        timestamp,
-        city: cityName,
-        aqi: current.us_aqi,
-        warning: w,
-      }));
-      setAlertHistory((prev) => {
-        const updated = [...newEntries, ...prev].slice(0, MAX_HISTORY);
-        try {
-          localStorage.setItem(HISTORY_KEY, JSON.stringify(updated));
-        } catch (_e) {
-          // Quota exceeded — skip persist
-        }
-        return updated;
-      });
+    // Recording the alert no longer sits behind a Notification check. History is a log
+    // of what the app displayed; it has nothing to do with whether the browser can send
+    // a notification. Guarding both together meant iOS Safari and in-app webviews — a
+    // large share of this app's traffic — showed "No alert history yet." forever.
+    //
+    // The de-duplication key is read back from the stored log rather than kept in a ref,
+    // so it survives a reload. That is what made every page load append the same
+    // warnings again. Reading storage instead of `alertHistory` also keeps this effect
+    // out of its own dependency list and the write out of a setState updater.
+    const { history, changed } = recordAlerts(readAlertHistory(), {
+      cityName,
+      aqi: current?.us_aqi,
+      warnings,
+    });
+
+    if (changed) {
+      writeAlertHistory(history);
+      setAlertHistory(history);
     }
 
     // Browser push notification: only fire when permission is granted,
@@ -144,11 +137,7 @@ export default function AlertsPanel({
   };
 
   const handleClearHistory = () => {
-    try {
-      localStorage.removeItem(HISTORY_KEY);
-    } catch (_e) {
-      // ignore
-    }
+    clearAlertHistory();
     setAlertHistory([]);
   };
 
@@ -361,9 +350,10 @@ export default function AlertsPanel({
         ) : (
           <ul className="alert-history-list">
             {alertHistory.map((entry, i) => (
-              <li key={i} className="alert-history-item">
+              <li key={alertEntryKey(entry, i)} className="alert-history-item">
                 <span className="alert-history-meta">
-                  {entry.timestamp} · {entry.city} · AQI {entry.aqi}
+                  {formatAlertTimestamp(entry)} · {entry.city} · AQI{" "}
+                  {entry.aqi ?? "—"}
                 </span>
                 <span className="alert-history-warning">{entry.warning}</span>
               </li>
