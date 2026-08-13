@@ -94,10 +94,25 @@ test("deduplicate stores resolved result in memoryCache for subsequent get calls
   expect(fromCache).not.toBeNull();
   expect(fromCache.data).toEqual({ aqi: 95 });
 
-  // Calling deduplicate again with same key should NOT trigger fetcher again
+  // A later deduplicate() for the same key fetches again once the first request has
+  // settled. This assertion used to run the other way round — it expected the cached
+  // value to be replayed and the fetcher never to be called — which is the defect in
+  // #690: once a key had been fetched, it was never fetched again for the lifetime of
+  // the tab, however old the entry got.
   const fetcher2 = vi.fn().mockResolvedValue({ aqi: 999 });
   const result2 = await cacheStore.deduplicate("mem-key", fetcher2);
-  expect(result2).toEqual({ aqi: 95 }); // old cached value
+  expect(result2).toEqual({ aqi: 999 });
+  expect(fetcher2).toHaveBeenCalledTimes(1);
+});
+
+test("deduplicate serves a cached value when the caller names a freshness window", async () => {
+  const fetcher = vi.fn().mockResolvedValue({ aqi: 95 });
+  await cacheStore.deduplicate("ttl-key", fetcher, { ttl: 60_000 });
+
+  const fetcher2 = vi.fn().mockResolvedValue({ aqi: 999 });
+  const result = await cacheStore.deduplicate("ttl-key", fetcher2, { ttl: 60_000 });
+
+  expect(result).toEqual({ aqi: 95 });
   expect(fetcher2).not.toHaveBeenCalled();
 });
 

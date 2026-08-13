@@ -19,7 +19,7 @@ import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 import styles from "./Dashboard.module.css";
 import { useSWR } from "../hooks/useSWR";
-import { getAQIBand, getPollutantColor, get7DayForecast, fetch7DayForecast, getWeatherDetails } from "../services/airQualityService";
+import { getAQIBand, getPollutantColor, get7DayForecast, getWeatherDetails } from "../services/airQualityService";
 import MorningBriefing from "./MorningBriefing";
 import { eventBus } from "../core/events";
 import ChallengesWidget from "./ChallengesWidget";

@@ -1,3 +1,5 @@
+@import "tailwindcss";
+
 .selected-file-container {
   display: flex;
   align-items: center;
@@ -4427,8 +4429,6 @@
     justify-content: center;
   }
 }
-
-@import "tailwindcss";
 
 /* ============================================================
    Pollution Control Hub — Design Tokens
@@ -10393,6 +10393,7 @@ a {
 }
 
 .symptom-report-modal {
+  position: relative;
   width: min(420px, 100%);
   max-height: 85vh;
   overflow-y: auto;
@@ -10400,6 +10401,35 @@ a {
   border-radius: var(--r-lg);
   padding: var(--sp-6);
   box-shadow: var(--shadow-lg);
+}
+
+/* Takes focus when the dialog opens, so it needs a visible ring of its own. */
+.symptom-report-close-btn {
+  position: absolute;
+  top: var(--sp-3);
+  right: var(--sp-3);
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--muted);
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.symptom-report-close-btn:hover {
+  background: color-mix(in srgb, var(--line) 40%, transparent);
+  color: var(--ink);
+}
+
+.symptom-report-close-btn:focus-visible {
+  outline: 2px solid var(--primary, #0d9488);
+  outline-offset: 2px;
 }
 
 .symptom-report-subtext {
@@ -10438,8 +10468,397 @@ a {
   font-weight: 600;
 }
 
+.symptom-report-error {
+  color: #b91c1c;
+  font-size: 0.88rem;
+  font-weight: 600;
+  margin: 0 0 var(--sp-4);
+}
+
 @media (max-width: 480px) {
   .symptom-report-options {
     grid-template-columns: 1fr;
   }
 }
+
+/* ============================================================
+   Notification Settings Panel — Issue #335
+   Scoped .notif-* classes; uses existing design tokens.
+   ============================================================ */
+
+/* ── Panel wrapper ───────────────────────────────────────────── */
+.notif-settings-panel {
+  margin-bottom: var(--sp-4);
+  padding: var(--sp-5);
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow-sm);
+  animation: rise-in 250ms var(--ease) both;
+}
+
+/* ── Header row (title + close button) ──────────────────────── */
+.notif-settings-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--sp-4);
+  padding-bottom: var(--sp-3);
+  border-bottom: 1px solid var(--line);
+}
+
+.notif-settings-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--ink);
+  letter-spacing: 0.01em;
+}
+
+.notif-settings-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.9rem;
+  height: 1.9rem;
+  padding: 0;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--r-sm);
+  cursor: pointer;
+  font-size: 1rem;
+  color: var(--muted);
+  line-height: 1;
+  transition:
+    background 180ms var(--ease),
+    color 180ms var(--ease),
+    border-color 180ms var(--ease);
+}
+
+.notif-settings-close:hover {
+  background: color-mix(in srgb, var(--danger) 12%, transparent);
+  color: var(--danger);
+  border-color: color-mix(in srgb, var(--danger) 30%, transparent);
+}
+
+.notif-settings-close:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+  border-radius: var(--r-sm);
+}
+
+/* ── Section grouping ────────────────────────────────────────── */
+.notif-settings-section {
+  margin-bottom: var(--sp-4);
+}
+
+.notif-settings-section + .notif-settings-section {
+  padding-top: var(--sp-3);
+  border-top: 1px solid color-mix(in srgb, var(--line) 60%, transparent);
+}
+
+/* ── Section sub-label (uppercase eyebrow) ───────────────────── */
+.notif-section-label {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--muted);
+  margin-bottom: var(--sp-3);
+}
+
+/* ── AQI threshold row ───────────────────────────────────────── */
+.notif-aqi-row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  flex-wrap: wrap;
+  font-size: 0.88rem;
+  font-weight: 500;
+  color: var(--ink);
+}
+
+/* ── Shared input style (number + time inputs) ───────────────── */
+.notif-input {
+  background: var(--panel);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  padding: 0.3rem 0.6rem;
+  font: inherit;
+  font-size: 0.88rem;
+  width: 5.5rem;
+  transition:
+    border-color 180ms var(--ease),
+    box-shadow 180ms var(--ease);
+}
+
+.notif-input:hover {
+  border-color: var(--brand);
+}
+
+.notif-input:focus {
+  outline: none;
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 18%, transparent);
+}
+
+/* ── Per-pollutant rows ──────────────────────────────────────── */
+.notif-pollutant-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.notif-pollutant-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.87rem;
+  color: var(--ink);
+  padding: 0.4rem 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--line) 45%, transparent);
+}
+
+.notif-pollutant-row:last-child {
+  border-bottom: none;
+}
+
+.notif-pollutant-name {
+  font-weight: 500;
+  color: var(--ink);
+}
+
+/* ── Quiet Hours section ─────────────────────────────────────── */
+.notif-quiet-label {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--ink);
+  cursor: pointer;
+  user-select: none;
+}
+
+.notif-quiet-times {
+  display: flex;
+  gap: var(--sp-5);
+  flex-wrap: wrap;
+  margin-top: var(--sp-3);
+  font-size: 0.85rem;
+}
+
+.notif-time-label {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  color: var(--ink);
+  font-weight: 500;
+}
+
+.notif-time-input {
+  background: var(--panel);
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  padding: 0.3rem 0.5rem;
+  font: inherit;
+  font-size: 0.85rem;
+  transition:
+    border-color 180ms var(--ease),
+    box-shadow 180ms var(--ease);
+}
+
+.notif-time-input:hover {
+  border-color: var(--brand);
+}
+
+.notif-time-input:focus {
+  outline: none;
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 18%, transparent);
+}
+
+/* ── Save Settings button ────────────────────────────────────── */
+.notif-save-btn {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.52rem 1.25rem;
+  cursor: pointer;
+  background: var(--brand);
+  color: var(--panel);   /* dark panel on light brand (dark mode) */
+  border: none;
+  border-radius: var(--r-sm);
+  font: inherit;
+  font-size: 0.88rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  transition:
+    filter 180ms var(--ease),
+    transform 180ms var(--ease),
+    box-shadow 180ms var(--ease);
+  box-shadow: var(--shadow-sm);
+}
+
+/* In light mode the brand is a darker teal — white text fits better */
+:root[data-theme="light"] .notif-save-btn {
+  color: #ffffff;
+}
+
+.notif-save-btn:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.notif-save-btn:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 3px;
+}
+
+.notif-save-btn:active {
+  transform: translateY(0);
+  filter: brightness(0.94);
+}
+
+/* ── Gear / Settings toggle button (in AlertsPanel header) ───── */
+.notif-gear-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--r-sm);
+  padding: 0.35rem;
+  cursor: pointer;
+  color: var(--muted);
+  transition:
+    background 180ms var(--ease),
+    color 180ms var(--ease),
+    border-color 180ms var(--ease),
+    transform 240ms var(--ease);
+}
+
+.notif-gear-btn:hover {
+  background: color-mix(in srgb, var(--brand) 12%, transparent);
+  color: var(--brand);
+  border-color: color-mix(in srgb, var(--brand) 35%, transparent);
+  transform: rotate(35deg);
+}
+
+.notif-gear-btn:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+  color: var(--brand);
+}
+
+/* ── High Contrast overrides ─────────────────────────────────── */
+:root[data-theme="high-contrast"] .notif-settings-panel {
+  background: var(--hc-surface) !important;
+  border: 2px solid var(--hc-border) !important;
+  box-shadow: none !important;
+}
+
+:root[data-theme="high-contrast"] .notif-settings-header {
+  border-bottom: 2px solid var(--hc-border) !important;
+}
+
+:root[data-theme="high-contrast"] .notif-settings-title {
+  color: var(--hc-ink) !important;
+  font-weight: 800 !important;
+}
+
+:root[data-theme="high-contrast"] .notif-settings-close {
+  color: var(--hc-ink) !important;
+  border: 2px solid var(--hc-border) !important;
+}
+
+:root[data-theme="high-contrast"] .notif-settings-close:hover {
+  background: var(--hc-surface-alt) !important;
+  border-color: var(--hc-brand) !important;
+  color: var(--hc-brand) !important;
+}
+
+:root[data-theme="high-contrast"] .notif-section-label {
+  color: var(--hc-muted) !important;
+  font-weight: 700 !important;
+}
+
+:root[data-theme="high-contrast"] .notif-settings-section + .notif-settings-section {
+  border-top-color: var(--hc-border) !important;
+}
+
+:root[data-theme="high-contrast"] .notif-aqi-row,
+:root[data-theme="high-contrast"] .notif-pollutant-name,
+:root[data-theme="high-contrast"] .notif-quiet-label,
+:root[data-theme="high-contrast"] .notif-time-label {
+  color: var(--hc-ink) !important;
+  font-weight: 600 !important;
+}
+
+:root[data-theme="high-contrast"] .notif-pollutant-row {
+  color: var(--hc-ink) !important;
+  border-bottom-color: var(--hc-border-light) !important;
+}
+
+:root[data-theme="high-contrast"] .notif-save-btn {
+  background-color: var(--hc-brand) !important;
+  color: #ffffff !important;
+  border: 2px solid var(--hc-brand) !important;
+  font-weight: 700 !important;
+  box-shadow: none !important;
+}
+
+:root[data-theme="high-contrast"] .notif-save-btn:hover {
+  background-color: var(--hc-brand-hover) !important;
+  border-color: var(--hc-brand-hover) !important;
+  filter: none !important;
+  transform: none !important;
+  text-decoration: underline !important;
+}
+
+:root[data-theme="high-contrast"] .notif-gear-btn {
+  color: var(--hc-ink) !important;
+  border: 2px solid var(--hc-border) !important;
+}
+
+:root[data-theme="high-contrast"] .notif-gear-btn:hover {
+  background: var(--hc-surface-alt) !important;
+  border-color: var(--hc-brand) !important;
+  color: var(--hc-brand) !important;
+  transform: none !important;
+}
+
+/* ── Responsive ──────────────────────────────────────────────── */
+@media (max-width: 540px) {
+  .notif-settings-panel {
+    padding: var(--sp-4);
+  }
+
+  .notif-aqi-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--sp-2);
+  }
+
+  .notif-input {
+    width: 100%;
+    max-width: 9rem;
+  }
+
+  .notif-pollutant-row {
+    flex-wrap: wrap;
+    gap: var(--sp-2);
+  }
+
+  .notif-quiet-times {
+    flex-direction: column;
+    gap: var(--sp-2);
+  }
+
+  .notif-time-input {
+    width: 100%;
+    max-width: 9rem;
+  }
+}

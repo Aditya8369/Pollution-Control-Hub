@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect } from "react";
 import facts from "../data/facts.json";
 
 /** @param {any} params */

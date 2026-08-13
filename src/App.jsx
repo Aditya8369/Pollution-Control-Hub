@@ -18,9 +18,6 @@ import Factoid from "./components/Factoid";
 import HistoricalData from "./components/HistoricalData";
 import LocationSearch from "./components/LocationSearch";
 import SkeletonDashboard from "./components/SkeletonDashboard";
-// @ts-ignore
-import { CITY_COORDINATES } from "./constants/cities";
-// @ts-ignore
 import ErrorBoundary from "./components/ErrorBoundary";
 import Commute from "./components/Commute";
 import GettingStarted from "./components/GettingStarted";
@@ -86,16 +83,6 @@ function readAutoRefreshSeconds() {
   } catch {
     return DEFAULT_AUTO_REFRESH_SECONDS;
   }
-}
-
-/** @returns {"dark"|"light"} The OS colour-scheme preference, defaulting to light. */
-// @ts-ignore
-function getSystemTheme() {
-  return typeof window !== "undefined" &&
-    window.matchMedia &&
-    window.matchMedia("(prefers-color-scheme: dark)").matches
-    ? "dark"
-    : "light";
 }
 
 /** @returns {boolean} True when the user has explicitly picked a theme in the app. */
@@ -335,9 +322,6 @@ function SectionNav({ activeSection, onSectionChange, theme }) {
     { id: "glossary", label: "Glossary" },
     { id: "achievements", label: "Achievements" },
   ];
-  // @ts-ignore
-  const isDark = theme === "dark";
-
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef(null);
   const mobileNavRef = useRef(null);
@@ -444,53 +428,6 @@ function SectionNav({ activeSection, onSectionChange, theme }) {
     setIsMenuOpen(false);
   };
 
-  // @ts-ignore
-  const themeToggleNode = (
-    <button
-      type="button"
-      className={`theme-toggle-inline ${theme === 'dark' ? 'dark' : theme === 'high-contrast' ? 'high-contrast' : ''}`}
-      onClick={() => eventBus.emit("TOGGLE_THEME")}
-      aria-label="Toggle Theme"
-      aria-pressed={theme !== 'light'}
-      title={
-        theme === 'light'
-          ? 'Switch to dark mode'
-          : theme === 'dark'
-            ? 'Switch to high-contrast mode'
-            : 'Switch to light mode'
-      }
-    >
-      <span className="toggle-thumb">
-        {theme === 'dark' ? (
-          <svg viewBox="0 0 24 24" className="moon-icon">
-            <path
-              d="M20 15.5A8.5 8.5 0 1 1 12.5 4a7 7 0 0 0 7.5 11.5z"
-              fill="currentColor"
-            />
-          </svg>
-        ) : theme === 'high-contrast' ? (
-          <svg viewBox="0 0 24 24" className="sun-icon" aria-hidden="true">
-            <circle cx="12" cy="12" r="10" fill="currentColor" />
-            <circle cx="12" cy="12" r="5" fill="white" />
-          </svg>
-        ) : (
-          <svg viewBox="0 0 24 24" className="sun-icon">
-            <circle cx="12" cy="12" r="5" fill="currentColor" />
-            <g stroke="currentColor" strokeWidth="2">
-              <line x1="12" y1="1" x2="12" y2="4" />
-              <line x1="12" y1="20" x2="12" y2="23" />
-              <line x1="1" y1="12" x2="4" y2="12" />
-              <line x1="20" y1="12" x2="23" y2="12" />
-              <line x1="4" y1="4" x2="6" y2="6" />
-              <line x1="18" y1="18" x2="20" y2="20" />
-              <line x1="18" y1="6" x2="20" y2="4" />
-              <line x1="4" y1="20" x2="6" y2="18" />
-            </g>
-          </svg>
-        )}
-      </span>
-    </button>
-  );
 
   if (!isMobile) {
     return (
@@ -724,8 +661,7 @@ function AppContent() {
   const [savedLocations, setSavedLocations] = useState(() => readSavedLocations());
   const [locationNotice, setLocationNotice] = useState("");
   const [persistenceWarning, setPersistenceWarning] = useState("");
-  // @ts-ignore
-  const { theme, setTheme, changeTheme } = useTheme();
+  const { theme, setTheme } = useTheme();
   const [timeRange, setTimeRange] = useState(() => {
     const saved = localStorage.getItem("timeRange");
     return saved ? Number(saved) : 24;
@@ -1355,7 +1291,18 @@ function AppContent() {
 export default function App() {
   return (
     <ThemeProvider>
-      <AppContent />
+      {/*
+        ErrorBoundary was imported here and never rendered, so nothing in the app was
+        behind one: any render error anywhere took the page to a blank white screen.
+        The lint noise is what hid it — the import sat among ~190 identical
+        "defined but never used" reports on components that *are* used in JSX.
+
+        It wraps AppContent rather than ThemeProvider so the fallback still renders
+        in the visitor's chosen theme.
+      */}
+      <ErrorBoundary>
+        <AppContent />
+      </ErrorBoundary>
     </ThemeProvider>
   );
 }

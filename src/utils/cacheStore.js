@@ -118,7 +118,7 @@ async function cleanupExpiredEntries() {
         cursor.continue();
       }
     };
-  } catch (err) {
+  } catch (_err) {
     // Ignore cleanup errors
   }
 }
@@ -278,31 +278,59 @@ export const cacheStore = {
   },
 
   /**
+   * Runs `fetcher` once per key while a request for that key is in flight.
+   *
+   * This joins a request that is already happening. It is not, by itself, a cache read:
+   * `getFromMemory(key)` with no ttl treats an entry as fresh forever, so serving from it
+   * unconditionally meant a key fetched once was never fetched again for the lifetime of
+   * the tab. Callers ran their own freshness check, concluded the entry was stale, and
+   * were then overruled here — which is how the City Comparison panel ended up frozen on
+   * whatever the first load returned.
+   *
+   * A caller that does want a cached value says how old a value it will accept, the same
+   * way `getFresh(key, ttl)` and `isStale(key, ttl)` do. Omitting `ttl` always fetches.
+   *
+   * The result is still written to the cache either way — writing it is what makes the
+   * entry available to `getFresh`/`isStale`; replaying it unasked is the part that was
+   * wrong.
+   *
    * @param {any} key
    * @param {any} fetcher
+   * @param {{ttl?: number}} [options] - `ttl`: maximum acceptable age in ms.
+   * @returns {Promise<any>}
    */
-  async deduplicate(key, fetcher) {
+  async deduplicate(key, fetcher, { ttl } = {}) {
     if (!key) return null;
 
-    // Serve from memory cache if already resolved
-    const cached = this.getFromMemory(key);
-    if (cached) {
-      return cached.data;
-    }
-
+    // Joining an in-flight request comes first. Whatever the ttl says, the fetch is
+    // already happening, and a second one would only race it.
     if (inFlight.has(key)) {
       return inFlight.get(key);
     }
 
-    const promise = (async () => {
-      try {
-        const data = await fetcher();
+    if (typeof ttl === 'number' && Number.isFinite(ttl)) {
+      const cached = this.getFromMemory(key, ttl);
+      if (cached) return cached.data;
+    }
+
+    // `fetcher()` is called before anything is registered, so a fetcher that throws
+    // synchronously cannot leave a rejected promise parked under this key — which every
+    // later call for it would then have replayed.
+    let pending;
+    try {
+      pending = Promise.resolve(fetcher());
+    } catch (err) {
+      return Promise.reject(err);
+    }
+
+    const promise = pending
+      .then(async (data) => {
         await this.set(key, data);
         return data;
-      } finally {
+      })
+      .finally(() => {
         inFlight.delete(key);
-      }
-    })();
+      });
 
     inFlight.set(key, promise);
 
