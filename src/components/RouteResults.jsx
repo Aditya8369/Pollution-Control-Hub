@@ -19,6 +19,51 @@ function coverageNote(route) {
 }
 
 /**
+ * Displays statistics for the currently selected active route.
+ */
+function ActiveRouteStats({ activeRoute, mode }) {
+  const note = coverageNote(activeRoute);
+
+  return (
+    <div className="commute-stats" style={{ marginBottom: "1.5rem" }}>
+      <h3>Route Selected</h3>
+      <p>
+        Mode: <strong style={{ textTransform: "capitalize" }}>{activeRoute.mode || mode}</strong>
+      </p>
+      <p>
+        Distance: <strong>{activeRoute.distance} km</strong>
+      </p>
+      <p>
+        Est. Time: <strong>{activeRoute.duration} mins</strong>
+      </p>
+      <p>
+        Avg PM2.5:{" "}
+        <InfoTooltip text="Average PM2.5 concentration measured along the route. Lower values generally indicate cleaner air." />
+        {" "}<strong>{formatReading(activeRoute.pm25, "µg/m³")}</strong>
+      </p>
+      <p>
+        Inhaled PM2.5 Dose: <strong>{formatReading(activeRoute.inhaledDose, "µg")}</strong>{" "}
+        <InfoTooltip text="An estimate of the total amount of PM2.5 particles inhaled over the duration of the trip." />
+      </p>
+      {note && (
+        <p
+          className="commute-coverage-note"
+          data-testid="commute-coverage-note"
+          style={{ fontSize: "0.85rem", color: "#b45309", marginTop: "0.25rem" }}
+        >
+          {note}
+        </p>
+      )}
+    </div>
+  );
+}
+
+ActiveRouteStats.propTypes = {
+  activeRoute: PropTypes.object.isRequired,
+  mode: PropTypes.string.isRequired,
+};
+
+/**
  * Recently planned routes, offered as one-click refills for the search form.
  *
  * Rendered on both branches of RouteResults — with results and without — so it lives
@@ -80,8 +125,6 @@ export default function RouteResults({
     return <RecentRoutes entries={routeHistory} onSelect={applyHistoryEntry} />;
   }
 
-  const note = coverageNote(activeRoute);
-
   return (
     <>
       {!pollutionDataAvailable && (
@@ -114,36 +157,8 @@ export default function RouteResults({
         </div>
       )}
 
-      <div className="commute-stats" style={{ marginBottom: "1.5rem" }}>
-        <h3>Route Selected</h3>
-        <p>
-          Mode: <strong style={{ textTransform: "capitalize" }}>{activeRoute.mode || mode}</strong>
-        </p>
-        <p>
-          Distance: <strong>{activeRoute.distance} km</strong>
-        </p>
-        <p>
-          Est. Time: <strong>{activeRoute.duration} mins</strong>
-        </p>
-        <p>
-          Avg PM2.5:{" "}
-          <InfoTooltip text="Average PM2.5 concentration measured along the route. Lower values generally indicate cleaner air." />
-          {" "}<strong>{formatReading(activeRoute.pm25, "µg/m³")}</strong>
-        </p>
-        <p>
-          Inhaled PM2.5 Dose: <strong>{formatReading(activeRoute.inhaledDose, "µg")}</strong>{" "}
-          <InfoTooltip text="An estimate of the total amount of PM2.5 particles inhaled over the duration of the trip." />
-        </p>
-        {note && (
-          <p
-            className="commute-coverage-note"
-            data-testid="commute-coverage-note"
-            style={{ fontSize: "0.85rem", color: "#b45309", marginTop: "0.25rem" }}
-          >
-            {note}
-          </p>
-        )}
-      </div>
+      {/* Rendered via the new sub-component */}
+      <ActiveRouteStats activeRoute={activeRoute} mode={mode} />
 
       <div className="commute-options">
         <h3>Route Options</h3>
