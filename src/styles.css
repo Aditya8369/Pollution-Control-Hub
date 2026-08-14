@@ -3250,6 +3250,34 @@
   border-color: transparent;
 }
 
+.commute-input-wrapper {
+  position: relative;
+}
+
+.commute-input-wrapper input {
+  padding-right: 2.5rem;
+}
+
+.commute-input-clear {
+  position: absolute;
+  top: 50%;
+  right: 0.5rem;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: #6b7280;
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: 50%;
+}
+
+.commute-input-clear:hover {
+  background-color: #f3f4f6;
+  color: #111827;
+}
+
 .commute-btn {
   width: 100%;
   margin-top: 1rem;
@@ -10551,7 +10579,7 @@ a {
   margin-bottom: var(--sp-4);
 }
 
-.notif-settings-section + .notif-settings-section {
+.notif-settings-section+.notif-settings-section {
   padding-top: var(--sp-3);
   border-top: 1px solid color-mix(in srgb, var(--line) 60%, transparent);
 }
@@ -10687,7 +10715,8 @@ a {
   padding: 0.52rem 1.25rem;
   cursor: pointer;
   background: var(--brand);
-  color: var(--panel);   /* dark panel on light brand (dark mode) */
+  color: var(--panel);
+  /* dark panel on light brand (dark mode) */
   border: none;
   border-radius: var(--r-sm);
   font: inherit;
@@ -10785,7 +10814,7 @@ a {
   font-weight: 700 !important;
 }
 
-:root[data-theme="high-contrast"] .notif-settings-section + .notif-settings-section {
+:root[data-theme="high-contrast"] .notif-settings-section+.notif-settings-section {
   border-top-color: var(--hc-border) !important;
 }
 
@@ -10861,4 +10890,4 @@ a {
     width: 100%;
     max-width: 9rem;
   }
-}
+}
