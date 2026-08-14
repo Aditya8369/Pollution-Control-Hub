@@ -86,24 +86,48 @@ export default function CommuteForm({
             </button>
           </div>
 
-          <input
-            type="text"
-            value={origin}
-            onChange={(e) => setOrigin(e.target.value)}
-            placeholder="e.g. Connaught Place"
-            required
-          />
+          <div className="commute-input-wrapper">
+            <input
+              type="text"
+              value={origin}
+              onChange={(e) => setOrigin(e.target.value)}
+              placeholder="e.g. Connaught Place"
+              required
+            />
+            {origin && (
+              <button
+                type="button"
+                className="commute-input-clear"
+                onClick={() => setOrigin("")}
+                aria-label="Clear starting point"
+              >
+                ×
+              </button>
+            )}
+          </div>
         </div>
 
         <div className="form-group">
           <label>Destination</label>
-          <input
-            type="text"
-            value={destination}
-            onChange={(e) => setDestination(e.target.value)}
-            placeholder="e.g. India Gate"
-            required
-          />
+          <div className="commute-input-wrapper">
+            <input
+              type="text"
+              value={destination}
+              onChange={(e) => setDestination(e.target.value)}
+              placeholder="e.g. India Gate"
+              required
+            />
+            {destination && (
+              <button
+                type="button"
+                className="commute-input-clear"
+                onClick={() => setDestination("")}
+                aria-label="Clear destination"
+              >
+                ×
+              </button>
+            )}
+          </div>
         </div>
 
         <div className="form-group">
