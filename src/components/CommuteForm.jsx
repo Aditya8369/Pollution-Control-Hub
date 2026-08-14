@@ -19,6 +19,11 @@ export default function CommuteForm({
   setNewLocationLabel,
   saveLocation,
 }) {
+  const handleSwap = () => {
+    setOrigin(destination);
+    setDestination(origin);
+  };
+
   return (
     <>
       {savedLocations.length > 0 && (
@@ -105,6 +110,23 @@ export default function CommuteForm({
               </button>
             )}
           </div>
+        </div>
+
+        <div className="commute-swap-row">
+          <button
+            type="button"
+            className="commute-swap-btn"
+            onClick={handleSwap}
+            aria-label="Swap starting point and destination"
+            title="Swap starting point and destination"
+          >
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M7 10l-4-4 4-4" />
+              <path d="M3 6h13a4 4 0 0 1 4 4v1" />
+              <path d="M17 14l4 4-4 4" />
+              <path d="M21 18H8a4 4 0 0 1-4-4v-1" />
+            </svg>
+          </button>
         </div>
 
         <div className="form-group">

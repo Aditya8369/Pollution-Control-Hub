@@ -3278,6 +3278,30 @@
   color: #111827;
 }
 
+.commute-swap-row {
+  display: flex;
+  justify-content: center;
+  margin: -0.5rem 0 0.75rem;
+}
+
+.commute-swap-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 50%;
+  border: 1px solid #d1d5db;
+  background-color: #ffffff;
+  color: #0d9488;
+  cursor: pointer;
+}
+
+.commute-swap-btn:hover {
+  background-color: #f0fdfa;
+  border-color: #0d9488;
+}
+
 .commute-btn {
   width: 100%;
   margin-top: 1rem;
