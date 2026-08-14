@@ -34,7 +34,7 @@ const Commute = () => {
   const [mapCenter, setMapCenter] = useState([28.6139, 77.209]);
   const [routeError, setRouteError] = useState(null);
 
-  const { isLocating, geoError, setGeoError, handleGetLocation } = useGeolocation(setOrigin);
+  const { isLocating, geoError, setGeoError, locationSuccess, handleGetLocation } = useGeolocation(setOrigin);
   const {
     routeHistory,
     savedLocations,
@@ -169,6 +169,7 @@ const Commute = () => {
         setMode={setMode}
         isCalculating={isCalculating}
         isLocating={isLocating}
+        locationSuccess={locationSuccess}
         handleGetLocation={handleGetLocation}
         handleRouteSearch={handleRouteSearch}
         savedLocations={savedLocations}
