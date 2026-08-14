@@ -2,9 +2,16 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocalStorageSet } from "../hooks/useLocalStorageSet";
 import { useNotificationSettings } from "../hooks/useNotificationSettings";
 import NotificationSettings from "./NotificationSettings";
+import {
+  alertSignature,
+  readAlertHistory,
+  writeAlertHistory,
+  clearAlertHistory,
+  recordAlerts,
+  formatAlertTimestamp,
+  alertEntryKey,
+} from "../utils/alertHistory";
 
-const HISTORY_KEY = "aqi-alert-history";
-const MAX_HISTORY = 50;
 const PUSH_ALERTS_KEY = "push-alerts-enabled";
 const PUSH_ALERTS_FLAG = "enabled";
 

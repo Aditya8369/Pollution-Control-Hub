@@ -22,6 +22,7 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import Commute from "./components/Commute";
 import GettingStarted from "./components/GettingStarted";
 import CityCompare from "./components/CityCompare";
+import IndoorTracker from "./components/IndoorTracker";
 import SunSafetyDashboard from "./components/SunSafetyDashboard";
 import {
   estimateWeeklyMonthlyAverages,
@@ -315,6 +316,7 @@ function SectionNav({ activeSection, onSectionChange, theme }) {
     { id: "widget", label: "AQI Widget" },
     { id: "game", label: "Game" },
     { id: "community", label: "Community" },
+    { id: "indoor", label: "Indoor Air" },
     { id: "history", label: "History" },
     { id: "historical-data", label: "Data Explorer" },
     { id: "Commute", label: "Commute" },
@@ -1162,6 +1164,15 @@ function AppContent() {
             {activeSection === "community" && (
               <div className="content-grid community-layout">
                 <CommunityHub />
+              </div>
+            )}
+
+            {activeSection === "indoor" && (
+              <div
+                className="content-grid indoor-layout"
+                style={{ maxWidth: "1100px", margin: "2rem auto", width: "100%", display: "block" }}
+              >
+                <IndoorTracker current={current} cityName={position.cityName} />
               </div>
             )}
 
