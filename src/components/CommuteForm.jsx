@@ -10,6 +10,7 @@ export default function CommuteForm({
   setMode,
   isCalculating,
   isLocating,
+  locationSuccess,
   handleGetLocation,
   handleRouteSearch,
   savedLocations,
@@ -87,7 +88,7 @@ export default function CommuteForm({
                 padding: 0,
               }}
             >
-              {isLocating ? "Locating..." : "📍 Use My Location"}
+              {isLocating ? "Locating..." : locationSuccess ? "✅ Location set!" : "📍 Use My Location"}
             </button>
           </div>
 
@@ -228,6 +229,7 @@ CommuteForm.propTypes = {
   setMode: PropTypes.func.isRequired,
   isCalculating: PropTypes.bool.isRequired,
   isLocating: PropTypes.bool.isRequired,
+  locationSuccess: PropTypes.bool,
   handleGetLocation: PropTypes.func.isRequired,
   handleRouteSearch: PropTypes.func.isRequired,
   savedLocations: PropTypes.array.isRequired,

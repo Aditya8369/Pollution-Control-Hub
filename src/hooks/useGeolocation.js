@@ -3,6 +3,7 @@ import { useState } from 'react';
 export function useGeolocation(setOrigin) {
   const [isLocating, setIsLocating] = useState(false);
   const [geoError, setGeoError] = useState(null);
+  const [locationSuccess, setLocationSuccess] = useState(false);
 
   const handleGetLocation = () => {
     setGeoError(null);
@@ -38,6 +39,8 @@ export function useGeolocation(setOrigin) {
               .slice(0, 3)
               .join(",");
             setOrigin(shortAddress);
+            setLocationSuccess(true);
+            setTimeout(() => setLocationSuccess(false), 3000);
           } else {
             setOrigin("Location unavailable");
             setGeoError("Location details unavailable for coordinates.");
@@ -63,6 +66,7 @@ export function useGeolocation(setOrigin) {
     isLocating,
     geoError,
     setGeoError,
+    locationSuccess,
     handleGetLocation,
   };
 }
