@@ -33,8 +33,8 @@ function RecentRoutes({ entries, onSelect }) {
     <div className="commute-history" data-testid="commute-history">
       <h3>Recent Routes</h3>
       <ul className="commute-history-list">
-        {entries.map((entry, index) => (
-          <li key={`${entry.timestamp}-${index}`}>
+        {entries.map((entry) => (
+          <li key={entry.timestamp}>
             <button
               type="button"
               className="commute-history-item"

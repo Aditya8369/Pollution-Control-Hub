@@ -17,6 +17,14 @@ vi.mock('react-leaflet', () => ({
 vi.mock('leaflet', () => ({
   default: {
     divIcon: (opts) => opts,
+    Icon: {
+      Default: {
+        prototype: {
+          _getIconUrl: vi.fn(),
+        },
+        mergeOptions: vi.fn(),
+      },
+    },
   },
 }));
 
