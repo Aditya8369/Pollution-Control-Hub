@@ -5,9 +5,11 @@ import { useRouteHistory } from "../hooks/useRouteHistory";
 import { getAQIBand } from "../services/airQualityService";
 import { eventBus } from "../core/events";
 import { describeRouteError } from "../utils/routeErrors";
-import CommuteForm from "./CommuteForm";
+import SavedLocations from "./SavedLocations";
+import RouteForm from "./RouteForm";
 import RouteResults from "./RouteResults";
 import RouteMap from "./RouteMap";
+import RouteHistory from "./RouteHistory";
 import "leaflet/dist/leaflet.css";
 
 const LEGEND_ITEMS = [
@@ -160,7 +162,12 @@ const Commute = () => {
           </button>
         </div>
       )}
-      <CommuteForm
+      <SavedLocations
+        savedLocations={savedLocations}
+        applySavedLocation={applySavedLocation}
+        deleteSavedLocation={deleteSavedLocation}
+      />
+      <RouteForm
         origin={origin}
         setOrigin={setOrigin}
         destination={destination}
@@ -172,9 +179,6 @@ const Commute = () => {
         locationSuccess={locationSuccess}
         handleGetLocation={handleGetLocation}
         handleRouteSearch={handleRouteSearch}
-        savedLocations={savedLocations}
-        applySavedLocation={applySavedLocation}
-        deleteSavedLocation={deleteSavedLocation}
         newLocationLabel={newLocationLabel}
         setNewLocationLabel={setNewLocationLabel}
         saveLocation={saveLocation}
@@ -185,8 +189,10 @@ const Commute = () => {
         setActiveRouteIndex={setActiveRouteIndex}
         pollutionDataAvailable={pollutionDataAvailable}
         mode={mode}
-        routeHistory={routeHistory}
-        applyHistoryEntry={applyHistoryEntry}
+      />
+      <RouteHistory
+        entries={routeHistory}
+        onSelect={applyHistoryEntry}
       />
       <RouteMap
         routes={routes}
@@ -194,6 +200,8 @@ const Commute = () => {
         mapCenter={mapCenter}
         searchId={searchId}
         legendItems={LEGEND_ITEMS}
+        origin={origin}
+        destination={destination}
       />
     </div>
   );

@@ -18,42 +18,6 @@ function coverageNote(route) {
   return null;
 }
 
-/**
- * Recently planned routes, offered as one-click refills for the search form.
- *
- * Rendered on both branches of RouteResults — with results and without — so it lives
- * in one place rather than being duplicated between them.
- *
- * @param {{ entries: any[], onSelect: (entry: any) => void }} props
- */
-function RecentRoutes({ entries, onSelect }) {
-  if (entries.length === 0) return null;
-
-  return (
-    <div className="commute-history" data-testid="commute-history">
-      <h3>Recent Routes</h3>
-      <ul className="commute-history-list">
-        {entries.map((entry) => (
-          <li key={entry.timestamp}>
-            <button
-              type="button"
-              className="commute-history-item"
-              onClick={() => onSelect(entry)}
-            >
-              {entry.origin} → {entry.destination}
-            </button>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
-RecentRoutes.propTypes = {
-  entries: PropTypes.array.isRequired,
-  onSelect: PropTypes.func.isRequired,
-};
-
 const noop = () => { };
 
 export default function RouteResults({
@@ -62,14 +26,9 @@ export default function RouteResults({
   setActiveRouteIndex = noop,
   pollutionDataAvailable = true,
   mode = "",
-  // Defaulted rather than required: a call site that forgets these should lose the
-  // Recent Routes list, not take the whole Clean Route Planner tab down with a
-  // TypeError before it paints. That is exactly what happened in #667.
-  routeHistory = [],
-  applyHistoryEntry = noop,
 }) {
   if (routes.length === 0) {
-    return <RecentRoutes entries={routeHistory} onSelect={applyHistoryEntry} />;
+    return null;
   }
 
   const activeRoute = routes[activeRouteIndex];
@@ -77,7 +36,7 @@ export default function RouteResults({
   // activeRouteIndex is reset to 0 on each search, but a stale index (or a shorter
   // results set) would otherwise dereference undefined below.
   if (!activeRoute) {
-    return <RecentRoutes entries={routeHistory} onSelect={applyHistoryEntry} />;
+    return null;
   }
 
   const note = coverageNote(activeRoute);
@@ -203,8 +162,6 @@ export default function RouteResults({
           })}
         </div>
       </div>
-
-      <RecentRoutes entries={routeHistory} onSelect={applyHistoryEntry} />
     </>
   );
 }
@@ -215,6 +172,4 @@ RouteResults.propTypes = {
   setActiveRouteIndex: PropTypes.func,
   pollutionDataAvailable: PropTypes.bool,
   mode: PropTypes.string,
-  routeHistory: PropTypes.array,
-  applyHistoryEntry: PropTypes.func,
 };
