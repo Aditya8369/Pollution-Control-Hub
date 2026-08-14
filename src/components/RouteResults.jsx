@@ -1,5 +1,6 @@
 import React from 'react';
 import PropTypes from 'prop-types';
+import InfoTooltip from "./InfoTooltip";
 
 function formatReading(value, unit) {
   if (value === null || value === undefined || value === "") return "Not available";
@@ -96,11 +97,20 @@ export default function RouteResults({
             borderRadius: "0.5rem",
             marginBottom: "1.5rem",
             fontSize: "0.9rem",
+            display: "flex",
+            alignItems: "flex-start",
+            gap: "0.4rem",
+            flexWrap: "wrap",
           }}
         >
-          ⚠️ <strong>Air quality data unavailable.</strong> These routes are shown
-          by distance and time only — none of them could be ranked for pollution,
-          so no route is marked cleanest.
+          <span>
+            ⚠️ <strong>Air quality data unavailable.</strong>{" "}
+            <InfoTooltip text="Pollution measurements could not be retrieved for these routes. The routes are still shown using distance and travel time." />
+          </span>
+          <span>
+            These routes are shown by distance and time only — none of them could be ranked for pollution,
+            so no route is marked cleanest.
+          </span>
         </div>
       )}
 
@@ -116,10 +126,13 @@ export default function RouteResults({
           Est. Time: <strong>{activeRoute.duration} mins</strong>
         </p>
         <p>
-          Avg PM2.5: <strong>{formatReading(activeRoute.pm25, "µg/m³")}</strong>
+          Avg PM2.5:{" "}
+          <InfoTooltip text="Average PM2.5 concentration measured along the route. Lower values generally indicate cleaner air." />
+          {" "}<strong>{formatReading(activeRoute.pm25, "µg/m³")}</strong>
         </p>
         <p>
-          Inhaled PM2.5 Dose: <strong>{formatReading(activeRoute.inhaledDose, "µg")}</strong>
+          Inhaled PM2.5 Dose: <strong>{formatReading(activeRoute.inhaledDose, "µg")}</strong>{" "}
+          <InfoTooltip text="An estimate of the total amount of PM2.5 particles inhaled over the duration of the trip." />
         </p>
         {note && (
           <p
@@ -163,8 +176,11 @@ export default function RouteResults({
                     Route {idx + 1}
                   </strong>
                   {isCleanest && (
-                    <span style={{ background: '#10b981', color: 'white', padding: '0.2rem 0.5rem', borderRadius: '1rem', fontSize: '0.75rem', fontWeight: 'bold' }}>
-                      Cleanest
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                      <span style={{ background: '#10b981', color: 'white', padding: '0.2rem 0.5rem', borderRadius: '1rem', fontSize: '0.75rem', fontWeight: 'bold' }}>
+                        Cleanest
+                      </span>
+                      <InfoTooltip text="The route with the lowest measured pollution exposure among the available route options." />
                     </span>
                   )}
                 </div>
@@ -172,8 +188,9 @@ export default function RouteResults({
                   <span>⏱ {route.duration} min</span>
                   <span>📏 {route.distance} km</span>
                   {route.measured === false ? (
-                    <span style={{ color: '#64748b', fontWeight: '600' }}>
+                    <span style={{ color: '#64748b', fontWeight: '600', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
                       ☁️ No reading
+                      <InfoTooltip text="No pollution reading was available for this route, so it could not be ranked based on air quality." />
                     </span>
                   ) : (
                     <span style={{ color: isCleanest ? '#059669' : '#b45309', fontWeight: '600' }}>
