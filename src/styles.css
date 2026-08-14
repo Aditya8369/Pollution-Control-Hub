@@ -3273,9 +3273,84 @@
   border-radius: 50%;
 }
 
-.commute-input-clear:hover {
-  background-color: #f3f4f6;
-  color: #111827;
+.commute-swap-btn:hover {
+  background-color: #f0fdfa;
+  border-color: #0d9488;
+}
+
+.info-tooltip-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.1rem;
+  height: 1.1rem;
+  border-radius: 50%;
+  border: none;
+  background: none;
+  color: #6b7280;
+  cursor: pointer;
+  padding: 0;
+}
+
+.info-tooltip-trigger:hover,
+.info-tooltip-trigger:focus-visible {
+  color: #0d9488;
+}
+
+.info-tooltip-bubble {
+  position: absolute;
+  bottom: calc(100% + 0.4rem);
+  left: 50%;
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: 220px;
+  padding: 0.5rem 0.65rem;
+  border-radius: 0.375rem;
+  background-color: #111827;
+  color: #ffffff;
+  font-size: 0.78rem;
+  line-height: 1.35;
+  font-weight: 400;
+  text-transform: none;
+  z-index: 20;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  pointer-events: none;
+}
+
+/* ── InfoTooltip: Dark mode overrides ───────────────────────── */
+:root[data-theme="dark"] .info-tooltip-trigger {
+  color: #93a3b8;
+}
+
+:root[data-theme="dark"] .info-tooltip-trigger:hover,
+:root[data-theme="dark"] .info-tooltip-trigger:focus-visible {
+  color: #2dd4bf;
+}
+
+:root[data-theme="dark"] .info-tooltip-bubble {
+  background-color: #1e293b;
+  color: #f1f5f9;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+}
+
+/* ── InfoTooltip: High-contrast overrides ───────────────────── */
+:root[data-theme="high-contrast"] .info-tooltip-trigger {
+  color: var(--hc-ink) !important;
+}
+
+:root[data-theme="high-contrast"] .info-tooltip-trigger:hover,
+:root[data-theme="high-contrast"] .info-tooltip-trigger:focus-visible {
+  color: var(--hc-brand) !important;
+  outline: 2px solid var(--hc-focus) !important;
+  outline-offset: 1px;
+}
+
+:root[data-theme="high-contrast"] .info-tooltip-bubble {
+  background-color: var(--hc-ink) !important;
+  color: var(--hc-surface) !important;
+  border: 1px solid var(--hc-border) !important;
+  box-shadow: none !important;
+  font-size: 0.85rem !important;
 }
 
 .commute-swap-row {
