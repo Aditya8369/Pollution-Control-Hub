@@ -58,8 +58,34 @@ export default function RouteResults({
   setActiveRouteIndex = noop,
   pollutionDataAvailable = true,
   mode = "",
+  isCalculating = false,
 }) {
   const routeButtonRefs = useRef([]);
+
+  if (isCalculating) {
+    return (
+      <div className="commute-skeleton" data-testid="commute-skeleton">
+        <div className="commute-stats commute-skeleton-block">
+          <div className="skeleton-line skeleton-line-title" />
+          <div className="skeleton-line" />
+          <div className="skeleton-line" />
+          <div className="skeleton-line" />
+          <div className="skeleton-line skeleton-line-short" />
+        </div>
+        <div className="commute-options">
+          <h3>Route Options</h3>
+          <div className="commute-route-list">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="commute-route-option commute-skeleton-block">
+                <div className="skeleton-line skeleton-line-title skeleton-line-short" />
+                <div className="skeleton-line" />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const handleRouteOptionKeyDown = (e, idx) => {
     if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
@@ -189,4 +215,5 @@ RouteResults.propTypes = {
   setActiveRouteIndex: PropTypes.func,
   pollutionDataAvailable: PropTypes.bool,
   mode: PropTypes.string,
+  isCalculating: PropTypes.bool,
 };

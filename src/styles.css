@@ -10990,3 +10990,39 @@ a {
     max-width: 9rem;
   }
 }
+
+/* Loading skeletons for route results */
+.commute-skeleton-block {
+  position: relative;
+  overflow: hidden;
+  cursor: default;
+  pointer-events: none;
+}
+
+.skeleton-line {
+  height: 0.9rem;
+  margin-bottom: 0.6rem;
+  border-radius: 0.25rem;
+  background: linear-gradient(90deg, #e5e7eb 25%, #f3f4f6 50%, #e5e7eb 75%);
+  background-size: 200% 100%;
+  animation: skeleton-shimmer 1.4s ease-in-out infinite;
+}
+
+.skeleton-line-title {
+  height: 1.1rem;
+  width: 40%;
+}
+
+.skeleton-line-short {
+  width: 60%;
+}
+
+@keyframes skeleton-shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+
+  100% {
+    background-position: -200% 0;
+  }
+}

@@ -113,7 +113,7 @@ const Commute = () => {
   const applyHistoryEntry = async (entry) => {
     setOrigin(entry.origin);
     setDestination(entry.destination);
-    
+
     // Automatically trigger the route search using the selected history values
     setIsCalculating(true);
     setRouteError(null);
@@ -216,6 +216,7 @@ const Commute = () => {
         setActiveRouteIndex={setActiveRouteIndex}
         pollutionDataAvailable={pollutionDataAvailable}
         mode={mode}
+        isCalculating={isCalculating}
       />
       <RouteHistory
         entries={routeHistory}
