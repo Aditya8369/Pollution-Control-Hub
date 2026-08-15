@@ -43,22 +43,9 @@ export default function RouteResults({
     <>
       {!pollutionDataAvailable && (
         <div
-          className="commute-error-banner"
+          className="commute-error-banner commute-error-banner--no-data"
           role="status"
           data-testid="commute-no-pollution-data"
-          style={{
-            backgroundColor: "#fff7ed",
-            border: "1px solid #fdba74",
-            color: "#c2410c",
-            padding: "0.75rem 1rem",
-            borderRadius: "0.5rem",
-            marginBottom: "1.5rem",
-            fontSize: "0.9rem",
-            display: "flex",
-            alignItems: "flex-start",
-            gap: "0.4rem",
-            flexWrap: "wrap",
-          }}
         >
           <span>
             ⚠️ <strong>Air quality data unavailable.</strong>{" "}
@@ -87,42 +74,30 @@ export default function RouteResults({
                 className={`commute-route-option ${isActive ? 'active' : ''}`}
                 onClick={() => setActiveRouteIndex(idx)}
                 aria-pressed={isActive}
-                style={{
-                  display: 'block',
-                  width: '100%',
-                  textAlign: 'left',
-                  padding: '1rem',
-                  marginBottom: '0.75rem',
-                  borderRadius: '0.5rem',
-                  border: `2px solid ${isActive ? '#0d9488' : '#e5e7eb'}`,
-                  background: isActive ? '#f0fdfa' : '#ffffff',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease-in-out'
-                }}
               >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                  <strong style={{ fontSize: '1.1rem', color: isActive ? '#0f766e' : '#374151' }}>
+                <div className="commute-route-option-head">
+                  <strong className="commute-route-option-title">
                     Route {idx + 1}
                   </strong>
                   {isCleanest && (
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
-                      <span style={{ background: '#10b981', color: 'white', padding: '0.2rem 0.5rem', borderRadius: '1rem', fontSize: '0.75rem', fontWeight: 'bold' }}>
+                    <span className="commute-cleanest-wrap">
+                      <span className="commute-cleanest-badge">
                         Cleanest
                       </span>
                       <InfoTooltip text="The route with the lowest measured pollution exposure among the available route options." />
                     </span>
                   )}
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.9rem', color: '#4b5563' }}>
+                <div className="commute-route-option-meta">
                   <span>⏱ {route.duration} min</span>
                   <span>📏 {route.distance} km</span>
                   {route.measured === false ? (
-                    <span style={{ color: '#64748b', fontWeight: '600', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                    <span className="commute-route-pm commute-route-pm--unmeasured">
                       ☁️ No reading
                       <InfoTooltip text="No pollution reading was available for this route, so it could not be ranked based on air quality." />
                     </span>
                   ) : (
-                    <span style={{ color: isCleanest ? '#059669' : '#b45309', fontWeight: '600' }}>
+                    <span className={`commute-route-pm ${isCleanest ? 'commute-route-pm--cleanest' : ''}`}>
                       ☁️ {route.pm25} µg/m³
                     </span>
                   )}
