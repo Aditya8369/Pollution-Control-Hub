@@ -1,28 +1,17 @@
 --- a/apps/cli/main.py
-@@ -10,6 +10,7 @@
- import argparse
- from apps.core.config import load_config
- from apps.services.user_service import UserService
-+from apps.services.reducer import ReducerService
+@@ -30,10 +30,14 @@ def main():
+         try:
+             # Existing code that may raise an exception
+             process_data(data)
+-        except Exception as e:
+-            print(f"Error: {e}")
+-            exit(1)
++        except ErrorToBeHandledInternally as e:
++            log_error(e)  # Log the error internally without user intervention
++        except Exception as e:
++            handle_unexpected_error(e)  # Handle unexpected errors with appropriate measures
++            exit(1)
  
- def main():
-     parser = argparse.ArgumentParser(description="CLI Application")
-@@ -23,6 +24,8 @@ def main():
-     args = parser.parse_args()
- 
-     config = load_config()
-+    reducer = ReducerService(config)
-+
-     if args.subcommand == "create":
-         user_service = UserService(config)
-         user_service.create_user(args.name, args.email)
-@@ -31,6 +34,8 @@ def main():
-         user_service.delete_user(args.user_id)
- 
-     elif args.subcommand == "list":
-+        state = reducer.get_current_state()
-         user_service = UserService(config)
--        users = user_service.list_users()
-+        users = user_service.list_users(state)
-         for user in users:
-             print(user)
+     print("Process completed successfully.")
+
+This patch refines the error handling in `apps/cli/main.py`. It separates internal and external error handling, ensuring that errors requiring user intervention are logged internally without affecting the execution flow. Unexpected errors are handled with appropriate measures before exiting the program.
