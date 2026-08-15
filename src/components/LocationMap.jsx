@@ -16,6 +16,7 @@ import { eventBus } from '../core/events';
 import { getPollutantColor } from '../services/airQualityService';
 import { useCommunityReports } from '../hooks/useCommunityReports';
 import PropTypes from "prop-types";
+import { getMapTileUrlTemplate, supportsWebP } from '../utils/mapTiles';
 
 const SYMPTOM_REPORTS_STORAGE_KEY = 'pollution-symptom-reports';
 
@@ -66,6 +67,7 @@ export default function LocationMap({ center, nearbyPoints, confidenceScore, win
   const [showSymptomReports, setShowSymptomReports] = useState(false);
   const [symptomReports, setSymptomReports] = useState(() => readGeotaggedSymptomReports());
   const [selectedLayer, setSelectedLayer] = useState('aqi');
+  const tileUrlTemplate = getMapTileUrlTemplate('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', supportsWebP());
 
   useEffect(() => {
     const updateSymptomReports = () => {
@@ -226,7 +228,7 @@ export default function LocationMap({ center, nearbyPoints, confidenceScore, win
         <MapContainer key={`${center.lat}-${center.lon}`} center={[center.lat, center.lon]} zoom={11} scrollWheelZoom={true} className="map">
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            url={tileUrlTemplate}
           />
 
           {nearbyPoints.map((point) => (

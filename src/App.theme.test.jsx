@@ -3,7 +3,6 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
 const THEME_STORAGE_KEY = 'pollution-hub-theme';
 
-// Mock data-heavy panels
 vi.mock('./services/airQualityService', () => ({
   fetchAirQualityByCoords: vi.fn(async () => null),
   fetchCityComparisons: vi.fn(async () => []),
@@ -38,7 +37,6 @@ vi.mock('./components/RiverOriginGame', () => stubPanel('river'));
 const appliedTheme = () => document.documentElement.getAttribute('data-theme');
 
 describe('App Theme Infrastructure & ThemeSwitcher (Issue #417)', () => {
-  /** @type {any} */
   let App;
 
   beforeEach(async () => {
@@ -93,11 +91,3 @@ describe('App Theme Infrastructure & ThemeSwitcher (Issue #417)', () => {
     expect(localStorage.getItem(THEME_STORAGE_KEY)).toBe('high-contrast');
   });
 });
-
-+diff --git a/src/App.theme.test.jsx b/src/App.theme.test.jsx
-+--- a/src/App.theme.test.jsx
-+@@ -1,4 +1,3 @@
-+-import { render, screen, fireEvent } from '@testing-library/react';
-+ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-+
-+ const THEME_STORAGE_KEY = 'pollution-hub-theme';
