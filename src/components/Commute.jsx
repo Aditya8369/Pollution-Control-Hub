@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { calculateCleanRoute } from "../services/routePlanner";
 import { useGeolocation } from "../hooks/useGeolocation";
 import { useRouteHistory } from "../hooks/useRouteHistory";
@@ -11,6 +11,8 @@ import RouteResults from "./RouteResults";
 import RouteMap from "./RouteMap";
 import RouteHistory from "./RouteHistory";
 import "leaflet/dist/leaflet.css";
+
+const TRANSPORT_MODE_KEY = "pollution-hub-commute-mode";
 
 const LEGEND_ITEMS = [
   { range: "0–50", aqi: 25 },
@@ -27,7 +29,13 @@ const LEGEND_ITEMS = [
 const Commute = () => {
   const [origin, setOrigin] = useState("");
   const [destination, setDestination] = useState("");
-  const [mode, setMode] = useState("driving");
+  const [mode, setMode] = useState(() => {
+    try {
+      return localStorage.getItem(TRANSPORT_MODE_KEY) || "driving";
+    } catch {
+      return "driving";
+    }
+  });
   const [isCalculating, setIsCalculating] = useState(false);
   const [routes, setRoutes] = useState([]);
   const [pollutionDataAvailable, setPollutionDataAvailable] = useState(true);
@@ -35,6 +43,14 @@ const Commute = () => {
   const [searchId, setSearchId] = useState(0);
   const [mapCenter, setMapCenter] = useState([28.6139, 77.209]);
   const [routeError, setRouteError] = useState(null);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(TRANSPORT_MODE_KEY, mode);
+    } catch {
+      // localStorage may be unavailable (e.g. private browsing) — ignore.
+    }
+  }, [mode]);
 
   const { isLocating, geoError, setGeoError, locationSuccess, handleGetLocation } = useGeolocation(setOrigin);
   const {
