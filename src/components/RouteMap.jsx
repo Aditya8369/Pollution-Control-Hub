@@ -53,6 +53,9 @@ export default function RouteMap({
   destination,
   searchId,
 }) {
+  const activeRoute = routes[activeRouteIndex];
+  const activeRouteColors = ['#0d9488', '#3b82f6', '#8b5cf6', '#f59e0b', '#ec4899'];
+
   return (
     <div className="commute-map-container" style={{ position: "relative" }}>
       <MapContainer
@@ -95,54 +98,50 @@ export default function RouteMap({
               );
             })}
 
-            {routes[activeRouteIndex] && (() => {
-              const activeRoute = routes[activeRouteIndex];
-              if (activeRoute.segments && activeRoute.segments.length > 0) {
-                return activeRoute.segments.map((seg, index) => {
-                  const isMeasured = seg.measured !== false && seg.aqi != null;
-                  const band = isMeasured ? getAQIBand(seg.aqi) : null;
-                  const startPt = seg.coordinates[0] ? seg.coordinates[0].join("-") : index;
-                  const segKey = `route-${searchId}-seg-${index}-aqi-${seg.aqi ?? "na"}-${startPt}`;
+            {/* Replaced IIFE with direct conditional rendering */}
+            {activeRoute && activeRoute.segments && activeRoute.segments.length > 0 ? (
+              activeRoute.segments.map((seg, index) => {
+                const isMeasured = seg.measured !== false && seg.aqi != null;
+                const band = isMeasured ? getAQIBand(seg.aqi) : null;
+                const startPt = seg.coordinates[0] ? seg.coordinates[0].join("-") : index;
+                const segKey = `route-${searchId}-seg-${index}-aqi-${seg.aqi ?? "na"}-${startPt}`;
 
-                  return (
-                    <Polyline
-                      key={segKey}
-                      positions={seg.coordinates}
-                      color={isMeasured ? band.color : UNMEASURED_SEGMENT_COLOR}
-                      weight={7}
-                      opacity={isMeasured ? 1.0 : 0.55}
-                      dashArray={isMeasured ? undefined : "8 8"}
-                    >
-                      <Popup>
-                        <div>
-                          <strong>Route Segment {index + 1}</strong>
-                          <br />
-                          {isMeasured ? (
-                            <>
-                              AQI: {seg.aqi} — {band.label}
-                              <br />
-                              PM2.5: {seg.pm25} µg/m³
-                            </>
-                          ) : (
-                            <>Air quality data unavailable for this stretch.</>
-                          )}
-                        </div>
-                      </Popup>
-                    </Polyline>
-                  );
-                });
-              } else {
                 return (
                   <Polyline
-                    key={`active-${activeRouteIndex}`}
-                    positions={activeRoute.leafletCoords}
-                    color={INACTIVE_ROUTE_COLORS[activeRouteIndex % INACTIVE_ROUTE_COLORS.length]}
+                    key={segKey}
+                    positions={seg.coordinates}
+                    color={isMeasured ? band.color : UNMEASURED_SEGMENT_COLOR}
                     weight={7}
-                    opacity={1.0}
-                  />
+                    opacity={isMeasured ? 1.0 : 0.55}
+                    dashArray={isMeasured ? undefined : "8 8"}
+                  >
+                    <Popup>
+                      <div>
+                        <strong>Route Segment {index + 1}</strong>
+                        <br />
+                        {isMeasured ? (
+                          <>
+                            AQI: {seg.aqi} — {band.label}
+                            <br />
+                            PM2.5: {seg.pm25} µg/m³
+                          </>
+                        ) : (
+                          <>Air quality data unavailable for this stretch.</>
+                        )}
+                      </div>
+                    </Popup>
+                  </Polyline>
                 );
-              }
-            })()}
+              })
+            ) : activeRoute ? (
+              <Polyline
+                key={`active-${activeRouteIndex}`}
+                positions={activeRoute.leafletCoords}
+                color={activeRouteColors[activeRouteIndex % activeRouteColors.length]}
+                weight={7}
+                opacity={1.0}
+              />
+            ) : null}
           </>
         )}
       </MapContainer>

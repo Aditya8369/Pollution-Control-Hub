@@ -5,9 +5,11 @@ import { useRouteHistory } from "../hooks/useRouteHistory";
 import { getAQIBand } from "../services/airQualityService";
 import { eventBus } from "../core/events";
 import { describeRouteError } from "../utils/routeErrors";
-import CommuteForm from "./CommuteForm";
+import SavedLocations from "./SavedLocations";
+import RouteForm from "./RouteForm";
 import RouteResults from "./RouteResults";
 import RouteMap from "./RouteMap";
+import RouteHistory from "./RouteHistory";
 import "leaflet/dist/leaflet.css";
 
 const LEGEND_ITEMS = [
@@ -67,7 +69,9 @@ const Commute = () => {
   };
 
   const handleRouteSearch = async (e) => {
-    e.preventDefault();
+    if (e && typeof e.preventDefault === "function") {
+      e.preventDefault();
+    }
     setIsCalculating(true);
     setRouteError(null);
 
@@ -106,9 +110,34 @@ const Commute = () => {
     }
   };
 
-  const applyHistoryEntry = (entry) => {
+  const applyHistoryEntry = async (entry) => {
     setOrigin(entry.origin);
     setDestination(entry.destination);
+    
+    // Automatically trigger the route search using the selected history values
+    setIsCalculating(true);
+    setRouteError(null);
+
+    try {
+      // @ts-ignore
+      const routeResults = await calculateCleanRoute(entry.origin, entry.destination, mode);
+      const allRoutesData = routeResults.allRoutes.map(r => ({
+        ...r,
+        leafletCoords: r.geometry.map((coord) => [coord[1], coord[0]])
+      }));
+      setRoutes(allRoutesData);
+      setPollutionDataAvailable(routeResults.pollutionDataAvailable !== false);
+      setActiveRouteIndex(0);
+      setSearchId((prev) => prev + 1);
+      if (allRoutesData.length > 0) {
+        setMapCenter(allRoutesData[0].leafletCoords[0]);
+      }
+    } catch (error) {
+      console.error("Route search failed from history:", error);
+      setRouteError(describeRouteError(error));
+    } finally {
+      setIsCalculating(false);
+    }
   };
 
   const applySavedLocation = (value, field) => {
@@ -160,7 +189,12 @@ const Commute = () => {
           </button>
         </div>
       )}
-      <CommuteForm
+      <SavedLocations
+        savedLocations={savedLocations}
+        applySavedLocation={applySavedLocation}
+        deleteSavedLocation={deleteSavedLocation}
+      />
+      <RouteForm
         origin={origin}
         setOrigin={setOrigin}
         destination={destination}
@@ -172,9 +206,6 @@ const Commute = () => {
         locationSuccess={locationSuccess}
         handleGetLocation={handleGetLocation}
         handleRouteSearch={handleRouteSearch}
-        savedLocations={savedLocations}
-        applySavedLocation={applySavedLocation}
-        deleteSavedLocation={deleteSavedLocation}
         newLocationLabel={newLocationLabel}
         setNewLocationLabel={setNewLocationLabel}
         saveLocation={saveLocation}
@@ -185,8 +216,10 @@ const Commute = () => {
         setActiveRouteIndex={setActiveRouteIndex}
         pollutionDataAvailable={pollutionDataAvailable}
         mode={mode}
-        routeHistory={routeHistory}
-        applyHistoryEntry={applyHistoryEntry}
+      />
+      <RouteHistory
+        entries={routeHistory}
+        onSelect={applyHistoryEntry}
       />
       <RouteMap
         routes={routes}
@@ -194,6 +227,8 @@ const Commute = () => {
         mapCenter={mapCenter}
         searchId={searchId}
         legendItems={LEGEND_ITEMS}
+        origin={origin}
+        destination={destination}
       />
     </div>
   );
