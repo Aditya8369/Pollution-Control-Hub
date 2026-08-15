@@ -16,7 +16,9 @@
     "recharts": "^2.12.7"
   },
   "devDependencies": {
+    "@fullhuman/postcss-purgecss": "^8.0.0",
     "@vitejs/plugin-react": "^4.3.1",
+    "postcss": "^8.5.26",
     "vite": "^5.4.8"
   }
 }
