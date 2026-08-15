@@ -10,6 +10,7 @@ import {
 import L from "leaflet";
 import { getAQIBand } from "../services/airQualityService";
 import { UNMEASURED_SEGMENT_COLOR } from "../services/routePlanner";
+import { getMapTileUrlTemplate, supportsWebP } from "../utils/mapTiles";
 
 import markerIconPng from "leaflet/dist/images/marker-icon.png";
 import markerIcon2xPng from "leaflet/dist/images/marker-icon-2x.png";
@@ -55,6 +56,7 @@ export default function RouteMap({
 }) {
   const activeRoute = routes[activeRouteIndex];
   const activeRouteColors = ['#0d9488', '#3b82f6', '#8b5cf6', '#f59e0b', '#ec4899'];
+  const tileUrlTemplate = getMapTileUrlTemplate('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', supportsWebP());
 
   return (
     <div className="commute-map-container" style={{ position: "relative" }}>
@@ -65,7 +67,7 @@ export default function RouteMap({
         style={{ height: "100%", width: "100%" }}
       >
         <TileLayer
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          url={tileUrlTemplate}
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         />
         {routes.length > 0 && (
