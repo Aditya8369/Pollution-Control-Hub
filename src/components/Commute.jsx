@@ -11,6 +11,7 @@ import RouteResults from "./RouteResults";
 import RouteMap from "./RouteMap";
 import RouteHistory from "./RouteHistory";
 import "leaflet/dist/leaflet.css";
+import "./Commute.css";
 
 const LEGEND_ITEMS = [
   { range: "0–50", aqi: 25 },
@@ -152,8 +153,9 @@ const Commute = () => {
         <div className="geo-error-banner">
           ⚠️ Reverse Geocoding Notice: {geoError}
           <button
+            type="button"
+            className="geo-error-banner-dismiss"
             onClick={() => setGeoError(null)}
-            style={{ background: "none", border: "none", color: "#c2410c", fontWeight: "bold", cursor: "pointer", paddingLeft: "1rem" }}
           >
             ×
           </button>
@@ -164,26 +166,13 @@ const Commute = () => {
           className="commute-error-banner"
           role="alert"
           data-testid="commute-route-error"
-          style={{
-            backgroundColor: "#fef2f2",
-            border: "1px solid #fca5a5",
-            color: "#b91c1c",
-            padding: "0.75rem 1rem",
-            borderRadius: "0.5rem",
-            marginBottom: "1rem",
-            fontSize: "0.9rem",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: "1rem",
-          }}
         >
           <span>⚠️ {routeError}</span>
           <button
             type="button"
+            className="commute-error-dismiss"
             onClick={() => setRouteError(null)}
             aria-label="Dismiss route error"
-            style={{ background: "none", border: "none", color: "#b91c1c", fontWeight: "bold", cursor: "pointer" }}
           >
             ×
           </button>
