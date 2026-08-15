@@ -5,11 +5,20 @@ export function useGeolocation(setOrigin) {
   const [geoError, setGeoError] = useState(null);
   const [locationSuccess, setLocationSuccess] = useState(false);
 
+  const reportGeoError = (message, error) => {
+    if (error) {
+      console.error(message, error);
+    } else {
+      console.error(message);
+    }
+    setGeoError(message);
+  };
+
   const handleGetLocation = () => {
     setGeoError(null);
 
     if (!navigator.geolocation) {
-      setGeoError("Geolocation is not supported by your browser.");
+      reportGeoError("Geolocation is not supported by your browser.");
       return;
     }
 
@@ -43,19 +52,23 @@ export function useGeolocation(setOrigin) {
             setTimeout(() => setLocationSuccess(false), 3000);
           } else {
             setOrigin("Location unavailable");
-            setGeoError("Location details unavailable for coordinates.");
+            reportGeoError("Location details unavailable for coordinates.");
           }
         } catch (error) {
-          console.error("Reverse geocoding failed:", error);
           setOrigin("Location unavailable");
-          setGeoError("Failed to fetch address details. Displaying placeholder.");
+          reportGeoError(
+            "Failed to fetch address details. Displaying placeholder.",
+            error,
+          );
         } finally {
           setIsLocating(false);
         }
       },
       (error) => {
-        console.error("Error getting location:", error);
-        setGeoError("Unable to retrieve location. Check browser permissions.");
+        reportGeoError(
+          "Unable to retrieve location. Check browser permissions.",
+          error,
+        );
         setIsLocating(false);
       },
       options,
