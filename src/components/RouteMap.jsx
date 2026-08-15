@@ -59,7 +59,7 @@ export default function RouteMap({
   return (
     <div className="commute-map-container" style={{ position: "relative" }}>
       <MapContainer
-        key={`${mapCenter[0]}-${mapCenter[1]}`}
+        key={searchId}
         center={mapCenter}
         zoom={13}
         style={{ height: "100%", width: "100%" }}
