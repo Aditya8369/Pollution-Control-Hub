@@ -105,6 +105,7 @@ export default function RouteForm({
             type="button"
             className={`mode-chip-btn ${mode === "driving" ? "active" : ""}`}
             onClick={() => setMode("driving")}
+            aria-pressed={mode === "driving"}
           >
             Driving
           </button>
@@ -112,6 +113,7 @@ export default function RouteForm({
             type="button"
             className={`mode-chip-btn ${mode === "biking" ? "active" : ""}`}
             onClick={() => setMode("biking")}
+            aria-pressed={mode === "biking"}
           >
             Cycling
           </button>
@@ -119,6 +121,7 @@ export default function RouteForm({
             type="button"
             className={`mode-chip-btn ${mode === "foot" ? "active" : ""}`}
             onClick={() => setMode("foot")}
+            aria-pressed={mode === "foot"}
           >
             Walking
           </button>
