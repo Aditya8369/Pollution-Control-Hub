@@ -20,6 +20,82 @@ function coverageNote(route) {
 
 const noop = () => { };
 
+function ActiveRouteStats({ activeRoute, mode = "" }) {
+  if (!activeRoute) {
+    return null;
+  }
+
+  const routeMode = activeRoute.mode || mode || "driving";
+  const coverageText = coverageNote(activeRoute);
+
+  return (
+    <div className="commute-active-route" data-testid="commute-active-route">
+      <h3>Route Selected</h3>
+      <div
+        className="commute-selected-route-stats"
+        style={{
+          display: 'grid',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+          gap: '1rem',
+          marginBottom: '1.5rem',
+          padding: '1rem 1.25rem',
+          background: '#f8fafc',
+          border: '1px solid #e2e8f0',
+          borderRadius: '0.75rem',
+        }}
+      >
+        <div>
+          <div style={{ fontSize: '0.75rem', letterSpacing: '0.04em', textTransform: 'uppercase', color: '#475569', marginBottom: '0.25rem' }}>
+            Mode
+          </div>
+          <strong style={{ fontSize: '1rem', color: '#0f172a' }}>{routeMode}</strong>
+        </div>
+        <div>
+          <div style={{ fontSize: '0.75rem', letterSpacing: '0.04em', textTransform: 'uppercase', color: '#475569', marginBottom: '0.25rem' }}>
+            PM2.5
+          </div>
+          <strong style={{ fontSize: '1rem', color: '#0f172a' }}>{formatReading(activeRoute.pm25, 'µg/m³')}</strong>
+        </div>
+        <div>
+          <div style={{ fontSize: '0.75rem', letterSpacing: '0.04em', textTransform: 'uppercase', color: '#475569', marginBottom: '0.25rem' }}>
+            Inhaled dose
+          </div>
+          <strong style={{ fontSize: '1rem', color: '#0f172a' }}>{formatReading(activeRoute.inhaledDose, 'µg')}</strong>
+        </div>
+      </div>
+
+      {coverageText && (
+        <div
+          className="commute-coverage-note"
+          data-testid="commute-coverage-note"
+          style={{
+            padding: '0.75rem 1rem',
+            marginBottom: '1.25rem',
+            borderRadius: '0.5rem',
+            backgroundColor: '#f8fafc',
+            border: '1px solid #dbeafe',
+            color: '#1e3a8a',
+          }}
+        >
+          {coverageText}
+        </div>
+      )}
+    </div>
+  );
+}
+
+ActiveRouteStats.propTypes = {
+  activeRoute: PropTypes.shape({
+    mode: PropTypes.string,
+    pm25: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
+    inhaledDose: PropTypes.oneOfType([PropTypes.number, PropTypes.string]),
+    measured: PropTypes.bool,
+    measuredCheckpoints: PropTypes.number,
+    totalCheckpoints: PropTypes.number,
+  }),
+  mode: PropTypes.string,
+};
+
 export default function RouteResults({
   routes = [],
   activeRouteIndex = 0,
