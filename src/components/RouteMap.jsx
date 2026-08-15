@@ -37,6 +37,14 @@ const LEGEND_ITEMS = [
   ...getAQIBand(item.aqi),
 }));
 
+const INACTIVE_ROUTE_COLORS = [
+  "#0d9488",
+  "#3b82f6",
+  "#8b5cf6",
+  "#f59e0b",
+  "#ec4899",
+];
+
 export default function RouteMap({
   mapCenter,
   routes,
@@ -79,12 +87,11 @@ export default function RouteMap({
 
             {routes.map((route, idx) => {
               if (idx === activeRouteIndex) return null;
-              const colors = ['#0d9488', '#3b82f6', '#8b5cf6', '#f59e0b', '#ec4899'];
               return (
                 <Polyline
                   key={`inactive-${idx}`}
                   positions={route.leafletCoords}
-                  color={colors[idx % colors.length]}
+                  color={INACTIVE_ROUTE_COLORS[idx % INACTIVE_ROUTE_COLORS.length]}
                   weight={4}
                   opacity={0.4}
                 />
