@@ -94,6 +94,7 @@ export default function RouteMap({
                   color={INACTIVE_ROUTE_COLORS[idx % INACTIVE_ROUTE_COLORS.length]}
                   weight={4}
                   opacity={0.4}
+                  dashArray={route.measured === false ? "5, 10" : undefined}
                 />
               );
             })}
