@@ -19,7 +19,6 @@ function coverageNote(route) {
 }
 
 const noop = () => { };
-
 function ActiveRouteStats({ activeRoute, mode = "" }) {
   if (!activeRoute) {
     return null;
