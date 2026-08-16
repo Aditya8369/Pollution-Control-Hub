@@ -8,6 +8,8 @@ import RouteResults from "./RouteResults";
 import RouteMap from "./RouteMap";
 import "leaflet/dist/leaflet.css";
 
+const TRANSPORT_MODE_KEY = "pollution-hub-commute-mode";
+
 const LEGEND_ITEMS = [
   { range: "0–50", aqi: 25 },
   { range: "51–100", aqi: 75 },
@@ -24,6 +26,14 @@ const Commute = () => {
   const [origin, setOrigin] = useState("");
   const [destination, setDestination] = useState("");
   const [mode, setMode] = useState("driving");
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(TRANSPORT_MODE_KEY, mode);
+    } catch {
+      // localStorage may be unavailable (e.g. private browsing) — ignore.
+    }
+  }, [mode]);
 
   const { isLocating, geoError, setGeoError, locationSuccess, handleGetLocation } = useGeolocation(setOrigin);
   const {
