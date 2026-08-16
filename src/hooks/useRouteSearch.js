@@ -42,6 +42,15 @@ export function useRouteSearch() {
       return;
     }
 
+    // A resolved-but-malformed result used to reach `routeResults.allRoutes` unguarded
+    // and reject outside the catch above, leaving the spinner spinning with no message.
+    if (!routeResults || !Array.isArray(routeResults.allRoutes)) {
+      console.error("Route search returned no usable routes:", routeResults);
+      setRouteError(describeRouteError(new Error("Could not calculate routes")));
+      setIsCalculating(false);
+      return;
+    }
+
     try {
       const allRoutesData = routeResults.allRoutes.map((r) => ({
         ...r,

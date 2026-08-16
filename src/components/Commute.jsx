@@ -1,14 +1,33 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useGeolocation } from "../hooks/useGeolocation";
 import { useRouteHistory } from "../hooks/useRouteHistory";
 import { useRouteSearch } from "../hooks/useRouteSearch";
 import { getAQIBand } from "../services/airQualityService";
-import CommuteForm from "./CommuteForm";
+import RouteForm from "./RouteForm";
+import SavedLocations from "./SavedLocations";
+import RouteHistory from "./RouteHistory";
 import RouteResults from "./RouteResults";
 import RouteMap from "./RouteMap";
 import "leaflet/dist/leaflet.css";
 
 const TRANSPORT_MODE_KEY = "pollution-hub-commute-mode";
+const TRANSPORT_MODES = ["driving", "biking", "foot"];
+const DEFAULT_TRANSPORT_MODE = "driving";
+
+/**
+ * The persisted mode is read back through the same allow-list the buttons offer, so a
+ * stale or hand-edited value falls back to driving instead of leaving every mode chip
+ * unselected and the OSRM profile unresolvable.
+ */
+function readStoredMode() {
+  try {
+    const stored = localStorage.getItem(TRANSPORT_MODE_KEY);
+    return TRANSPORT_MODES.includes(stored) ? stored : DEFAULT_TRANSPORT_MODE;
+  } catch {
+    // localStorage may be unavailable (e.g. private browsing) — fall back to the default.
+    return DEFAULT_TRANSPORT_MODE;
+  }
+}
 
 const LEGEND_ITEMS = [
   { range: "0–50", aqi: 25 },
@@ -25,7 +44,7 @@ const LEGEND_ITEMS = [
 const Commute = () => {
   const [origin, setOrigin] = useState("");
   const [destination, setDestination] = useState("");
-  const [mode, setMode] = useState("driving");
+  const [mode, setMode] = useState(readStoredMode);
 
   useEffect(() => {
     try {
@@ -121,7 +140,12 @@ const Commute = () => {
           </button>
         </div>
       )}
-      <CommuteForm
+      <SavedLocations
+        savedLocations={savedLocations}
+        applySavedLocation={applySavedLocation}
+        deleteSavedLocation={deleteSavedLocation}
+      />
+      <RouteForm
         origin={origin}
         setOrigin={setOrigin}
         destination={destination}
@@ -133,21 +157,18 @@ const Commute = () => {
         locationSuccess={locationSuccess}
         handleGetLocation={handleGetLocation}
         handleRouteSearch={handleRouteSearch}
-        savedLocations={savedLocations}
-        applySavedLocation={applySavedLocation}
-        deleteSavedLocation={deleteSavedLocation}
         newLocationLabel={newLocationLabel}
         setNewLocationLabel={setNewLocationLabel}
         saveLocation={saveLocation}
       />
+      <RouteHistory entries={routeHistory} onSelect={applyHistoryEntry} />
       <RouteResults
         routes={routes}
         activeRouteIndex={activeRouteIndex}
         setActiveRouteIndex={setActiveRouteIndex}
         pollutionDataAvailable={pollutionDataAvailable}
         mode={mode}
-        routeHistory={routeHistory}
-        applyHistoryEntry={applyHistoryEntry}
+        isCalculating={isCalculating}
       />
       <RouteMap
         routes={routes}

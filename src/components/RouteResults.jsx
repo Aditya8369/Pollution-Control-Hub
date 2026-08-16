@@ -18,38 +18,6 @@ function coverageNote(route) {
   return null;
 }
 
-function ActiveRouteStats({ activeRoute, mode }) {
-  if (!activeRoute) return null;
-
-  const note = coverageNote(activeRoute);
-
-  return (
-    <div className="commute-active-stats" style={{
-      background: '#f0fdfa',
-      border: '1px solid #99f6e4',
-      borderRadius: '0.75rem',
-      padding: '1rem 1.25rem',
-      marginBottom: '1.25rem',
-    }}>
-      <h3 style={{ margin: '0 0 0.75rem', fontSize: '1rem', color: '#0f766e' }}>
-        Selected Route Summary {mode && <span style={{ fontWeight: 400, color: '#6b7280' }}>({mode})</span>}
-      </h3>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', fontSize: '0.9rem', color: '#374151' }}>
-        <span>⏱ <strong>{activeRoute.duration}</strong> min</span>
-        <span>📏 <strong>{activeRoute.distance}</strong> km</span>
-        {activeRoute.measured !== false ? (
-          <span>☁️ PM2.5: <strong>{formatReading(activeRoute.pm25, 'µg/m³')}</strong></span>
-        ) : (
-          <span style={{ color: '#64748b' }}>☁️ PM2.5: <strong>No reading</strong></span>
-        )}
-      </div>
-      {note && (
-        <p style={{ margin: '0.6rem 0 0', fontSize: '0.8rem', color: '#6b7280' }}>{note}</p>
-      )}
-    </div>
-  );
-}
-
 const noop = () => { };
 
 function ActiveRouteStats({ activeRoute, mode = "" }) {
@@ -205,7 +173,6 @@ export default function RouteResults({
         </div>
       )}
 
-      {/* Rendered via the new sub-component */}
       <ActiveRouteStats activeRoute={activeRoute} mode={mode} />
 
       <div className="commute-options">
