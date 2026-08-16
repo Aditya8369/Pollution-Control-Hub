@@ -2,7 +2,7 @@ import { getTenantScopedDbName, getTenantScopedStoreName } from './tenantService
 
 const BASE_URL = 'https://air-quality-api.open-meteo.com/v1/air-quality';
 const DB_NAME = 'PollutionHubDB';
-const SCOPED_STORE_NAME = 'historicalDataCache';
+const STORE_NAME = 'historicalDataCache';
 
 // Issue #759: Scope the DB and store by tenant_id so multiple
 // organisations on the same platform get isolated data caches.
