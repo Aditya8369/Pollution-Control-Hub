@@ -1,13 +1,11 @@
---- a/carbonCalculator.ts
-@@ -10,6 +10,9 @@
-     }
- 
-     // Calculate carbon footprint based on input data
--    const carbonFootprint = calculateCarbon(input);
-+    if (input === null || input === undefined) {
-+      throw new Error('Input cannot be null or undefined');
-+    }
-+    const carbonFootprint = calculateCarbon(input);
- 
-     return carbonFootprint;
-   }
+export function calculateCarbon(input) {
+  if (input === null || input === undefined) {
+    throw new Error('Input cannot be null or undefined');
+  }
+
+  return Number(input);
+}
+
+export default function CarbonCalculator(input) {
+  return calculateCarbon(input);
+}

@@ -25,28 +25,13 @@ export default function RouteForm({
   return (
     <form onSubmit={handleRouteSearch} className="commute-form">
       <div className="form-group">
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            marginBottom: "0.5rem",
-          }}
-        >
-          <label style={{ marginBottom: 0 }}>Starting Point</label>
+        <div className="commute-origin-head">
+          <label>Starting Point</label>
           <button
             type="button"
+            className="commute-locate-btn"
             onClick={handleGetLocation}
             disabled={isLocating}
-            style={{
-              background: "none",
-              border: "none",
-              color: "#0d9488",
-              fontSize: "0.85rem",
-              fontWeight: "600",
-              cursor: "pointer",
-              padding: 0,
-            }}
           >
             {isLocating ? "Locating..." : locationSuccess ? "✅ Location set!" : "📍 Use My Location"}
           </button>
@@ -120,6 +105,7 @@ export default function RouteForm({
             type="button"
             className={`mode-chip-btn ${mode === "driving" ? "active" : ""}`}
             onClick={() => setMode("driving")}
+            aria-pressed={mode === "driving"}
           >
             Driving
           </button>
@@ -127,6 +113,7 @@ export default function RouteForm({
             type="button"
             className={`mode-chip-btn ${mode === "biking" ? "active" : ""}`}
             onClick={() => setMode("biking")}
+            aria-pressed={mode === "biking"}
           >
             Cycling
           </button>
@@ -134,6 +121,7 @@ export default function RouteForm({
             type="button"
             className={`mode-chip-btn ${mode === "foot" ? "active" : ""}`}
             onClick={() => setMode("foot")}
+            aria-pressed={mode === "foot"}
           >
             Walking
           </button>
