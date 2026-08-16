@@ -1,37 +1,44 @@
---- a/src/components/LocationSearch.tsx
-@@ -20,7 +20,6 @@ import { useLocation } from 'react-router-dom';
- import { debounce } from 'lodash';
+import React, { useEffect, useState } from 'react';
 
- const LocationSearch: React.FC = () => {
--  const [searchTerm, setSearchTerm] = useState('');
-   const navigate = useNavigate();
+type Location = {
+  id: string;
+  name: string;
+};
 
-   const handleSearch = (event: React.ChangeEvent<HTMLInputElement>) => {
-@@ -29,6 +28,7 @@ const LocationSearch: React.FC = () => {
-     setSearchTerm(event.target.value);
-     debouncedSearch();
-   };
+const LocationSearch: React.FC = () => {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [results, setResults] = useState<Location[]>([]);
 
-+  const [searchTerm, setSearchTerm] = useState('');
+  useEffect(() => {
+    const fetchLocations = async (term: string) => {
+      if (!term) {
+        setResults([]);
+        return;
+      }
 
-   return (
-     <div>
-       <input
-         type="text"
+      const response = await fetch(`/api/locations?query=${encodeURIComponent(term)}`);
+      const data = await response.json();
+      setResults(data);
+    };
 
-+--- a/src/components/LocationSearch.tsx
-+@@ -10,7 +10,7 @@ import React from 'react';
-+ 
-+ const LocationSearch: React.FC = () => {
-+   // Call to useEffect inside functional component
-+-  useEffect(() => {
-++  React.useEffect(() => {
-+     // Effect logic here
-+   }, []);
-+ 
-+   return (
-+     <div>
-+       {/* Component JSX */}
-+     </div>
-+   );
-+ };
+    fetchLocations(searchTerm);
+  }, [searchTerm]);
+
+  return (
+    <div>
+      <input
+        type="text"
+        value={searchTerm}
+        onChange={(event) => setSearchTerm(event.target.value)}
+        placeholder="Search locations"
+      />
+      <ul>
+        {results.map((location) => (
+          <li key={location.id}>{location.name}</li>
+        ))}
+      </ul>
+    </div>
+  );
+};
+
+export default LocationSearch;
