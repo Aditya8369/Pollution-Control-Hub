@@ -113,10 +113,11 @@ export default function EmbeddableWidgetGenerator({
 
             <div style={{ display: "flex", flexDirection: "column", gap: "1.1rem" }}>
               <div>
-                <label style={{ display: "block", fontSize: "0.85rem", color: "var(--muted, #94a3b8)", marginBottom: "0.4rem", fontWeight: "600" }}>
+                <label htmlFor="widget-theme-select" style={{ display: "block", fontSize: "0.85rem", color: "var(--muted, #94a3b8)", marginBottom: "0.4rem", fontWeight: "600" }}>
                   Widget Theme
                 </label>
                 <select
+                  id="widget-theme-select"
                   value={theme}
                   onChange={(e) => setTheme(e.target.value)}
                   style={{
@@ -137,10 +138,11 @@ export default function EmbeddableWidgetGenerator({
               </div>
 
               <div>
-                <label style={{ display: "block", fontSize: "0.85rem", color: "var(--muted, #94a3b8)", marginBottom: "0.4rem", fontWeight: "600" }}>
+                <label htmlFor="widget-size-select" style={{ display: "block", fontSize: "0.85rem", color: "var(--muted, #94a3b8)", marginBottom: "0.4rem", fontWeight: "600" }}>
                   Widget Preset Size
                 </label>
                 <select
+                  id="widget-size-select"
                   value={size}
                   onChange={(e) => setSize(e.target.value)}
                   style={{

@@ -114,10 +114,11 @@ export default function HistoricalData({ position }) {
 
             <div style={{ display: "flex", flexWrap: "wrap", gap: "1rem", alignItems: "flex-end", marginBottom: "1.5rem" }}>
                 <div>
-                    <label style={{ display: "block", fontSize: "0.85rem", fontWeight: 600, color: "var(--muted)", marginBottom: "0.35rem" }}>
+                    <label htmlFor="historical-start-date" style={{ display: "block", fontSize: "0.85rem", fontWeight: 600, color: "var(--muted)", marginBottom: "0.35rem" }}>
                         Start Date
                     </label>
                     <DatePicker
+                        id="historical-start-date"
                         selected={startDate}
                         onChange={setStartDate}
                         selectsStart
@@ -127,10 +128,11 @@ export default function HistoricalData({ position }) {
                     />
                 </div>
                 <div>
-                    <label style={{ display: "block", fontSize: "0.85rem", fontWeight: 600, color: "var(--muted)", marginBottom: "0.35rem" }}>
+                    <label htmlFor="historical-end-date" style={{ display: "block", fontSize: "0.85rem", fontWeight: 600, color: "var(--muted)", marginBottom: "0.35rem" }}>
                         End Date
                     </label>
                     <DatePicker
+                        id="historical-end-date"
                         selected={endDate}
                         onChange={setEndDate}
                         selectsEnd

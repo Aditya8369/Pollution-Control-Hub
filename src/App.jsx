@@ -228,7 +228,9 @@ function AppControls({
             flexWrap: "wrap",
           }}
         >
-          <label>Saved:</label>
+          {/* Introduces the chips below, not a form control — <label> claimed a
+              relationship with an input that does not exist. */}
+          <span>Saved:</span>
           {savedLocations.map((location) => (
             <span
               key={location.name}
@@ -306,7 +308,7 @@ function AppControls({
 }
 
 /** @param {any} params */
-function SectionNav({ activeSection, onSectionChange, theme }) {
+function SectionNav({ activeSection, onSectionChange }) {
   const sections = [
     { id: "home", label: "Home" },
     { id: "getting-started", label: "Getting Started" },
@@ -1025,7 +1027,6 @@ function AppContent() {
       <SectionNav
         activeSection={activeSection}
         onSectionChange={setActiveSection}
-        theme={theme}
       />
       <BadgeNotification />
       <div id="main-content">

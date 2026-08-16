@@ -26,7 +26,7 @@ export default function RouteForm({
     <form onSubmit={handleRouteSearch} className="commute-form">
       <div className="form-group">
         <div className="commute-origin-head">
-          <label>Starting Point</label>
+          <label htmlFor="commute-origin">Starting Point</label>
           <button
             type="button"
             className="commute-locate-btn"
@@ -39,6 +39,7 @@ export default function RouteForm({
 
         <div className="commute-input-wrapper">
           <input
+            id="commute-origin"
             type="text"
             value={origin}
             onChange={(e) => setOrigin(e.target.value)}
@@ -76,9 +77,10 @@ export default function RouteForm({
       </div>
 
       <div className="form-group">
-        <label>Destination</label>
+        <label htmlFor="commute-destination">Destination</label>
         <div className="commute-input-wrapper">
           <input
+            id="commute-destination"
             type="text"
             value={destination}
             onChange={(e) => setDestination(e.target.value)}
@@ -99,8 +101,10 @@ export default function RouteForm({
       </div>
 
       <div className="form-group">
-        <label>Transport Mode</label>
-        <div className="mode-selector-group" role="group" aria-label="Transport Mode">
+        {/* Names the button group, not an input — the group carries its own
+            accessible name via aria-labelledby. */}
+        <span className="form-group-label" id="commute-mode-label">Transport Mode</span>
+        <div className="mode-selector-group" role="group" aria-labelledby="commute-mode-label">
           <button
             type="button"
             className={`mode-chip-btn ${mode === "driving" ? "active" : ""}`}
@@ -129,9 +133,10 @@ export default function RouteForm({
       </div>
 
       <div className="form-group commute-save-location">
-        <label>Save current locations for quick access</label>
+        <label htmlFor="commute-location-label">Save current locations for quick access</label>
         <div className="commute-save-row">
           <input
+            id="commute-location-label"
             type="text"
             value={newLocationLabel}
             onChange={(e) => setNewLocationLabel(e.target.value)}
