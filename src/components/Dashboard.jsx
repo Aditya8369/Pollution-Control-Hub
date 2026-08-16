@@ -20,6 +20,7 @@ import html2canvas from "html2canvas";
 import styles from "./Dashboard.module.css";
 import { useSWR } from "../hooks/useSWR";
 import { getAQIBand, getPollutantColor, get7DayForecast, getWeatherDetails } from "../services/airQualityService";
+import { fetchHourlyWeather } from "../services/weatherService";
 import MorningBriefing from "./MorningBriefing";
 import { eventBus } from "../core/events";
 import ChallengesWidget from "./ChallengesWidget";
@@ -113,6 +114,12 @@ export default function Dashboard({
     error: forecastError,
     mutate: mutateForecast
   } = useSWR(forecastKey, () => get7DayForecast(lat, lon), { ttl: 60 * 60 * 1000 });
+
+  const weatherKey = lat && lon ? `openweather_${lat.toFixed(4)}_${lon.toFixed(4)}` : null;
+  const {
+    data: hourlyWeather,
+    error: hourlyWeatherError
+  } = useSWR(weatherKey, () => fetchHourlyWeather(lat, lon), { ttl: 60 * 60 * 1000 });
 
   const [animateForecast, setAnimateForecast] = useState(false);
 
@@ -717,6 +724,62 @@ export default function Dashboard({
                     </div>
                   );
                 })}
+              </div>
+            )}
+          </article>
+
+          <article className="chart-card" style={{ gridColumn: '1 / -1' }}>
+            <h3>Hourly Weather Forecast</h3>
+            {hourlyWeatherError && (
+              <p style={{ color: 'var(--danger)', padding: '1rem' }}>
+                Failed to load hourly weather data.
+              </p>
+            )}
+            {!hourlyWeather && !hourlyWeatherError && (
+              <p style={{ padding: '1rem', color: 'var(--muted)' }}>Loading hourly weather…</p>
+            )}
+            {hourlyWeather && hourlyWeather.length === 0 && !hourlyWeatherError && (
+              <p style={{ padding: '1rem', color: 'var(--muted)' }}>
+                Hourly weather is unavailable — set VITE_OPENWEATHER_API_KEY to enable it.
+              </p>
+            )}
+            {hourlyWeather && hourlyWeather.length > 0 && (
+              <div style={{ display: 'flex', gap: '0.75rem', overflowX: 'auto', paddingBottom: '0.5rem' }}>
+                {hourlyWeather.map((point) => (
+                  <div
+                    key={point.time}
+                    style={{
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      gap: '0.35rem',
+                      minWidth: '90px',
+                      padding: '0.75rem',
+                      borderRadius: '8px',
+                      background: 'var(--bg-card-alt, rgba(0,0,0,0.015))',
+                      border: '1px solid var(--line)'
+                    }}
+                  >
+                    <span style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>
+                      {new Date(point.time).toLocaleTimeString([], { hour: '2-digit' })}
+                    </span>
+                    <img
+                      src={`https://openweathermap.org/img/wn/${point.weatherIcon}.png`}
+                      alt={point.weatherLabel}
+                      width="32"
+                      height="32"
+                    />
+                    <span style={{ fontWeight: '700', fontSize: '0.95rem', color: 'var(--ink)' }}>
+                      {point.temperature !== null ? `${Math.round(point.temperature)}°C` : '—'}
+                    </span>
+                    <span style={{ fontSize: '0.7rem', color: 'var(--muted)' }}>
+                      💧 {point.humidity ?? '—'}%
+                    </span>
+                    <span style={{ fontSize: '0.7rem', color: 'var(--muted)' }}>
+                      🌬️ {point.windSpeed ?? '—'} m/s
+                    </span>
+                  </div>
+                ))}
               </div>
             )}
           </article>
