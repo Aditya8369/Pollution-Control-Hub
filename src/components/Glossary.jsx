@@ -56,12 +56,16 @@ function GlossaryCard({ entry, query, isExpanded, onToggle }) {
     <article
       className={`glossary-card${isExpanded ? " glossary-card--expanded" : ""}`}
       style={{ borderColor: isExpanded ? colors.border : undefined }}
-      aria-expanded={isExpanded}
     >
+      {/* aria-expanded sat on the <article>, where it is ignored — the state was never
+          announced. It belongs on the control that does the toggling, pointing at the
+          region it reveals. */}
       <button
         type="button"
         className="glossary-card-header"
         onClick={onToggle}
+        aria-expanded={isExpanded}
+        aria-controls={`glossary-card-body-${entry.term}`}
         aria-label={`${isExpanded ? "Collapse" : "Expand"} definition of ${entry.term}`}
       >
         <div className="glossary-card-title-row">
@@ -99,7 +103,7 @@ function GlossaryCard({ entry, query, isExpanded, onToggle }) {
       </button>
 
       {isExpanded && (
-        <div className="glossary-card-body">
+        <div className="glossary-card-body" id={`glossary-card-body-${entry.term}`}>
           <p className="glossary-definition">
             <Highlight text={entry.definition} query={query} />
           </p>

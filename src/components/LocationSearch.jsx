@@ -334,6 +334,12 @@ export default function LocationSearch({ onLocationSelected, initialCityName }) 
           aria-expanded={isOpen}
           aria-autocomplete="list"
           aria-controls="location-search-listbox"
+          /* Arrow keys already moved a visual highlight through the options, but nothing
+             told assistive tech which one it had landed on. This is the piece the
+             combobox pattern was missing. */
+          aria-activedescendant={
+            activeIndex >= 0 ? `location-search-option-${activeIndex}` : undefined
+          }
           aria-describedby={historyError ? 'location-search-history-error' : undefined}
           role="combobox"
         />
@@ -388,8 +394,14 @@ export default function LocationSearch({ onLocationSelected, initialCityName }) 
               </li>
 
               {recentSearches.map((item, index) => (
+                // Options in a combobox listbox must not be individually focusable —
+                // focus stays on the input and aria-activedescendant points here. Adding
+                // a key handler per option would put a tab stop between the input and its
+                // own results. Enter and the arrow keys are handled in handleKeyDown.
+                // eslint-disable-next-line jsx-a11y/click-events-have-key-events
                 <li
                   key={`recent-${item.id}`}
+                  id={`location-search-option-${index}`}
                   className={`location-search-item ${
                     activeIndex === index ? 'active' : ''
                   }`}
@@ -418,8 +430,11 @@ export default function LocationSearch({ onLocationSelected, initialCityName }) 
           {showSuggestions && (
             <>
               {suggestions.map((item, index) => (
+                // See the note on the recent-searches list above.
+                // eslint-disable-next-line jsx-a11y/click-events-have-key-events
                 <li
                   key={`suggest-${item.id}`}
+                  id={`location-search-option-${index}`}
                   className={`location-search-item ${
                     activeIndex === index ? 'active' : ''
                   }`}

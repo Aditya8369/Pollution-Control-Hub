@@ -4,6 +4,28 @@ import CalendarHeatmap from './CalendarHeatmap';
 import { fetchHistoricalData, formatHistoricalCSV } from '../services/historicalDataService';
 import { dayAqi } from '../utils/historicalAggregate';
 
+const EXPORT_BG = 'var(--brand, #0d9488)';
+const EXPORT_BG_ALT = 'var(--muted, #0d9488)';
+const EXPORT_BG_ACTIVE = 'var(--brand-strong, #0b7d73)';
+
+/**
+ * The export buttons highlighted on onMouseOver/onMouseOut only, so tabbing onto one gave
+ * no indication it was focused — the same visual state, reachable by pointer but not by
+ * keyboard. onFocus/onBlur now mirror the pointer pair.
+ *
+ * @param {string} resting background to return to
+ * @param {() => boolean} [isSuppressed] skip the highlight (e.g. while a button is busy)
+ */
+function highlightHandlers(resting, isSuppressed = () => false) {
+  const apply = (e) => {
+    if (!isSuppressed()) e.currentTarget.style.background = EXPORT_BG_ACTIVE;
+  };
+  const reset = (e) => {
+    if (!isSuppressed()) e.currentTarget.style.background = resting;
+  };
+  return { onMouseOver: apply, onMouseOut: reset, onFocus: apply, onBlur: reset };
+}
+
 /** @param {any} params */
 export default function HistoricalAnalysis({ position }) {
   const [loading, setLoading] = useState(true);
@@ -477,8 +499,7 @@ export default function HistoricalAnalysis({ position }) {
                 opacity: isExportingPDF ? 0.7 : 1,
                 transition: 'background 0.2s'
               }}
-              onMouseOver={(e) => { if (!isExportingPDF) e.currentTarget.style.background = 'var(--brand-strong, #0b7d73)'; }}
-              onMouseOut={(e) => { if (!isExportingPDF) e.currentTarget.style.background = 'var(--brand, #0d9488)'; }}
+              {...highlightHandlers(EXPORT_BG, () => isExportingPDF)}
             >
               {isExportingPDF ? 'Exporting PDF...' : 'Export PDF'}
             </button>
@@ -501,8 +522,7 @@ export default function HistoricalAnalysis({ position }) {
                 fontFamily: 'inherit',
                 transition: 'background 0.2s'
               }}
-              onMouseOver={(e) => { e.currentTarget.style.background = 'var(--brand-strong, #0b7d73)'; }}
-              onMouseOut={(e) => { e.currentTarget.style.background = 'var(--brand, #0d9488)'; }}
+              {...highlightHandlers(EXPORT_BG)}
             >
               Export CSV
             </button>
@@ -525,8 +545,7 @@ export default function HistoricalAnalysis({ position }) {
                 fontFamily: 'inherit',
                 transition: 'background 0.2s'
               }}
-              onMouseOver={(e) => { e.currentTarget.style.background = 'var(--brand-strong, #0b7d73)'; }}
-              onMouseOut={(e) => { e.currentTarget.style.background = 'var(--brand, #0d9488)'; }}
+              {...highlightHandlers(EXPORT_BG_ALT)}
             >
               Export JSON
             </button>

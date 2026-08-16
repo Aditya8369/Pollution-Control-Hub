@@ -10,8 +10,11 @@ export default function SavedLocations({
 
   return (
     <div className="commute-saved-locations">
-      <label>Saved Locations</label>
-      <div className="commute-chip-row">
+      {/* Heads the chip list; there is no control here for a <label> to point at. */}
+      <h3 className="commute-saved-locations-title" id="commute-saved-locations-title">
+        Saved Locations
+      </h3>
+      <div className="commute-chip-row" role="group" aria-labelledby="commute-saved-locations-title">
         {savedLocations.map((loc) => (
           <span key={loc.id} className="commute-chip-group">
             <button

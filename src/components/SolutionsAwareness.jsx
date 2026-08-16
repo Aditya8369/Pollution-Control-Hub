@@ -203,14 +203,18 @@ export default function SolutionsAwareness() {
             <span className="solutions-subtext sa-subtext">Click card to open article</span>
           </div>
 
-          <div className="sa-reads-list" role="list">
+          {/* role="listitem" on the button overrode its native role, so the card was
+              announced as a list item and never as something you can activate — and
+              aria-haspopup is not supported on listitem, so the dialog hint was dropped
+              too. The buttons carry their own semantics; the list roles added nothing the
+              section heading above does not already give. */}
+          <div className="sa-reads-list">
             {EDUCATIONAL_READS.map((read) => (
               <button
                 type="button"
                 key={read.id}
                 className="sa-read-card-btn"
                 onClick={(e) => openArticleModal(read, e)}
-                role="listitem"
                 aria-haspopup="dialog"
               >
                 <div className="sa-read-meta">
@@ -228,9 +232,16 @@ export default function SolutionsAwareness() {
 
       {/* Lightweight Accessible Educational Article Modal */}
       {activeArticle && (
+        // The dialog itself carried an onClick that existed only to stop the backdrop's
+        // click from bubbling, which put a mouse-only interaction on a non-interactive
+        // role. Comparing target to currentTarget on the backdrop gets the same
+        // click-outside-to-dismiss without the dialog handling clicks at all. Escape,
+        // handled in the effect above, remains the keyboard equivalent.
         <div
           className="sa-article-modal-backdrop"
-          onClick={closeArticleModal}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) closeArticleModal();
+          }}
           role="presentation"
         >
           <div
@@ -239,7 +250,6 @@ export default function SolutionsAwareness() {
             role="dialog"
             aria-modal="true"
             aria-labelledby="sa-article-modal-title"
-            onClick={(e) => e.stopPropagation()}
           >
             <button
               ref={closeBtnRef}
