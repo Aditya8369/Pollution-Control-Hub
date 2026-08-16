@@ -7,7 +7,7 @@ const SCOPED_STORE_NAME = 'historicalDataCache';
 // Issue #759: Scope the DB and store by tenant_id so multiple
 // organisations on the same platform get isolated data caches.
 const SCOPED_DB_NAME = getTenantScopedDbName(DB_NAME);
-const SCOPED_STORE_NAME = getTenantScopedStoreName(SCOPED_STORE_NAME);
+const SCOPED_STORE_NAME = getTenantScopedStoreName(STORE_NAME);
 
 /**
  * How long a cached archive payload stays usable.
