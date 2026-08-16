@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef } from 'react';
 import PropTypes from 'prop-types';
 import InfoTooltip from "./InfoTooltip";
 
@@ -16,6 +16,38 @@ function coverageNote(route) {
     return `Based on ${route.measuredCheckpoints} of ${route.totalCheckpoints} sample points — the rest could not be fetched.`;
   }
   return null;
+}
+
+function ActiveRouteStats({ activeRoute, mode }) {
+  if (!activeRoute) return null;
+
+  const note = coverageNote(activeRoute);
+
+  return (
+    <div className="commute-active-stats" style={{
+      background: '#f0fdfa',
+      border: '1px solid #99f6e4',
+      borderRadius: '0.75rem',
+      padding: '1rem 1.25rem',
+      marginBottom: '1.25rem',
+    }}>
+      <h3 style={{ margin: '0 0 0.75rem', fontSize: '1rem', color: '#0f766e' }}>
+        Selected Route Summary {mode && <span style={{ fontWeight: 400, color: '#6b7280' }}>({mode})</span>}
+      </h3>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', fontSize: '0.9rem', color: '#374151' }}>
+        <span>⏱ <strong>{activeRoute.duration}</strong> min</span>
+        <span>📏 <strong>{activeRoute.distance}</strong> km</span>
+        {activeRoute.measured !== false ? (
+          <span>☁️ PM2.5: <strong>{formatReading(activeRoute.pm25, 'µg/m³')}</strong></span>
+        ) : (
+          <span style={{ color: '#64748b' }}>☁️ PM2.5: <strong>No reading</strong></span>
+        )}
+      </div>
+      {note && (
+        <p style={{ margin: '0.6rem 0 0', fontSize: '0.8rem', color: '#6b7280' }}>{note}</p>
+      )}
+    </div>
+  );
 }
 
 const noop = () => { };
@@ -103,6 +135,19 @@ export default function RouteResults({
   pollutionDataAvailable = true,
   mode = "",
 }) {
+  const routeButtonRefs = useRef([]);
+
+  const handleRouteOptionKeyDown = (e, idx) => {
+    if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return;
+    e.preventDefault();
+    const nextIndex =
+      e.key === 'ArrowDown'
+        ? (idx + 1) % routes.length
+        : (idx - 1 + routes.length) % routes.length;
+    setActiveRouteIndex(nextIndex);
+    routeButtonRefs.current[nextIndex]?.focus();
+  };
+
   if (routes.length === 0) {
     return null;
   }
@@ -146,9 +191,11 @@ export default function RouteResults({
             return (
               <button
                 key={idx}
+                ref={(el) => (routeButtonRefs.current[idx] = el)}
                 type="button"
                 className={`commute-route-option ${isActive ? 'active' : ''}`}
                 onClick={() => setActiveRouteIndex(idx)}
+                onKeyDown={(e) => handleRouteOptionKeyDown(e, idx)}
                 aria-pressed={isActive}
               >
                 <div className="commute-route-option-head">
