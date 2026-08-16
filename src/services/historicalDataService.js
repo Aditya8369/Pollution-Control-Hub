@@ -1,6 +1,13 @@
+import { getTenantScopedDbName, getTenantScopedStoreName } from './tenantService';
+
 const BASE_URL = 'https://air-quality-api.open-meteo.com/v1/air-quality';
 const DB_NAME = 'PollutionHubDB';
-const STORE_NAME = 'historicalDataCache';
+const SCOPED_STORE_NAME = 'historicalDataCache';
+
+// Issue #759: Scope the DB and store by tenant_id so multiple
+// organisations on the same platform get isolated data caches.
+const SCOPED_DB_NAME = getTenantScopedDbName(DB_NAME);
+const SCOPED_STORE_NAME = getTenantScopedStoreName(SCOPED_STORE_NAME);
 
 /**
  * How long a cached archive payload stays usable.
@@ -27,13 +34,13 @@ export async function openDB() {
   }
 
   return new Promise((resolve, reject) => {
-    const request = indexedDB.open(DB_NAME, 1);
+    const request = indexedDB.open(SCOPED_DB_NAME, 1);
 
     request.onupgradeneeded = (event) => {
       // @ts-ignore
       const db = event.target.result;
-      if (!db.objectStoreNames.contains(STORE_NAME)) {
-        db.createObjectStore(STORE_NAME, { keyPath: 'id' });
+      if (!db.objectStoreNames.contains(SCOPED_STORE_NAME)) {
+        db.createObjectStore(SCOPED_STORE_NAME, { keyPath: 'id' });
       }
     };
 
@@ -57,8 +64,8 @@ export async function getCachedData(id, ttl = HISTORY_CACHE_TTL) {
   try {
     const db = await openDB();
     const record = await new Promise((resolve, reject) => {
-      const transaction = db.transaction(STORE_NAME, 'readonly');
-      const store = transaction.objectStore(STORE_NAME);
+      const transaction = db.transaction(SCOPED_STORE_NAME, 'readonly');
+      const store = transaction.objectStore(SCOPED_STORE_NAME);
       const request = store.get(id);
 
       request.onsuccess = () => resolve(request.result || null);
@@ -91,8 +98,8 @@ export async function setCachedData(id, data) {
   try {
     const db = await openDB();
     await new Promise((resolve, reject) => {
-      const transaction = db.transaction(STORE_NAME, 'readwrite');
-      const store = transaction.objectStore(STORE_NAME);
+      const transaction = db.transaction(SCOPED_STORE_NAME, 'readwrite');
+      const store = transaction.objectStore(SCOPED_STORE_NAME);
       const request = store.put({ id, data, timestamp: Date.now() });
 
       request.onsuccess = () => resolve(undefined);
@@ -126,8 +133,8 @@ export async function pruneCache(keepPrefix, keepId) {
     const db = await openDB();
 
     const records = await new Promise((resolve, reject) => {
-      const transaction = db.transaction(STORE_NAME, 'readonly');
-      const request = transaction.objectStore(STORE_NAME).getAll();
+      const transaction = db.transaction(SCOPED_STORE_NAME, 'readonly');
+      const request = transaction.objectStore(SCOPED_STORE_NAME).getAll();
       request.onsuccess = () => resolve(request.result || []);
       request.onerror = () => reject(request.error);
     });
@@ -148,7 +155,7 @@ export async function pruneCache(keepPrefix, keepId) {
 
     // Awaited rather than fired and forgotten, so a caller that prunes before
     // measuring the store sees the result of the prune.
-    const store = db.transaction(STORE_NAME, 'readwrite').objectStore(STORE_NAME);
+    const store = db.transaction(SCOPED_STORE_NAME, 'readwrite').objectStore(SCOPED_STORE_NAME);
     await Promise.all(
       doomed.map(
         (record) =>
