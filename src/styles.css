@@ -10730,6 +10730,23 @@ a {
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand) 18%, transparent);
 }
 
+/* Rejected threshold: the border carries the state as well as the message, so it does
+   not rely on the text alone being noticed. */
+.notif-input[aria-invalid="true"] {
+  border-color: #dc2626;
+}
+
+.notif-input[aria-invalid="true"]:focus {
+  border-color: #dc2626;
+  box-shadow: 0 0 0 3px color-mix(in srgb, #dc2626 18%, transparent);
+}
+
+.notif-field-error {
+  margin: 0.25rem 0 0;
+  font-size: 0.78rem;
+  color: #dc2626;
+}
+
 /* ── Per-pollutant rows ──────────────────────────────────────── */
 .notif-pollutant-rows {
   display: flex;

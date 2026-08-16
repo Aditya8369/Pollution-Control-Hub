@@ -16,10 +16,16 @@ const PUSH_ALERTS_KEY = "push-alerts-enabled";
 const PUSH_ALERTS_FLAG = "enabled";
 
 /**
+ * Every warning here is driven by the visitor's own notification settings. The AQI cut-off
+ * used to be hardcoded to 120 while the settings panel offered an "Alert me when AQI >"
+ * field that only the browser push consulted, so the two disagreed out of the box and
+ * raising the threshold had no effect on what was actually shown or logged.
+ *
  * @param {any} current
- * @param {any} thresholds - per-pollutant thresholds from notification settings
+ * @param {{ aqiThreshold: number, pollutantThresholds: any }} settings
  */
-function buildWarnings(current, thresholds) {
+function buildWarnings(current, settings) {
+  const thresholds = settings.pollutantThresholds;
   const warnings = [];
   if (current.pm2_5 > thresholds.pm2_5)
     warnings.push(
@@ -37,7 +43,13 @@ function buildWarnings(current, thresholds) {
     warnings.push(
       "Ozone levels are high. Limit outdoor activity during peak sunlight hours.",
     );
-  if (current.us_aqi > 120)
+  // The CO threshold has always been in the defaults and on the settings form; this
+  // branch is what was missing, so the field could never raise anything.
+  if (current.carbon_monoxide > thresholds.carbon_monoxide)
+    warnings.push(
+      "CO levels are unsafe. Ventilate indoor spaces and check fuel-burning appliances.",
+    );
+  if (current.us_aqi > settings.aqiThreshold)
     warnings.push(
       "AQI suggests unhealthy conditions. Avoid outdoor activities today.",
     );
@@ -72,14 +84,11 @@ export default function AlertsPanel({
     useNotificationSettings();
   const [showSettings, setShowSettings] = useState(false);
 
-  // Separate ref for history deduplication — does not affect notification behavior
-  const lastHistorySignature = useRef("");
-
   // Keep every hook call unconditional (Rules of Hooks). Guard `current` inside
   // the hooks and bail out before rendering the JSX further down.
   const warnings = useMemo(
-    () => (current ? buildWarnings(current, notificationSettings.pollutantThresholds) : []),
-    [current, notificationSettings.pollutantThresholds],
+    () => (current ? buildWarnings(current, notificationSettings) : []),
+    [current, notificationSettings],
   );
   const lastNotified = useRef("");
 
@@ -114,8 +123,12 @@ export default function AlertsPanel({
     // Browser push notification: only fire when permission is granted,
     // alerts are enabled by the user, AQI exceeds the user's custom threshold,
     // and we're not inside their configured quiet hours.
-    // Deduplication is enforced via lastNotified ref (same signature = no repeat).
+    //
+    // `lastNotified` was assigned but never compared against, so an unchanged alert set
+    // pushed a fresh desktop notification on every dashboard refresh. The signature check
+    // is what the comment claimed and the code did not do.
     if (
+      lastNotified.current !== signature &&
       permission === "granted" &&
       alertsEnabled &&
       current.us_aqi > notificationSettings.aqiThreshold &&
