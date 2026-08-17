@@ -1,3 +1,12 @@
+import { logger } from './logger';
+
+/**
+ * Scoped so every entry from the persistence tier is identifiable as such. These
+ * warnings mean the app has fallen back to memory-only storage, which is worth telling
+ * apart from ordinary console noise.
+ */
+const log = logger.child({ module: 'cacheStore' });
+
 const DB_NAME = 'pollution-hub-cache';
 const STORE_NAME = 'aqi-cache';
 const DB_VERSION = 1;
@@ -194,7 +203,7 @@ export const cacheStore = {
         request.onerror = () => resolve(null);
       });
     } catch (error) {
-      console.warn('IndexedDB read failed:', error);
+      log.warn('IndexedDB read failed', { error });
       notifyPersistenceError(error);
       return null;
     }
@@ -221,7 +230,7 @@ export const cacheStore = {
         (store) => store.put(entry)
       );
     } catch (err) {
-      console.warn('IndexedDB write failed:', err);
+      log.warn('IndexedDB write failed', { error: err });
       notifyPersistenceError(err);
     }
   },
@@ -240,7 +249,7 @@ export const cacheStore = {
           (store) => store.delete(key)
         );
       } catch (err) {
-        console.warn('IndexedDB delete failed:', err);
+        log.warn('IndexedDB delete failed', { error: err });
         notifyPersistenceError(err);
       }
     } else {
@@ -256,7 +265,7 @@ export const cacheStore = {
           (store) => store.clear()
         );
       } catch (err) {
-        console.warn('IndexedDB clear failed:', err);
+        log.warn('IndexedDB clear failed', { error: err });
         notifyPersistenceError(err);
       }
     }
