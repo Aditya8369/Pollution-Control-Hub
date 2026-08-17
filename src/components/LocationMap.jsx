@@ -1,8 +1,9 @@
 // @ts-nocheck
-import { MapContainer, TileLayer, CircleMarker, Popup, Marker } from 'react-leaflet';
+import { MapContainer, TileLayer, CircleMarker, Popup, Marker, useMap } from 'react-leaflet';
 import { useState, useEffect } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import 'leaflet.heat';
 
 delete L.Icon.Default.prototype._getIconUrl;
 
@@ -15,6 +16,7 @@ L.Icon.Default.mergeOptions({
 import { eventBus } from '../core/events';
 import { getPollutantColor } from '../services/airQualityService';
 import { useCommunityReports } from '../hooks/useCommunityReports';
+import { useLiveHeatmap } from '../hooks/useLiveHeatmap';
 import PropTypes from "prop-types";
 import { getMapTileUrlTemplate, supportsWebP } from '../utils/mapTiles';
 
@@ -29,6 +31,31 @@ const POLLUTANT_LAYERS = [
   { key: 'carbon_monoxide', label: 'CO', limit: 4000 },
 ];
 
+/**
+ * Renders live AQI readings as a Leaflet heat layer. Must be rendered as a
+ * child of <MapContainer> so useMap() can access the underlying map instance —
+ * react-leaflet has no built-in heat-layer component, so this manages the
+ * leaflet.heat layer imperatively and cleans it up on unmount/update.
+ *
+ * @param {{ points: Array<{lat: number, lon: number, aqi: number}> }} props
+ */
+function HeatmapLayer({ points }) {
+  const map = useMap();
+
+  useEffect(() => {
+    if (!points || points.length === 0) return undefined;
+
+    const heatPoints = points.map((p) => [p.lat, p.lon, Math.min(p.aqi, 300) / 300]);
+    const heatLayer = L.heatLayer(heatPoints, { radius: 35, blur: 25, maxZoom: 12 });
+    heatLayer.addTo(map);
+
+    return () => {
+      map.removeLayer(heatLayer);
+    };
+  }, [map, points]);
+
+  return null;
+}
 
 function readGeotaggedSymptomReports() {
   try {
@@ -67,6 +94,8 @@ export default function LocationMap({ center, nearbyPoints, confidenceScore, win
   const [showSymptomReports, setShowSymptomReports] = useState(false);
   const [symptomReports, setSymptomReports] = useState(() => readGeotaggedSymptomReports());
   const [selectedLayer, setSelectedLayer] = useState('aqi');
+  const [showHeatmap, setShowHeatmap] = useState(false);
+  const { points: liveHeatPoints, source: heatmapSource } = useLiveHeatmap(center.lat, center.lon);
   const tileUrlTemplate = getMapTileUrlTemplate('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', supportsWebP());
 
   useEffect(() => {
@@ -221,6 +250,43 @@ export default function LocationMap({ center, nearbyPoints, confidenceScore, win
               {showWind ? 'Hide Wind Overlay' : 'Show Wind Overlay'}
             </button>
           )}
+          <button
+            type="button"
+            data-testid="toggle-live-heatmap"
+            onClick={() => setShowHeatmap(!showHeatmap)}
+            style={{
+              fontSize: '0.85rem',
+              padding: '0.5rem 1rem',
+              flexShrink: 0,
+              backgroundColor: showHeatmap ? '#ef4444' : '#16a34a',
+              color: 'white',
+              border: 'none',
+              borderRadius: '0.375rem',
+              cursor: 'pointer',
+              fontWeight: '600',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+              transition: 'background-color 0.2s',
+              minHeight: '44px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.4rem'
+            }}
+          >
+            {showHeatmap ? 'Hide Live Heatmap' : 'Show Live Heatmap'}
+            {showHeatmap && (
+              <span
+                data-testid="heatmap-source-indicator"
+                title={heatmapSource === 'websocket' ? 'Live via WebSocket' : heatmapSource === 'polling' ? 'Fallback polling (WebSocket unavailable)' : 'Connecting…'}
+                style={{
+                  width: '8px',
+                  height: '8px',
+                  borderRadius: '50%',
+                  backgroundColor: heatmapSource === 'websocket' ? '#4ade80' : heatmapSource === 'polling' ? '#facc15' : '#9ca3af',
+                  display: 'inline-block'
+                }}
+              />
+            )}
+          </button>
         </div>
       </div>
 
@@ -231,6 +297,7 @@ export default function LocationMap({ center, nearbyPoints, confidenceScore, win
             url={tileUrlTemplate}
           />
 
+          {showHeatmap && liveHeatPoints.length > 0 && <HeatmapLayer points={liveHeatPoints} />}
           {nearbyPoints.map((point) => (
             <CircleMarker
               key={point.id}
