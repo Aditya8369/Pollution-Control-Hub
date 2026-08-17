@@ -68,5 +68,32 @@ export default defineConfig({
     setupFiles: "./src/setupTests.js",
     include: ["src/**/*.{test,spec}.{js,jsx}"],
     exclude: ["e2e/**", "node_modules/**"],
+    coverage: {
+      provider: "v8",
+      // `text` for the CI log, `html` to browse locally, `lcov` so an external
+      // coverage service can pick a run up later without a config change.
+      reporter: ["text", "html", "lcov"],
+      reportsDirectory: "./coverage",
+      // Report on every source file, not only the ones some test happened to
+      // import. Without this a module with no test at all is simply absent from
+      // the report, which reads as full coverage rather than none.
+      all: true,
+      include: ["src/**/*.{js,jsx,ts}"],
+      exclude: [
+        "src/**/*.{test,spec}.{js,jsx}",
+        "src/setupTests.js",
+        "src/mocks/**",
+        "src/tests/**",
+        // Server-side deployables that happen to live under src/. They import
+        // bullmq and axios, neither of which is a dependency of this package, so
+        // they are unreachable from a browser test run and would only ever
+        // report 0% — noise that makes the real number harder to read.
+        "src/workers/**",
+        "src/controllers/**",
+      ],
+      // No thresholds, deliberately. A number that fails the build gets worked
+      // around; a number a reviewer can open gets talked about. Thresholds are
+      // worth adding once there is a baseline worth defending.
+    },
   },
 });

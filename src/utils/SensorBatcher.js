@@ -56,8 +56,18 @@ export class SensorBatcher {
     }
   }
 
-  // Mock DB bulk insert function
-  async bulkInsert(records) {
-    return new Promise((resolve) => setTimeout(resolve, 50)); 
+  /**
+   * Placeholder for the real bulk insert.
+   *
+   * The parameter is prefixed because it is deliberately unused until a database
+   * client is wired in — the eslint config treats a leading underscore as "declared
+   * to document the contract, not yet consumed". Keeping the name in the signature
+   * is what tells the next person what to pass.
+   *
+   * @param {object[]} _records - The batch that would be written.
+   * @returns {Promise<void>}
+   */
+  async bulkInsert(_records) {
+    return new Promise((resolve) => setTimeout(resolve, 50));
   }
 }

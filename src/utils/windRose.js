@@ -59,8 +59,20 @@ function mean(sum, count) {
 }
 
 /**
- * @param {object} airHourly Open-Meteo air-quality `hourly` block.
- * @param {object} weatherHourly Open-Meteo forecast `hourly` block.
+ * Both blocks are indexed by Open-Meteo field name — `wind_speed_10m`, `pm2_5` and so
+ * on — and every field holds a parallel hourly series. Typing them as bare `object`
+ * meant every field access was a type error, because `object` has no properties;
+ * `Record<string, ...>` says what these actually are, which is a bag keyed by field
+ * name. The `undefined` in the value type is what makes the `?.[i]` guards below
+ * meaningful rather than redundant: the endpoint omits a series entirely when it has
+ * nothing for it.
+ *
+ * @typedef {Record<string, Array<number|null>|undefined>} HourlyBlock
+ */
+
+/**
+ * @param {HourlyBlock} [airHourly] Open-Meteo air-quality `hourly` block.
+ * @param {HourlyBlock} [weatherHourly] Open-Meteo forecast `hourly` block.
  * @returns {{
  *   sectors: Array<object>,
  *   totalObservations: number,
@@ -69,7 +81,9 @@ function mean(sum, count) {
  * }}
  */
 export function buildWindRose(airHourly, weatherHourly) {
+  /** @type {HourlyBlock} */
   const air = airHourly || {};
+  /** @type {HourlyBlock} */
   const weather = weatherHourly || {};
 
   /** @type {Record<string, any>} */

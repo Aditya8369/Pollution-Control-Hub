@@ -1,0 +1,138 @@
+name: CI
+
+# ── Trigger conditions ────────────────────────────────────────────────────────
+# Mirrors e2e.yml so a PR gets the same coverage regardless of target branch.
+on:
+  pull_request:
+    branches: [main, master, develop]
+  push:
+    branches: [main, master]
+  workflow_dispatch:
+
+# ── Concurrency: cancel superseded runs for the same branch ──────────────────
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+# Read-only by default. Nothing here needs to write to the repository.
+permissions:
+  contents: read
+
+jobs:
+  # ── Static analysis ─────────────────────────────────────────────────────────
+  # Split from the test job so a reviewer can see at a glance whether a red run
+  # is a style problem or a behavioural one, and so both report even when the
+  # first one fails.
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          # .nvmrc is the single source of truth for the Node version, so this
+          # cannot drift from what contributors run locally.
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run ESLint
+        run: npm run lint
+
+  # ── Type checking (advisory) ────────────────────────────────────────────────
+  # `npm run type-check` currently reports 157 errors on main. Almost all are
+  # inline style objects widened to `string`, JSX prop shapes that drifted from
+  # their components, and test fixtures that deliberately pass invalid input to
+  # assert it is rejected.
+  #
+  # This job therefore reports without blocking. Turning it into a gate today
+  # would mean every PR opens red for reasons its author did not cause, which is
+  # how a gate gets ignored and then removed. Making it blocking is a follow-up,
+  # once the backlog is cleared — the point of running it now is that the number
+  # is visible and can be watched going down rather than up.
+  types:
+    name: Type check (advisory)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    continue-on-error: true
+
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tsc
+        run: npm run type-check
+
+  # ── Unit tests ──────────────────────────────────────────────────────────────
+  test:
+    name: Unit tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Vitest with coverage
+        run: npm run test:coverage
+
+      # Uploaded rather than gated on a threshold. A number that fails the build
+      # gets worked around; a number a reviewer can open gets talked about.
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: coverage/
+          retention-days: 7
+          if-no-files-found: ignore
+
+  # ── Production build ────────────────────────────────────────────────────────
+  # The one check that exercises the real bundler. Tests run through Vitest's
+  # own transform, so a broken import or a bad asset reference can pass the unit
+  # suite and still fail `vite build`.
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
