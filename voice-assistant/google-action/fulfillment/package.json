@@ -1,0 +1,8 @@
+{
+  "name": "google-action-fulfillment",
+  "version": "1.0.0",
+  "description": "Dialogflow fulfillment webhook for Pollution Control Hub AQI lookup",
+  "main": "index.js",
+  "type": "module",
+  "dependencies": {}
+}
