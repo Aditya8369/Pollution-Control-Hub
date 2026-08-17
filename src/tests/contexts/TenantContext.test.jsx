@@ -228,6 +228,7 @@ describe("TenantContext — unrecognised ids (Issue #843)", () => {
       result.current.setTenant(null);
     });
     act(() => {
+      // @ts-expect-error — callers are JS; the guard exists for exactly this.
       result.current.setTenant(42);
     });
 

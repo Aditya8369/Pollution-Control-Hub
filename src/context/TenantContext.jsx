@@ -19,6 +19,24 @@ const KNOWN_TENANTS = [
 
 const DEFAULT_TENANT_NAME = KNOWN_TENANTS[0].name;
 
+/**
+ * The shape consumers receive from `useTenant()`.
+ *
+ * Declared rather than left to inference from the default below. Inference reads
+ * `setTenant: () => {}` as taking no arguments, so every real `setTenant(id)` call
+ * type-checked as "Expected 0 arguments, but got 1" — and `knownTenants` was absent
+ * from the inferred type altogether, so reading it in TenantSwitcher was an error too.
+ *
+ * @typedef {object} TenantContextValue
+ * @property {string} tenantId - The active tenant's id.
+ * @property {string} tenantName - Its display name.
+ * @property {(id: string) => void} setTenant - Selects a tenant by id.
+ * @property {() => void} clearTenant - Returns to the default and forgets the choice.
+ * @property {boolean} isMultiTenant - False on the inert default context.
+ * @property {{id: string, name: string}[]} knownTenants - Selectable tenants.
+ */
+
+/** @type {import('react').Context<TenantContextValue>} */
 const TenantContext = createContext({
   tenantId: DEFAULT_TENANT_ID,
   tenantName: DEFAULT_TENANT_NAME,
