@@ -270,10 +270,25 @@ function emit(level, message, data, bindings) {
 }
 
 /**
+ * A logger's own methods, independent of the module-level controls below.
+ *
+ * Declared rather than left to inference so the shape survives being spread into the
+ * exported `logger`. Without it TypeScript loses the methods across the spread, and
+ * `vi.spyOn(logger, 'error')` — which ErrorBoundary's tests do — stops type-checking.
+ *
+ * @typedef {object} ScopedLogger
+ * @property {(message: string, data?: object) => void} debug
+ * @property {(message: string, data?: object) => void} info
+ * @property {(message: string, data?: object) => void} warn
+ * @property {(message: string, data?: object) => void} error
+ * @property {(extra?: object) => ScopedLogger} child
+ */
+
+/**
  * Builds a logger bound to a set of fields.
  *
  * @param {object} bindings - Merged into every entry this logger emits.
- * @returns {object} A logger.
+ * @returns {ScopedLogger} A logger.
  */
 function buildLogger(bindings) {
   return {
@@ -325,7 +340,7 @@ function buildLogger(bindings) {
      * site having to remember to.
      *
      * @param {object} extra - Fields merged into every entry.
-     * @returns {object} A logger sharing this one's threshold.
+     * @returns {ScopedLogger} A logger sharing this one's threshold.
      *
      * @example
      * const log = logger.child({ module: 'cacheStore' });

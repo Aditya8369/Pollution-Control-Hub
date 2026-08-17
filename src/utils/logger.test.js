@@ -303,6 +303,7 @@ describe('logger — redaction', () => {
   });
 
   it('tolerates a non-object data argument', () => {
+    // @ts-expect-error — deliberately the wrong type; not throwing is the subject.
     expect(() => logger.warn('scalar', 'not an object')).not.toThrow();
     expect(() => logger.warn('nullish', null)).not.toThrow();
     expect(spies.warn).toHaveBeenCalledTimes(2);
