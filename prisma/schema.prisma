@@ -1,0 +1,11 @@
+model SensorReading {
+  id        String   @id @default(uuid())
+  sensorId  String   @map("sensor_id")
+  timestamp DateTime @default(now())
+  pm25      Float?
+  pm10      Float?
+  co2       Float?
+
+  @@index([sensorId, timestamp(sort: Desc)], name: "idx_sensor_readings_sensor_timestamp")
+  @@map("sensor_readings")
+}
