@@ -32,12 +32,19 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # 2. Set up Node.js (matches Vite's requirements)
+      # 2. Set up Node.js (V8 engine — Issue #779)
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
+
+      # 2.1 Verify Node 20 + V8 engine is active (Issue #779)
+      - name: Verify Node and V8 version
+        run: |
+          echo "Node version: $(node -v)"
+          echo "V8 version: $(node -e "console.log(process.versions.v8)")"
+          node -e "const v = process.versions.node; const [major] = v.split('.'); if (parseInt(major) < 20) { console.error('FAIL: Node 20+ required, got ' + v); process.exit(1); } else { console.log('OK: Node ' + v + ' (V8 ' + process.versions.v8 + ')'); }"
 
       # 3. Install npm dependencies (including Playwright)
       - name: Install dependencies

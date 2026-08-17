@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { eventBus } from '../core/events';
 
 const QUIZ_SETS = {
   'eco-iq': {
@@ -291,14 +292,25 @@ const QUIZ_SETS = {
   }
 };
 
+/** @param {any} params */
 function QuizSelector({ onSelectQuiz }) {
   return (
     <div className="quiz-selector">
       <h2>Choose Your Quiz</h2>
       <p>Pick a challenge to test your pollution and environmental knowledge.</p>
-      <div className="quiz-cards">
+      <div
+        className="quiz-cards"
+        role="list"
+        aria-label="Available quizzes"
+      >
         {Object.entries(QUIZ_SETS).map(([id, set]) => (
-          <button key={id} type="button" className="quiz-card" onClick={() => onSelectQuiz(id)}>
+          <button
+            key={id}
+            type="button"
+            className="quiz-card"
+            aria-label={`Start ${set.name}`}
+            onClick={() => onSelectQuiz(id)}
+          >
             <h3>{set.name}</h3>
             <p>{set.desc}</p>
             <span className="quiz-count">{set.questions.length} questions</span>
@@ -309,11 +321,16 @@ function QuizSelector({ onSelectQuiz }) {
   );
 }
 
+/** @param {any} params */
 function QuizResult({ score, total, onRestart }) {
   const percent = Math.round((score / total) * 100);
 
   return (
-    <div className="quiz-result">
+    <div
+      className="quiz-result"
+      role="status"
+      aria-live="polite"
+    >
       <h3>Quiz Complete</h3>
       <p className="quiz-score">{score}/{total} correct ({percent}%)</p>
       <p>{percent >= 80 ? 'Excellent! You are a pollution expert.' : percent >= 60 ? 'Good effort! Keep learning.' : 'Keep trying and improve your knowledge.'}</p>
@@ -328,32 +345,50 @@ export default function QuizSection() {
   const [selected, setSelected] = useState('');
   const [submitted, setSubmitted] = useState(false);
   const [score, setScore] = useState(0);
+  const [correctAnswerText, setCorrectAnswerText] = useState('');
 
   const quizSet = selectedQuiz ? QUIZ_SETS[selectedQuiz] : null;
   const current = quizSet && quizSet.questions[index];
   const total = quizSet ? quizSet.questions.length : 0;
-  const isCorrect = submitted && selected === current?.answer;
+  const isCorrect = submitted && selected === correctAnswerText;
   const isLastQuestion = index === total - 1;
-  const progress = useMemo(() => ((index + 1) / total) * 100, [index, total]);
+  const progress = useMemo(
+    () => (total ? ((index + 1) / total) * 100 : 0),
+    [index, total]
+  );
 
+  /** @param {any} selectedOption */
   const submitAnswer = (selectedOption) => {
     if (submitted) return;
 
     setSelected(selectedOption);
+
+    const isCorrectChoice = selectedOption === current.answer;
+
+    setCorrectAnswerText(current.answer);
+
     setSubmitted(true);
 
-    if (selectedOption === current.answer) {
+    if (isCorrectChoice) {
       setScore((prev) => prev + 1);
     }
   };
   const goNext = () => {
     if (!submitted) return;
     if (isLastQuestion) {
+      eventBus.emit('QUIZ_COMPLETED', {
+        quizId: selectedQuiz,
+        score,
+        total,
+        percent: Math.round((score / total) * 100),
+        totalQuizzes: Object.keys(QUIZ_SETS).length,
+      });
       setIndex(total);
       return;
     }
     setIndex((prev) => prev + 1);
     setSelected('');
+    setCorrectAnswerText('');
     setSubmitted(false);
   };
 
@@ -361,6 +396,7 @@ export default function QuizSection() {
     setSelectedQuiz(null);
     setIndex(0);
     setSelected('');
+    setCorrectAnswerText('');
     setSubmitted(false);
     setScore(0);
   };
@@ -398,17 +434,28 @@ export default function QuizSection() {
         <p>Question {index + 1} of {total}</p>
       </div>
 
-      <div className="quiz-progress-track">
+      <div
+        className="quiz-progress-track"
+        role="progressbar"
+        aria-label="Quiz progress"
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={Math.round(progress)}
+      >
         <div className="quiz-progress-fill" style={{ width: `${progress}%` }} />
       </div>
 
-      <h3 className="quiz-question">{current.question}</h3>
+      <h3 id="quiz-question-heading" className="quiz-question">{current.question}</h3>
 
-      <div className="quiz-options">
+      <div
+        className="quiz-options"
+        role="radiogroup"
+        aria-labelledby="quiz-question-heading"
+      >
         {current.options.map((option) => {
           const selectedClass = selected === option ? 'selected' : '';
           const resultClass = submitted
-            ? option === current.answer
+            ? option === correctAnswerText
               ? 'correct'
               : option === selected
                 ? 'wrong'
@@ -419,9 +466,12 @@ export default function QuizSection() {
             <button
               key={option}
               type="button"
+              role="radio"
+              aria-checked={selected === option}
+              aria-disabled={submitted}
+              tabIndex={selected === option ? 0 : -1}
               className={`quiz-option ${selectedClass} ${resultClass}`.trim()}
               onClick={() => submitAnswer(option)}
-
               disabled={submitted}
             >
               {option}
@@ -431,8 +481,12 @@ export default function QuizSection() {
       </div>
 
       {submitted && (
-        <p className={`quiz-feedback ${isCorrect ? 'correct' : 'wrong'}`}>
-          {isCorrect ? 'Correct.' : `Not quite. Correct answer: ${current.answer}.`} {current.explanation}
+        <p
+          className={`quiz-feedback ${isCorrect ? "correct" : "wrong"}`}
+          role="status"
+          aria-live="polite"
+        >
+          {isCorrect ? 'Correct.' : `Not quite. Correct answer: ${correctAnswerText}.`} {current.explanation}
         </p>
       )}
 

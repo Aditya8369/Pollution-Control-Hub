@@ -1,99 +1,83 @@
 /**
  * MultiLevelCache
- * 
- * L1: In-Memory Map (fastest, cleared on page refresh)
- * L2: LocalStorage (persists across reloads, limited capacity)
+ *
+ * In-Memory LRU Cache
  */
+export let cacheWarningShown = false;
+
 export class MultiLevelCache {
-  constructor(namespace = 'pc-hub-cache', defaultTTL = 5 * 60 * 1000) {
+  constructor(
+    namespace = 'pc-hub-cache',
+    defaultTTL = 5 * 60 * 1000,
+    maxEntries = Infinity
+  ) {
     this.namespace = namespace;
     this.defaultTTL = defaultTTL;
+    this.maxEntries = maxEntries;
     this.memoryCache = new Map();
   }
 
+  /** @param {any} key */
   _getKey(key) {
     return `${this.namespace}:${key}`;
   }
 
-  _getFallbackKey(key) {
-    return `${this.namespace}:fallback:${key}`;
+  _evictIfNeeded() {
+    if (this.memoryCache.size >= this.maxEntries) {
+      const firstKey = this.memoryCache.keys().next().value;
+      if (firstKey) {
+        this.memoryCache.delete(firstKey);
+      }
+    }
   }
 
+  /** @param {any} key */
   get(key) {
     const fullKey = this._getKey(key);
     const now = Date.now();
 
-    // 1. Check L1 Cache
-    const l1Entry = this.memoryCache.get(fullKey);
-    if (l1Entry) {
-      if (now < l1Entry.expiresAt) {
-        return l1Entry.data;
+    const entry = this.memoryCache.get(fullKey);
+
+    if (entry) {
+      if (now < entry.expiresAt) {
+        // Refresh insertion order for LRU
+        this.memoryCache.delete(fullKey);
+        this.memoryCache.set(fullKey, entry);
+        return entry.data;
       }
-      this.memoryCache.delete(fullKey); // Expired
+
+      this.memoryCache.delete(fullKey);
     }
 
-    // 2. Check L2 Cache
-    try {
-      const l2Raw = localStorage.getItem(fullKey);
-      if (l2Raw) {
-        const l2Entry = JSON.parse(l2Raw);
-        if (now < l2Entry.expiresAt) {
-          // Backfill L1 Cache
-          this.memoryCache.set(fullKey, l2Entry);
-          return l2Entry.data;
-        }
-        localStorage.removeItem(fullKey); // Expired
-      }
-    } catch (e) {
-      console.warn('Failed to read from localStorage cache:', e);
-    }
-
-    return null; // Cache miss
-  }
-
-  getFallback(key) {
-    const fallbackKey = this._getFallbackKey(key);
-    try {
-      const raw = localStorage.getItem(fallbackKey);
-      if (raw) {
-        return JSON.parse(raw);
-      }
-    } catch (e) {
-      console.warn('Failed to read fallback from localStorage cache:', e);
-    }
     return null;
   }
 
+  /**
+   * @param {any} key
+   * @param {any} data
+   * @param {any} ttlMs
+   */
   set(key, data, ttlMs = this.defaultTTL) {
     const fullKey = this._getKey(key);
     const expiresAt = Date.now() + ttlMs;
-    const entry = { data, expiresAt };
 
-    // 1. Set L1
-    this.memoryCache.set(fullKey, entry);
+    const entry = {
+      data,
+      expiresAt,
+    };
 
-    // 2. Set L2
-    try {
-      localStorage.setItem(fullKey, JSON.stringify(entry));
-      localStorage.setItem(this._getFallbackKey(key), JSON.stringify(data));
-    } catch (e) {
-      console.warn('Failed to write to localStorage cache. Storage might be full:', e);
+    // If updating existing key, remove it first to refresh LRU order
+    // and avoid unnecessary eviction
+    if (this.memoryCache.has(fullKey)) {
+      this.memoryCache.delete(fullKey);
+    } else {
+      this._evictIfNeeded();
     }
+
+    this.memoryCache.set(fullKey, entry);
   }
 
   clear() {
     this.memoryCache.clear();
-    try {
-      for (let i = 0; i < localStorage.length; i++) {
-        const k = localStorage.key(i);
-        if (k && k.startsWith(this.namespace)) {
-          localStorage.removeItem(k);
-        }
-      }
-    } catch (e) {
-      console.warn('Failed to clear localStorage cache:', e);
-    }
   }
 }
-
-export const aqiCache = new MultiLevelCache('aqi-cache', 5 * 60 * 1000); // 5 minutes TTL

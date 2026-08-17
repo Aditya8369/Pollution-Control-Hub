@@ -37,7 +37,7 @@ test.describe('Initial application load', () => {
     }
     const expectedLabels = ['Home', 'Quiz', 'Game', 'Community', 'History'];
     for (const label of expectedLabels) {
-      await expect(nav.getByRole('button', { name: label })).toBeVisible();
+      await expect(nav.getByRole('button', { name: label, exact: true })).toBeVisible();
     }
   });
 
@@ -57,7 +57,7 @@ test.describe('Section navigation', () => {
     if (isMobile) {
       await mockPage.locator('.hamburger-btn').click();
     }
-    await mockPage.getByRole('button', { name: 'Quiz' }).click();
+    await mockPage.getByRole('button', { name: 'Quiz', exact: true }).click();
     await expect(mockPage.locator('[data-testid="quiz-section"]')).toBeVisible({ timeout: 5_000 });
     await expect(mockPage.locator('[data-testid="dashboard"]')).not.toBeVisible();
   });
@@ -66,7 +66,7 @@ test.describe('Section navigation', () => {
     if (isMobile) {
       await mockPage.locator('.hamburger-btn').click();
     }
-    await mockPage.getByRole('button', { name: 'Community' }).click();
+    await mockPage.getByRole('button', { name: 'Community', exact: true }).click();
     await expect(mockPage.locator('[data-testid="community-hub"]')).toBeVisible({ timeout: 5_000 });
   });
 
@@ -74,7 +74,7 @@ test.describe('Section navigation', () => {
     if (isMobile) {
       await mockPage.locator('.hamburger-btn').click();
     }
-    await mockPage.getByRole('button', { name: 'History' }).click();
+    await mockPage.getByRole('button', { name: 'History', exact: true }).click();
     await expect(mockPage.locator('[data-testid="historical-analysis"]')).toBeVisible({ timeout: 5_000 });
   });
 
@@ -82,7 +82,7 @@ test.describe('Section navigation', () => {
     if (isMobile) {
       await mockPage.locator('.hamburger-btn').click();
     }
-    await mockPage.getByRole('button', { name: 'Game' }).click();
+    await mockPage.getByRole('button', { name: 'Game', exact: true }).click();
     await expect(mockPage.locator('[data-testid="aqi-mission-game"]')).toBeVisible({ timeout: 5_000 });
   });
 
@@ -104,11 +104,11 @@ test.describe('Section navigation', () => {
     if (isMobile) {
       await mockPage.locator('.hamburger-btn').click();
     }
-    await mockPage.getByRole('button', { name: 'Quiz' }).click();
+    await mockPage.getByRole('button', { name: 'Quiz', exact: true }).click();
     if (isMobile) {
       await mockPage.locator('.hamburger-btn').click();
     }
-    await mockPage.getByRole('button', { name: 'Home' }).click();
+    await mockPage.getByRole('button', { name: 'Home', exact: true }).click();
     await expect(mockPage.locator('[data-testid="dashboard"]')).toBeVisible({ timeout: 5_000 });
   });
 
@@ -116,7 +116,12 @@ test.describe('Section navigation', () => {
     const sections = ['Quiz', 'Community', 'History', 'Game', 'Home'];
     for (const section of sections) {
       if (isMobile) {
-        await mockPage.locator('.hamburger-btn').click();
+        // Ensure the menu is open before clicking a section button
+        const menuOpen = await mockPage.locator('#mobile-navigation').isVisible().catch(() => false);
+        if (!menuOpen) {
+          await mockPage.locator('.hamburger-btn').click();
+          await mockPage.waitForSelector('#mobile-navigation', { state: 'visible', timeout: 3_000 });
+        }
       }
       await mockPage.getByRole('button', { name: section, exact: true }).click();
       await mockPage.waitForTimeout(300);
@@ -132,11 +137,12 @@ test.describe('Theme toggle', () => {
     const themeToggle = mockPage.locator('button[aria-label="Toggle Theme"]');
     await expect(themeToggle).toBeVisible();
     const html = mockPage.locator('html');
-    await expect(html).toHaveAttribute('data-theme', 'light');
+    // Wait up to 5s for the useEffect to apply initial theme attribute
+    await expect(html).toHaveAttribute('data-theme', 'light', { timeout: 5_000 });
     await themeToggle.click();
-    await expect(html).toHaveAttribute('data-theme', 'dark');
+    await expect(html).toHaveAttribute('data-theme', 'dark', { timeout: 5_000 });
     await themeToggle.click();
-    await expect(html).toHaveAttribute('data-theme', 'light');
+    await expect(html).toHaveAttribute('data-theme', 'light', { timeout: 5_000 });
   });
 
   test('theme toggle button is always visible', async ({ mockPage }) => {
