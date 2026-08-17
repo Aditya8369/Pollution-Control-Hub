@@ -283,6 +283,7 @@ describe('logger — redaction', () => {
   });
 
   it('stops at a depth limit rather than recursing forever', () => {
+    /** @type {Record<string, any>} */
     let deep = { value: 'bottom' };
     for (let i = 0; i < 20; i++) deep = { nested: deep };
 
@@ -375,7 +376,6 @@ describe('logger — resilience', () => {
     logger.setLevel('debug');
     const original = console.debug;
     // Some embedded and older environments do not implement every method.
-    // @ts-expect-error — deliberately removing it.
     console.debug = undefined;
 
     try {

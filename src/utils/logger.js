@@ -122,7 +122,7 @@ function defaultLevel() {
 
 let currentLevel = defaultLevel();
 
-/** @type {object[]} Ring buffer of recent entries, oldest first. */
+/** @type {Record<string, any>[]} Ring buffer of recent entries, oldest first. */
 let buffer = [];
 
 /**
@@ -397,7 +397,7 @@ export const logger = {
    * the run-up to a failure rather than only the failure. Previously the sole durable
    * record in the app was whatever `ErrorBoundary` happened to catch.
    *
-   * @returns {object[]} A copy, so a caller cannot mutate the buffer.
+   * @returns {Record<string, any>[]} A copy, so a caller cannot mutate the buffer.
    */
   getRecentEntries() {
     return [...buffer];
