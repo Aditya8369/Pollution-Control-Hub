@@ -1,0 +1,51 @@
+name: Auto Assign Issue & Limit Checker
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  issues: write
+  pull-requests: read
+
+jobs:
+  auto-assign:
+    name: Check Limit & Auto Assign Issue
+    runs-on: ubuntu-latest
+    if: >-
+      startsWith(github.event.comment.body, '/claim') || 
+      startsWith(github.event.comment.body, '/assign') ||
+      startsWith(github.event.comment.body, '/Claim') ||
+      startsWith(github.event.comment.body, '/Assign')
+    steps:
+      - name: Check Contributor Limits and Assign Issue
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          COMMENTER: ${{ github.event.comment.user.login }}
+        run: |
+          # 1. Fetch currently open assigned issues for the commenter
+          OPEN_ASSIGNED_ISSUES=$(gh issue list --assignee "$COMMENTER" --state open --repo "$GITHUB_REPOSITORY" --json number --jq 'length')
+
+          # 2. Fetch open PRs submitted by commenter
+          OPEN_PRS=$(gh pr list --author "$COMMENTER" --state open --repo "$GITHUB_REPOSITORY" --json number --jq 'length')
+
+          # Active issues pending PR (assigned issues minus PRs raised)
+          ACTIVE_PENDING=$((OPEN_ASSIGNED_ISSUES - OPEN_PRS))
+          if [ $ACTIVE_PENDING -lt 0 ]; then
+            ACTIVE_PENDING=0
+          fi
+
+          echo "Commenter @$COMMENTER has $OPEN_ASSIGNED_ISSUES open issues and $OPEN_PRS open PRs (Active pending: $ACTIVE_PENDING)."
+
+          # 3. Enforce 5 active issue limit
+          if [ "$OPEN_ASSIGNED_ISSUES" -ge 5 ] && [ "$ACTIVE_PENDING" -ge 5 ]; then
+            MESSAGE="Hi @$COMMENTER! You currently have **$OPEN_ASSIGNED_ISSUES active assigned issues** without open Pull Requests. To ensure fair opportunities for all contributors, the maximum limit is **5 active issues** at a time.\n\nPlease submit Pull Requests for your current issues before claiming a new one! ✨"
+            gh issue comment "$ISSUE_NUMBER" --body "$MESSAGE" --repo "$GITHUB_REPOSITORY"
+          else
+            # Assign commenter and post 34-hour completion reminder
+            gh issue edit "$ISSUE_NUMBER" --add-assignee "$COMMENTER" --repo "$GITHUB_REPOSITORY"
+            
+            WELCOME_MESSAGE="Hi @$COMMENTER, you have been successfully assigned to this issue! 🎉\n\n⏰ **Deadline Notice**: Please complete and submit your Pull Request within **34 hours**.\n\nHappy coding & thank you for contributing to Pollution Control Hub! "
+            gh issue comment "$ISSUE_NUMBER" --body "$WELCOME_MESSAGE" --repo "$GITHUB_REPOSITORY"
+          fi
