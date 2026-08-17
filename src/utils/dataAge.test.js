@@ -38,6 +38,7 @@ describe('classifyAge', () => {
   it('treats an unusable age as outdated', () => {
     expect(classifyAge(NaN)).toBe(FRESHNESS.OUTDATED);
     expect(classifyAge(Infinity)).toBe(FRESHNESS.OUTDATED);
+    // @ts-expect-error — deliberately unusable input; the guard is the subject.
     expect(classifyAge('an hour')).toBe(FRESHNESS.OUTDATED);
     expect(classifyAge(undefined)).toBe(FRESHNESS.OUTDATED);
   });
@@ -105,6 +106,7 @@ describe('describeAge', () => {
 
   it('says the age is unknown rather than guessing', () => {
     for (const bad of [null, undefined, NaN, 'yesterday']) {
+      // @ts-expect-error — as above.
       const result = describeAge(bad, NOW);
       expect(result.ageMs).toBeNull();
       expect(result.label).toBe('Age unknown');

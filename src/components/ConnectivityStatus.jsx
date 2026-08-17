@@ -57,7 +57,12 @@ export default function ConnectivityStatus({ dataTimestamp = null, onRetry = nul
     const unsubscribe = cacheStore.onPersistenceError(() => {
       setPersistenceFailed(true);
     });
-    return unsubscribe;
+    // Wrapped rather than returned directly: onPersistenceError hands back
+    // `Set.prototype.delete`, which returns a boolean, and an effect destructor has to
+    // return nothing.
+    return () => {
+      unsubscribe();
+    };
   }, []);
 
   const age = dataTimestamp === null ? null : describeAge(dataTimestamp);

@@ -175,7 +175,7 @@ describe('ConnectivityStatus — degraded persistence', () => {
     let emit;
     vi.spyOn(cacheStore, 'onPersistenceError').mockImplementation((cb) => {
       emit = cb;
-      return () => {};
+      return () => true;
     });
 
     render(<ConnectivityStatus dataTimestamp={Date.now()} />);
@@ -194,7 +194,7 @@ describe('ConnectivityStatus — degraded persistence', () => {
   });
 
   it('unsubscribes on unmount', () => {
-    const unsubscribe = vi.fn();
+    const unsubscribe = vi.fn(() => true);
     vi.spyOn(cacheStore, 'onPersistenceError').mockReturnValue(unsubscribe);
 
     const { unmount } = render(<ConnectivityStatus />);
