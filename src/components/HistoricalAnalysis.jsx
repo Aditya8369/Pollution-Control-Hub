@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import CalendarHeatmap from './CalendarHeatmap';
 import { fetchHistoricalData } from '../services/historicalDataService';
+import CalibrationHistory from './CalibrationHistory';
 
 export default function HistoricalAnalysis({ position }) {
   const [loading, setLoading] = useState(true);
@@ -103,6 +104,10 @@ export default function HistoricalAnalysis({ position }) {
       <div className="heatmap-section" style={{ overflow: 'hidden' }}>
         <h3 style={{ fontSize: '1.1rem', fontWeight: 500, margin: '0 0 1rem' }}>Daily Severity Calendar</h3>
         <CalendarHeatmap data={data.daily} />
+
+        <CalibrationHistory
+          sensorId={`${position.lat.toFixed(4)}-${position.lon.toFixed(4)}`}
+        />
       </div>
     </div>
   );
