@@ -1,2 +1,4 @@
 node_modules/
 dist/
+tsc_errors.txt
+dist/

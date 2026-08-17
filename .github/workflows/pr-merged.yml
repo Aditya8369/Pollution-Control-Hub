@@ -1,0 +1,42 @@
+name: PR Merged Thanks
+
+on:
+  pull_request_target:
+    types: [closed]
+    branches: [main, develop]
+
+jobs:
+  thanks:
+    name: Thank contributor
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.merged == true && github.event.pull_request.user.type != 'Bot'
+    permissions:
+      issues: write
+      pull-requests: write
+
+    steps:
+      - name: Post thank you comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { owner, repo } = context.repo;
+            const pr = context.payload.pull_request;
+            const author = pr.user.login;
+
+            const body = [
+              `🎉 Your PR just got merged, @${author} — thank you for contributing to Pollution Control Hub!`,
+              ``,
+              `Your work is now part of the project. Here's what to do next:`,
+              `- ⭐ If you haven't already, consider giving the repo a star — it helps us grow.`,
+              `- 📢 Share your contribution on LinkedIn, Twitter, or wherever you hang out. You shipped open source!`,
+              `- 🔍 Browse other open issues if you want to keep contributing.`,
+              ``,
+              `We really appreciate you taking the time. See you in the next PR! 🚀`,
+            ].join('\n');
+
+            await github.rest.issues.createComment({
+              owner,
+              repo,
+              issue_number: pr.number,
+              body,
+            });

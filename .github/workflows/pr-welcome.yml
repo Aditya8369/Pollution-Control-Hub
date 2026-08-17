@@ -1,0 +1,46 @@
+name: Thank Contributors for Opening PR
+
+on:
+  pull_request_target:
+    types:
+      - opened
+
+permissions:
+  pull-requests: write
+  issues: write
+
+jobs:
+  thank-contributor:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Comment on Pull Request
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const contributor = context.payload.pull_request.user.login;
+
+            const message = `
+            ## Thank You for Your Contribution! 🎉
+
+            Hi @${contributor},
+
+            Thank you for opening this Pull Request and contributing to our project. We truly appreciate your efforts.
+
+            > Please make sure that:
+            > - Your code follows the project's guidelines.
+            > - You have linked the appropriate issue (if applicable).
+            > - Screenshots are added for UI/UX changes.
+            > - Your PR is ready for review.
+
+            The maintainer @Aditya8369 will review your PR shortly! 
+
+            Happy Contributing! 🚀
+            `;
+
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.payload.pull_request.number,
+              body: message
+            });
