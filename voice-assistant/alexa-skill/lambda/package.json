@@ -1,0 +1,11 @@
+{
+  "name": "alexa-aqi-skill",
+  "version": "1.0.0",
+  "description": "Alexa skill for Pollution Control Hub AQI lookup",
+  "main": "index.js",
+  "type": "module",
+  "dependencies": {
+    "ask-sdk-core": "^2.14.0",
+    "ask-sdk-model": "^1.41.0"
+  }
+}

@@ -1,0 +1,52 @@
+[
+  {
+    "value": "Bengaluru",
+    "synonyms": [
+      "Bengaluru",
+      "Bangalore",
+      "Bangalore City"
+    ]
+  },
+  {
+    "value": "Delhi",
+    "synonyms": [
+      "Delhi",
+      "New Delhi",
+      "NCR"
+    ]
+  },
+  {
+    "value": "Mumbai",
+    "synonyms": [
+      "Mumbai",
+      "Bombay"
+    ]
+  },
+  {
+    "value": "Kolkata",
+    "synonyms": [
+      "Kolkata",
+      "Calcutta"
+    ]
+  },
+  {
+    "value": "Chennai",
+    "synonyms": [
+      "Chennai",
+      "Madras"
+    ]
+  },
+  {
+    "value": "Hyderabad",
+    "synonyms": [
+      "Hyderabad"
+    ]
+  },
+  {
+    "value": "Pune",
+    "synonyms": [
+      "Pune",
+      "Poona"
+    ]
+  }
+]
