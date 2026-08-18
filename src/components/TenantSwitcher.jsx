@@ -37,10 +37,15 @@ const styles = {
     display: "flex",
     alignItems: "center",
     justifyContent: "space-between",
+    width: "100%",
     padding: "10px 14px",
     cursor: "pointer",
     fontSize: "14px",
+    fontFamily: "inherit",
+    textAlign: "left",
+    border: "none",
     borderBottom: "1px solid rgba(255,255,255,0.05)",
+    background: "transparent",
     color: "inherit",
   },
   itemActive: {
@@ -82,9 +87,16 @@ export function TenantSwitcher() {
       {isOpen && (
         <div style={styles.dropdown} role="menu">
           {knownTenants.map((tenant) => (
-            <div
+            // A <div role="menuitem"> with only an onClick is unreachable by
+            // keyboard: it takes no focus, so Tab skips it and Enter/Space never
+            // arrive. The organisation switcher was therefore mouse-only. A real
+            // <button> is focusable and activates on both keys with no handler of
+            // our own, which is why this is a swap rather than an onKeyDown.
+            <button
               key={tenant.id}
+              type="button"
               role="menuitem"
+              aria-current={tenant.id === tenantId}
               style={{
                 ...styles.item,
                 ...(tenant.id === tenantId ? styles.itemActive : {}),
@@ -96,7 +108,7 @@ export function TenantSwitcher() {
             >
               <span>{tenant.name}</span>
               {tenant.id === tenantId && <Check size={14} />}
-            </div>
+            </button>
           ))}
         </div>
       )}

@@ -25,12 +25,16 @@ const sensorWorker = new Worker(
 );
 
 // 3. Monitor BullMQ Lag & Events
-sensorWorker.on('completed', (job) => {
+sensorWorker.on('completed', (_job) => {
   // Optional debug logging
 });
 
+// `job` is undefined when a job fails before BullMQ could load it — a malformed
+// payload, or a stalled job reclaimed after the lock expired. Reading `job.id`
+// unguarded turns that into a TypeError inside the error handler itself, which
+// loses the original failure.
 sensorWorker.on('failed', (job, err) => {
-  console.error(`[Monitor] Job ${job.id} failed:`, err.message);
+  console.error(`[Monitor] Job ${job?.id ?? 'unknown'} failed:`, err?.message);
 });
 
 // Periodic logging of BullMQ waiting count (Queue Lag)
