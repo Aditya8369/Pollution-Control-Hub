@@ -4,6 +4,14 @@ import { calculateCarbonFootprint } from '../utils/carbonCalculator';
 import './CarbonFootprintCalculator.css';
 
 const HISTORY_STORAGE_KEY = 'carbon_calculator_history';
+// Tip "commitments" are tracked locally per device — this app has no user
+// authentication system, so progress is stored the same way the calculator's
+// history already is, rather than requiring an account.
+const TIP_COMMITMENTS_KEY = 'carbon_tip_commitments';
+
+function todayStr() {
+  return new Date().toISOString().slice(0, 10);
+}
 
 export default function CarbonFootprintCalculator() {
   const { t } = useTranslation();
@@ -18,11 +26,18 @@ export default function CarbonFootprintCalculator() {
 
   const [history, setHistory] = useState([]);
   const [saveSuccessMsg, setSaveSuccessMsg] = useState('');
+  const [commitments, setCommitments] = useState({});
 
   useEffect(() => {
     try {
       const saved = localStorage.getItem(HISTORY_STORAGE_KEY);
       if (saved) setHistory(JSON.parse(saved));
+    } catch {
+      // ignore storage error
+    }
+    try {
+      const savedCommitments = localStorage.getItem(TIP_COMMITMENTS_KEY);
+      if (savedCommitments) setCommitments(JSON.parse(savedCommitments));
     } catch {
       // ignore storage error
     }
@@ -93,6 +108,37 @@ export default function CarbonFootprintCalculator() {
     } catch {
       // ignore storage error
     }
+  };
+
+  const persistCommitments = (updated) => {
+    setCommitments(updated);
+    try {
+      localStorage.setItem(TIP_COMMITMENTS_KEY, JSON.stringify(updated));
+    } catch {
+      // ignore storage error
+    }
+  };
+
+  const handleCommitTip = (tipId) => {
+    if (commitments[tipId]) return;
+    persistCommitments({
+      ...commitments,
+      [tipId]: { committedAt: todayStr(), completedDates: [] }
+    });
+  };
+
+  const handleMarkDoneToday = (tipId) => {
+    const entry = commitments[tipId];
+    if (!entry || entry.completedDates.includes(todayStr())) return;
+    persistCommitments({
+      ...commitments,
+      [tipId]: { ...entry, completedDates: [...entry.completedDates, todayStr()] }
+    });
+  };
+
+  const handleRemoveCommitment = (tipId) => {
+    const { [tipId]: _removed, ...rest } = commitments;
+    persistCommitments(rest);
   };
 
   return (
@@ -349,16 +395,55 @@ export default function CarbonFootprintCalculator() {
           <div className="carbon-card">
             <h4 className="carbon-subheading">💡 Recommended Ways to Reduce Emissions</h4>
             <div className="carbon-tips-list">
-              {results.reductionTips.map((tip) => (
-                <div key={tip.id} className="carbon-tip-card">
-                  <div className="carbon-tip-header">
-                    <span className="carbon-tip-tag">{tip.category}</span>
-                    <span className="carbon-tip-impact">{tip.impact}</span>
+              {results.reductionTips.map((tip) => {
+                const commitment = commitments[tip.id];
+                const doneToday = commitment?.completedDates.includes(todayStr());
+                const streak = commitment?.completedDates.length || 0;
+
+                return (
+                  <div key={tip.id} className="carbon-tip-card">
+                    <div className="carbon-tip-header">
+                      <span className="carbon-tip-tag">{tip.category}</span>
+                      <span className="carbon-tip-impact">{tip.impact}</span>
+                    </div>
+                    <h5 className="carbon-tip-title">{tip.title}</h5>
+                    <p className="carbon-tip-text">{tip.tip}</p>
+
+                    {!commitment ? (
+                      <button
+                        type="button"
+                        className="carbon-tip-commit-btn"
+                        onClick={() => handleCommitTip(tip.id)}
+                      >
+                        🎯 Commit to this tip
+                      </button>
+                    ) : (
+                      <div className="carbon-tip-progress">
+                        <span className="carbon-tip-streak">
+                          ✅ Done {streak} day{streak === 1 ? '' : 's'} so far
+                        </span>
+                        <div className="carbon-tip-progress-actions">
+                          <button
+                            type="button"
+                            className="carbon-tip-commit-btn"
+                            onClick={() => handleMarkDoneToday(tip.id)}
+                            disabled={doneToday}
+                          >
+                            {doneToday ? '✓ Marked today' : 'Mark today as done'}
+                          </button>
+                          <button
+                            type="button"
+                            className="btn-text-cancel"
+                            onClick={() => handleRemoveCommitment(tip.id)}
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                  <h5 className="carbon-tip-title">{tip.title}</h5>
-                  <p className="carbon-tip-text">{tip.tip}</p>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
 
