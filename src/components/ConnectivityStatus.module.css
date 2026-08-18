@@ -1,0 +1,86 @@
+/*
+ * Connectivity banner.
+ *
+ * A CSS module rather than an addition to the global styles.css, matching
+ * Dashboard.module.css and Footer.module.css. The banner is the only thing that
+ * uses these rules, and a 5000-line shared stylesheet is where a rule goes to be
+ * accidentally inherited by something else.
+ */
+
+.banner {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.6rem 1rem;
+  border-radius: 0.5rem;
+  font-size: 0.9rem;
+  line-height: 1.4;
+  /* Above the map's Leaflet panes, which sit at z-index 400-700. */
+  position: relative;
+  z-index: 800;
+}
+
+/*
+ * Offline is a warning, not an error: nothing has broken, the app simply cannot
+ * refresh. Amber rather than red, so the palette stays available for a real failure.
+ */
+.offline {
+  background: #78350f;
+  color: #fef3c7;
+  border: 1px solid #b45309;
+}
+
+.restored {
+  background: #14532d;
+  color: #dcfce7;
+  border: 1px solid #15803d;
+}
+
+.stale {
+  background: #422006;
+  color: #fef3c7;
+  border: 1px solid #a16207;
+}
+
+.icon {
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.message {
+  flex: 1;
+  min-width: 0;
+}
+
+.title {
+  font-weight: 600;
+}
+
+.detail {
+  display: block;
+  opacity: 0.85;
+  font-size: 0.82rem;
+}
+
+/*
+ * A banner that appears at the top of a page shifts everything below it. Animating
+ * the entry makes that shift legible rather than a jump — but only for people who
+ * have not asked for less motion. styles.css already establishes this convention at
+ * its own @media (prefers-reduced-motion: reduce) block.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  .banner {
+    animation: connectivity-slide-in 180ms ease-out;
+  }
+}
+
+@keyframes connectivity-slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(-0.4rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

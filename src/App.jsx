@@ -19,6 +19,7 @@ import HistoricalData from "./components/HistoricalData";
 import LocationSearch from "./components/LocationSearch";
 import SkeletonDashboard from "./components/SkeletonDashboard";
 import ErrorBoundary from "./components/ErrorBoundary";
+import ConnectivityStatus from "./components/ConnectivityStatus";
 import Commute from "./components/Commute";
 import GettingStarted from "./components/GettingStarted";
 import CityCompare from "./components/CityCompare";
@@ -1030,6 +1031,17 @@ function AppContent() {
       />
       <BadgeNotification />
       <div id="main-content">
+
+        {/*
+          Above the readings rather than beside them. Someone who has just been told
+          the air is fine needs to know the answer is four hours old before they read
+          it, not after. `lastUpdated` is already tracked for the header clock; this
+          is the first thing to act on it.
+        */}
+        <ConnectivityStatus
+          dataTimestamp={lastUpdated ? Date.parse(lastUpdated) : null}
+          onRetry={refreshNow}
+        />
 
         {loading && !error ? (
           <>
