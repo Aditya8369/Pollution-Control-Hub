@@ -1,5 +1,6 @@
 import { useState, useEffect, memo } from 'react';
 import { useTranslation } from 'react-i18next';
+import GlossaryLinkedText from './GlossaryLinkedText';
 
 // -----------------------------------------------------------------------------
 // 1. MEMOIZED ICONS (Extracted outside the component to prevent re-renders)
@@ -255,7 +256,7 @@ export default function HealthAdvisory() {
               </span>
               <h3>{organ.title}</h3>
             </div>
-            <p>{organ.impact}</p>
+            <p><GlossaryLinkedText text={organ.impact} /></p>
           </article>
         ))}
       </div>
@@ -316,7 +317,7 @@ export default function HealthAdvisory() {
                 <span className={`priority-badge ${tip.badgeClass}`}>{tip.priority}</span>
               </div>
               <h3 className="tip-title">{tip.title}</h3>
-              <p className="tip-detail">{tip.detail}</p>
+              <p className="tip-detail"><GlossaryLinkedText text={tip.detail} /></p>
             </li>
           ))}
         </ul>
