@@ -1,5 +1,8 @@
 import { cacheStore } from '../utils/cacheStore';
+import { logger } from '../utils/logger';
 import type { LocationResult } from '../types/airQuality';
+
+const log = logger.child({ module: 'geocodingService' });
 
 const GEOCODING_BASE_URL = 'https://geocoding-api.open-meteo.com/v1/search';
 const GEOCODING_CACHE_TTL = 1000 * 60 * 60 * 24; // 24 hours
@@ -48,7 +51,9 @@ export async function searchLocations(
       return formattedResults;
     } catch (error: any) {
       if (error.name !== 'AbortError') {
-        console.error('Error fetching location data:', error);
+        // The query is deliberately not logged: it is what someone typed into a
+        // search box, and a place name is a location.
+        log.error('Location search failed', { error });
       }
       throw error;
     }

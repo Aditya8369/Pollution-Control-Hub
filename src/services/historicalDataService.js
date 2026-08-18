@@ -1,4 +1,7 @@
 import { getTenantScopedDbName, getTenantScopedStoreName } from './tenantService';
+import { logger } from '../utils/logger';
+
+const log = logger.child({ module: 'historicalDataService' });
 
 const BASE_URL = 'https://air-quality-api.open-meteo.com/v1/air-quality';
 const DB_NAME = 'PollutionHubDB';
@@ -82,7 +85,7 @@ export async function getCachedData(id, ttl = HISTORY_CACHE_TTL) {
     return record.data ?? null;
   } catch (err) {
     // A cache read failure is not a data failure. Report it and let the caller fetch.
-    console.warn('Historical cache read failed:', err);
+    log.warn('Historical cache read failed', { error: err });
     return null;
   }
 }
@@ -109,7 +112,7 @@ export async function setCachedData(id, data) {
   } catch (err) {
     // Includes QuotaExceededError. Caching is a write-behind optimisation; failing to
     // do it must not cost the caller a payload it already holds.
-    console.warn('Historical cache write failed:', err);
+    log.warn('Historical cache write failed', { error: err });
     return false;
   }
 }
@@ -169,7 +172,7 @@ export async function pruneCache(keepPrefix, keepId) {
 
     return doomed.length;
   } catch (err) {
-    console.warn('Historical cache prune failed:', err);
+    log.warn('Historical cache prune failed', { error: err });
     return 0;
   }
 }
