@@ -3353,6 +3353,54 @@
   font-size: 0.85rem !important;
 }
 
+/* ── GlossaryLinkedText: inline term links + wider definition bubble ── */
+.glossary-term-link {
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  cursor: help;
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-decoration-color: #0d9488;
+  text-underline-offset: 2px;
+}
+
+.glossary-term-link:hover,
+.glossary-term-link:focus-visible {
+  color: #0d9488;
+}
+
+.glossary-term-bubble {
+  max-width: 280px;
+  text-align: left;
+  white-space: normal;
+  pointer-events: none;
+}
+
+:root[data-theme="dark"] .glossary-term-link {
+  text-decoration-color: #2dd4bf;
+}
+
+:root[data-theme="dark"] .glossary-term-link:hover,
+:root[data-theme="dark"] .glossary-term-link:focus-visible {
+  color: #2dd4bf;
+}
+
+:root[data-theme="high-contrast"] .glossary-term-link {
+  color: var(--hc-ink) !important;
+  text-decoration-color: var(--hc-brand) !important;
+}
+
+:root[data-theme="high-contrast"] .glossary-term-link:hover,
+:root[data-theme="high-contrast"] .glossary-term-link:focus-visible {
+  color: var(--hc-brand) !important;
+  outline: 2px solid var(--hc-focus) !important;
+  outline-offset: 1px;
+}
+
 .commute-swap-row {
   display: flex;
   justify-content: center;

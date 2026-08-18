@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import facts from "../data/facts.json";
+import GlossaryLinkedText from "./GlossaryLinkedText";
 
 /** @param {any} params */
 export default function Factoid({ label = "Did You Know?" }) {
@@ -14,7 +15,7 @@ export default function Factoid({ label = "Did You Know?" }) {
     return (
         <div className="factoid-card">
             <span className="factoid-label">{label}</span>
-            <p className="factoid-text">{fact}</p>
+            <p className="factoid-text"><GlossaryLinkedText text={fact} /></p>
         </div>
     );
 }
