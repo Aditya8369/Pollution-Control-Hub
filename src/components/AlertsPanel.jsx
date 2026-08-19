@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useLocalStorageSet } from "../hooks/useLocalStorageSet";
 import { useNotificationSettings } from "../hooks/useNotificationSettings";
 import NotificationSettings from "./NotificationSettings";
@@ -23,35 +24,34 @@ const PUSH_ALERTS_FLAG = "enabled";
  *
  * @param {any} current
  * @param {{ aqiThreshold: number, pollutantThresholds: any }} settings
+ * @param {(key: string, fallback: string) => string} t
  */
-function buildWarnings(current, settings) {
+function buildWarnings(current, settings, t) {
   const thresholds = settings.pollutantThresholds;
   const warnings = [];
   if (current.pm2_5 > thresholds.pm2_5)
     warnings.push(
-      "PM2.5 is high. Wear a certified mask and avoid heavy outdoor exercise.",
+      t("alerts.warnings.pm25", "PM2.5 is high. Wear a certified mask and avoid heavy outdoor exercise."),
     );
   if (current.pm10 > thresholds.pm10)
     warnings.push(
-      "PM10 is elevated. Keep windows closed during peak traffic hours.",
+      t("alerts.warnings.pm10", "PM10 is elevated. Keep windows closed during peak traffic hours."),
     );
   if (current.nitrogen_dioxide > thresholds.nitrogen_dioxide)
     warnings.push(
-      "NO2 levels are unsafe. Reduce roadside exposure if possible.",
+      t("alerts.warnings.no2", "NO2 levels are unsafe. Reduce roadside exposure if possible."),
     );
   if (current.ozone > thresholds.ozone)
     warnings.push(
-      "Ozone levels are high. Limit outdoor activity during peak sunlight hours.",
+      t("alerts.warnings.ozone", "Ozone levels are high. Limit outdoor activity during peak sunlight hours."),
     );
-  // The CO threshold has always been in the defaults and on the settings form; this
-  // branch is what was missing, so the field could never raise anything.
   if (current.carbon_monoxide > thresholds.carbon_monoxide)
     warnings.push(
-      "CO levels are unsafe. Ventilate indoor spaces and check fuel-burning appliances.",
+      t("alerts.warnings.co", "CO levels are unsafe. Ventilate indoor spaces and check fuel-burning appliances."),
     );
   if (current.us_aqi > settings.aqiThreshold)
     warnings.push(
-      "AQI suggests unhealthy conditions. Avoid outdoor activities today.",
+      t("alerts.warnings.aqi", "AQI suggests unhealthy conditions. Avoid outdoor activities today."),
     );
   return warnings;
 }
@@ -63,6 +63,7 @@ export default function AlertsPanel({
   confidenceScore,
   exposureEstimate,
 }) {
+  const { t } = useTranslation();
   // "unsupported" rather than "denied" when the API is absent. iOS Safari and in-app
   // webviews have no Notification constructor at all, and telling those visitors they
   // have blocked notifications — with instructions for unblocking them — describes a
@@ -87,7 +88,12 @@ export default function AlertsPanel({
   // Keep every hook call unconditional (Rules of Hooks). Guard `current` inside
   // the hooks and bail out before rendering the JSX further down.
   const warnings = useMemo(
-    () => (current ? buildWarnings(current, notificationSettings) : []),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- `t` is used inside
+    // buildWarnings via closure; it is intentionally excluded here because some
+    // i18next setups (and tests) hand back a new `t` reference on every render,
+    // which would otherwise recompute `warnings` every render and re-fire the
+    // alert-recording effect below even when nothing actually changed.
+    () => (current ? buildWarnings(current, notificationSettings, t) : []),
     [current, notificationSettings],
   );
   const lastNotified = useRef("");
@@ -170,13 +176,13 @@ export default function AlertsPanel({
         style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}
       >
         <div>
-          <h2>Alerts &amp; Notifications</h2>
-          <p>Health warnings based on safe pollutant thresholds</p>
+          <h2>{t("alerts.title", "Alerts & Notifications")}</h2>
+          <p>{t("alerts.subtitle", "Health warnings based on safe pollutant thresholds")}</p>
         </div>
         <button
           type="button"
           onClick={() => setShowSettings((prev) => !prev)}
-          aria-label="Open notification settings"
+          aria-label={t("alerts.settingsAriaLabel", "Open notification settings")}
           data-testid="notification-settings-toggle"
           className="notif-gear-btn"
         >
@@ -219,7 +225,7 @@ export default function AlertsPanel({
               fontWeight: "500",
             }}
           >
-            Enable Desktop Notifications
+            {t("alerts.enable", "Enable Desktop Notifications")}
           </button>
           <p
             style={{
@@ -229,7 +235,7 @@ export default function AlertsPanel({
               marginBottom: 0,
             }}
           >
-            Enable notifications to receive real-time pollution alerts.
+            {t("alerts.enableDesc", "Enable notifications to receive real-time pollution alerts.")}
           </p>
         </div>
       )}
@@ -251,7 +257,7 @@ export default function AlertsPanel({
         >
           <div>
             <strong style={{ fontSize: "0.9rem" }}>
-              Hazardous Pollution Alerts
+              {t("alerts.toggleTitle", "Hazardous Pollution Alerts")}
             </strong>
             <span
               style={{
@@ -260,8 +266,7 @@ export default function AlertsPanel({
                 color: "var(--text-secondary, #64748b)",
               }}
             >
-              Receive a browser notification when AQI exceeds{" "}
-              {notificationSettings.aqiThreshold}
+              {t("alerts.toggleDesc", "Receive a browser notification when AQI exceeds {{threshold}}", { threshold: notificationSettings.aqiThreshold })}
             </span>
           </div>
 
@@ -269,7 +274,7 @@ export default function AlertsPanel({
             type="button"
             className={`alerts-toggle-inline ${alertsEnabled ? "on" : ""}`}
             onClick={() => toggleAlertFlag(PUSH_ALERTS_FLAG)}
-            aria-label="Toggle Hazardous Pollution Alerts"
+            aria-label={t("alerts.toggleAriaLabel", "Toggle Hazardous Pollution Alerts")}
           >
             <span className="toggle-thumb">
               <svg viewBox="0 0 24 24" className="bell-icon">
@@ -301,7 +306,7 @@ export default function AlertsPanel({
               fontWeight: "500",
             }}
           >
-            Notifications are blocked
+            {t("alerts.blockedTitle", "Notifications are blocked")}
           </p>
           <p
             style={{
@@ -311,21 +316,19 @@ export default function AlertsPanel({
               marginBottom: 0,
             }}
           >
-            You've blocked notifications for this site. To receive pollution
-            alerts, enable them manually in your browser settings (click the
-            lock/info icon next to the address bar → Notifications → Allow).
+            {t("alerts.blockedDesc", "You've blocked notifications for this site. To receive pollution alerts, enable them manually in your browser settings (click the lock/info icon next to the address bar → Notifications → Allow).")}
           </p>
         </div>
       )}
 
       {exposureEstimate && (
         <div className="exposure-card">
-          <h3>Exposure Timer</h3>
+          <h3>{t("alerts.exposureTimer", "Exposure Timer")}</h3>
 
           <p className="exposure-message">{exposureEstimate.message}</p>
 
           <small className="exposure-note">
-            Estimated from recent AQI trends.
+            {t("alerts.estimatedNote", "Estimated from recent AQI trends.")}
           </small>
         </div>
       )}
@@ -334,7 +337,7 @@ export default function AlertsPanel({
         <>
           {confidenceScore === "Low" && (
             <p className="low-confidence-note">
-              Warnings based on low-confidence data
+              {t("alerts.lowConfidence", "Warnings based on low-confidence data")}
             </p>
           )}
           <ul className="warnings">
@@ -347,26 +350,25 @@ export default function AlertsPanel({
         </>
       ) : (
         <p className="safe-note">
-          Air quality is within safer limits right now. Keep monitoring for
-          changes.
+          {t("alerts.safeLimits", "Air quality is within safer limits right now. Keep monitoring for changes.")}
         </p>
       )}
 
       <div className="alert-history">
         <div className="alert-history-head">
-          <h3>Alert History</h3>
+          <h3>{t("alerts.historyTitle", "Alert History")}</h3>
           {alertHistory.length > 0 && (
             <button
               type="button"
               className="alert-history-clear"
               onClick={handleClearHistory}
             >
-              Clear History
+              {t("alerts.clearHistory", "Clear History")}
             </button>
           )}
         </div>
         {alertHistory.length === 0 ? (
-          <p className="alert-history-empty">No alert history yet.</p>
+          <p className="alert-history-empty">{t("alerts.noHistory", "No alert history yet.")}</p>
         ) : (
           <ul className="alert-history-list">
             {alertHistory.map((entry, i) => (

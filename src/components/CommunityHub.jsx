@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { eventBus } from '../core/events';
 
 const STORAGE_KEY = 'pollution-community-reports';
@@ -85,10 +86,10 @@ export function readReports() {
     const migrated = parsed.map((report) =>
       needsEntityMigration(report)
         ? {
-            ...report,
-            title: decodeStoredEntities(report.title),
-            description: decodeStoredEntities(report.description),
-          }
+          ...report,
+          title: decodeStoredEntities(report.title),
+          description: decodeStoredEntities(report.description),
+        }
         : report
     );
 
@@ -114,6 +115,7 @@ function readVotedIds() {
 }
 
 export default function CommunityHub() {
+  const { t } = useTranslation();
   const [reports, setReports] = useState(() => readReports());
   const [votedIds, setVotedIds] = useState(() => readVotedIds());
   const [filter, setFilter] = useState('All');
@@ -271,7 +273,7 @@ export default function CommunityHub() {
     reader.onload = async () => {
       try {
         const compressed = await compressImage(String(reader.result));
-        
+
         // Ensure result has valid image data URI prefix
         if (!/^data:image\/(jpeg|png|webp);base64,/.test(compressed)) {
           setUploadError('Invalid image data generated. Please upload a valid image file.');
@@ -375,11 +377,26 @@ export default function CommunityHub() {
     return report.status === filter;
   });
 
+  const statusLabel = (status) => {
+    if (status === 'Pending') return t('communityHub.statusPending', 'Pending');
+    if (status === 'Addressed') return t('communityHub.statusAddressed', 'Addressed');
+    if (status.startsWith('Verified')) return t('communityHub.statusVerified', 'Verified (community)');
+    return status;
+  };
+
+  const filterLabel = (option) => {
+    if (option === 'All') return t('communityHub.filterAll', 'All');
+    if (option === 'Pending') return t('communityHub.filterPending', 'Pending');
+    if (option === 'Verified') return t('communityHub.filterVerified', 'Verified');
+    if (option === 'Addressed') return t('communityHub.filterAddressed', 'Addressed');
+    return option;
+  };
+
   return (
     <section data-testid="community-hub" className="panel">
       <div className="panel-head">
-        <h2>Community Contribution</h2>
-        <p>Report local pollution issues with evidence and crowd voting</p>
+        <h2>{t("communityHub.title", "Community Contribution")}</h2>
+        <p>{t("communityHub.subtitle", "Report local pollution issues with evidence and crowd voting")}</p>
       </div>
 
       <form className="community-form" onSubmit={onSubmit}>
@@ -387,20 +404,20 @@ export default function CommunityHub() {
           type="text"
           value={form.title}
           maxLength={MAX_TITLE_LENGTH}
-          placeholder="Issue title (e.g., Garbage burning)"
+          placeholder={t("communityHub.placeholderTitle", "Issue title (e.g., Garbage burning)")}
           onChange={(event) => setForm((prev) => ({ ...prev, title: event.target.value }))}
         />
         <textarea
           value={form.description}
           maxLength={MAX_DESCRIPTION_LENGTH}
-          placeholder="Describe location and issue details"
+          placeholder={t("communityHub.placeholderDesc", "Describe location and issue details")}
           onChange={(event) => setForm((prev) => ({ ...prev, description: event.target.value }))}
         />
         <select
           value={form.hashtag}
           onChange={(event) => setForm((prev) => ({ ...prev, hashtag: event.target.value }))}
         >
-          <option value="">Add a hashtag (optional)</option>
+          <option value="">{t("communityHub.hashtagPlaceholder", "Add a hashtag (optional)")}</option>
           {HASHTAGS.map((hashtag) => (
             <option key={hashtag} value={hashtag}>{hashtag}</option>
           ))}
@@ -416,7 +433,7 @@ export default function CommunityHub() {
         {isProcessingImage && (
           <p className="upload-processing" role="status" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span className="live-dot active" aria-hidden="true"></span>
-            Processing image...
+            {t("communityHub.processingImage", "Processing image...")}
           </p>
         )}
         {uploadError && <p className="upload-error">{uploadError}</p>}
@@ -432,21 +449,21 @@ export default function CommunityHub() {
               fontSize: '0.85rem'
             }}
           >
-            {locationStatus === 'locating' ? 'Locating...' : 'Use Current Location'}
+            {locationStatus === 'locating' ? t("communityHub.locating", "Locating...") : t("communityHub.useCurrentLocation", "Use Current Location")}
           </button>
           {locationStatus === 'success' && (
             <span className="location-status-text" style={{ fontSize: '0.85rem', color: '#16a34a', fontWeight: '500' }}>
-              Location attached
+              {t("communityHub.locationAttached", "Location attached")}
             </span>
           )}
           {locationStatus === 'error' && (
             <span className="location-status-text" style={{ fontSize: '0.85rem', color: '#ef4444', fontWeight: '500' }}>
-              Unable to retrieve location
+              {t("communityHub.locationError", "Unable to retrieve location")}
             </span>
           )}
         </div>
         <button type="submit" disabled={isProcessingImage}>
-          {isProcessingImage ? 'Processing image…' : 'Submit Report'}
+          {isProcessingImage ? t("communityHub.processingImage", "Processing image...") : t("communityHub.submit", "Submit Report")}
         </button>
       </form>
 
@@ -458,7 +475,7 @@ export default function CommunityHub() {
             className={filter === statusOption ? 'active' : ''}
             onClick={() => setFilter(statusOption)}
           >
-            {statusOption}
+            {filterLabel(statusOption)}
           </button>
         ))}
       </div>
@@ -478,7 +495,7 @@ export default function CommunityHub() {
 
       <div className="reports-list" style={{ display: 'grid', gap: '15px' }}>
         {filteredReports.length === 0 ? (
-          <p className="no-reports">No reports found for "{filter}".</p>
+          <p className="no-reports">{t("communityHub.noReportsFilter", "No reports found for \"{{filter}}\".", { filter: filterLabel(filter) })}</p>
         ) : (
           filteredReports.map((report) => {
             const isVoted = votedIds.has(report.id);
@@ -487,7 +504,7 @@ export default function CommunityHub() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
                   <h3 style={{ margin: 0, fontSize: '1.1rem' }}>{report.title}</h3>
                   <span className={`status-badge ${report.status.toLowerCase().replace(/[^a-z]/g, '')}`} style={{ fontSize: '0.8rem', padding: '2px 8px', borderRadius: '12px', background: report.status.startsWith('Verified') ? '#dcfce7' : '#fef3c7', color: report.status.startsWith('Verified') ? '#166534' : '#92400e' }}>
-                    {report.status}
+                    {statusLabel(report.status)}
                   </span>
                 </div>
                 <p style={{ margin: '0 0 10px 0', color: 'var(--muted)', fontSize: '0.95rem' }}>{report.description}</p>
@@ -500,24 +517,24 @@ export default function CommunityHub() {
                   </div>
                 )}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.85rem', color: 'var(--muted)' }}>
-                  <span>Votes: {report.votes}</span>
+                  <span>{t("communityHub.votes", "Votes: {{count}}", { count: report.votes })}</span>
                   <button
                     type="button"
                     onClick={() => vote(report.id)}
                     disabled={isVoted}
                     style={{ padding: '4px 12px', cursor: isVoted ? 'default' : 'pointer' }}
                   >
-                    {isVoted ? 'Voted' : 'Upvote (+1)'}
+                    {isVoted ? t("communityHub.voted", "Voted") : t("communityHub.upvoteCount", "Upvote (+1)")}
                   </button>
                 </div>
 
                 <div className="report-comments" style={{ marginTop: '12px', borderTop: '1px solid var(--line)', paddingTop: '12px' }}>
                   <p style={{ margin: '0 0 8px 0', fontSize: '0.85rem', fontWeight: 600 }}>
-                    Comments ({(report.comments || []).length})
+                    {t("communityHub.commentsCount", "Comments ({{count}})", { count: (report.comments || []).length })}
                   </p>
                   {(report.comments || []).length === 0 ? (
                     <p style={{ margin: '0 0 8px 0', fontSize: '0.85rem', color: 'var(--muted)' }}>
-                      No comments yet.
+                      {t("communityHub.noComments", "No comments yet.")}
                     </p>
                   ) : (
                     <ul style={{ listStyle: 'none', margin: '0 0 10px 0', padding: 0, display: 'grid', gap: '8px' }}>
@@ -549,7 +566,7 @@ export default function CommunityHub() {
                     <textarea
                       value={commentDrafts[report.id] || ''}
                       maxLength={MAX_COMMENT_LENGTH}
-                      placeholder="Add a comment..."
+                      placeholder={t("communityHub.commentPlaceholder", "Add a comment...")}
                       onChange={(event) =>
                         setCommentDrafts((prev) => ({
                           ...prev,
@@ -559,7 +576,7 @@ export default function CommunityHub() {
                       style={{ flex: 1, minHeight: '60px', resize: 'vertical' }}
                     />
                     <button type="submit" style={{ padding: '6px 12px', whiteSpace: 'nowrap' }}>
-                      Post
+                      {t("communityHub.post", "Post")}
                     </button>
                   </form>
                 </div>

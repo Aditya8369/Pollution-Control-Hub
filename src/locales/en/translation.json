@@ -24,7 +24,14 @@
     "Commute": "Commute",
     "CarbonCalculator": "Carbon Calculator",
     "toggleTheme": "Toggle Theme",
-    "toggleNavigation": "Toggle navigation"
+    "toggleNavigation": "Toggle navigation",
+    "Compare": "Compare",
+    "exposure": "Exposure Calculator",
+    "widget": "AQI Widget",
+    "indoor": "Indoor Air",
+    "historical-data": "Data Explorer",
+    "glossary": "Glossary",
+    "achievements": "Achievements"
   },
   "status": {
     "loading": "Loading",
@@ -128,9 +135,19 @@
       "pm10": "PM10 is elevated. Keep windows closed during peak traffic hours.",
       "no2": "NO2 levels are unsafe. Reduce roadside exposure if possible.",
       "ozone": "Ozone levels are high. Limit outdoor activity during peak sunlight hours.",
-      "aqi": "AQI suggests unhealthy conditions. Avoid outdoor activities today."
+      "aqi": "AQI suggests unhealthy conditions. Avoid outdoor activities today.",
+      "co": "CO levels are unsafe. Ventilate indoor spaces and check fuel-burning appliances."
     },
-    "alertTitle": "Pollution Alert"
+    "alertTitle": "Pollution Alert",
+    "settingsAriaLabel": "Open notification settings",
+    "blockedTitle": "Notifications are blocked",
+    "blockedDesc": "You've blocked notifications for this site. To receive pollution alerts, enable them manually in your browser settings (click the lock/info icon next to the address bar → Notifications → Allow).",
+    "toggleTitle": "Hazardous Pollution Alerts",
+    "toggleDesc": "Receive a browser notification when AQI exceeds {{threshold}}",
+    "toggleAriaLabel": "Toggle Hazardous Pollution Alerts",
+    "historyTitle": "Alert History",
+    "clearHistory": "Clear History",
+    "noHistory": "No alert history yet."
   },
   "healthAdvisory": {
     "title": "Health Advisory Hub",
@@ -230,7 +247,20 @@
     "windLegend": "Wind Legend:",
     "windLegendDesc": "Arrows indicate the direction wind is blowing.",
     "windInsight": "Wind blowing {{direction}} at {{speed}} km/h — pollution patterns may shift in this direction.",
-    "hotspots": "Most Polluted Areas Near You"
+    "hotspots": "Most Polluted Areas Near You",
+    "windErrorPrefix": "Wind data unavailable: {{error}}",
+    "layerLabel": "Layer:",
+    "showSymptomReports": "Show Symptom Reports",
+    "hideSymptomReports": "Hide Symptom Reports",
+    "showCommunityReports": "Show Community Reports",
+    "hideCommunityReports": "Hide Community Reports",
+    "showHeatmap": "Show Live Heatmap",
+    "hideHeatmap": "Hide Live Heatmap",
+    "heatmapLive": "Live via WebSocket",
+    "heatmapFallback": "Fallback polling (WebSocket unavailable)",
+    "heatmapConnecting": "Connecting…",
+    "aqiLabel": "AQI",
+    "reportStatus": "Status: {{status}}"
   },
   "communityHub": {
     "title": "Community Contribution",
@@ -243,7 +273,27 @@
     "upvote": "Upvote",
     "timelineCreated": "Created",
     "timelineVerified": "Community verified",
-    "timelineAddressed": "Addressed"
+    "timelineAddressed": "Addressed",
+    "hashtagPlaceholder": "Add a hashtag (optional)",
+    "processingImage": "Processing image...",
+    "useCurrentLocation": "Use Current Location",
+    "locating": "Locating...",
+    "locationAttached": "Location attached",
+    "locationError": "Unable to retrieve location",
+    "filterAll": "All",
+    "filterPending": "Pending",
+    "filterVerified": "Verified",
+    "filterAddressed": "Addressed",
+    "statusPending": "Pending",
+    "statusVerified": "Verified (community)",
+    "statusAddressed": "Addressed",
+    "noReportsFilter": "No reports found for \"{{filter}}\".",
+    "votes": "Votes: {{count}}",
+    "upvoteCount": "Upvote (+1)",
+    "commentsCount": "Comments ({{count}})",
+    "noComments": "No comments yet.",
+    "commentPlaceholder": "Add a comment...",
+    "post": "Post"
   },
   "historicalAnalysis": {
     "loading": "Crunching 3 years of historical AQI data...",
@@ -253,7 +303,15 @@
     "avgAqi": "Overall Average AQI",
     "daysRecorded": "Days Recorded",
     "heatmapTitle": "Daily Severity Calendar",
-    "yourArea": "your area"
+    "yourArea": "your area",
+    "exportSectionTitle": "Export Historical Data",
+    "startDate": "Start Date",
+    "endDate": "End Date",
+    "exportingPDF": "Exporting PDF...",
+    "exportPDF": "Export PDF",
+    "exportCSV": "Export CSV",
+    "exportJSON": "Export JSON",
+    "daysInRangeSuffix": "of {{days}} in range"
   },
   "analyticsInsights": {
     "title": "Data Analytics & Insights",
@@ -311,6 +369,57 @@
         "label": "Combined Policy",
         "description": "All interventions together"
       }
+    },
+    "headingV2": "🔮 Interactive \"What-If\" Scenario Simulator",
+    "subtitleV2": "Simulate community policies and habits to visualize expected pollutant reductions.",
+    "evSliderLabel": "Adjust Citywide EV Fleet Adoption:",
+    "evPct": "{{pct}}% EVs",
+    "no2ReductionLabel": "NO₂ Reduction:",
+    "pm25ReductionLabel": "PM2.5 Reduction:",
+    "chartPm25Axis": "PM2.5 (µg/m³)",
+    "chartNo2Axis": "NO₂ (µg/m³)",
+    "chartBaseline": "Current Baseline",
+    "chartSimulated": "Simulated Level",
+    "scenarios": {
+      "ev_transition": {
+        "title": "⚡ 30% EV Adoption",
+        "description": "Replace 30% of fossil-fuel vehicles on city roads with zero-emission EVs.",
+        "details": "Dramatically lowers tailpipe combustion NO₂ emissions and reduces brake dust PM2.5."
+      },
+      "urban_canopy": {
+        "title": "🌳 20% Green Canopy",
+        "description": "Expand city tree cover, rooftop gardens, and urban parks by 20%.",
+        "details": "Leaves and vegetation trap airborne fine particulate matter and absorb gaseous pollutants."
+      },
+      "industrial_scrubbers": {
+        "title": "🏭 Emission Controls",
+        "description": "Mandate advanced particulate scrubbers across nearby factories and power plants.",
+        "details": "Targeted stack filtration cuts bulk industrial PM2.5 and atmospheric nitrogen oxides."
+      },
+      "renewable_grid": {
+        "title": "☀️ 50% Clean Energy",
+        "description": "Transition half of the regional electricity grid to clean renewable energy sources.",
+        "details": "Phases out coal and gas thermal generation, drastically cleaning regional air sheds."
+      }
     }
+  },
+  "carbonCalculator": {
+    "badge": "Environmental Awareness",
+    "title": "Personal Carbon Footprint Calculator",
+    "subtitle": "Estimate your monthly CO₂ emissions from daily transport, electricity, cooking fuel, and travel. Understand your environmental impact and adopt simple habits to cut emissions.",
+    "vehicleHeading": "Car & Motorbike Travel",
+    "vehicleType": "Vehicle Fuel Type",
+    "vehicleKm": "Distance Travelled",
+    "homeEnergyHeading": "Home Energy & Cooking Fuel",
+    "electricity": "Electricity Consumption",
+    "lpg": "LPG Cooking Gas",
+    "transitHeading": "Public Transit & Flights",
+    "publicTransit": "Bus / Metro / Train",
+    "shortFlights": "Short Flights (< 1500 km)",
+    "longFlights": "Long Flights (> 1500 km)",
+    "saveBtn": "Save Calculation",
+    "resetBtn": "Reset Inputs",
+    "savedNotice": "Calculation saved to history!",
+    "totalEmissions": "Estimated Carbon Footprint"
   }
 }

@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import {
   BarChart,
   Bar,
@@ -47,9 +48,10 @@ const PRESET_SCENARIOS = [
 ];
 
 export default function ScenarioSimulator({ current }) {
+  const { t } = useTranslation();
   const [selectedScenarioId, setSelectedScenarioId] = useState(PRESET_SCENARIOS[0].id);
   const [customEvPct, setCustomEvPct] = useState(30);
-  
+
   const currentPm25 = current?.pm2_5 || 35;
   const currentNo2 = current?.nitrogen_dioxide || 28;
 
@@ -80,12 +82,12 @@ export default function ScenarioSimulator({ current }) {
 
   const chartData = [
     {
-      pollutant: "PM2.5 (µg/m³)",
+      pollutant: t("scenarioSimulator.chartPm25Axis", "PM2.5 (µg/m³)"),
       Baseline: Number(currentPm25.toFixed(1)),
       Simulated: simulatedPm25
     },
     {
-      pollutant: "NO₂ (µg/m³)",
+      pollutant: t("scenarioSimulator.chartNo2Axis", "NO₂ (µg/m³)"),
       Baseline: Number(currentNo2.toFixed(1)),
       Simulated: simulatedNo2
     }
@@ -104,14 +106,14 @@ export default function ScenarioSimulator({ current }) {
       `}</style>
 
       <div style={{ marginBottom: "1.25rem" }}>
-        <h3 style={{ margin: 0 }}>🔮 Interactive "What-If" Scenario Simulator</h3>
+        <h3 style={{ margin: 0 }}>{t("scenarioSimulator.headingV2", "🔮 Interactive \"What-If\" Scenario Simulator")}</h3>
         <p style={{ fontSize: "0.85rem", color: "var(--muted, #94a3b8)", margin: "0.25rem 0 0 0" }}>
-          Simulate community policies and habits to visualize expected pollutant reductions.
+          {t("scenarioSimulator.subtitleV2", "Simulate community policies and habits to visualize expected pollutant reductions.")}
         </p>
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "1.5rem", alignItems: "start" }}>
-        
+
         {/* Left Column: Preset Buttons & Controls */}
         <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "0.75rem" }}>
@@ -141,10 +143,10 @@ export default function ScenarioSimulator({ current }) {
                       marginBottom: "0.2rem"
                     }}
                   >
-                    {scenario.title}
+                    {t(`scenarioSimulator.scenarios.${scenario.id}.title`, scenario.title)}
                   </div>
                   <div style={{ fontSize: "0.78rem", color: "var(--muted, #94a3b8)", lineHeight: "1.3" }}>
-                    {scenario.description}
+                    {t(`scenarioSimulator.scenarios.${scenario.id}.description`, scenario.description)}
                   </div>
                 </button>
               );
@@ -162,8 +164,8 @@ export default function ScenarioSimulator({ current }) {
               }}
             >
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.85rem", fontWeight: "600", marginBottom: "0.5rem", color: "var(--ink, #f8fafc)" }}>
-                <span>Adjust Citywide EV Fleet Adoption:</span>
-                <span style={{ color: "var(--brand, #2dd4bf)", fontWeight: "bold" }}>{customEvPct}% EVs</span>
+                <span>{t("scenarioSimulator.evSliderLabel", "Adjust Citywide EV Fleet Adoption:")}</span>
+                <span style={{ color: "var(--brand, #2dd4bf)", fontWeight: "bold" }}>{t("scenarioSimulator.evPct", "{{pct}}% EVs", { pct: customEvPct })}</span>
               </div>
               <input
                 type="range"
@@ -193,13 +195,13 @@ export default function ScenarioSimulator({ current }) {
             }}
           >
             <div style={{ fontSize: "0.85rem", color: "var(--ink, #f8fafc)" }}>
-              <strong>NO₂ Reduction:</strong> <span style={{ color: "#22c55e", fontWeight: "bold" }}>-{no2Drop}%</span>
+              <strong>{t("scenarioSimulator.no2ReductionLabel", "NO₂ Reduction:")}</strong> <span style={{ color: "#22c55e", fontWeight: "bold" }}>-{no2Drop}%</span>
             </div>
             <div style={{ fontSize: "0.85rem", color: "var(--ink, #f8fafc)" }}>
-              <strong>PM2.5 Reduction:</strong> <span style={{ color: "#22c55e", fontWeight: "bold" }}>-{pm25Drop}%</span>
+              <strong>{t("scenarioSimulator.pm25ReductionLabel", "PM2.5 Reduction:")}</strong> <span style={{ color: "#22c55e", fontWeight: "bold" }}>-{pm25Drop}%</span>
             </div>
             <div style={{ fontSize: "0.82rem", color: "var(--muted, #94a3b8)", flex: "1 1 100%" }}>
-              💡 {activeScenario.details}
+              💡 {t(`scenarioSimulator.scenarios.${activeScenario.id}.details`, activeScenario.details)}
             </div>
           </div>
 
@@ -214,8 +216,8 @@ export default function ScenarioSimulator({ current }) {
                   contentStyle={{ background: "var(--card, #1e293b)", border: "1px solid var(--line, #334155)", color: "var(--ink, #fff)" }}
                 />
                 <Legend wrapperStyle={{ color: "var(--ink, #f8fafc)" }} />
-                <Bar dataKey="Baseline" name="Current Baseline" fill="#ef4444" radius={[6, 6, 0, 0]} isAnimationActive={true} />
-                <Bar dataKey="Simulated" name="Simulated Level" fill="#22c55e" radius={[6, 6, 0, 0]} isAnimationActive={true} />
+                <Bar dataKey="Baseline" name={t("scenarioSimulator.chartBaseline", "Current Baseline")} fill="#ef4444" radius={[6, 6, 0, 0]} isAnimationActive={true} />
+                <Bar dataKey="Simulated" name={t("scenarioSimulator.chartSimulated", "Simulated Level")} fill="#22c55e" radius={[6, 6, 0, 0]} isAnimationActive={true} />
               </BarChart>
             </ResponsiveContainer>
           </div>
