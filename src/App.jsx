@@ -1,8 +1,6 @@
 import { useEffect, useMemo, useState, useCallback, useRef, lazy, Suspense, } from "react";
 import { useSWR } from "./hooks/useSWR";
 import { cacheStore } from "./utils/cacheStore";
-import AlertsPanel from "./components/AlertsPanel";
-import AnalyticsInsights from "./components/AnalyticsInsights";
 import CommunityHub from "./components/CommunityHub";
 import Dashboard from "./components/Dashboard";
 import Footer from "./components/Footer";
@@ -1130,6 +1128,7 @@ function AppContent() {
                   isRefreshing={isRefreshing}
                   confidenceScore={confidenceScore}
                   dataCompleteness={dataCompleteness}
+                  analytics={analytics}
                 />
 
                 <LocationMap
@@ -1154,12 +1153,6 @@ function AppContent() {
                 <PollenAllergenForecast lat={position.lat} lon={position.lon} />
                 <SunSafetyDashboard lat={position.lat} lon={position.lon} />
                 <SolutionsAwareness />
-
-                <AnalyticsInsights
-                  analytics={analytics}
-                  trend={trend}
-                  timeRange={timeRange}
-                />
 
                 <ScenarioSimulator current={current} />
               </div>

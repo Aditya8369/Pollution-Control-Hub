@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent, act } from '@testing-library/react';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import Dashboard from './Dashboard';
 import * as airQualityService from '../services/airQualityService';
@@ -33,6 +33,7 @@ describe('Dashboard Component - 7-Day Forecast Chart', () => {
     confidenceScore: 'High',
     dataCompleteness: '100%',
     isFallback: false,
+    analytics: { weekly: 100, monthly: 110, prediction: 120 }
   };
 
   beforeEach(async () => {
@@ -71,5 +72,83 @@ describe('Dashboard Component - 7-Day Forecast Chart', () => {
       expect(screen.getByTestId('7-day-forecast-chart')).toBeInTheDocument();
       expect(screen.getByText(/7-Day Predictive AQI Trend & Confidence Bounds/i)).toBeInTheDocument();
     });
+  });
+});
+
+describe('Dashboard Widget Personalization', () => {
+  const defaultProps = {
+    cityName: 'New Delhi',
+    lat: 28.6139,
+    lon: 77.209,
+    current: { us_aqi: 120, pm2_5: 45, pm10: 80, carbon_monoxide: 10, nitrogen_dioxide: 15, ozone: 20 },
+    trend: [{ us_aqi: 110 }, { us_aqi: 120 }],
+    cityComparisons: [],
+    timeRange: 24,
+    onTimeRangeChange: vi.fn(),
+    lastUpdated: '10:00 AM',
+    isRefreshing: false,
+    confidenceScore: 'High',
+    dataCompleteness: '100%',
+    isFallback: false,
+    analytics: { weekly: 100, monthly: 110, prediction: 120 }
+  };
+
+  beforeEach(() => {
+    let store = {};
+    const mockStorage = {
+      getItem: vi.fn((key) => store[key] || null),
+      setItem: vi.fn((key, value) => { store[key] = String(value); }),
+      removeItem: vi.fn((key) => { delete store[key]; }),
+      clear: vi.fn(() => { store = {}; })
+    };
+    Object.defineProperty(global, 'localStorage', {
+      value: mockStorage,
+      writable: true,
+      configurable: true
+    });
+  });
+
+  it('renders Personalize button and opens the customizer drawer on click', async () => {
+    render(<Dashboard {...defaultProps} />);
+    
+    const personalizeBtn = screen.getByRole('button', { name: /Personalize dashboard/i });
+    expect(personalizeBtn).toBeInTheDocument();
+    
+    // Drawer should not be visible initially
+    expect(screen.queryByText(/Personalize Your Dashboard/i)).not.toBeInTheDocument();
+    
+    // Click button to open customizer
+    act(() => {
+      fireEvent.click(personalizeBtn);
+    });
+    expect(screen.getByText(/Personalize Your Dashboard/i)).toBeInTheDocument();
+    
+    // Checkboxes should exist for all widgets
+    expect(screen.getByRole('checkbox', { name: /Morning Briefing/i })).toBeInTheDocument();
+    expect(screen.getByRole('checkbox', { name: /Challenges & Activities/i })).toBeInTheDocument();
+    expect(screen.getByRole('checkbox', { name: /Did You Know\?/i })).toBeInTheDocument();
+    expect(screen.getByRole('checkbox', { name: /Analytics Insights/i })).toBeInTheDocument();
+  });
+
+  it('allows toggling widget visibility and persists layout preference in localStorage', () => {
+    render(<Dashboard {...defaultProps} />);
+    
+    const personalizeBtn = screen.getByRole('button', { name: /Personalize dashboard/i });
+    act(() => {
+      fireEvent.click(personalizeBtn);
+    });
+    
+    const morningBriefingCheckbox = screen.getByRole('checkbox', { name: /Morning Briefing/i });
+    expect(morningBriefingCheckbox).toBeChecked();
+    
+    // Toggle visibility to hidden
+    act(() => {
+      fireEvent.click(morningBriefingCheckbox);
+    });
+    expect(morningBriefingCheckbox).not.toBeChecked();
+    
+    // Verify changes are persisted in localStorage
+    const savedLayout = JSON.parse(localStorage.getItem('pch_dashboard_layout'));
+    expect(savedLayout.find(w => w.id === 'morning-briefing').visible).toBe(false);
   });
 });

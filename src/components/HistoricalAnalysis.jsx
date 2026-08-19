@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import jsPDF from 'jspdf';
 import CalendarHeatmap from './CalendarHeatmap';
+import CalibrationHistory from './CalibrationHistory';
 import { fetchHistoricalData, formatHistoricalCSV } from '../services/historicalDataService';
 import { dayAqi } from '../utils/historicalAggregate';
 

@@ -11242,3 +11242,62 @@ a {
     background-position: -200% 0;
   }
 }
+
+/* Dashboard widget personalization */
+.personalization-drawer {
+  background: var(--card) !important;
+  border: 1px solid var(--line) !important;
+  border-radius: var(--r-md) !important;
+  padding: 1.5rem !important;
+  margin-bottom: 1.5rem !important;
+  box-shadow: var(--shadow-sm) !important;
+  transition: all 0.2s ease;
+}
+
+.personalization-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem !important;
+  background: var(--bg-card, #f8fafc) !important;
+  border: 1px solid var(--line) !important;
+  border-radius: var(--r-sm) !important;
+  cursor: grab;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.personalization-item:active {
+  cursor: grabbing;
+}
+
+.personalization-item.dragging {
+  opacity: 0.4;
+  border-style: dashed !important;
+  border-color: var(--brand, #0d9488) !important;
+}
+
+.personalize-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 10px 18px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--card);
+  color: var(--ink);
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.personalize-btn:hover {
+  background: var(--bg-hover, #f1f5f9);
+}
+
+.personalized-widgets-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  margin: 1.5rem 0;
+}

@@ -22,6 +22,7 @@ import { useSWR } from "../hooks/useSWR";
 import { getAQIBand, getPollutantColor, get7DayForecast, getWeatherDetails } from "../services/airQualityService";
 import { fetchHourlyWeather } from "../services/weatherService";
 import MorningBriefing from "./MorningBriefing";
+import AnalyticsInsights from "./AnalyticsInsights";
 import { eventBus } from "../core/events";
 import ChallengesWidget from "./ChallengesWidget";
 import WindPollutionRose from "./WindPollutionRose";
@@ -106,7 +107,8 @@ export default function Dashboard({
   isRefreshing,
   confidenceScore,
   dataCompleteness,
-  isFallback
+  isFallback,
+  analytics
 }) {
   const forecastKey = lat && lon ? `forecast_${lat.toFixed(4)}_${lon.toFixed(4)}` : null;
   const {
@@ -122,6 +124,90 @@ export default function Dashboard({
   } = useSWR(weatherKey, () => fetchHourlyWeather(lat, lon), { ttl: 60 * 60 * 1000 });
 
   const [animateForecast, setAnimateForecast] = useState(false);
+
+  const [isCustomizing, setIsCustomizing] = useState(false);
+  const [layout, setLayout] = useState(() => {
+    try {
+      if (typeof localStorage !== 'undefined' && typeof localStorage.getItem === 'function') {
+        const stored = localStorage.getItem("pch_dashboard_layout");
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            const defaultIds = ['morning-briefing', 'challenges', 'factoid', 'analytics-insights'];
+            const missing = defaultIds.filter(id => !parsed.some(w => w.id === id));
+            const cleaned = parsed.filter(w => defaultIds.includes(w.id));
+            missing.forEach(id => {
+              const title = id === 'morning-briefing' ? 'Morning Briefing' :
+                            id === 'challenges' ? 'Challenges & Activities' :
+                            id === 'factoid' ? 'Did You Know?' : 'Analytics Insights';
+              cleaned.push({ id, title, visible: true });
+            });
+            return cleaned;
+          }
+        }
+      }
+    } catch (e) {
+      console.error("Failed to load dashboard layout preference", e);
+    }
+    return [
+      { id: 'morning-briefing', title: 'Morning Briefing', visible: true },
+      { id: 'challenges', title: 'Challenges & Activities', visible: true },
+      { id: 'factoid', title: 'Did You Know?', visible: true },
+      { id: 'analytics-insights', title: 'Analytics Insights', visible: true }
+    ];
+  });
+
+  useEffect(() => {
+    try {
+      if (typeof localStorage !== 'undefined' && typeof localStorage.setItem === 'function') {
+        localStorage.setItem("pch_dashboard_layout", JSON.stringify(layout));
+      }
+    } catch (e) {
+      console.error("Failed to save dashboard layout preference", e);
+    }
+  }, [layout]);
+
+  const [draggedIndex, setDraggedIndex] = useState(null);
+
+  const handleDragStart = (e, index) => {
+    setDraggedIndex(index);
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", index.toString());
+  };
+
+  const handleDragOver = (e, index) => {
+    e.preventDefault();
+  };
+
+  const handleDrop = (e, index) => {
+    e.preventDefault();
+    if (draggedIndex === null || draggedIndex === index) return;
+
+    const updatedLayout = [...layout];
+    const draggedItem = updatedLayout[draggedIndex];
+    updatedLayout.splice(draggedIndex, 1);
+    updatedLayout.splice(index, 0, draggedItem);
+    
+    setLayout(updatedLayout);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedIndex(null);
+  };
+
+  const toggleWidgetVisibility = (id) => {
+    setLayout(prev => prev.map(w => w.id === id ? { ...w, visible: !w.visible } : w));
+  };
+
+  const moveWidget = (index, direction) => {
+    const nextIndex = index + direction;
+    if (nextIndex < 0 || nextIndex >= layout.length) return;
+    const updatedLayout = [...layout];
+    const temp = updatedLayout[index];
+    updatedLayout[index] = updatedLayout[nextIndex];
+    updatedLayout[nextIndex] = temp;
+    setLayout(updatedLayout);
+  };
 
   useEffect(() => {
     if (forecastData) {
@@ -295,7 +381,6 @@ export default function Dashboard({
   return (
     <>
       <section data-testid="dashboard" className="panel dashboard" ref={reportRef} aria-labelledby="dashboard-title">
-        <MorningBriefing current={current} trend={trend} />
 
         {exportError && (
           <div
@@ -400,6 +485,15 @@ export default function Dashboard({
                 {isSharing ? "Generating..." : "Share AQI"}
               </button>
               <SymptomReportButton fallbackPosition={lat && lon ? { lat, lon } : null} />
+              <button
+                type="button"
+                className="personalize-btn"
+                onClick={() => setIsCustomizing(!isCustomizing)}
+                aria-label="Personalize dashboard layout and widgets"
+                style={{ flexShrink: 0 }}
+              >
+                ⚙️ {isCustomizing ? "Close Customizer" : "Personalize"}
+              </button>
             </div>
           </div>
           <div className={styles.dashboardTools}>
@@ -494,7 +588,6 @@ export default function Dashboard({
               </ResponsiveContainer>
             </div>
           </article>
-          <ChallengesWidget />
         </div>
 
         <div data-testid="pollutants-grid" className={styles.pollutantsGrid}>
@@ -563,7 +656,135 @@ export default function Dashboard({
           })}
         </div>
 
-        <Factoid label="Did You Know?" />
+        {/* Personalization Panel (collapsible) */}
+        {isCustomizing && (
+          <div
+            className="personalization-drawer"
+            style={{
+              backgroundColor: "var(--bg-card, #ffffff)",
+              border: "1px solid var(--border-color, #e2e8f0)",
+              borderRadius: "0.75rem",
+              padding: "1.5rem",
+              marginBottom: "1.5rem",
+              boxShadow: "0 10px 25px rgba(0,0,0,0.05)",
+            }}
+          >
+            <h3 style={{ margin: "0 0 0.5rem 0", fontSize: "1.2rem", fontWeight: "bold" }}>
+              Personalize Your Dashboard
+            </h3>
+            <p style={{ margin: "0 0 1rem 0", color: "var(--text-secondary, #475569)", fontSize: "0.9rem" }}>
+              Drag and drop to rearrange widgets. Use the checkboxes to toggle their visibility.
+            </p>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+              {layout.map((widget, index) => {
+                return (
+                  <div
+                    key={widget.id}
+                    draggable
+                    onDragStart={(e) => handleDragStart(e, index)}
+                    onDragOver={(e) => handleDragOver(e, index)}
+                    onDrop={(e) => handleDrop(e, index)}
+                    onDragEnd={handleDragEnd}
+                    className={`personalization-item ${draggedIndex === index ? 'dragging' : ''}`}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      padding: "0.75rem 1rem",
+                      backgroundColor: "var(--bg-app, #f8fafc)",
+                      border: "1px solid var(--border-color, #e2e8f0)",
+                      borderRadius: "0.5rem",
+                      cursor: "grab",
+                      opacity: draggedIndex === index ? 0.5 : 1,
+                      transition: "transform 0.2s ease, opacity 0.2s ease",
+                    }}
+                  >
+                    <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+                      <span 
+                        style={{ cursor: "grab", color: "var(--text-secondary, #64748b)", fontSize: "1.2rem", userSelect: "none" }}
+                        aria-hidden="true"
+                      >
+                        ☰
+                      </span>
+                      
+                      <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", cursor: "pointer", fontWeight: "600" }}>
+                        <input
+                          type="checkbox"
+                          checked={widget.visible}
+                          onChange={() => toggleWidgetVisibility(widget.id)}
+                          style={{ cursor: "pointer" }}
+                        />
+                        {widget.title}
+                      </label>
+                    </div>
+
+                    <div style={{ display: "flex", alignItems: "center", gap: "0.35rem" }}>
+                      <button
+                        type="button"
+                        onClick={() => moveWidget(index, -1)}
+                        disabled={index === 0}
+                        aria-label={`Move ${widget.title} up`}
+                        style={{
+                          padding: "0.25rem 0.5rem",
+                          fontSize: "0.85rem",
+                          borderRadius: "4px",
+                          border: "1px solid var(--border-color, #ccc)",
+                          background: "var(--card, #fff)",
+                          cursor: "pointer"
+                        }}
+                      >
+                        ▲
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => moveWidget(index, 1)}
+                        disabled={index === layout.length - 1}
+                        aria-label={`Move ${widget.title} down`}
+                        style={{
+                          padding: "0.25rem 0.5rem",
+                          fontSize: "0.85rem",
+                          borderRadius: "4px",
+                          border: "1px solid var(--border-color, #ccc)",
+                          background: "var(--card, #fff)",
+                          cursor: "pointer"
+                        }}
+                      >
+                        ▼
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Personalized Widget Stack */}
+        <div className="personalized-widgets-stack">
+          {layout.map((widget) => {
+            if (!widget.visible) return null;
+            switch (widget.id) {
+              case 'morning-briefing':
+                return <MorningBriefing key="morning-briefing" current={current} trend={trend} />;
+              case 'challenges':
+                return <ChallengesWidget key="challenges" />;
+              case 'factoid':
+                return <Factoid key="factoid" label="Did You Know?" />;
+              case 'analytics-insights':
+                return (
+                  <AnalyticsInsights
+                    key="analytics-insights"
+                    analytics={analytics}
+                    trend={trend}
+                    timeRange={timeRange}
+                  />
+                );
+              default:
+                return null;
+            }
+          })}
+        </div>
 
         <div className={styles.chartGrid}>
           <article className={`${styles.chartCard} ${styles.forecastCard}`} style={{ gridColumn: '1 / -1' }}>
@@ -761,8 +982,8 @@ export default function Dashboard({
               </p>
             )}
             {hourlyWeather && hourlyWeather.length > 0 && (
-              {/* A11Y FIX: Make horizontal scrolling container accessible via keyboard tab */}
               <div 
+                // A11Y FIX: Make horizontal scrolling container accessible via keyboard tab
                 style={{ display: 'flex', gap: '0.75rem', overflowX: 'auto', paddingBottom: '0.5rem' }}
                 tabIndex={0}
                 role="region"
