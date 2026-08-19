@@ -7,9 +7,10 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "lint": "eslint .",
+    "format": "prettier --write ."
   },
   "dependencies": {
     "@tailwindcss/postcss": "^4.3.2",
@@ -26,11 +27,30 @@
     "tailwindcss": "^4.3.2"
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@vitejs/plugin-react": "^4.3.1",
+    "eslint": "^10.8.1",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-react-refresh": "^0.5.4",
+    "globals": "^17.11.0",
     "jsdom": "^29.1.1",
-    "vite": "^5.4.8",
+    "prettier": "^3.9.6",
+    "vite": "^5.4.21",
     "vitest": "^4.1.10"
-  }
+  },
+  "description": "<div align=\"center\">",
+  "main": "vite.config.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dpi26/Pollution-Control-Hub.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/dpi26/Pollution-Control-Hub/issues"
+  },
+  "homepage": "https://github.com/dpi26/Pollution-Control-Hub#readme"
 }
