@@ -5,7 +5,7 @@ import glossaryData from "../data/glossary.json";
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const CATEGORIES = [
-  { id: "all",         label: "All",           emoji: "🌐" },
+  { id: "all",         label: "All",         emoji: "🌐" },
   { id: "pollutant",  label: "Pollutants",     emoji: "💨" },
   { id: "measurement",label: "Measurement",    emoji: "📏" },
   { id: "health",     label: "Health",         emoji: "🫁" },
@@ -57,50 +57,53 @@ function GlossaryCard({ entry, query, isExpanded, onToggle }) {
       className={`glossary-card${isExpanded ? " glossary-card--expanded" : ""}`}
       style={{ borderColor: isExpanded ? colors.border : undefined }}
     >
-      {/* aria-expanded sat on the <article>, where it is ignored — the state was never
-          announced. It belongs on the control that does the toggling, pointing at the
-          region it reveals. */}
-      <button
-        type="button"
-        className="glossary-card-header"
-        onClick={onToggle}
-        aria-expanded={isExpanded}
-        aria-controls={`glossary-card-body-${entry.term}`}
-        aria-label={`${isExpanded ? "Collapse" : "Expand"} definition of ${entry.term}`}
-      >
-        <div className="glossary-card-title-row">
-          <div className="glossary-card-term-group">
-            <span
-              className="glossary-card-term"
-              style={{ color: isExpanded ? colors.border : undefined }}
-            >
-              <Highlight text={entry.term} query={query} />
-            </span>
-            {entry.fullForm && entry.fullForm !== entry.term && (
-              <span className="glossary-card-fullform">
-                <Highlight text={entry.fullForm} query={query} />
+      {/* 
+        A11Y FIX: W3C Accordion Pattern. Wrap the button in a semantic heading. 
+        Using display: "contents" ensures this wrapper doesn't break any existing flex/grid CSS layouts.
+      */}
+      <div role="heading" aria-level="3" style={{ display: "contents" }}>
+        <button
+          type="button"
+          className="glossary-card-header"
+          onClick={onToggle}
+          aria-expanded={isExpanded}
+          aria-controls={`glossary-card-body-${entry.term}`}
+          aria-label={`${isExpanded ? "Collapse" : "Expand"} definition of ${entry.term}`}
+        >
+          <div className="glossary-card-title-row">
+            <div className="glossary-card-term-group">
+              <span
+                className="glossary-card-term"
+                style={{ color: isExpanded ? colors.border : undefined }}
+              >
+                <Highlight text={entry.term} query={query} />
               </span>
-            )}
+              {entry.fullForm && entry.fullForm !== entry.term && (
+                <span className="glossary-card-fullform">
+                  <Highlight text={entry.fullForm} query={query} />
+                </span>
+              )}
+            </div>
+            <div className="glossary-card-meta">
+              <span
+                className="glossary-category-badge"
+                style={{ backgroundColor: colors.bg, color: colors.text, borderColor: colors.border }}
+              >
+                <span aria-hidden="true">{CATEGORIES.find(c => c.id === entry.category)?.emoji}</span>{" "}
+                {CATEGORIES.find(c => c.id === entry.category)?.label ?? entry.category}
+              </span>
+              <span className={`glossary-chevron${isExpanded ? " glossary-chevron--up" : ""}`} aria-hidden="true">
+                ▾
+              </span>
+            </div>
           </div>
-          <div className="glossary-card-meta">
-            <span
-              className="glossary-category-badge"
-              style={{ backgroundColor: colors.bg, color: colors.text, borderColor: colors.border }}
-            >
-              {CATEGORIES.find(c => c.id === entry.category)?.emoji}{" "}
-              {CATEGORIES.find(c => c.id === entry.category)?.label ?? entry.category}
-            </span>
-            <span className={`glossary-chevron${isExpanded ? " glossary-chevron--up" : ""}`} aria-hidden="true">
-              ▾
-            </span>
-          </div>
-        </div>
-        {!isExpanded && (
-          <p className="glossary-card-preview">
-            <Highlight text={entry.definition.slice(0, 120) + (entry.definition.length > 120 ? "…" : "")} query={query} />
-          </p>
-        )}
-      </button>
+          {!isExpanded && (
+            <p className="glossary-card-preview">
+              <Highlight text={entry.definition.slice(0, 120) + (entry.definition.length > 120 ? "…" : "")} query={query} />
+            </p>
+          )}
+        </button>
+      </div>
 
       {isExpanded && (
         <div className="glossary-card-body" id={`glossary-card-body-${entry.term}`}>
@@ -110,7 +113,7 @@ function GlossaryCard({ entry, query, isExpanded, onToggle }) {
 
           {entry.example && (
             <div className="glossary-example-box">
-              <span className="glossary-example-label">💡 Example</span>
+              <span className="glossary-example-label" aria-hidden="true">💡 Example</span>
               <p className="glossary-example-text">
                 <Highlight text={entry.example} query={query} />
               </p>
@@ -120,9 +123,9 @@ function GlossaryCard({ entry, query, isExpanded, onToggle }) {
           {entry.relatedTerms && entry.relatedTerms.length > 0 && (
             <div className="glossary-related">
               <span className="glossary-related-label">Related:</span>
-              <div className="glossary-related-chips">
+              <div className="glossary-related-chips" role="list">
                 {entry.relatedTerms.map(rel => (
-                  <span key={rel} className="glossary-related-chip">{rel}</span>
+                  <span key={rel} className="glossary-related-chip" role="listitem">{rel}</span>
                 ))}
               </div>
             </div>
@@ -145,6 +148,7 @@ function AlphabetNav({ available, onJump }) {
             type="button"
             className={`glossary-alpha-btn${active ? "" : " glossary-alpha-btn--disabled"}`}
             disabled={!active}
+            aria-disabled={!active}
             onClick={() => active && onJump(letter)}
             aria-label={`Jump to terms starting with ${letter}`}
           >
@@ -159,8 +163,8 @@ function AlphabetNav({ available, onJump }) {
 /** Empty state when no results match */
 function EmptyState({ query, category }) {
   return (
-    <div className="glossary-empty">
-      <span className="glossary-empty-icon">🔍</span>
+    <div className="glossary-empty" role="status" aria-live="polite">
+      <span className="glossary-empty-icon" aria-hidden="true">🔍</span>
       <h3 className="glossary-empty-title">No terms found</h3>
       <p className="glossary-empty-text">
         {query
@@ -213,9 +217,9 @@ function CategoryFilter({ activeCategory, onSelect, counts }) {
             onClick={() => onSelect(cat.id)}
             aria-pressed={isActive}
           >
-            <span className="glossary-cat-emoji">{cat.emoji}</span>
+            <span className="glossary-cat-emoji" aria-hidden="true">{cat.emoji}</span>
             {cat.label}
-            <span className="glossary-cat-count">{count}</span>
+            <span className="glossary-cat-count" aria-label={`${count} terms`}>{count}</span>
           </button>
         );
       })}
@@ -248,12 +252,13 @@ export default function Glossary() {
     setExpandedId(null);
   }, [query, category, sortBy]);
 
-  // ── Jump to letter ──
+  // ── Jump to letter with Focus Management ──
   useEffect(() => {
     if (!jumpLetter) return;
     const el = letterRefs.current[jumpLetter];
     if (el) {
       el.scrollIntoView({ behavior: "smooth", block: "start" });
+      el.focus({ preventScroll: true }); // Move screen reader focus to the jumped letter
     }
     setJumpLetter(null);
   }, [jumpLetter]);
@@ -358,7 +363,7 @@ export default function Glossary() {
     >
       {/* ── Header ── */}
       <div className="glossary-header-card">
-        <div className="glossary-header-badge">📖 Reference Guide</div>
+        <div className="glossary-header-badge" aria-hidden="true">📖 Reference Guide</div>
         <h2 id="glossary-heading" className="glossary-title">
           Pollution &amp; Air Quality Glossary
         </h2>
@@ -370,7 +375,7 @@ export default function Glossary() {
         </p>
 
         {/* ── Quick stats chips ── */}
-        <div className="glossary-quick-stats">
+        <div className="glossary-quick-stats" aria-label="Category statistics">
           {CATEGORIES.filter(c => c.id !== "all").map(cat => (
             <button
               key={cat.id}
@@ -385,9 +390,10 @@ export default function Glossary() {
                 color: CATEGORY_COLORS[cat.id]?.text,
                 backgroundColor: CATEGORY_COLORS[cat.id]?.bg,
               }}
+              aria-label={`Filter by ${cat.label} category. ${categoryCounts[cat.id] ?? 0} terms available.`}
             >
-              {cat.emoji} {cat.label}
-              <span className="glossary-quick-stat-num">
+              <span aria-hidden="true">{cat.emoji}</span> {cat.label}
+              <span className="glossary-quick-stat-num" aria-hidden="true">
                 {categoryCounts[cat.id] ?? 0}
               </span>
             </button>
@@ -418,13 +424,14 @@ export default function Glossary() {
               type="button"
               className="glossary-search-clear"
               onClick={handleClearSearch}
-              aria-label="Clear search"
+              aria-label="Clear search input"
+              title="Clear search"
             >
               ✕
             </button>
           )}
         </div>
-        <div className="glossary-search-hint">
+        <div className="glossary-search-hint" aria-hidden="true">
           <kbd>/</kbd> to search · <kbd>Esc</kbd> to clear
         </div>
       </div>
@@ -437,13 +444,15 @@ export default function Glossary() {
       />
 
       {/* ── Controls row: sort + alpha nav ── */}
-      <div className="glossary-controls-row" ref={resultsRef}>
-        <div className="glossary-sort-group">
-          <span className="glossary-sort-label">Sort:</span>
+      <div className="glossary-controls-row" ref={resultsRef} tabIndex="-1" style={{ outline: 'none' }}>
+        <div className="glossary-sort-group" role="group" aria-label="Sort options">
+          <span className="glossary-sort-label" id="sort-label">Sort:</span>
           <button
             type="button"
             className={`glossary-sort-btn${sortBy === "alpha" ? " glossary-sort-btn--active" : ""}`}
             onClick={() => setSortBy("alpha")}
+            aria-pressed={sortBy === "alpha"}
+            aria-labelledby="sort-label"
           >
             A–Z
           </button>
@@ -451,6 +460,8 @@ export default function Glossary() {
             type="button"
             className={`glossary-sort-btn${sortBy === "category" ? " glossary-sort-btn--active" : ""}`}
             onClick={() => setSortBy("category")}
+            aria-pressed={sortBy === "category"}
+            aria-labelledby="sort-label"
           >
             By Category
           </button>
@@ -480,8 +491,15 @@ export default function Glossary() {
               key={letter}
               className="glossary-letter-group"
               ref={el => { letterRefs.current[letter] = el; }}
+              tabIndex="-1" 
+              style={{ outline: 'none' }} // Prevents focus ring when jumping via alphabet nav
             >
-              <div className="glossary-letter-heading" aria-label={`Terms starting with ${letter}`}>
+              <div 
+                className="glossary-letter-heading" 
+                role="heading" 
+                aria-level="2" 
+                aria-label={`Terms starting with letter ${letter}`}
+              >
                 {letter}
               </div>
               {entries.map(entry => (
@@ -518,7 +536,12 @@ export default function Glossary() {
             type="button"
             className="glossary-page-btn"
             disabled={page === 1}
-            onClick={() => { setPage(p => p - 1); window.scrollTo({ top: resultsRef.current?.offsetTop ?? 0, behavior: "smooth" }); }}
+            aria-disabled={page === 1}
+            onClick={() => { 
+              setPage(p => p - 1); 
+              window.scrollTo({ top: resultsRef.current?.offsetTop ?? 0, behavior: "smooth" }); 
+              resultsRef.current?.focus(); 
+            }}
             aria-label="Previous page"
           >
             ← Prev
@@ -534,14 +557,18 @@ export default function Glossary() {
               }, [])
               .map((item, i) =>
                 item === "…" ? (
-                  <span key={`ellipsis-${i}`} className="glossary-page-ellipsis">…</span>
+                  <span key={`ellipsis-${i}`} className="glossary-page-ellipsis" aria-hidden="true">…</span>
                 ) : (
                   <button
                     key={item}
                     type="button"
                     className={`glossary-page-num${page === item ? " glossary-page-num--active" : ""}`}
-                    onClick={() => { setPage(item); window.scrollTo({ top: resultsRef.current?.offsetTop ?? 0, behavior: "smooth" }); }}
-                    aria-label={`Page ${item}`}
+                    onClick={() => { 
+                      setPage(item); 
+                      window.scrollTo({ top: resultsRef.current?.offsetTop ?? 0, behavior: "smooth" }); 
+                      resultsRef.current?.focus(); 
+                    }}
+                    aria-label={`Go to page ${item}`}
                     aria-current={page === item ? "page" : undefined}
                   >
                     {item}
@@ -555,22 +582,27 @@ export default function Glossary() {
             type="button"
             className="glossary-page-btn"
             disabled={page === totalPages}
-            onClick={() => { setPage(p => p + 1); window.scrollTo({ top: resultsRef.current?.offsetTop ?? 0, behavior: "smooth" }); }}
+            aria-disabled={page === totalPages}
+            onClick={() => { 
+              setPage(p => p + 1); 
+              window.scrollTo({ top: resultsRef.current?.offsetTop ?? 0, behavior: "smooth" }); 
+              resultsRef.current?.focus(); 
+            }}
             aria-label="Next page"
           >
             Next →
           </button>
 
-          <span className="glossary-page-info">
+          <span className="glossary-page-info" aria-live="polite">
             Page {page} of {totalPages}
           </span>
         </nav>
       )}
 
       {/* ── Footer note ── */}
-      <div className="glossary-footer-note">
+      <div className="glossary-footer-note" role="contentinfo">
         <p>
-          📚 Definitions are based on WHO, EPA, and CPCB guidelines. This glossary is
+          <span aria-hidden="true">📚</span> Definitions are based on WHO, EPA, and CPCB guidelines. This glossary is
           maintained as part of the Pollution Control Hub open-source project.
         </p>
       </div>

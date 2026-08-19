@@ -244,7 +244,7 @@ export default function Dashboard({
           <h2>Real-Time Pollution Dashboard</h2>
           <p>Live readings for {cityName}</p>
         </div>
-        <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--muted)' }}>
+        <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--muted)' }} role="alert">
           <h3>No data available</h3>
           <p>We couldn't retrieve live air quality data for {cityName} and no cached readings are available.</p>
         </div>
@@ -269,8 +269,6 @@ export default function Dashboard({
     { name: 'CO', value: current.carbon_monoxide, limit: 4000, impact: 'High levels reduce oxygen delivery to the body.', color: getPollutantColor(current.carbon_monoxide, 4000) }
   ].map(p => ({
     ...p,
-    // An unmeasured pollutant gets the floor width rather than NaN, and its colour comes
-    // from getPollutantColor(null, …) which no longer resolves to the "well within" green.
     ratio: typeof p.value === 'number' && Number.isFinite(p.value)
       ? Math.max(10, (p.value / p.limit) * 100)
       : 10
@@ -282,8 +280,6 @@ export default function Dashboard({
     if (windowSize === 0) return null;
     const recentData = trend.slice(-windowSize);
     const previousData = trend.slice(-windowSize * 2, -windowSize);
-    // Average only the hours that carry a reading; a null counted as 0 would show a
-    // fabricated "Improving" arrow whenever the feed had gaps.
     const recentAvg = averageOf(recentData, 'us_aqi');
     const previousAvg = averageOf(previousData, 'us_aqi');
     if (recentAvg === null || previousAvg === null) return null;
@@ -298,7 +294,7 @@ export default function Dashboard({
 
   return (
     <>
-      <section data-testid="dashboard" className="panel dashboard" ref={reportRef}>
+      <section data-testid="dashboard" className="panel dashboard" ref={reportRef} aria-labelledby="dashboard-title">
         <MorningBriefing current={current} trend={trend} />
 
         {exportError && (
@@ -334,6 +330,7 @@ export default function Dashboard({
                   cursor: "pointer",
                   fontWeight: "600"
                 }}
+                aria-label="Retry PDF Export"
               >
                 Retry
               </button>
@@ -348,6 +345,7 @@ export default function Dashboard({
                   borderRadius: "0.375rem",
                   cursor: "pointer"
                 }}
+                aria-label="Dismiss error"
               >
                 Dismiss
               </button>
@@ -358,7 +356,7 @@ export default function Dashboard({
         <div className="panel-head" style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
           <div className={styles.dashboardHeaderRow}>
             <div style={{ minWidth: 0, flex: 1 }}>
-              <h2>Real-Time Pollution Dashboard</h2>
+              <h2 id="dashboard-title">Real-Time Pollution Dashboard</h2>
               <p>
                 Live readings for {cityName}
                 {isFallback && (
@@ -372,7 +370,7 @@ export default function Dashboard({
                     fontWeight: 'bold',
                     display: 'inline-block',
                     verticalAlign: 'middle'
-                  }}>
+                  }} aria-label="Showing cached data due to network fallback">
                     Showing Cached Reading
                   </span>
                 )}
@@ -409,7 +407,7 @@ export default function Dashboard({
               data-testid="time-range-selector"
               className="range-switch"
               role="tablist"
-              aria-label="Time range selector"
+              aria-label="Time range selector for AQI trend chart"
             >
               {[6, 12, 24].map((range) => (
                 <button
@@ -426,11 +424,13 @@ export default function Dashboard({
                       const ranges = [6, 12, 24];
                       const next = ranges[(ranges.indexOf(range) + 1) % ranges.length];
                       onTimeRangeChange(next);
+                      document.getElementById(`time-tab-${next}`)?.focus();
                     }
                     if (e.key === "ArrowLeft") {
                       const ranges = [6, 12, 24];
                       const prev = ranges[(ranges.indexOf(range) - 1 + ranges.length) % ranges.length];
                       onTimeRangeChange(prev);
+                      document.getElementById(`time-tab-${prev}`)?.focus();
                     }
                   }}
                 >
@@ -438,25 +438,28 @@ export default function Dashboard({
                 </button>
               ))}
             </div>
-            <p className={styles.dashboardMeta}>
-              {isRefreshing ? 'Updating...' : `Updated ${lastUpdated ? new Date(lastUpdated).toLocaleTimeString() : 'just now'}`}
+            <p className={styles.dashboardMeta} aria-live="polite">
+              {isRefreshing ? 'Updating data...' : `Updated ${lastUpdated ? new Date(lastUpdated).toLocaleTimeString() : 'just now'}`}
             </p>
           </div>
         </div>
 
         <div className={styles.kpiGrid} style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(min(300px, 100%), 1fr))' }}>
-          <article className={`${styles.kpiCard} ${styles.aqi}`}>
-            <h3>US AQI</h3>
+          <article className={`${styles.kpiCard} ${styles.aqi}`} aria-labelledby="us-aqi-title">
+            <h3 id="us-aqi-title">US AQI</h3>
             <div data-testid="aqi-value" className={styles.kpiValue} style={{ color: aqiBand.color }}>
               {displayReading(current.us_aqi)}
             </div>
-            <p data-testid="aqi-band-label">{aqiBand.label}</p>
+            <p data-testid="aqi-band-label" aria-live="polite">{aqiBand.label}</p>
             {aqiTrend && (
-              <div style={{ fontSize: "0.95rem", fontWeight: "600", color: aqiTrend.color, marginTop: "0.5rem", marginBottom: "0.5rem" }}>
-                {aqiTrend.label}
+              <div 
+                style={{ fontSize: "0.95rem", fontWeight: "600", color: aqiTrend.color, marginTop: "0.5rem", marginBottom: "0.5rem" }}
+                aria-label={`Trend: ${aqiTrend.label.replace(/[^a-zA-Z ]/g, '')}`}
+              >
+                <span aria-hidden="true">{aqiTrend.label}</span>
               </div>
             )}
-            <span className={`confidence-badge confidence-${confidenceScore?.toLowerCase()}`}>
+            <span className={`confidence-badge confidence-${confidenceScore?.toLowerCase()}`} aria-label={`Confidence score: ${confidenceScore}, Data completeness: ${dataCompleteness}%`}>
               {confidenceScore} ({dataCompleteness}% data)
             </span>
           </article>
@@ -466,7 +469,8 @@ export default function Dashboard({
             <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>
               Relative magnitude vs. WHO guidelines. Larger segments indicate higher severity.
             </p>
-            <div style={{ flex: 1, minHeight: '200px' }} role="img" aria-label="Pollutant health speedometer donut chart showing real-time values vs WHO guidelines">
+            {/* A11Y FIX: Recharts SVGs require role="img" and aria-label on parent containers */}
+            <div style={{ flex: 1, minHeight: '200px' }} role="img" aria-label="Donut chart displaying current pollutants against WHO guidelines.">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
@@ -509,6 +513,7 @@ export default function Dashboard({
                 data-testid={`pollutant-${p.name.toLowerCase().replace('.', '_')}`}
                 className={styles.pollutantCard}
                 style={{ borderLeft: `4px solid ${p.color}` }}
+                aria-label={`${p.name} levels are ${status.label}`}
               >
                 <div className={styles.pollutantCardHeader}>
                   <h4>{p.name}</h4>
@@ -521,7 +526,7 @@ export default function Dashboard({
                       borderRadius: '50%',
                       backgroundColor: status.color,
                       display: 'inline-block'
-                    }} />
+                    }} aria-hidden="true" />
                     {status.label}
                   </span>
                 </div>
@@ -536,7 +541,15 @@ export default function Dashboard({
                   <span className={styles.pollutantPercent} style={{ color: p.color }}>{pct}%</span>
                 </div>
 
-                <div className={styles.pollutantProgressTrack}>
+                {/* A11Y FIX: Semantically define this as a progressbar so screen readers read the percentage naturally */}
+                <div 
+                  className={styles.pollutantProgressTrack}
+                  role="progressbar"
+                  aria-label={`${p.name} percentage of WHO limit`}
+                  aria-valuenow={Math.min(pct, 100)}
+                  aria-valuemin="0"
+                  aria-valuemax="100"
+                >
                   <div
                     className={styles.pollutantProgressFill}
                     style={{
@@ -555,7 +568,7 @@ export default function Dashboard({
         <div className={styles.chartGrid}>
           <article className={`${styles.chartCard} ${styles.forecastCard}`} style={{ gridColumn: '1 / -1' }}>
             <h3>7-Day AQI & Weather Forecast</h3>
-            {forecastError && <p style={{ color: 'var(--danger)', padding: '1rem' }}>Failed to load forecast data.</p>}
+            {forecastError && <p style={{ color: 'var(--danger)', padding: '1rem' }} role="alert">Failed to load forecast data.</p>}
             {!forecastData && !forecastError && (
               <div
                 role="status"
@@ -578,53 +591,56 @@ export default function Dashboard({
                 <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '0.95rem', color: 'var(--muted)', fontWeight: '600' }}>
                   7-Day Predictive AQI Trend & Confidence Bounds
                 </h4>
-                <ResponsiveContainer width="100%" height={260}>
-                  <AreaChart
-                    data={forecastData.map((d) => ({
-                      ...d,
-                      label: new Date(d.date).toLocaleDateString(undefined, {
-                        weekday: 'short',
-                        month: 'short',
-                        day: 'numeric',
-                        timeZone: 'UTC'
-                      }),
-                    }))}
-                    margin={{ top: 10, right: 20, left: 0, bottom: 0 }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" stroke="#d7e6e1" />
-                    <XAxis dataKey="label" />
-                    <YAxis />
-                    <Tooltip
-                      formatter={(val, name) => {
-                        if (name === "Confidence Range") {
-                          const tuple = Array.isArray(val) ? val : [val, val];
-                          return [`${tuple[0]} – ${tuple[1]} AQI`, 'Confidence Bounds'];
-                        }
-                        return [`${val} AQI`, 'Predicted AQI'];
-                      }}
-                    />
-                    <Area
-                      type="monotone"
-                      dataKey="confidenceRange"
-                      stroke="none"
-                      fill="#0d9488"
-                      fillOpacity={0.18}
-                      name="Confidence Range"
-                    />
-                    <Line
-                      type="monotone"
-                      dataKey="aqi"
-                      stroke="#0d9488"
-                      strokeWidth={3}
-                      dot={{ r: 4, fill: "#0d9488" }}
-                      name="Predicted AQI"
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
+                {/* A11Y FIX: Chart accessibility wrapper */}
+                <div role="img" aria-label="Area chart showing 7-day predictive AQI trend and confidence bounds">
+                  <ResponsiveContainer width="100%" height={260}>
+                    <AreaChart
+                      data={forecastData.map((d) => ({
+                        ...d,
+                        label: new Date(d.date).toLocaleDateString(undefined, {
+                          weekday: 'short',
+                          month: 'short',
+                          day: 'numeric',
+                          timeZone: 'UTC'
+                        }),
+                      }))}
+                      margin={{ top: 10, right: 20, left: 0, bottom: 0 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" stroke="#d7e6e1" />
+                      <XAxis dataKey="label" />
+                      <YAxis />
+                      <Tooltip
+                        formatter={(val, name) => {
+                          if (name === "Confidence Range") {
+                            const tuple = Array.isArray(val) ? val : [val, val];
+                            return [`${tuple[0]} – ${tuple[1]} AQI`, 'Confidence Bounds'];
+                          }
+                          return [`${val} AQI`, 'Predicted AQI'];
+                        }}
+                      />
+                      <Area
+                        type="monotone"
+                        dataKey="confidenceRange"
+                        stroke="none"
+                        fill="#0d9488"
+                        fillOpacity={0.18}
+                        name="Confidence Range"
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="aqi"
+                        stroke="#0d9488"
+                        strokeWidth={3}
+                        dot={{ r: 4, fill: "#0d9488" }}
+                        name="Predicted AQI"
+                      />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
               </div>
             )}
             {forecastData && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', marginTop: '1rem' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', marginTop: '1rem' }} role="list" aria-label="7-Day forecast details">
                 {forecastData.map((day) => {
                   const weather = getWeatherDetails(day.weatherCode);
                   const band = getAQIBand(day.aqi);
@@ -641,6 +657,7 @@ export default function Dashboard({
                   return (
                     <div
                       key={day.date}
+                      role="listitem"
                       style={{
                         display: 'flex',
                         alignItems: 'center',
@@ -653,14 +670,14 @@ export default function Dashboard({
                       }}
                     >
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', minWidth: '150px' }}>
-                        <span style={{ fontSize: '1.25rem' }} title={weather.label}>{weather.icon}</span>
+                        <span style={{ fontSize: '1.25rem' }} title={weather.label} aria-hidden="true">{weather.icon}</span>
                         <div style={{ display: 'flex', flexDirection: 'column' }}>
                           <span style={{ fontWeight: '600', fontSize: '0.95rem', color: 'var(--ink)' }}>{formattedDate}</span>
                           <span style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>{weather.label}</span>
                         </div>
                       </div>
 
-                      <div style={{ flex: '1 1 200px', minWidth: '150px' }}>
+                      <div style={{ flex: '1 1 200px', minWidth: '150px' }} aria-hidden="true">
                         <div style={{ height: '8px', width: '100%', background: 'var(--line)', borderRadius: '4px', overflow: 'hidden' }}>
                           <div
                             style={{
@@ -675,7 +692,7 @@ export default function Dashboard({
                       </div>
 
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', minWidth: '120px' }}>
-                        <span style={{ fontWeight: '700', fontSize: '1.1rem', color: band.color }}>{day.aqi}</span>
+                        <span style={{ fontWeight: '700', fontSize: '1.1rem', color: band.color }} aria-label={`AQI ${day.aqi}`}>{day.aqi}</span>
                         <span
                           style={{
                             padding: '0.15rem 0.5rem',
@@ -703,7 +720,7 @@ export default function Dashboard({
                             border: '1px solid rgba(34, 197, 94, 0.3)'
                           }}
                         >
-                          ✨ Best Day
+                          <span aria-hidden="true">✨</span> Best Day
                         </span>
                       )}
                       {isWorst && (
@@ -718,7 +735,7 @@ export default function Dashboard({
                             border: '1px solid rgba(239, 68, 68, 0.3)'
                           }}
                         >
-                          ⚠️ Worst Day
+                          <span aria-hidden="true">⚠️</span> Worst Day
                         </span>
                       )}
                     </div>
@@ -731,12 +748,12 @@ export default function Dashboard({
           <article className="chart-card" style={{ gridColumn: '1 / -1' }}>
             <h3>Hourly Weather Forecast</h3>
             {hourlyWeatherError && (
-              <p style={{ color: 'var(--danger)', padding: '1rem' }}>
+              <p style={{ color: 'var(--danger)', padding: '1rem' }} role="alert">
                 Failed to load hourly weather data.
               </p>
             )}
             {!hourlyWeather && !hourlyWeatherError && (
-              <p style={{ padding: '1rem', color: 'var(--muted)' }}>Loading hourly weather…</p>
+              <p style={{ padding: '1rem', color: 'var(--muted)' }} aria-live="polite">Loading hourly weather…</p>
             )}
             {hourlyWeather && hourlyWeather.length === 0 && !hourlyWeatherError && (
               <p style={{ padding: '1rem', color: 'var(--muted)' }}>
@@ -744,42 +761,51 @@ export default function Dashboard({
               </p>
             )}
             {hourlyWeather && hourlyWeather.length > 0 && (
-              <div style={{ display: 'flex', gap: '0.75rem', overflowX: 'auto', paddingBottom: '0.5rem' }}>
-                {hourlyWeather.map((point) => (
-                  <div
-                    key={point.time}
-                    style={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      gap: '0.35rem',
-                      minWidth: '90px',
-                      padding: '0.75rem',
-                      borderRadius: '8px',
-                      background: 'var(--bg-card-alt, rgba(0,0,0,0.015))',
-                      border: '1px solid var(--line)'
-                    }}
-                  >
-                    <span style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>
-                      {new Date(point.time).toLocaleTimeString([], { hour: '2-digit' })}
-                    </span>
-                    <img
-                      src={`https://openweathermap.org/img/wn/${point.weatherIcon}.png`}
-                      alt={point.weatherLabel}
-                      width="32"
-                      height="32"
-                    />
-                    <span style={{ fontWeight: '700', fontSize: '0.95rem', color: 'var(--ink)' }}>
-                      {point.temperature !== null ? `${Math.round(point.temperature)}°C` : '—'}
-                    </span>
-                    <span style={{ fontSize: '0.7rem', color: 'var(--muted)' }}>
-                      💧 {point.humidity ?? '—'}%
-                    </span>
-                    <span style={{ fontSize: '0.7rem', color: 'var(--muted)' }}>
-                      🌬️ {point.windSpeed ?? '—'} m/s
-                    </span>
-                  </div>
-                ))}
+              {/* A11Y FIX: Make horizontal scrolling container accessible via keyboard tab */}
+              <div 
+                style={{ display: 'flex', gap: '0.75rem', overflowX: 'auto', paddingBottom: '0.5rem' }}
+                tabIndex={0}
+                role="region"
+                aria-label="Hourly weather scrollable list"
+              >
+                <div style={{ display: 'flex', gap: '0.75rem' }} role="list">
+                  {hourlyWeather.map((point) => (
+                    <div
+                      key={point.time}
+                      role="listitem"
+                      style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        gap: '0.35rem',
+                        minWidth: '90px',
+                        padding: '0.75rem',
+                        borderRadius: '8px',
+                        background: 'var(--bg-card-alt, rgba(0,0,0,0.015))',
+                        border: '1px solid var(--line)'
+                      }}
+                    >
+                      <span style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>
+                        {new Date(point.time).toLocaleTimeString([], { hour: '2-digit' })}
+                      </span>
+                      <img
+                        src={`https://openweathermap.org/img/wn/${point.weatherIcon}.png`}
+                        alt={point.weatherLabel}
+                        width="32"
+                        height="32"
+                      />
+                      <span style={{ fontWeight: '700', fontSize: '0.95rem', color: 'var(--ink)' }} aria-label={`Temperature ${point.temperature !== null ? Math.round(point.temperature) + ' degrees Celsius' : 'unknown'}`}>
+                        {point.temperature !== null ? `${Math.round(point.temperature)}°C` : '—'}
+                      </span>
+                      <span style={{ fontSize: '0.7rem', color: 'var(--muted)' }} aria-label={`Humidity ${point.humidity ?? 'unknown'} percent`}>
+                        <span aria-hidden="true">💧</span> {point.humidity ?? '—'}%
+                      </span>
+                      <span style={{ fontSize: '0.7rem', color: 'var(--muted)' }} aria-label={`Wind speed ${point.windSpeed ?? 'unknown'} meters per second`}>
+                        <span aria-hidden="true">🌬️</span> {point.windSpeed ?? '—'} m/s
+                      </span>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
           </article>
@@ -794,36 +820,44 @@ export default function Dashboard({
               data-testid="aqi-trend-chart"
               role="tabpanel"
               aria-labelledby={`time-tab-${timeRange}`}
+              tabIndex={0} // A11Y FIX: Allow users to tab into the panel
+              style={{ outline: 'none' }} // Prevents messy focus ring on click, relies on standard internal focus
             >
-              <ResponsiveContainer width="100%" height={280}>
-                <LineChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#d7e6e1" />
-                  <XAxis dataKey="label" minTickGap={28} />
-                  <YAxis />
-                  <Tooltip />
-                  <Line type="monotone" dataKey="us_aqi" stroke="#0d9488" strokeWidth={3} dot={false} />
-                </LineChart>
-              </ResponsiveContainer>
+              {/* A11Y FIX: Wrapper for Recharts */}
+              <div role="img" aria-label={`Line chart displaying AQI trend over the last ${timeRange} hours`}>
+                <ResponsiveContainer width="100%" height={280}>
+                  <LineChart data={chartData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#d7e6e1" />
+                    <XAxis dataKey="label" minTickGap={28} />
+                    <YAxis />
+                    <Tooltip />
+                    <Line type="monotone" dataKey="us_aqi" stroke="#0d9488" strokeWidth={3} dot={false} />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
             </div>
           </article>
 
           <article data-testid="city-comparisons" className="chart-card">
             <h3>City-Wise AQI Comparison</h3>
-            <ResponsiveContainer width="100%" height={280}>
-              <BarChart data={measuredCities} layout="vertical" margin={{ left: 30 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#d7e6e1" />
-                <XAxis type="number" />
-                <YAxis type="category" dataKey="city" width={90} />
-                <Tooltip />
-                <Bar dataKey="aqi" fill="#f97316" radius={[0, 12, 12, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+            {/* A11Y FIX: Wrapper for Recharts */}
+            <div role="img" aria-label="Horizontal bar chart comparing Air Quality Index across different cities">
+              <ResponsiveContainer width="100%" height={280}>
+                <BarChart data={measuredCities} layout="vertical" margin={{ left: 30 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#d7e6e1" />
+                  <XAxis type="number" />
+                  <YAxis type="category" dataKey="city" width={90} />
+                  <Tooltip />
+                  <Bar dataKey="aqi" fill="#f97316" radius={[0, 12, 12, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
             {unavailableCities.length > 0 && (
               <p className="city-comparison-unavailable" data-testid="city-comparison-unavailable">
                 No reading available for {unavailableCities.map((c) => c.city).join(', ')}.
               </p>
             )}
-            <ul style={{ display: 'none' }}>
+            <ul style={{ display: 'none' }} aria-hidden="true">
               {cityComparisons && cityComparisons.map((c, i) => (
                 <li key={i} data-testid="city-comparison-item">
                   {c.city}: {c.unavailable || c.aqi == null ? 'Unavailable' : c.aqi}

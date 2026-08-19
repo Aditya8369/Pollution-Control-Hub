@@ -97,23 +97,30 @@ const Commute = () => {
   };
 
   return (
-    <div className="commute-container">
-      <h2>Clean Route Planner</h2>
+    // A11Y FIX: Semantic landmark for screen readers
+    <main className="commute-container" aria-labelledby="commute-heading">
+      <h2 id="commute-heading">Clean Route Planner</h2>
+      
       {geoError && (
-        <div className="geo-error-banner">
-          ⚠️ Reverse Geocoding Notice: {geoError}
+        // A11Y FIX: role="alert" ensures screen readers announce errors immediately
+        <div className="geo-error-banner" role="alert" aria-live="assertive">
+          <span><span aria-hidden="true">⚠️</span> Reverse Geocoding Notice: {geoError}</span>
           <button
+            type="button"
             onClick={() => setGeoError(null)}
+            aria-label="Dismiss geolocation error"
             style={{ background: "none", border: "none", color: "#c2410c", fontWeight: "bold", cursor: "pointer", paddingLeft: "1rem" }}
           >
             ×
           </button>
         </div>
       )}
+      
       {routeError && (
         <div
           className="commute-error-banner"
           role="alert"
+          aria-live="assertive"
           data-testid="commute-route-error"
           style={{
             backgroundColor: "#fef2f2",
@@ -129,7 +136,7 @@ const Commute = () => {
             gap: "1rem",
           }}
         >
-          <span>⚠️ {routeError}</span>
+          <span><span aria-hidden="true">⚠️</span> {routeError}</span>
           <button
             type="button"
             onClick={() => setRouteError(null)}
@@ -140,6 +147,7 @@ const Commute = () => {
           </button>
         </div>
       )}
+      
       <SavedLocations
         savedLocations={savedLocations}
         applySavedLocation={applySavedLocation}
@@ -177,7 +185,7 @@ const Commute = () => {
         searchId={searchId}
         legendItems={LEGEND_ITEMS}
       />
-    </div>
+    </main>
   );
 };
 
