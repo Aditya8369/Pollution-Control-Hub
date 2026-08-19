@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "allowJs": true,
+    "checkJs": true,
+    "noEmit": true,
+    "strict": false,
+    "jsx": "react-jsx",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "target": "ES2022",
+    "lib": ["DOM", "ES2022"],
+    "skipLibCheck": true,
+    "useUnknownInCatchVariables": false,
+    "types": ["vitest/globals", "jest"]
+  },
+  "include": ["src"]
+}
