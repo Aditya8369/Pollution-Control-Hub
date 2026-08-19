@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, useCallback, useRef, lazy, Suspense, } from "react";
 import { useSWR } from "./hooks/useSWR";
 import { cacheStore } from "./utils/cacheStore";
+import AlertsPanel from "./components/AlertsPanel";
 import CommunityHub from "./components/CommunityHub";
 import Dashboard from "./components/Dashboard";
 import Footer from "./components/Footer";

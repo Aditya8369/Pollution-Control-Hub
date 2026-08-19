@@ -640,8 +640,8 @@ export default function Dashboard({
                   role="progressbar"
                   aria-label={`${p.name} percentage of WHO limit`}
                   aria-valuenow={Math.min(pct, 100)}
-                  aria-valuemin="0"
-                  aria-valuemax="100"
+                  aria-valuemin={0}
+                  aria-valuemax={100}
                 >
                   <div
                     className={styles.pollutantProgressFill}
