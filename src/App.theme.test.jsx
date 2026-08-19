@@ -74,7 +74,7 @@ describe('App Theme Infrastructure & ThemeSwitcher (Issue #417)', () => {
   it('updates theme state and localStorage when ThemeSwitcher changes', async () => {
     render(<App />);
 
-    const triggerBtns = screen.getAllByRole('button', { name: /color theme menu/i });
+    const triggerBtns = screen.getAllByRole('button', { name: /theme and accent color menu/i });
     fireEvent.click(triggerBtns[0]);
 
     const lightBtn = screen.getByRole('menuitemradio', { name: /light/i });
