@@ -1,6 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { getPollutantColor } from "../services/airQualityService";
 import { SAFE_LIMITS } from "../constants/cities";
+import { DEVICE_CONNECTORS, getConnector } from "../services/deviceConnectors";
+import { useDeviceReading } from "../hooks/useDeviceReading";
 
 const INDOOR_READINGS_KEY = "indoor-air-readings";
 
@@ -161,6 +163,59 @@ export default function IndoorTracker({ current, cityName }) {
     }));
     const [errors, setErrors] = useState({});
 
+    const [connectorId, setConnectorId] = useState(DEVICE_CONNECTORS[0].id);
+    const [connectorConfigInput, setConnectorConfigInput] = useState({});
+    const {
+        deviceConfig,
+        deviceReading,
+        error: deviceError,
+        isFetching: isDeviceFetching,
+        lastSyncedAt,
+        connectDevice,
+        disconnectDevice,
+    } = useDeviceReading();
+    const activeConnector = getConnector(connectorId);
+    const suppliedFields = deviceConfig ? getConnector(deviceConfig.connectorId)?.suppliedFields ?? [] : [];
+
+    // Whenever the connected device delivers a fresh reading, merge its fields
+    // into the saved reading (keeping any manually-entered fields the device
+    // doesn't cover, e.g. PurpleAir only supplies pm2_5) and persist it the
+    // same way a manual save does, so gauges/tips below work unchanged.
+    useEffect(() => {
+        if (!deviceReading) return;
+
+        setSaved((prevSaved) => {
+            const merged = {
+                pm2_5: deviceReading.pm2_5 ?? prevSaved?.pm2_5 ?? null,
+                co2: deviceReading.co2 ?? prevSaved?.co2 ?? null,
+                voc: deviceReading.voc ?? prevSaved?.voc ?? null,
+                timestamp: new Date().toISOString(),
+            };
+            // Still waiting on the remaining manual field(s) before there's a
+            // complete reading to display/persist.
+            if (merged.pm2_5 == null || merged.co2 == null || merged.voc == null) {
+                return prevSaved;
+            }
+            try {
+                localStorage.setItem(INDOOR_READINGS_KEY, JSON.stringify(merged));
+            } catch {
+                // ignore storage error
+            }
+            return merged;
+        });
+
+        setInputs((prev) => ({
+            pm2_5: deviceReading.pm2_5 ?? prev.pm2_5,
+            co2: deviceReading.co2 ?? prev.co2,
+            voc: deviceReading.voc ?? prev.voc,
+        }));
+    }, [deviceReading]);
+
+    const handleConnect = (e) => {
+        e.preventDefault();
+        connectDevice(connectorId, connectorConfigInput);
+    };
+
     const setField = (key, value) => {
         setInputs((prev) => ({ ...prev, [key]: value }));
         setErrors((prev) => {
@@ -236,6 +291,119 @@ export default function IndoorTracker({ current, cityName }) {
                 </p>
             </div>
 
+            <div
+                data-testid="indoor-device-panel"
+                style={{
+                    marginBottom: "1.5rem",
+                    padding: "1rem",
+                    border: "1px solid var(--border-color, #e2e8f0)",
+                    borderRadius: "0.5rem",
+                }}
+            >
+                <strong style={{ display: "block", marginBottom: "0.5rem" }}>Connect a Device</strong>
+
+                {!deviceConfig ? (
+                    <form
+                        onSubmit={handleConnect}
+                        style={{ display: "flex", flexWrap: "wrap", gap: "0.75rem", alignItems: "flex-end" }}
+                    >
+                        <label style={{ fontSize: "0.85rem" }}>
+                            Device
+                            <select
+                                data-testid="device-connector-select"
+                                value={connectorId}
+                                onChange={(e) => {
+                                    setConnectorId(e.target.value);
+                                    setConnectorConfigInput({});
+                                }}
+                                style={{ display: "block", padding: "0.5rem", marginTop: "0.25rem" }}
+                            >
+                                {DEVICE_CONNECTORS.map((c) => (
+                                    <option key={c.id} value={c.id}>{c.label}</option>
+                                ))}
+                            </select>
+                        </label>
+
+                        {activeConnector?.configFields.map((field) => (
+                            <label key={field.key} style={{ fontSize: "0.85rem" }}>
+                                {field.label}
+                                <input
+                                    type={field.type || "text"}
+                                    placeholder={field.placeholder}
+                                    value={connectorConfigInput[field.key] || ""}
+                                    onChange={(e) =>
+                                        setConnectorConfigInput((prev) => ({ ...prev, [field.key]: e.target.value }))
+                                    }
+                                    style={{ display: "block", width: "12rem", padding: "0.5rem", marginTop: "0.25rem" }}
+                                />
+                            </label>
+                        ))}
+
+                        <button
+                            type="submit"
+                            data-testid="connect-device"
+                            disabled={activeConnector?.configFields.length === 0}
+                            style={{
+                                padding: "0.5rem 1rem",
+                                backgroundColor: "#16a34a",
+                                color: "white",
+                                border: "none",
+                                borderRadius: "4px",
+                                fontWeight: "500",
+                                cursor: activeConnector?.configFields.length === 0 ? "not-allowed" : "pointer",
+                                opacity: activeConnector?.configFields.length === 0 ? 0.6 : 1,
+                            }}
+                        >
+                            Connect
+                        </button>
+
+                        {activeConnector?.configFields.length === 0 && (
+                            <p style={{ fontSize: "0.8rem", color: "var(--text-secondary, #64748b)", margin: 0 }}>
+                                Not available client-side yet — this connector requires a backend proxy.
+                            </p>
+                        )}
+                    </form>
+                ) : (
+                    <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: "0.75rem" }}>
+                        <span
+                            aria-hidden="true"
+                            style={{
+                                width: "8px",
+                                height: "8px",
+                                borderRadius: "50%",
+                                display: "inline-block",
+                                backgroundColor: deviceError ? "#ef4444" : isDeviceFetching ? "#facc15" : "#4ade80",
+                            }}
+                        />
+                        <span style={{ fontSize: "0.85rem" }}>
+                            Connected to <strong>{getConnector(deviceConfig.connectorId)?.label}</strong>
+                            {lastSyncedAt && ` · Last synced ${new Date(lastSyncedAt).toLocaleTimeString()}`}
+                        </span>
+                        <button
+                            type="button"
+                            data-testid="disconnect-device"
+                            onClick={disconnectDevice}
+                            style={{
+                                padding: "0.35rem 0.75rem",
+                                backgroundColor: "transparent",
+                                color: "#dc2626",
+                                border: "1px solid #dc2626",
+                                borderRadius: "4px",
+                                cursor: "pointer",
+                                fontSize: "0.8rem",
+                            }}
+                        >
+                            Disconnect
+                        </button>
+                        {deviceError && (
+                            <span data-testid="device-error" style={{ fontSize: "0.8rem", color: "#dc2626" }}>
+                                {deviceError}
+                            </span>
+                        )}
+                    </div>
+                )}
+            </div>
+
             <form
                 onSubmit={handleSave}
                 style={{
@@ -246,45 +414,55 @@ export default function IndoorTracker({ current, cityName }) {
                     marginBottom: "1.5rem",
                 }}
             >
-                {FIELDS.map(({ key, label, testId, step }) => (
-                    <div key={key}>
-                        <label style={{ fontSize: "0.85rem" }}>
-                            {label}
-                            <input
-                                type="number"
-                                min="0"
-                                step={step}
-                                required
-                                data-testid={testId}
-                                value={inputs[key]}
-                                onChange={(e) => setField(key, e.target.value)}
-                                aria-invalid={Boolean(errors[key])}
-                                aria-describedby={errors[key] ? `${testId}-error` : undefined}
-                                style={{
-                                    display: "block",
-                                    width: "9rem",
-                                    padding: "0.5rem",
-                                    marginTop: "0.25rem",
-                                    borderColor: errors[key] ? "#dc2626" : undefined,
-                                }}
-                            />
-                        </label>
-                        {errors[key] && (
-                            <p
-                                id={`${testId}-error`}
-                                role="alert"
-                                data-testid={`${testId}-error`}
-                                style={{
-                                    margin: "0.25rem 0 0",
-                                    fontSize: "0.75rem",
-                                    color: "#dc2626",
-                                }}
-                            >
-                                {errors[key]}
-                            </p>
-                        )}
-                    </div>
-                ))}
+                {FIELDS.map(({ key, label, testId, step }) => {
+                    const isLive = suppliedFields.includes(key);
+                    return (
+                        <div key={key}>
+                            <label style={{ fontSize: "0.85rem" }}>
+                                {label}{" "}
+                                {isLive && (
+                                    <span style={{ fontSize: "0.7rem", color: "#16a34a", fontWeight: 600 }}>
+                                        🔌 Live
+                                    </span>
+                                )}
+                                <input
+                                    type="number"
+                                    min="0"
+                                    step={step}
+                                    required
+                                    disabled={isLive}
+                                    data-testid={testId}
+                                    value={inputs[key]}
+                                    onChange={(e) => setField(key, e.target.value)}
+                                    aria-invalid={Boolean(errors[key])}
+                                    aria-describedby={errors[key] ? `${testId}-error` : undefined}
+                                    style={{
+                                        display: "block",
+                                        width: "9rem",
+                                        padding: "0.5rem",
+                                        marginTop: "0.25rem",
+                                        borderColor: errors[key] ? "#dc2626" : undefined,
+                                        backgroundColor: isLive ? "var(--border-color, #e2e8f0)" : undefined,
+                                    }}
+                                />
+                            </label>
+                            {errors[key] && (
+                                <p
+                                    id={`${testId}-error`}
+                                    role="alert"
+                                    data-testid={`${testId}-error`}
+                                    style={{
+                                        margin: "0.25rem 0 0",
+                                        fontSize: "0.75rem",
+                                        color: "#dc2626",
+                                    }}
+                                >
+                                    {errors[key]}
+                                </p>
+                            )}
+                        </div>
+                    );
+                })}
                 <button
                     type="submit"
                     data-testid="save-indoor-reading"
