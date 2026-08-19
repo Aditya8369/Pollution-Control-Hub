@@ -1,9 +1,17 @@
-import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
+import {
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  CartesianGrid,
+} from "recharts";
 
 export default function AnalyticsInsights({ analytics, trend, timeRange }) {
   const dynamicSeries = trend.slice(-timeRange).map((item, index) => ({
     hour: `H${index + 1}`,
-    aqi: item.us_aqi
+    aqi: item.us_aqi,
   }));
 
   return (
@@ -14,9 +22,18 @@ export default function AnalyticsInsights({ analytics, trend, timeRange }) {
       </div>
 
       <div className="analytics-kpis">
-        <article><h3>Weekly Avg AQI</h3><p>{analytics.weekly}</p></article>
-        <article><h3>Monthly Avg AQI</h3><p>{analytics.monthly}</p></article>
-        <article><h3>Predicted Next-Day AQI</h3><p>{analytics.prediction}</p></article>
+        <article>
+          <h3>Weekly Avg AQI</h3>
+          <p>{analytics.weekly}</p>
+        </article>
+        <article>
+          <h3>Monthly Avg AQI</h3>
+          <p>{analytics.monthly}</p>
+        </article>
+        <article>
+          <h3>Predicted Next-Day AQI</h3>
+          <p>{analytics.prediction}</p>
+        </article>
       </div>
 
       <div className="chart-card">
@@ -24,10 +41,16 @@ export default function AnalyticsInsights({ analytics, trend, timeRange }) {
         <ResponsiveContainer width="100%" height={240}>
           <AreaChart data={dynamicSeries}>
             <CartesianGrid strokeDasharray="3 3" stroke="var(--line)" />
-            <XAxis dataKey="hour" tick={{ fill: 'var(--muted)' }} />
-            <YAxis tick={{ fill: 'var(--muted)' }} />
+            <XAxis dataKey="hour" tick={{ fill: "var(--muted)" }} />
+            <YAxis tick={{ fill: "var(--muted)" }} />
             <Tooltip />
-            <Area type="monotone" dataKey="aqi" stroke="#0284c7" fill="#7dd3fc" fillOpacity={0.6} />
+            <Area
+              type="monotone"
+              dataKey="aqi"
+              stroke="#0284c7"
+              fill="#7dd3fc"
+              fillOpacity={0.6}
+            />
           </AreaChart>
         </ResponsiveContainer>
       </div>

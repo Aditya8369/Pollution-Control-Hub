@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { shuffleArray, getHighestAQI } from "./hotspotGameUtils";
 
 function HotspotScoutGame({ nearbyPoints }) {
-
   const [score, setScore] = useState(0);
   const [streak, setStreak] = useState(0);
   const [selected, setSelected] = useState(null);
@@ -26,15 +25,14 @@ function HotspotScoutGame({ nearbyPoints }) {
     const winner = getHighestAQI(round);
 
     if (spot.aqi === winner.aqi) {
-      setScore(prev => prev + 1);
-      setStreak(prev => prev + 1);
+      setScore((prev) => prev + 1);
+      setStreak((prev) => prev + 1);
     } else {
       setStreak(0);
     }
 
     setSelected(winner);
   };
-
 
   return (
     <div className="hotspot-game">

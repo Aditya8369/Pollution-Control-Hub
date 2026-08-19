@@ -44,5 +44,5 @@ export const cacheStore = {
 
     inFlight.set(key, promise);
     return promise;
-  }
+  },
 };

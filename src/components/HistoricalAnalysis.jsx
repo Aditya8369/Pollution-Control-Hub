@@ -1,19 +1,22 @@
-import { useState, useEffect, useRef } from 'react';
-import CalendarHeatmap from './CalendarHeatmap';
-import { fetchHistoricalData } from '../services/historicalDataService';
+import { useState, useEffect, useRef } from "react";
+import CalendarHeatmap from "./CalendarHeatmap";
+import { fetchHistoricalData } from "../services/historicalDataService";
 
 export default function HistoricalAnalysis({ position }) {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
-  
+
   const workerRef = useRef(null);
 
   useEffect(() => {
     // Initialize web worker
-    workerRef.current = new Worker(new URL('../workers/historicalDataWorker.js', import.meta.url), {
-      type: 'module'
-    });
+    workerRef.current = new Worker(
+      new URL("../workers/historicalDataWorker.js", import.meta.url),
+      {
+        type: "module",
+      },
+    );
 
     workerRef.current.onmessage = (e) => {
       if (e.data.error) {
@@ -38,15 +41,19 @@ export default function HistoricalAnalysis({ position }) {
         setLoading(true);
         setError(null);
         // Fetch last 3 years of data
-        const rawData = await fetchHistoricalData(position.lat, position.lon, 3);
-        
+        const rawData = await fetchHistoricalData(
+          position.lat,
+          position.lon,
+          3,
+        );
+
         if (active && workerRef.current) {
           // Offload processing to worker
           workerRef.current.postMessage(rawData);
         }
       } catch (err) {
         if (active) {
-          setError(err.message || 'Failed to load historical data');
+          setError(err.message || "Failed to load historical data");
           setLoading(false);
         }
       }
@@ -83,7 +90,9 @@ export default function HistoricalAnalysis({ position }) {
   return (
     <div className="historical-analysis-container section-card">
       <header className="mb-6">
-        <h2 className="text-2xl font-semibold">Long-Term Climate & Pollution Trends</h2>
+        <h2 className="text-2xl font-semibold">
+          Long-Term Climate & Pollution Trends
+        </h2>
         <p className="text-sm opacity-80">
           Showing 3 years of daily max AQI severity for {position.cityName}
         </p>

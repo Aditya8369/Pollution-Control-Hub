@@ -1,52 +1,67 @@
-import { useEffect, useState } from 'react';
-import { Car, Factory, TreePine, Zap, Globe, FlaskConical, CloudFog, TrafficCone, Sun, AlertTriangle } from 'lucide-react';
-import { CITY_COORDINATES } from '../constants/cities';
-import { fetchAirQualityByCoords, getAQIBand, estimateAQI } from '../services/airQualityService';
+import { useEffect, useState } from "react";
+import {
+  Car,
+  Factory,
+  TreePine,
+  Zap,
+  Globe,
+  FlaskConical,
+  CloudFog,
+  TrafficCone,
+  Sun,
+  AlertTriangle,
+} from "lucide-react";
+import { CITY_COORDINATES } from "../constants/cities";
+import {
+  fetchAirQualityByCoords,
+  getAQIBand,
+  estimateAQI,
+} from "../services/airQualityService";
 
 /* ─── Preset intervention scenarios ──────────────────────────────────────── */
 
 const PRESETS = [
   {
-    id: 'traffic',
+    id: "traffic",
     icon: Car,
-    label: 'Traffic Control',
-    description: 'Odd-even driving, EV mandates',
+    label: "Traffic Control",
+    description: "Odd-even driving, EV mandates",
     pm25: 10,
     no2: 20,
     o3: 5,
   },
   {
-    id: 'industrial',
+    id: "industrial",
     icon: Factory,
-    label: 'Industrial Limits',
-    description: 'Stricter stack emission caps',
+    label: "Industrial Limits",
+    description: "Stricter stack emission caps",
     pm25: 25,
     no2: 15,
     o3: 0,
   },
   {
-    id: 'green',
+    id: "green",
     icon: TreePine,
-    label: 'Green Cover',
-    description: 'Urban forestry & park expansion',
+    label: "Green Cover",
+    description: "Urban forestry & park expansion",
     pm25: 10,
     no2: 5,
     o3: 15,
   },
   {
-    id: 'clean-fuel',
+    id: "clean-fuel",
     icon: Zap,
-    label: 'Clean Fuel Switch',
-    description: 'Replace petrol/diesel with CNG/EV',
+    label: "Clean Fuel Switch",
+    description: "Replace petrol/diesel with CNG/EV",
     pm25: 20,
     no2: 30,
     o3: 10,
   },
   {
-    id: 'combined',
+    id: "combined",
     icon: Globe,
-    label: 'Combined Policy',
-    description: 'All interventions together',
+    label: "Combined Policy",
+    description: "All interventions together",
     pm25: 50,
     no2: 50,
     o3: 50,
@@ -56,7 +71,9 @@ const PRESETS = [
 /* ─── Component ───────────────────────────────────────────────────────────── */
 
 export default function ScenarioSimulator({ current }) {
-  if (!current) { return null;}
+  if (!current) {
+    return null;
+  }
   const [pm25Reduction, setPm25Reduction] = useState(0);
   const [no2Reduction, setNo2Reduction] = useState(0);
   const [o3Reduction, setO3Reduction] = useState(0);
@@ -142,7 +159,7 @@ export default function ScenarioSimulator({ current }) {
         current.pm10,
         Math.round(reducedNo2),
         Math.round(reducedO3),
-        current.carbon_monoxide
+        current.carbon_monoxide,
       )
     : current.us_aqi;
 
@@ -160,7 +177,8 @@ export default function ScenarioSimulator({ current }) {
     const rNo2 = data.nitrogen_dioxide * (1 - no2Reduction / 100);
     const rO3 = data.ozone * (1 - o3Reduction / 100);
 
-    const cityHasReduction = pm25Reduction > 0 || no2Reduction > 0 || o3Reduction > 0;
+    const cityHasReduction =
+      pm25Reduction > 0 || no2Reduction > 0 || o3Reduction > 0;
 
     const simAqi = cityHasReduction
       ? estimateAQI(
@@ -168,7 +186,7 @@ export default function ScenarioSimulator({ current }) {
           data.pm10,
           Math.round(rNo2),
           Math.round(rO3),
-          data.carbon_monoxide
+          data.carbon_monoxide,
         )
       : data.us_aqi;
 
@@ -190,42 +208,65 @@ export default function ScenarioSimulator({ current }) {
     <section className="panel scenario-simulator" aria-labelledby="sim-heading">
       {/* ── Header ── */}
       <div className="panel-head">
-        <h2 id="sim-heading"><FlaskConical className="inline-icon" size={22} aria-hidden="true" /> Scenario Simulator</h2>
+        <h2 id="sim-heading">
+          <FlaskConical className="inline-icon" size={22} aria-hidden="true" />{" "}
+          Scenario Simulator
+        </h2>
         <p>
-          Adjust sliders or pick a preset to see how interventions could improve AQI across cities.
+          Adjust sliders or pick a preset to see how interventions could improve
+          AQI across cities.
         </p>
       </div>
 
       {/* ── Preset Scenario Cards ── */}
-      <div className="sim-presets" role="group" aria-label="Intervention presets">
+      <div
+        className="sim-presets"
+        role="group"
+        aria-label="Intervention presets"
+      >
         {PRESETS.map((preset) => (
           <button
             key={preset.id}
             type="button"
-            className={`sim-preset-card${activePreset === preset.id ? ' active' : ''}`}
+            className={`sim-preset-card${activePreset === preset.id ? " active" : ""}`}
             onClick={() => applyPreset(preset)}
             aria-pressed={activePreset === preset.id}
           >
-            <span className="sim-preset-icon"><preset.icon size={26} aria-hidden="true" /></span>
+            <span className="sim-preset-icon">
+              <preset.icon size={26} aria-hidden="true" />
+            </span>
             <span className="sim-preset-label">{preset.label}</span>
             <span className="sim-preset-desc">{preset.description}</span>
             <span className="sim-preset-tags">
-              {preset.pm25 > 0 && <span className="sim-tag">PM2.5 −{preset.pm25}%</span>}
-              {preset.no2 > 0 && <span className="sim-tag">NO₂ −{preset.no2}%</span>}
-              {preset.o3 > 0 && <span className="sim-tag">O₃ −{preset.o3}%</span>}
+              {preset.pm25 > 0 && (
+                <span className="sim-tag">PM2.5 −{preset.pm25}%</span>
+              )}
+              {preset.no2 > 0 && (
+                <span className="sim-tag">NO₂ −{preset.no2}%</span>
+              )}
+              {preset.o3 > 0 && (
+                <span className="sim-tag">O₃ −{preset.o3}%</span>
+              )}
             </span>
           </button>
         ))}
       </div>
 
       {/* ── Sliders ── */}
-      <div className="sim-sliders" role="group" aria-label="Pollutant reduction sliders">
+      <div
+        className="sim-sliders"
+        role="group"
+        aria-label="Pollutant reduction sliders"
+      >
         <SliderGroup
           id="slider-pm25"
           label="Reduce PM2.5"
           icon={CloudFog}
           value={pm25Reduction}
-          onChange={(v) => { setActivePreset(null); setPm25Reduction(v); }}
+          onChange={(v) => {
+            setActivePreset(null);
+            setPm25Reduction(v);
+          }}
           current={current.pm2_5}
           unit="µg/m³"
         />
@@ -234,7 +275,10 @@ export default function ScenarioSimulator({ current }) {
           label="Reduce NO₂"
           icon={TrafficCone}
           value={no2Reduction}
-          onChange={(v) => { setActivePreset(null); setNo2Reduction(v); }}
+          onChange={(v) => {
+            setActivePreset(null);
+            setNo2Reduction(v);
+          }}
           current={current.nitrogen_dioxide}
           unit="µg/m³"
         />
@@ -243,14 +287,21 @@ export default function ScenarioSimulator({ current }) {
           label="Reduce Ozone"
           icon={Sun}
           value={o3Reduction}
-          onChange={(v) => { setActivePreset(null); setO3Reduction(v); }}
+          onChange={(v) => {
+            setActivePreset(null);
+            setO3Reduction(v);
+          }}
           current={current.ozone}
           unit="µg/m³"
         />
       </div>
 
       {/* ── Active-city AQI comparison ── */}
-      <div className="sim-comparison" role="region" aria-label="Active city AQI comparison">
+      <div
+        className="sim-comparison"
+        role="region"
+        aria-label="Active city AQI comparison"
+      >
         <div className="sim-side sim-current">
           <span className="sim-label">Current AQI</span>
           <span className="sim-value" style={{ color: currentBand.color }}>
@@ -267,7 +318,9 @@ export default function ScenarioSimulator({ current }) {
             <span className="sim-improvement-badge">−{improvement}%</span>
           )}
           {improvement < 0 && (
-            <span className="sim-worsened-badge">+{Math.abs(improvement)}%</span>
+            <span className="sim-worsened-badge">
+              +{Math.abs(improvement)}%
+            </span>
           )}
         </div>
 
@@ -285,12 +338,16 @@ export default function ScenarioSimulator({ current }) {
       {/* ── Multi-city selector ── */}
       <div className="sim-city-section">
         <p className="sim-section-label">Compare with other cities:</p>
-        <div className="sim-city-selector" role="group" aria-label="City comparison selector">
+        <div
+          className="sim-city-selector"
+          role="group"
+          aria-label="City comparison selector"
+        >
           {CITY_COORDINATES.map((city) => (
             <button
               key={city.name}
               type="button"
-              className={`sim-city-chip${selectedCities.includes(city.name) ? ' active' : ''}`}
+              className={`sim-city-chip${selectedCities.includes(city.name) ? " active" : ""}`}
               onClick={() => toggleCity(city.name)}
               aria-pressed={selectedCities.includes(city.name)}
             >
@@ -305,11 +362,18 @@ export default function ScenarioSimulator({ current }) {
 
       {/* ── City comparison result grid ── */}
       {selectedCities.length > 0 && (
-        <div className="sim-city-results" role="region" aria-label="City simulation results">
+        <div
+          className="sim-city-results"
+          role="region"
+          aria-label="City simulation results"
+        >
           {selectedCities.map((cityName) => {
             if (cityLoadingSet.has(cityName)) {
               return (
-                <div key={cityName} className="sim-city-result-card sim-loading-card">
+                <div
+                  key={cityName}
+                  className="sim-city-result-card sim-loading-card"
+                >
                   <span className="sim-loading-spinner" aria-hidden="true" />
                   <span>Loading {cityName}…</span>
                 </div>
@@ -318,8 +382,18 @@ export default function ScenarioSimulator({ current }) {
 
             if (cityErrorSet.has(cityName)) {
               return (
-                <div key={cityName} className="sim-city-result-card sim-error-card">
-                  <span><AlertTriangle className="inline-icon" size={16} aria-hidden="true" /> Could not fetch {cityName} data.</span>
+                <div
+                  key={cityName}
+                  className="sim-city-result-card sim-error-card"
+                >
+                  <span>
+                    <AlertTriangle
+                      className="inline-icon"
+                      size={16}
+                      aria-hidden="true"
+                    />{" "}
+                    Could not fetch {cityName} data.
+                  </span>
                 </div>
               );
             }
@@ -327,7 +401,14 @@ export default function ScenarioSimulator({ current }) {
             const data = cityData[cityName];
             if (!data) return null;
 
-            const { simAqi, simBand, improvement: imp, rPm25, rNo2, rO3 } = simulateCity(data);
+            const {
+              simAqi,
+              simBand,
+              improvement: imp,
+              rPm25,
+              rNo2,
+              rO3,
+            } = simulateCity(data);
             const origBand = getAQIBand(data.us_aqi);
 
             return (
@@ -338,34 +419,55 @@ export default function ScenarioSimulator({ current }) {
                     <span className="sim-improvement">−{imp}% better</span>
                   )}
                   {imp < 0 && (
-                    <span className="sim-worsened">+{Math.abs(imp)}% worse</span>
+                    <span className="sim-worsened">
+                      +{Math.abs(imp)}% worse
+                    </span>
                   )}
-                  {imp === 0 && <span className="sim-no-change">No change</span>}
+                  {imp === 0 && (
+                    <span className="sim-no-change">No change</span>
+                  )}
                 </div>
 
                 <div className="sim-city-aqi-row">
                   <div className="sim-mini-aqi">
                     <span className="sim-mini-label">Now</span>
-                    <span className="sim-mini-value" style={{ color: origBand.color }}>
+                    <span
+                      className="sim-mini-value"
+                      style={{ color: origBand.color }}
+                    >
                       {data.us_aqi}
                     </span>
-                    <span className="sim-mini-band" style={{ color: origBand.color }}>
+                    <span
+                      className="sim-mini-band"
+                      style={{ color: origBand.color }}
+                    >
                       {origBand.label}
                     </span>
                   </div>
-                  <span className="sim-mini-arrow" aria-hidden="true">→</span>
+                  <span className="sim-mini-arrow" aria-hidden="true">
+                    →
+                  </span>
                   <div className="sim-mini-aqi">
                     <span className="sim-mini-label">Simulated</span>
-                    <span className="sim-mini-value" style={{ color: simBand.color }}>
+                    <span
+                      className="sim-mini-value"
+                      style={{ color: simBand.color }}
+                    >
                       {simAqi}
                     </span>
-                    <span className="sim-mini-band" style={{ color: simBand.color }}>
+                    <span
+                      className="sim-mini-band"
+                      style={{ color: simBand.color }}
+                    >
                       {simBand.label}
                     </span>
                   </div>
                 </div>
 
-                <table className="sim-pollutant-table" aria-label={`Pollutant before/after for ${cityName}`}>
+                <table
+                  className="sim-pollutant-table"
+                  aria-label={`Pollutant before/after for ${cityName}`}
+                >
                   <thead>
                     <tr>
                       <th>Pollutant</th>
@@ -375,9 +477,24 @@ export default function ScenarioSimulator({ current }) {
                     </tr>
                   </thead>
                   <tbody>
-                    <PollutantRow label="PM2.5" before={data.pm2_5} after={rPm25} unit="µg/m³" />
-                    <PollutantRow label="NO₂" before={data.nitrogen_dioxide} after={rNo2} unit="µg/m³" />
-                    <PollutantRow label="Ozone" before={data.ozone} after={rO3} unit="µg/m³" />
+                    <PollutantRow
+                      label="PM2.5"
+                      before={data.pm2_5}
+                      after={rPm25}
+                      unit="µg/m³"
+                    />
+                    <PollutantRow
+                      label="NO₂"
+                      before={data.nitrogen_dioxide}
+                      after={rNo2}
+                      unit="µg/m³"
+                    />
+                    <PollutantRow
+                      label="Ozone"
+                      before={data.ozone}
+                      after={rO3}
+                      unit="µg/m³"
+                    />
                   </tbody>
                 </table>
               </div>
@@ -391,12 +508,22 @@ export default function ScenarioSimulator({ current }) {
 
 /* ─── Sub-components ──────────────────────────────────────────────────────── */
 
-function SliderGroup({ id, label, icon: Icon, value, onChange, current, unit }) {
+function SliderGroup({
+  id,
+  label,
+  icon: Icon,
+  value,
+  onChange,
+  current,
+  unit,
+}) {
   const reduced = Math.round(current * (1 - value / 100));
   return (
     <div className="sim-slider-group">
       <label htmlFor={id}>
-        <span className="sim-slider-emoji" aria-hidden="true"><Icon size={18} /></span>
+        <span className="sim-slider-emoji" aria-hidden="true">
+          <Icon size={18} />
+        </span>
         {label}
         <span className="sim-slider-value">{value}%</span>
       </label>
@@ -411,8 +538,12 @@ function SliderGroup({ id, label, icon: Icon, value, onChange, current, unit }) 
         aria-label={`${label} reduction percentage`}
       />
       <div className="sim-slider-range">
-        <span>Current: {current} {unit}</span>
-        <span>Target: {reduced} {unit}</span>
+        <span>
+          Current: {current} {unit}
+        </span>
+        <span>
+          Target: {reduced} {unit}
+        </span>
       </div>
     </div>
   );
@@ -423,9 +554,13 @@ function PollutantRow({ label, before, after, unit }) {
   return (
     <tr className="sim-pollutant-row">
       <td>{label}</td>
-      <td>{before} <small>{unit}</small></td>
-      <td className="sim-table-arrow" aria-hidden="true">→</td>
-      <td className={improved ? 'sim-val-better' : 'sim-val-same'}>
+      <td>
+        {before} <small>{unit}</small>
+      </td>
+      <td className="sim-table-arrow" aria-hidden="true">
+        →
+      </td>
+      <td className={improved ? "sim-val-better" : "sim-val-same"}>
         {after} <small>{unit}</small>
       </td>
     </tr>

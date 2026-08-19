@@ -36,9 +36,9 @@
 
   --accent-fill: #ffdec7;
   --sky-fill: #e0f2fe;
-  --sky-text:  #0284c7;
+  --sky-text: #0284c7;
   --danger-fill: #ffcccc;
-  --danger-text:  #dc2626;
+  --danger-text: #dc2626;
 }
 
 :root[data-theme="dark"] {
@@ -340,12 +340,12 @@ a {
   padding: 0;
   margin-left: 0;
   overflow: hidden;
-  transition: .35s;
+  transition: 0.35s;
   background: linear-gradient(180deg, #edf3ff, #dfe8f8);
   box-shadow:
-    inset 0 2px 6px rgba(255, 255, 255, .8),
-    inset 0 -2px 5px rgba(0, 0, 0, .08),
-    0 4px 12px rgba(0, 0, 0, .18);
+    inset 0 2px 6px rgba(255, 255, 255, 0.8),
+    inset 0 -2px 5px rgba(0, 0, 0, 0.08),
+    0 4px 12px rgba(0, 0, 0, 0.18);
 }
 
 .nav-divider {
@@ -355,7 +355,7 @@ a {
   margin: 0 1.75rem;
 }
 
-:root[data-theme='dark'] .nav-divider {
+:root[data-theme="dark"] .nav-divider {
   background: rgba(255, 255, 255, 0.2);
 }
 
@@ -374,8 +374,8 @@ a {
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: .35s;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, .25);
+  transition: 0.35s;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.25);
 }
 
 .theme-toggle-inline.dark .toggle-thumb {
@@ -385,7 +385,7 @@ a {
 .sun-icon {
   width: 22px;
   height: 22px;
-  color: #FFC107;
+  color: #ffc107;
 }
 
 .moon-icon {
@@ -520,7 +520,6 @@ a {
   margin: 0 auto var(--sp-6);
   display: grid;
   gap: var(--sp-5);
-
 }
 
 .panel {
@@ -548,7 +547,7 @@ a {
   margin-top: var(--sp-2);
   font-size: 0.94rem;
 }
-.icon-container{
+.icon-container {
   width: 40px;
   height: 40px;
   border-radius: var(--r-sm);
@@ -559,8 +558,16 @@ a {
   border: 1px solid var(--line);
 }
 
-.icon-container.lungs{ background: var(--accent-fill); color: var(--accent); border-color: var(--accent); }
-.icon-container.heart{ background: var(--danger-fill); color: var(--danger); border-color: var(--danger); }
+.icon-container.lungs {
+  background: var(--accent-fill);
+  color: var(--accent);
+  border-color: var(--accent);
+}
+.icon-container.heart {
+  background: var(--danger-fill);
+  color: var(--danger);
+  border-color: var(--danger);
+}
 .icon-container.skin {
   background: var(--sky-fill);
   color: var(--sky);
@@ -943,7 +950,7 @@ a {
 }
 
 .advisory-card h3 {
-  font-family: 'Fraunces', serif;
+  font-family: "Fraunces", serif;
   font-weight: 500;
   font-size: 17px;
   margin-top: 10px;
@@ -1069,11 +1076,21 @@ a {
     transform 220ms var(--ease),
     box-shadow 220ms var(--ease);
 }
-.report-card:nth-of-type(2) { animation-delay: 60ms; }
-.report-card:nth-of-type(3) { animation-delay: 120ms; }
-.report-card:nth-of-type(4) { animation-delay: 180ms; }
-.report-card:nth-of-type(5) { animation-delay: 240ms; }
-.report-card:nth-of-type(n+6) { animation-delay: 300ms; }
+.report-card:nth-of-type(2) {
+  animation-delay: 60ms;
+}
+.report-card:nth-of-type(3) {
+  animation-delay: 120ms;
+}
+.report-card:nth-of-type(4) {
+  animation-delay: 180ms;
+}
+.report-card:nth-of-type(5) {
+  animation-delay: 240ms;
+}
+.report-card:nth-of-type(n + 6) {
+  animation-delay: 300ms;
+}
 
 .report-head {
   display: flex;
@@ -1307,24 +1324,24 @@ a {
 ========================================== */
 
 .selected-file-container {
-    display: flex;
-    align-items: center;
-    gap: 12px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 .image-preview {
   width: 80px;
-    height: 80px;
+  height: 80px;
 
-    object-fit: cover;
+  object-fit: cover;
 
-    border-radius: 8px;
+  border-radius: 8px;
 
-    border: 2px solid #dbeafe;
+  border: 2px solid #dbeafe;
 
-    box-shadow: 0 2px 8px rgba(0,0,0,.1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 
-    flex-shrink: 0;
+  flex-shrink: 0;
 }
 
 .file-upload-container {
@@ -1351,13 +1368,13 @@ a {
   border-radius: 10px;
 
   background: white;
-    color: #0891b2;
-    border: 2px solid #0891b2;
+  color: #0891b2;
+  border: 2px solid #0891b2;
 }
 
 .file-upload-button:hover {
-    background: #0891b2;
-    color: white;
+  background: #0891b2;
+  color: white;
 }
 
 /* Active Click */
@@ -1373,10 +1390,10 @@ a {
 
 /* Selected File Name */
 .selected-file-name {
-    color: #6b7280;
-    font-size: 14px;
-    font-weight: 500;
-    word-break: break-word;
+  color: #6b7280;
+  font-size: 14px;
+  font-weight: 500;
+  word-break: break-word;
 }
 
 /* Upload Error */
@@ -1404,8 +1421,6 @@ a {
     white-space: normal;
   }
 }
-
-
 
 /* ============================================================
    Quiz
@@ -1682,7 +1697,7 @@ a {
 .report-card:hover,
 .advisory-card:hover,
 .analytics-kpis article:hover,
-.quiz-selector:hover{
+.quiz-selector:hover {
   transform: translateY(-3px);
   box-shadow: var(--shadow-md);
 }
@@ -2019,7 +2034,7 @@ a {
   font-size: 1.25rem;
   color: var(--brand);
   margin-bottom: 0.8rem;
-  font-family: 'Space Grotesk', sans-serif;
+  font-family: "Space Grotesk", sans-serif;
   font-weight: 700;
   letter-spacing: -0.02em;
 }
@@ -2039,7 +2054,7 @@ a {
 
 .footer-links h4 {
   margin: 0 0 1rem;
-  font-family: 'Space Grotesk', sans-serif;
+  font-family: "Space Grotesk", sans-serif;
   font-size: 0.9rem;
   text-transform: capitalize;
   font-weight: 600;
@@ -2075,7 +2090,7 @@ a {
 }
 
 .footer-links a::after {
-  content: '';
+  content: "";
   position: absolute;
   width: 100%;
   transform: scaleX(0);
@@ -2572,7 +2587,10 @@ a {
   flex-direction: column;
   gap: var(--sp-3);
   box-shadow: var(--shadow-sm);
-  transition: transform 220ms var(--ease), box-shadow 220ms var(--ease), border-color 220ms var(--ease);
+  transition:
+    transform 220ms var(--ease),
+    box-shadow 220ms var(--ease),
+    border-color 220ms var(--ease);
 }
 
 .tip-action-card:hover {
@@ -2680,14 +2698,16 @@ a {
   height: 14px;
   border-radius: 2px;
   background-color: var(--line);
-  transition: transform 180ms ease, opacity 180ms ease;
+  transition:
+    transform 180ms ease,
+    opacity 180ms ease;
   opacity: 0.9;
 }
 
 .calendar-day:hover:not(.empty) {
   transform: scale(1.2);
   opacity: 1;
-  box-shadow: 0 0 10px rgba(0,0,0,0.1);
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
   z-index: 10;
 }
 
@@ -2855,7 +2875,7 @@ a {
 .intro-card-primary h3,
 .rules-card h3,
 .results-debriefing h3 {
-  font-family: 'Fraunces', serif;
+  font-family: "Fraunces", serif;
   font-size: 1.4rem;
   color: var(--brand);
 }
@@ -2889,12 +2909,20 @@ a {
 
 .mission-select-card.active {
   border-color: var(--brand);
-  background: linear-gradient(140deg, rgba(13, 148, 136, 0.08), rgba(2, 132, 199, 0.04));
+  background: linear-gradient(
+    140deg,
+    rgba(13, 148, 136, 0.08),
+    rgba(2, 132, 199, 0.04)
+  );
   box-shadow: 0 0 0 2px var(--brand);
 }
 
-:root[data-theme='dark'] .mission-select-card.active {
-  background: linear-gradient(140deg, rgba(34, 211, 238, 0.12), rgba(56, 189, 248, 0.06));
+:root[data-theme="dark"] .mission-select-card.active {
+  background: linear-gradient(
+    140deg,
+    rgba(34, 211, 238, 0.12),
+    rgba(56, 189, 248, 0.06)
+  );
 }
 
 .mission-icon-lg {
@@ -3096,7 +3124,7 @@ a {
   justify-content: center;
   gap: 0.25rem;
   text-align: center;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.02);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.02);
 }
 
 .hud-label {
@@ -3123,8 +3151,12 @@ a {
 }
 
 @keyframes pulse-red {
-  from { text-shadow: 0 0 2px rgba(185, 28, 28, 0.1); }
-  to { text-shadow: 0 0 10px rgba(185, 28, 28, 0.5); }
+  from {
+    text-shadow: 0 0 2px rgba(185, 28, 28, 0.1);
+  }
+  to {
+    text-shadow: 0 0 10px rgba(185, 28, 28, 0.5);
+  }
 }
 
 .success-text {
@@ -3174,7 +3206,7 @@ a {
   font-size: 0.82rem;
   font-weight: 700;
   color: white;
-  text-shadow: 0 1px 3px rgba(0,0,0,0.6);
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
 }
 
 .game-notice-banner {
@@ -3210,7 +3242,7 @@ a {
 
 .actions-section h3,
 .dashboard-section h3 {
-  font-family: 'Fraunces', serif;
+  font-family: "Fraunces", serif;
   font-size: 1.2rem;
   color: var(--ink);
 }
@@ -3251,12 +3283,20 @@ a {
 
 .policy-card.deployed {
   border-color: var(--brand);
-  background: linear-gradient(140deg, rgba(13, 148, 136, 0.05), rgba(2, 132, 199, 0.02));
+  background: linear-gradient(
+    140deg,
+    rgba(13, 148, 136, 0.05),
+    rgba(2, 132, 199, 0.02)
+  );
   box-shadow: 0 0 0 2px var(--brand);
 }
 
-:root[data-theme='dark'] .policy-card.deployed {
-  background: linear-gradient(140deg, rgba(34, 211, 238, 0.08), rgba(56, 189, 248, 0.04));
+:root[data-theme="dark"] .policy-card.deployed {
+  background: linear-gradient(
+    140deg,
+    rgba(34, 211, 238, 0.08),
+    rgba(56, 189, 248, 0.04)
+  );
 }
 
 .policy-card:disabled {
@@ -3326,7 +3366,7 @@ a {
   border: 1px solid var(--line);
   padding: 1.25rem;
   border-radius: 14px;
-  box-shadow: 0 4px 10px rgba(0,0,0,0.02);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.02);
 }
 
 .sim-aqi-card {
@@ -3347,7 +3387,7 @@ a {
 .aqi-val {
   font-size: 2.2rem;
   font-weight: 800;
-  font-family: 'Fraunces', serif;
+  font-family: "Fraunces", serif;
   line-height: 1.2;
 }
 
@@ -3377,10 +3417,7 @@ a {
   margin-top: -0.2rem;
 }
 
-   Hotspot Scout Game
-=========================== */
-
- .hotspot-game {
+Hotspot Scout Game =========================== */ .hotspot-game {
   background: var(--card);
   border: 1px solid var(--line);
   border-radius: var(--r-md);
@@ -3392,7 +3429,7 @@ a {
   display: grid;
   gap: 12px;
   margin-top: 16px;
-} 
+}
 
 .hotspot-option {
   padding: 12px;
@@ -3516,14 +3553,14 @@ a {
 
 .results-banner h2 {
   font-size: 2.2rem;
-  font-family: 'Fraunces', serif;
+  font-family: "Fraunces", serif;
 }
 
 .results-subheading {
   font-size: 1.05rem;
   line-height: 1.5;
   max-width: 600px;
-  color: rgba(255,255,255,0.9);
+  color: rgba(255, 255, 255, 0.9);
 }
 
 .results-comparison-grid {
@@ -3534,7 +3571,7 @@ a {
   border: 1px solid var(--line);
   padding: 1.5rem;
   border-radius: 16px;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.03);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.03);
 }
 
 .results-card-metric {
@@ -3554,7 +3591,7 @@ a {
 .results-value {
   font-size: 2.8rem;
   font-weight: 800;
-  font-family: 'Fraunces', serif;
+  font-family: "Fraunces", serif;
   line-height: 1.1;
 }
 

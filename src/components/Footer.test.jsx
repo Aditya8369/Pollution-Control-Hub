@@ -11,21 +11,21 @@ describe("Footer", () => {
 
     // Check navigation links
     expect(
-      screen.getByRole("link", { name: /GitHub Repository/i })
+      screen.getByRole("link", { name: /GitHub Repository/i }),
     ).toBeInTheDocument();
 
     expect(
-      screen.getByRole("link", { name: /Report an Issue/i })
+      screen.getByRole("link", { name: /Report an Issue/i }),
     ).toBeInTheDocument();
 
     expect(
-      screen.getByRole("link", { name: /Contributing Guide/i })
+      screen.getByRole("link", { name: /Contributing Guide/i }),
     ).toBeInTheDocument();
 
     // Check dynamic copyright year
     const year = new Date().getFullYear();
     expect(
-      screen.getByText(new RegExp(`©\\s*${year}\\s*Pollution Control Hub\\.`))
+      screen.getByText(new RegExp(`©\\s*${year}\\s*Pollution Control Hub\\.`)),
     ).toBeInTheDocument();
   });
 });

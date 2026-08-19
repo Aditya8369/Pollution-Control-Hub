@@ -3,7 +3,5 @@ export function shuffleArray(arr) {
 }
 
 export function getHighestAQI(points) {
-  return points.reduce((max, point) =>
-    point.aqi > max.aqi ? point : max
-  );
+  return points.reduce((max, point) => (point.aqi > max.aqi ? point : max));
 }

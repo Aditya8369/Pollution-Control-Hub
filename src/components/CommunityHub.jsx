@@ -18,13 +18,13 @@ function compressImage(dataUrl, maxWidth = 800, quality = 0.7) {
   return new Promise((resolve) => {
     const img = new Image();
     img.onload = () => {
-      const canvas = document.createElement('canvas');
+      const canvas = document.createElement("canvas");
       const scale = Math.min(maxWidth / img.width, 1);
       canvas.width = img.width * scale;
       canvas.height = img.height * scale;
-      const ctx = canvas.getContext('2d');
+      const ctx = canvas.getContext("2d");
       ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-      resolve(canvas.toDataURL('image/jpeg', quality));
+      resolve(canvas.toDataURL("image/jpeg", quality));
     };
     img.src = dataUrl;
   });
@@ -51,14 +51,14 @@ function readVotedIds() {
 export default function CommunityHub() {
   const [reports, setReports] = useState(() => readReports());
   const [votedIds, setVotedIds] = useState(() => readVotedIds());
-  const [filter, setFilter] = useState('All');
+  const [filter, setFilter] = useState("All");
   const [form, setForm] = useState({
     title: "",
     description: "",
     image: "",
   });
-  const [fileInputKey, setFileInputKey] = useState(Date.now());
-  const [uploadError, setUploadError] = useState('');
+  const [fileInputKey, setFileInputKey] = useState(() => crypto.randomUUID());
+  const [uploadError, setUploadError] = useState("");
   const [selectedFileName, setSelectedFileName] = useState("No file chosen");
   const [previewImage, setPreviewImage] = useState("");
 
@@ -69,20 +69,16 @@ export default function CommunityHub() {
 
       if (estimatedSize > STORAGE_WARN_THRESHOLD) {
         console.warn(
-          `Community reports using ${(estimatedSize / 1024 / 1024).toFixed(1)} MB of localStorage`
+          `Community reports using ${(estimatedSize / 1024 / 1024).toFixed(1)} MB of localStorage`,
         );
       }
 
       localStorage.setItem(STORAGE_KEY, serialized);
     } catch (e) {
-      if (e.name === 'QuotaExceededError' || e.code === 22) {
-        console.error('localStorage quota exceeded. Pruning oldest reports...');
-        // Remove oldest/lowest-vote reports until write succeeds
-        const sorted = [...reports].sort((a, b) => {
-          if (a.votes !== b.votes) return a.votes - b.votes;
-          return new Date(a.createdAt) - new Date(b.createdAt);
-        });
-
+      if (e.name === "QuotaExceededError" || e.code === 22) {
+        console.error(
+          "localStorage quota exceeded. Pruning oldest reports...",
+        );
         let pruned = [...reports];
         while (pruned.length > 0) {
           try {
@@ -90,12 +86,14 @@ export default function CommunityHub() {
             setReports(pruned);
             break;
           } catch {
-            pruned.shift(); // remove lowest-value report
+            pruned.shift();
           }
         }
 
         if (pruned.length === 0) {
-          console.error('All community reports pruned — localStorage quota still exceeded.');
+          console.error(
+            "All community reports pruned — localStorage quota still exceeded.",
+          );
         }
       } else {
         throw e;
@@ -107,9 +105,18 @@ export default function CommunityHub() {
     try {
       localStorage.setItem(VOTES_STORAGE_KEY, JSON.stringify([...votedIds]));
     } catch (e) {
-      console.error('Failed to persist community votes to localStorage:', e);
+      console.error("Failed to persist community votes to localStorage:", e);
     }
   }, [votedIds]);
+
+  const resetFileInput = () => {
+    setSelectedFileName("No file chosen");
+    if (previewImage) {
+      URL.revokeObjectURL(previewImage);
+      setPreviewImage("");
+    }
+    setFileInputKey(crypto.randomUUID());
+  };
 
   const onSubmit = (event) => {
     event.preventDefault();
@@ -134,37 +141,37 @@ export default function CommunityHub() {
       image: "",
     });
 
-    setSelectedFileName("No file chosen");
-    setPreviewImage("");
-    setFileInputKey(Date.now());
+    resetFileInput();
   };
 
   const uploadImage = async (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+    const allowedTypes = ["image/jpeg", "image/png", "image/webp"];
     if (!allowedTypes.includes(file.type)) {
-      setUploadError('Invalid file format. Please select a JPEG, PNG, or WebP image.');
-      event.target.value = '';
-      setSelectedFileName("No file chosen");
-      setPreviewImage("");
-      setFileInputKey(Date.now());
+      setUploadError(
+        "Invalid file format. Please select a JPEG, PNG, or WebP image.",
+      );
+      event.target.value = "";
+      resetFileInput();
       return;
+    }
+
+    if (previewImage) {
+      URL.revokeObjectURL(previewImage);
     }
 
     setSelectedFileName(file.name);
     setPreviewImage(URL.createObjectURL(file));
-    setUploadError('');
+    setUploadError("");
 
     if (file.size > MAX_IMAGE_SIZE_BYTES) {
       setUploadError(
-        `Image too large (${(file.size / 1024 / 1024).toFixed(1)} MB). Maximum is 500 KB.`
+        `Image too large (${(file.size / 1024 / 1024).toFixed(1)} MB). Maximum is 500 KB.`,
       );
-      event.target.value = '';
-      setSelectedFileName("No file chosen");
-      setPreviewImage("");
-      setFileInputKey(Date.now());
+      event.target.value = "";
+      resetFileInput();
       return;
     }
 
@@ -174,11 +181,11 @@ export default function CommunityHub() {
         const compressed = await compressImage(String(reader.result));
         setForm((prev) => ({ ...prev, image: compressed }));
       } catch {
-        setUploadError('Failed to process image. Please try again.');
+        setUploadError("Failed to process image. Please try again.");
       }
     };
     reader.onerror = () => {
-      setUploadError('Failed to read image file. Please try again.');
+      setUploadError("Failed to read image file. Please try again.");
     };
     reader.readAsDataURL(file);
   };
@@ -192,7 +199,9 @@ export default function CommunityHub() {
 
         const nextVotes = report.votes + 1;
         const createdDate = new Date(report.createdAt);
-        const ageInDays = (new Date() - createdDate) / (1000 * 60 * 60 * 24);
+        const ageInDays =
+          (new Date().getTime() - createdDate.getTime()) /
+          (1000 * 60 * 60 * 24);
 
         let updatedStatus = report.status;
         let verifiedAtTimestamp = report.verifiedAt;
@@ -228,7 +237,7 @@ export default function CommunityHub() {
         if (!report.status.startsWith("Verified")) return report;
 
         return { ...report, status: "Addressed" };
-      })
+      }),
     );
   };
 
@@ -287,17 +296,11 @@ export default function CommunityHub() {
               />
             )}
 
-            <span className="selected-file-name">
-              {selectedFileName}
-            </span>
+            <span className="selected-file-name">{selectedFileName}</span>
           </div>
         </div>
 
-        {uploadError && (
-          <p className="upload-error">
-            {uploadError}
-          </p>
-        )}
+        {uploadError && <p className="upload-error">{uploadError}</p>}
         <button type="submit">Submit Report</button>
       </form>
 
@@ -318,8 +321,19 @@ export default function CommunityHub() {
         {reports.length === 0 ? (
           <div className="empty-state">
             <div className="empty-state__icon" aria-hidden="true">
-              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5">
-                <path d="M12 9v4m0 4h.01M4.93 4.93a10 10 0 1 0 14.14 14.14A10 10 0 0 0 4.93 4.93Z" strokeLinecap="round" strokeLinejoin="round" />
+              <svg
+                width="48"
+                height="48"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+              >
+                <path
+                  d="M12 9v4m0 4h.01M4.93 4.93a10 10 0 1 0 14.14 14.14A10 10 0 0 0 4.93 4.93Z"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
               </svg>
             </div>
             <p className="empty-state__title">No reports yet</p>
@@ -340,7 +354,7 @@ export default function CommunityHub() {
           </div>
         ) : filteredReports.length === 0 ? (
           <p className="empty-filter-message">
-            No reports match the "{filter}" filter.
+            No reports match the &quot;{filter}&quot; filter.
           </p>
         ) : (
           filteredReports.map((report) => (
@@ -352,12 +366,20 @@ export default function CommunityHub() {
                 </div>
                 <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
                   {report.status.startsWith("Verified") && (
-                    <button type="button" onClick={() => markAddressed(report.id)}>
+                    <button
+                      type="button"
+                      onClick={() => markAddressed(report.id)}
+                    >
                       Mark addressed
                     </button>
                   )}
-                  <button onClick={() => vote(report.id)} type="button" disabled={votedIds.has(report.id)}>
-                    {votedIds.has(report.id) ? 'Voted' : 'Upvote'} ({report.votes})
+                  <button
+                    onClick={() => vote(report.id)}
+                    type="button"
+                    disabled={votedIds.has(report.id)}
+                  >
+                    {votedIds.has(report.id) ? "Voted" : "Upvote"} (
+                    {report.votes})
                   </button>
                 </div>
               </div>
@@ -369,7 +391,7 @@ export default function CommunityHub() {
                 <span
                   className={
                     report.status.startsWith("Verified") ||
-                      report.status === "Addressed"
+                    report.status === "Addressed"
                       ? "active"
                       : "inactive"
                   }
