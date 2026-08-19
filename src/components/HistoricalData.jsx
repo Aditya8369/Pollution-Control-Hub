@@ -1,9 +1,10 @@
-import { useState, useMemo, useCallback } from "react";
+import { useState, useMemo, useCallback, useRef } from "react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { fetchHistoricalRange } from "../services/airQualityService";
 import { formatHistoricalCSV } from "../services/historicalDataService";
+import { exportToSVG, exportToPNG } from "../utils/chartExport";
 
 // Use the local calendar date, not toISOString() (which converts to UTC and,
 // in UTC+ timezones like IST, rolls the date forward by a day in the evening).
@@ -21,6 +22,7 @@ export default function HistoricalData({ position }) {
     const [rawData, setRawData] = useState(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
+    const chartContainerRef = useRef(null);
 
     const fetchData = useCallback(async () => {
         if (!position?.lat || !position?.lon) return;
@@ -105,6 +107,18 @@ export default function HistoricalData({ position }) {
         URL.revokeObjectURL(url);
     };
 
+    const handleDownloadSVG = () => {
+        if (!chartContainerRef.current) return;
+        const cityName = position?.cityName ? position.cityName.replace(/[^a-z0-9]/gi, "_").toLowerCase() : "historical";
+        exportToSVG(chartContainerRef.current, `${cityName}_historical_chart_${toISODate(startDate)}_to_${toISODate(endDate)}.svg`);
+    };
+
+    const handleDownloadPNG = () => {
+        if (!chartContainerRef.current) return;
+        const cityName = position?.cityName ? position.cityName.replace(/[^a-z0-9]/gi, "_").toLowerCase() : "historical";
+        exportToPNG(chartContainerRef.current, `${cityName}_historical_chart_${toISODate(startDate)}_to_${toISODate(endDate)}.png`, 2);
+    };
+
     return (
         <div className="historical-data-explorer content-card" style={{ padding: "2.5rem" }}>
             <h2 style={{ marginTop: 0 }}>Historical Data Explorer</h2>
@@ -153,33 +167,51 @@ export default function HistoricalData({ position }) {
                 >
                     Download CSV
                 </button>
+                <button
+                    type="button"
+                    className="btn-secondary"
+                    onClick={handleDownloadSVG}
+                    disabled={dailyData.length === 0}
+                >
+                    Download SVG
+                </button>
+                <button
+                    type="button"
+                    className="btn-secondary"
+                    onClick={handleDownloadPNG}
+                    disabled={dailyData.length === 0}
+                >
+                    Download PNG
+                </button>
             </div>
 
             {error && <p style={{ color: "var(--danger)" }}>{error}</p>}
 
             {chartData.length > 0 && (
-                <ResponsiveContainer width="100%" height={360}>
-                    <LineChart data={chartData}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="var(--line)" />
-                        <XAxis dataKey="date" tick={{ fontSize: 11, fill: "var(--muted)" }} minTickGap={30} />
-                        <YAxis tick={{ fontSize: 11, fill: "var(--muted)" }} />
-                        <Tooltip
-                            contentStyle={{
-                                background: "var(--card)",
-                                border: "1px solid var(--line)",
-                                borderRadius: "8px",
-                                fontSize: "0.85rem",
-                            }}
-                        />
-                        <Legend wrapperStyle={{ fontSize: "0.85rem" }} />
-                        <Line type="monotone" dataKey="AQI" stroke="#0d9488" dot={false} strokeWidth={2} />
-                        <Line type="monotone" dataKey="PM2.5" stroke="#ef4444" dot={false} strokeWidth={1.5} />
-                        <Line type="monotone" dataKey="PM10" stroke="#f59e0b" dot={false} strokeWidth={1.5} />
-                        <Line type="monotone" dataKey="NO2" stroke="#3b82f6" dot={false} strokeWidth={1.5} />
-                        <Line type="monotone" dataKey="Ozone" stroke="#8b5cf6" dot={false} strokeWidth={1.5} />
-                        <Line type="monotone" dataKey="CO" stroke="#64748b" dot={false} strokeWidth={1.5} />
-                    </LineChart>
-                </ResponsiveContainer>
+                <div ref={chartContainerRef} className="chart-container-wrapper" style={{ width: "100%", background: "var(--card)" }}>
+                    <ResponsiveContainer width="100%" height={360}>
+                        <LineChart data={chartData}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="var(--line)" />
+                            <XAxis dataKey="date" tick={{ fontSize: 11, fill: "var(--muted)" }} minTickGap={30} />
+                            <YAxis tick={{ fontSize: 11, fill: "var(--muted)" }} />
+                            <Tooltip
+                                contentStyle={{
+                                    background: "var(--card)",
+                                    border: "1px solid var(--line)",
+                                    borderRadius: "8px",
+                                    fontSize: "0.85rem",
+                                }}
+                            />
+                            <Legend wrapperStyle={{ fontSize: "0.85rem" }} />
+                            <Line type="monotone" dataKey="AQI" stroke="#0d9488" dot={false} strokeWidth={2} />
+                            <Line type="monotone" dataKey="PM2.5" stroke="#ef4444" dot={false} strokeWidth={1.5} />
+                            <Line type="monotone" dataKey="PM10" stroke="#f59e0b" dot={false} strokeWidth={1.5} />
+                            <Line type="monotone" dataKey="NO2" stroke="#3b82f6" dot={false} strokeWidth={1.5} />
+                            <Line type="monotone" dataKey="Ozone" stroke="#8b5cf6" dot={false} strokeWidth={1.5} />
+                            <Line type="monotone" dataKey="CO" stroke="#64748b" dot={false} strokeWidth={1.5} />
+                        </LineChart>
+                    </ResponsiveContainer>
+                </div>
             )}
 
             {!loading && !error && chartData.length === 0 && (

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import {
   RadarChart,
   PolarGrid,
@@ -9,12 +9,24 @@ import {
   ResponsiveContainer
 } from "recharts";
 import { buildWindRose } from "../utils/windRose";
+import { exportToSVG, exportToPNG } from "../utils/chartExport";
 
 export default function WindPollutionRose({ lat, lon, pollutant = "pm2_5" }) {
   const [rose, setRose] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedPollutant, setSelectedPollutant] = useState(pollutant);
+  const chartContainerRef = useRef(null);
+
+  const handleDownloadSVG = () => {
+    if (!chartContainerRef.current) return;
+    exportToSVG(chartContainerRef.current, `wind_pollution_rose_${selectedPollutant}.svg`);
+  };
+
+  const handleDownloadPNG = () => {
+    if (!chartContainerRef.current) return;
+    exportToPNG(chartContainerRef.current, `wind_pollution_rose_${selectedPollutant}.png`, 2);
+  };
 
   useEffect(() => {
     // Number.isFinite, not truthiness. `!lat` rejects the equator and `!lon` rejects
@@ -92,7 +104,7 @@ export default function WindPollutionRose({ lat, lon, pollutant = "pm2_5" }) {
             Identifies dominant directions bringing higher pollution levels.
           </p>
         </div>
-        <div>
+        <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
           <select
             aria-label="Select Pollutant for Rose Chart"
             value={selectedPollutant}
@@ -113,6 +125,38 @@ export default function WindPollutionRose({ lat, lon, pollutant = "pm2_5" }) {
             <option value="nitrogen_dioxide">NO₂</option>
             <option value="ozone">O₃</option>
           </select>
+          <button
+            onClick={handleDownloadSVG}
+            disabled={loading || error || !rose || rose.totalObservations === 0}
+            style={{
+              padding: "0.35rem 0.65rem",
+              borderRadius: "6px",
+              border: "1px solid var(--border-color, #cbd5e1)",
+              backgroundColor: "var(--bg-card, #fff)",
+              color: "var(--text-primary, #0f172a)",
+              fontWeight: "600",
+              fontSize: "0.85rem",
+              cursor: "pointer"
+            }}
+          >
+            SVG
+          </button>
+          <button
+            onClick={handleDownloadPNG}
+            disabled={loading || error || !rose || rose.totalObservations === 0}
+            style={{
+              padding: "0.35rem 0.65rem",
+              borderRadius: "6px",
+              border: "1px solid var(--border-color, #cbd5e1)",
+              backgroundColor: "var(--bg-card, #fff)",
+              color: "var(--text-primary, #0f172a)",
+              fontWeight: "600",
+              fontSize: "0.85rem",
+              cursor: "pointer"
+            }}
+          >
+            PNG
+          </button>
         </div>
       </div>
 
@@ -137,7 +181,7 @@ export default function WindPollutionRose({ lat, lon, pollutant = "pm2_5" }) {
 
       {!loading && !error && rose && rose.totalObservations > 0 && (
         <>
-          <div style={{ width: "100%", height: 320, marginTop: "1rem" }}>
+          <div ref={chartContainerRef} style={{ width: "100%", height: 320, marginTop: "1rem" }}>
             <ResponsiveContainer width="100%" height="100%">
               <RadarChart cx="50%" cy="50%" outerRadius="75%" data={rose.sectors}>
                 <PolarGrid stroke="#cbd5e1" />

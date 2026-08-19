@@ -1,32 +1,6 @@
-// @vitest-environment node
 import { test, expect, beforeEach, afterEach } from "vitest";
 import { eventBus } from "../core/events";
 import { getEarnedBadges } from "../utils/achievementsStore";
-
-// Mock localStorage
-const localStorageMock = (() => {
-  let store = {};
-  return {
-    getItem: (key) => store[key] || null,
-    setItem: (key, value) => {
-      store[key] = String(value);
-    },
-    removeItem: (key) => {
-      delete store[key];
-    },
-    clear: () => {
-      store = {};
-    },
-    get length() {
-      return Object.keys(store).length;
-    },
-    key: (index) => {
-      return Object.keys(store)[index] || null;
-    },
-  };
-})();
-
-global.localStorage = localStorageMock;
 
 let activeTestListeners = [];
 
