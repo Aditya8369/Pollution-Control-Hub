@@ -19,7 +19,9 @@ function mountTenant() {
 
 describe("TenantContext (Issue #759)", () => {
   beforeEach(() => {
-    localStorage.clear();
+    if (typeof localStorage !== 'undefined' && typeof localStorage.clear === 'function') {
+      localStorage.clear();
+    }
   });
 
   afterEach(() => {
@@ -78,7 +80,9 @@ describe("TenantContext (Issue #759)", () => {
 
 describe("TenantContext — clearing stays cleared (Issue #843)", () => {
   beforeEach(() => {
-    localStorage.clear();
+    if (typeof localStorage !== 'undefined' && typeof localStorage.clear === 'function') {
+      localStorage.clear();
+    }
   });
 
   afterEach(() => {
@@ -141,7 +145,9 @@ describe("TenantContext — clearing stays cleared (Issue #843)", () => {
 
 describe("TenantContext — storage is only written on a real choice (Issue #843)", () => {
   beforeEach(() => {
-    localStorage.clear();
+    if (typeof localStorage !== 'undefined' && typeof localStorage.clear === 'function') {
+      localStorage.clear();
+    }
   });
 
   afterEach(() => {
@@ -184,7 +190,9 @@ describe("TenantContext — storage is only written on a real choice (Issue #843
 
 describe("TenantContext — unrecognised ids (Issue #843)", () => {
   beforeEach(() => {
-    localStorage.clear();
+    if (typeof localStorage !== 'undefined' && typeof localStorage.clear === 'function') {
+      localStorage.clear();
+    }
   });
 
   afterEach(() => {
@@ -251,7 +259,9 @@ describe("TenantContext — unrecognised ids (Issue #843)", () => {
 
 describe("TenantContext — unavailable storage (Issue #843)", () => {
   beforeEach(() => {
-    localStorage.clear();
+    if (typeof localStorage !== 'undefined' && typeof localStorage.clear === 'function') {
+      localStorage.clear();
+    }
   });
 
   afterEach(() => {
@@ -306,7 +316,13 @@ describe("TenantContext — unavailable storage (Issue #843)", () => {
 
 describe("TenantContext — context identity (Issue #843)", () => {
   beforeEach(() => {
-    localStorage.clear();
+    if (typeof localStorage !== 'undefined' && typeof localStorage.clear === 'function') {
+      localStorage.clear();
+    }
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
   it("keeps the context value stable across re-renders that change nothing", () => {

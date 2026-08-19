@@ -5,7 +5,12 @@ type Location = {
   name: string;
 };
 
-const LocationSearch: React.FC = () => {
+interface LocationSearchProps {
+  initialCityName?: string;
+  onLocationSelected: (location: any) => void;
+}
+
+const LocationSearch: React.FC<LocationSearchProps> = ({ initialCityName, onLocationSelected }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [results, setResults] = useState<Location[]>([]);
 
