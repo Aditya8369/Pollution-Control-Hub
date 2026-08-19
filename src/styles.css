@@ -4674,6 +4674,87 @@
 }
 
 /* ============================================================
+   Ocean Theme — Cool, serene dark palette with blue accents
+   ============================================================ */
+:root[data-theme="ocean"] {
+  --ink: #e6f2ff;
+  --muted: #7fa3c0;
+  --panel: #0a1628;
+  --card: #0f1f36;
+  --line: #1a3a52;
+  --brand: #0369a1;
+  --brand-strong: #0284c7;
+  --accent: #06b6d4;
+  --sky: #0ea5e9;
+  --danger: #dc2626;
+  --bg-card-alt: #1a2f48;
+
+  --shadow-sm: 0 2px 10px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 14px 34px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 24px 60px rgba(0, 0, 0, 0.6);
+
+  --accent-fill: #164e63;
+  --sky-fill: #082f49;
+  --sky-text: #0ea5e9;
+  --danger-fill: #7c2d12;
+  --danger-text: #f87171;
+}
+
+/* ============================================================
+   Sunset Theme — Warm dark palette with orange/gold accents
+   ============================================================ */
+:root[data-theme="sunset"] {
+  --ink: #fff5e6;
+  --muted: #c99a6e;
+  --panel: #2a1810;
+  --card: #3d2817;
+  --line: #5c3d2e;
+  --brand: #ea580c;
+  --brand-strong: #f97316;
+  --accent: #fb923c;
+  --sky: #fbbf24;
+  --danger: #dc2626;
+  --bg-card-alt: #542c1b;
+
+  --shadow-sm: 0 2px 10px rgba(0, 0, 0, 0.45);
+  --shadow-md: 0 14px 34px rgba(0, 0, 0, 0.55);
+  --shadow-lg: 0 24px 60px rgba(0, 0, 0, 0.65);
+
+  --accent-fill: #7c2d12;
+  --sky-fill: #78350f;
+  --sky-text: #fbbf24;
+  --danger-fill: #7c2d12;
+  --danger-text: #fca5a5;
+}
+
+/* ============================================================
+   Forest Theme — Earthy dark palette with green accents
+   ============================================================ */
+:root[data-theme="forest"] {
+  --ink: #f0fdf4;
+  --muted: #7ba976;
+  --panel: #0f2818;
+  --card: #16401f;
+  --line: #275333;
+  --brand: #15803d;
+  --brand-strong: #22c55e;
+  --accent: #4ade80;
+  --sky: #22c55e;
+  --danger: #dc2626;
+  --bg-card-alt: #1f5236;
+
+  --shadow-sm: 0 2px 10px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 14px 34px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 24px 60px rgba(0, 0, 0, 0.6);
+
+  --accent-fill: #166534;
+  --sky-fill: #166534;
+  --sky-text: #22c55e;
+  --danger-fill: #7c2d12;
+  --danger-text: #fca5a5;
+}
+
+/* ============================================================
    High-Contrast Accessibility Theme — Independent Design System
    WCAG AAA oriented. Modelled on GOV.UK / NHS Digital / Windows HC.
    ============================================================ */
@@ -5420,6 +5501,76 @@ select {
   margin-left: auto;
   font-size: 0.85rem;
   color: var(--brand);
+}
+
+/* ── Theme menu sections ────────────────────────────────────── */
+.theme-menu-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.5rem 0;
+}
+
+.theme-menu-section:not(:first-child) {
+  border-top: 1px solid var(--line);
+  padding-top: 0.65rem;
+}
+
+.theme-menu-section-title {
+  padding: 0.3rem 0.65rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* ── Accent color swatches ────────────────────────────────────── */
+.accent-color-swatches {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0.4rem;
+  padding: 0.5rem 0.65rem;
+}
+
+.accent-color-swatch {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: calc(var(--r-sm) - 2px);
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: all 150ms var(--ease);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  background-size: cover;
+}
+
+.accent-color-swatch:hover {
+  transform: scale(1.1);
+  box-shadow: 0 0 0 2px var(--card), 0 0 8px rgba(0, 0, 0, 0.2);
+}
+
+.accent-color-swatch:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 1px;
+}
+
+.accent-color-swatch.selected {
+  border-color: var(--card);
+  box-shadow: 0 0 0 2px var(--card), inset 0 0 0 2px rgba(0, 0, 0, 0.1);
+}
+
+.accent-swatch-check {
+  color: white;
+  font-size: 1rem;
+  font-weight: 900;
+  text-shadow: 0 0 3px rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 /* ============================================================
