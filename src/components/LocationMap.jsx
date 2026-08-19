@@ -86,6 +86,7 @@ function readGeotaggedSymptomReports() {
  * @param {Array<Object>} props.nearbyPoints
  * @param {"Low"|"Medium"|"High"|string} props.confidenceScore
  * @param {{direction: number, speed: number}|null} [props.windData]
+ * @param {string} [props.windError]
  */
 
 export default function LocationMap({ center, nearbyPoints, confidenceScore, windData, windError }) {
