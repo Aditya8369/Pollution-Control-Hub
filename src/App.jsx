@@ -36,8 +36,11 @@ import { eventBus } from "./core/events";
 // Imported for its side effect: it subscribes to QUIZ_COMPLETED so the count is
 // recorded whether or not the leaderboard has ever been mounted.
 import "./utils/contributionStats";
+import { useTranslation } from "react-i18next";
+import i18n from "./i18n";
 import { ThemeProvider, useTheme } from "./context/ThemeContext";
 import ThemeSwitcher from "./components/ThemeSwitcher";
+import LanguageSwitcher from "./components/LanguageSwitcher";
 import CarbonFootprintCalculator from "./components/CarbonFootprintCalculator";
 import Leaderboard from "./components/Leaderboard";
 import EmbeddableWidgetGenerator from "./components/EmbeddableWidgetGenerator";
@@ -141,16 +144,14 @@ async function reverseGeocodeCity(lat, lon) {
 }
 /** @param {any} params */
 function Hero({ cityName }) {
+  const { t } = useTranslation();
   return (
     <header className="hero flex *:flex-col items-center justify-center text-center">
       <div className="hero-overlay" />
       <div className="hero-content ">
-        <p className="eyebrow">Pollution Control Hub</p>
-        <h1>Monitor. Understand. Act.</h1>
-        <p>
-          A single digital platform to track air quality in {cityName}, protect
-          health, and mobilize community-driven climate action.
-        </p>
+        <p className="eyebrow">{t("hero.eyebrow", "Pollution Control Hub")}</p>
+        <h1>{t("hero.title", "Monitor. Understand. Act.")}</h1>
+        <p>{t("hero.description", "A single digital platform to track air quality in {{cityName}}, protect health, and mobilize community-driven climate action.", { cityName })}</p>
       </div>
     </header>
   );
@@ -171,6 +172,7 @@ function AppControls({
   autoRefreshSeconds,
   onAutoRefreshChange,
 }) {
+  const { t } = useTranslation();
   const isCurrentCitySaved = savedLocations.some(
     (item) => item.name === currentCity,
   );
@@ -186,7 +188,7 @@ function AppControls({
           flexWrap: "wrap",
         }}
       >
-        <label htmlFor="city-selector">Track city:</label>
+        <label htmlFor="city-selector">{t("controls.trackCity", "Track city:")}</label>
         <LocationSearch
           initialCityName={selectedCity === "auto" ? "auto" : selectedCity}
           onLocationSelected={onCityChange}
@@ -202,7 +204,7 @@ function AppControls({
           onClick={() => onCityChange("auto")}
           disabled={detecting}
         >
-          {detecting ? "Detecting..." : "Auto Detect"}
+          {detecting ? t("controls.detecting", "Detecting...") : t("controls.autoDetect", "Auto Detect")}
         </button>
         <button
           type="button"
@@ -267,10 +269,10 @@ function AppControls({
         <span className={`live-dot ${isRefreshing ? "active" : ""}`} />
         <p>
           {isRefreshing
-            ? "Refreshing live feed..."
+            ? t("controls.refreshing", "Refreshing live feed...")
             : autoRefreshSeconds === 0
               ? "Auto refresh off"
-              : `Auto refresh in ${refreshCountdown}s`}
+              : t("controls.autoRefresh", "Auto refresh in {{seconds}}s", { seconds: refreshCountdown })}
         </p>
         <label htmlFor="auto-refresh-interval" style={{ marginLeft: "0.5rem" }}>
           Interval:
@@ -295,13 +297,12 @@ function AppControls({
           onClick={() => eventBus.emit("FORCE_REFRESH")}
           disabled={isRefreshing}
         >
-          Refresh Now
+          {t("controls.refreshNow", "Refresh Now")}
         </button>
         <small>
-          Last updated:{" "}
           {lastUpdated
-            ? new Date(lastUpdated).toLocaleTimeString()
-            : "Waiting..."}
+            ? t("controls.lastUpdated", "Last updated: {{time}}", { time: new Date(lastUpdated).toLocaleTimeString() })
+            : t("controls.waiting", "Waiting...")}
         </small>
       </div>
     </section>
@@ -310,6 +311,7 @@ function AppControls({
 
 /** @param {any} params */
 function SectionNav({ activeSection, onSectionChange }) {
+  const { t } = useTranslation();
   const sections = [
     { id: "home", label: "Home" },
     { id: "getting-started", label: "Getting Started" },
@@ -445,10 +447,11 @@ function SectionNav({ activeSection, onSectionChange }) {
               className={activeSection === section.id ? "active" : ""}
               onClick={() => handleSectionClick(section.id)}
             >
-              {section.label}
+              {t(`nav.${section.id}`, section.label)}
             </button>
           ))}
           <div className="nav-divider"></div>
+          <LanguageSwitcher />
           <ThemeSwitcher />
         </div>
       </nav>
@@ -485,7 +488,7 @@ function SectionNav({ activeSection, onSectionChange }) {
             className="hamburger-btn"
             onClick={() => setIsMenuOpen(!isMenuOpen)}
             aria-expanded={isMenuOpen}
-            aria-label="Toggle navigation"
+            aria-label={t("nav.toggleNavigation", "Toggle navigation")}
             aria-controls="mobile-navigation"
             style={{
               border: "1px solid var(--line)",
@@ -557,13 +560,14 @@ function SectionNav({ activeSection, onSectionChange }) {
                     cursor: "pointer",
                   }}
                 >
-                  {section.label}
+                  {t(`nav.${section.id}`, section.label)}
                 </button>
               ))}
             </nav>
           )}
         </nav>
 
+        <LanguageSwitcher />
         <ThemeSwitcher />
       </header>
     </>
@@ -571,6 +575,7 @@ function SectionNav({ activeSection, onSectionChange }) {
 }
 
 function AppContent() {
+  const { t } = useTranslation();
   const [activeSection, setActiveSection] = useState(
     () => localStorage.getItem("activeSection") || "home",
   );
@@ -691,7 +696,7 @@ function AppContent() {
   useEffect(() => {
     const unsubscribe = cacheStore.onPersistenceError(() => {
       setPersistenceWarning(
-        "Offline caching is unavailable — your data may not persist between sessions."
+        i18n.t("status.offlineWarning", "Offline caching is unavailable — your data may not persist between sessions.")
       );
     });
     return () => { unsubscribe(); };
@@ -775,7 +780,7 @@ function AppContent() {
 
     if (!navigator.geolocation) {
       setLocationNotice(
-        "Your browser can't detect location, so we're showing Delhi.",
+        i18n.t("status.geolocationUnavailable", "Your browser can't detect location, so we're showing Delhi."),
       );
       setPosition(DEFAULT_POSITION);
       setDetecting(false);
@@ -821,7 +826,7 @@ function AppContent() {
           console.debug("Geolocation fallback diagnostics:", error);
         }
         setLocationNotice(
-          "Couldn't detect your location — showing Delhi for now.",
+          i18n.t("status.geolocationError", "Couldn't detect your location — showing Delhi for now."),
         );
         setPosition(DEFAULT_POSITION);
         setDetecting(false);
@@ -1045,12 +1050,12 @@ function AppContent() {
 
         {loading && !error ? (
           <>
-            <div role="status" aria-live="polite" aria-label="Loading">
+            <div role="status" aria-live="polite" aria-label={t("status.loading", "Loading")}>
               <div className="loading-spinner"></div>
-              <span className="sr-only">Loading…</span>
+              <span className="sr-only">{t("status.loading", "Loading")}…</span>
             </div>
             <h1 className="loading-title text-3xl">
-              Preparing live pollution intelligence...
+              {t("status.preparing", "Preparing live pollution intelligence...")}
             </h1>
 
             <Factoid />
@@ -1093,7 +1098,7 @@ function AppContent() {
               <div className="location-notice" role="status">
                 <p>{locationNotice}</p>
                 <button type="button" onClick={() => setLocationNotice("")}>
-                  Dismiss
+                  {t("status.dismiss", "Dismiss")}
                 </button>
               </div>
             )}

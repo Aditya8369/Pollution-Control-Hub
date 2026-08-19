@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import jsPDF from 'jspdf';
 import CalendarHeatmap from './CalendarHeatmap';
 import { fetchHistoricalData, formatHistoricalCSV } from '../services/historicalDataService';
@@ -28,6 +29,7 @@ function highlightHandlers(resting, isSuppressed = () => false) {
 
 /** @param {any} params */
 export default function HistoricalAnalysis({ position }) {
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState(null);
   const [error, setError] = useState(null);
@@ -35,7 +37,7 @@ export default function HistoricalAnalysis({ position }) {
   const [endDate, setEndDate] = useState('');
   const [dateError, setDateError] = useState('');
   const [isExportingPDF, setIsExportingPDF] = useState(false);
-  
+
   const workerRef = useRef(null);
   const containerRef = useRef(null);
 
@@ -351,7 +353,7 @@ export default function HistoricalAnalysis({ position }) {
     const csvContent = formatHistoricalCSV(data.daily, startDate, endDate);
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
-    
+
     const link = document.createElement('a');
     link.href = url;
     const cityName = position?.cityName ? position.cityName.replace(/[^a-z0-9]/gi, '_').toLowerCase() : 'historical';
@@ -402,7 +404,7 @@ export default function HistoricalAnalysis({ position }) {
     return (
       <div className="historical-analysis-container" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '3rem', textAlign: 'center' }}>
         <div className="live-dot active" style={{ marginBottom: '1rem' }}></div>
-        <p>Crunching 3 years of historical AQI data...</p>
+        <p>{t("historicalAnalysis.loading", "Crunching 3 years of historical AQI data...")}</p>
       </div>
     );
   }
@@ -410,7 +412,7 @@ export default function HistoricalAnalysis({ position }) {
   if (error) {
     return (
       <div className="historical-analysis-container" style={{ padding: '2rem', textAlign: 'center', color: '#ef4444' }}>
-        <p>Error: {error}</p>
+        <p>{t("historicalAnalysis.error", "Error: {{error}}", { error })}</p>
       </div>
     );
   }
@@ -420,9 +422,9 @@ export default function HistoricalAnalysis({ position }) {
   return (
     <div data-testid="historical-analysis" ref={containerRef} className="historical-analysis-container section-card">
       <header style={{ marginBottom: '1.5rem' }}>
-        <h2 style={{ fontSize: '1.4rem', fontWeight: 600, margin: '0 0 0.25rem' }}>Long-Term Climate & Pollution Trends</h2>
+        <h2 style={{ fontSize: '1.4rem', fontWeight: 600, margin: '0 0 0.25rem' }}>{t("historicalAnalysis.title", "Long-Term Climate & Pollution Trends")}</h2>
         <p style={{ fontSize: '0.88rem', opacity: 0.8, margin: 0 }}>
-          Showing 3 years of daily max AQI severity for {position?.cityName || "your area"}
+          {t("historicalAnalysis.subtitle", "Showing 3 years of daily max AQI severity for {{city}}", { city: position?.cityName || t("historicalAnalysis.yourArea", "your area") })}
         </p>
       </header>
 
@@ -433,10 +435,10 @@ export default function HistoricalAnalysis({ position }) {
         background: 'var(--bg-card-alt, rgba(0,0,0,0.02))',
         border: '1px solid var(--line, rgba(0,0,0,0.08))'
       }}>
-        <h3 style={{ fontSize: '1.1rem', fontWeight: 500, margin: '0 0 1rem 0', color: 'var(--ink)' }}>Export Historical Data</h3>
+        <h3 style={{ fontSize: '1.1rem', fontWeight: 500, margin: '0 0 1rem 0', color: 'var(--ink)' }}>{t("historicalAnalysis.exportSectionTitle", "Export Historical Data")}</h3>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', alignItems: 'flex-end' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', flex: '1 1 180px' }}>
-            <label htmlFor="export-start-date" style={{ fontSize: '0.85rem', fontWeight: 500, color: 'var(--muted)' }}>Start Date</label>
+            <label htmlFor="export-start-date" style={{ fontSize: '0.85rem', fontWeight: 500, color: 'var(--muted)' }}>{t("historicalAnalysis.startDate", "Start Date")}</label>
             <input
               type="date"
               id="export-start-date"
@@ -457,7 +459,7 @@ export default function HistoricalAnalysis({ position }) {
             />
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem', flex: '1 1 180px' }}>
-            <label htmlFor="export-end-date" style={{ fontSize: '0.85rem', fontWeight: 500, color: 'var(--muted)' }}>End Date</label>
+            <label htmlFor="export-end-date" style={{ fontSize: '0.85rem', fontWeight: 500, color: 'var(--muted)' }}>{t("historicalAnalysis.endDate", "End Date")}</label>
             <input
               type="date"
               id="export-end-date"
@@ -501,7 +503,7 @@ export default function HistoricalAnalysis({ position }) {
               }}
               {...highlightHandlers(EXPORT_BG, () => isExportingPDF)}
             >
-              {isExportingPDF ? 'Exporting PDF...' : 'Export PDF'}
+              {isExportingPDF ? t("historicalAnalysis.exportingPDF", "Exporting PDF...") : t("historicalAnalysis.exportPDF", "Export PDF")}
             </button>
             <button
               onClick={handleExportCSV}
@@ -524,7 +526,7 @@ export default function HistoricalAnalysis({ position }) {
               }}
               {...highlightHandlers(EXPORT_BG)}
             >
-              Export CSV
+              {t("historicalAnalysis.exportCSV", "Export CSV")}
             </button>
             <button
               onClick={handleExportJSON}
@@ -547,7 +549,7 @@ export default function HistoricalAnalysis({ position }) {
               }}
               {...highlightHandlers(EXPORT_BG_ALT)}
             >
-              Export JSON
+              {t("historicalAnalysis.exportJSON", "Export JSON")}
             </button>
           </div>
         </div>
@@ -556,13 +558,13 @@ export default function HistoricalAnalysis({ position }) {
 
       <div className="stats-row" style={{ marginBottom: '2rem' }}>
         <div className="stat-box" style={{ padding: '1rem', borderRadius: '0.5rem', background: 'rgba(0,0,0,0.05)', flex: '1 1 200px', minWidth: 0 }}>
-          <p style={{ fontSize: '0.85rem', opacity: 0.7, margin: '0 0 0.25rem' }}>Overall Average AQI</p>
+          <p style={{ fontSize: '0.85rem', opacity: 0.7, margin: '0 0 0.25rem' }}>{t("historicalAnalysis.avgAqi", "Overall Average AQI")}</p>
           <p style={{ fontSize: '1.8rem', fontWeight: 700, margin: 0, fontFamily: '"Fraunces", serif' }}>
             {data.overallAvg == null ? '—' : data.overallAvg}
           </p>
         </div>
         <div className="stat-box" style={{ padding: '1rem', borderRadius: '0.5rem', background: 'rgba(0,0,0,0.05)', flex: '1 1 200px', minWidth: 0 }}>
-          <p style={{ fontSize: '0.85rem', opacity: 0.7, margin: '0 0 0.25rem' }}>Days Recorded</p>
+          <p style={{ fontSize: '0.85rem', opacity: 0.7, margin: '0 0 0.25rem' }}>{t("historicalAnalysis.daysRecorded", "Days Recorded")}</p>
           {/* Days with an actual reading, not days present in the response. The two differ
               wherever the archive has gaps, and the average above is over the former. */}
           <p style={{ fontSize: '1.8rem', fontWeight: 700, margin: 0, fontFamily: '"Fraunces", serif' }}>
@@ -570,14 +572,14 @@ export default function HistoricalAnalysis({ position }) {
           </p>
           {data.daysInRange > (data.daysWithReadings ?? data.daily.length) && (
             <p style={{ fontSize: '0.75rem', opacity: 0.7, margin: '0.25rem 0 0' }}>
-              of {data.daysInRange} in range
+              {t("historicalAnalysis.daysInRangeSuffix", "of {{days}} in range", { days: data.daysInRange })}
             </p>
           )}
         </div>
       </div>
 
       <div className="heatmap-section" style={{ overflow: 'hidden' }}>
-        <h3 style={{ fontSize: '1.1rem', fontWeight: 500, margin: '0 0 1rem' }}>Daily Severity Calendar</h3>
+        <h3 style={{ fontSize: '1.1rem', fontWeight: 500, margin: '0 0 1rem' }}>{t("historicalAnalysis.heatmapTitle", "Daily Severity Calendar")}</h3>
         <CalendarHeatmap data={data.daily} />
 
         <CalibrationHistory

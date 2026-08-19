@@ -1,6 +1,7 @@
 // @ts-nocheck
 import { MapContainer, TileLayer, CircleMarker, Popup, Marker, useMap } from 'react-leaflet';
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import 'leaflet.heat';
@@ -88,6 +89,7 @@ function readGeotaggedSymptomReports() {
  */
 
 export default function LocationMap({ center, nearbyPoints, confidenceScore, windData, windError }) {
+  const { t } = useTranslation();
   const [showWind, setShowWind] = useState(false);
   const [showCommunityReports, setShowCommunityReports] = useState(false);
   const communityReports = useCommunityReports();
@@ -159,16 +161,16 @@ export default function LocationMap({ center, nearbyPoints, confidenceScore, win
     <section data-testid="location-map" className="panel">
       <div className="panel-head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.75rem' }}>
         <div style={{ minWidth: 0, flex: 1 }}>
-          <h2>Location-Based Tracking</h2>
-          <p>Nearby pollution intensity map and hotspots</p>
-          {windError && <p className="error-banner">Wind data unavailable: {windError}</p>}
+          <h2>{t("locationMap.title", "Location-Based Tracking")}</h2>
+          <p>{t("locationMap.subtitle", "Nearby pollution intensity map and hotspots")}</p>
+          {windError && <p className="error-banner">{t("locationMap.windErrorPrefix", "Wind data unavailable: {{error}}", { error: windError })}</p>}
         </div>
         <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
           <label
             htmlFor="pollutant-layer-select"
             style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.85rem', fontWeight: '600' }}
           >
-            Layer:
+            {t("locationMap.layerLabel", "Layer:")}
             <select
               id="pollutant-layer-select"
               data-testid="pollutant-layer-select"
@@ -206,7 +208,7 @@ export default function LocationMap({ center, nearbyPoints, confidenceScore, win
               minHeight: '44px'
             }}
           >
-            {showSymptomReports ? 'Hide Symptom Reports' : 'Show Symptom Reports'}
+            {showSymptomReports ? t("locationMap.hideSymptomReports", "Hide Symptom Reports") : t("locationMap.showSymptomReports", "Show Symptom Reports")}
           </button>
           <button
             type="button"
@@ -226,7 +228,7 @@ export default function LocationMap({ center, nearbyPoints, confidenceScore, win
               minHeight: '44px'
             }}
           >
-            {showCommunityReports ? 'Hide Community Reports' : 'Show Community Reports'}
+            {showCommunityReports ? t("locationMap.hideCommunityReports", "Hide Community Reports") : t("locationMap.showCommunityReports", "Show Community Reports")}
           </button>
           {windData && (
             <button
@@ -247,7 +249,7 @@ export default function LocationMap({ center, nearbyPoints, confidenceScore, win
                 minHeight: '44px'
               }}
             >
-              {showWind ? 'Hide Wind Overlay' : 'Show Wind Overlay'}
+              {showWind ? t("locationMap.hideWind", "Hide Wind Overlay") : t("locationMap.showWind", "Show Wind Overlay")}
             </button>
           )}
           <button
@@ -272,11 +274,11 @@ export default function LocationMap({ center, nearbyPoints, confidenceScore, win
               gap: '0.4rem'
             }}
           >
-            {showHeatmap ? 'Hide Live Heatmap' : 'Show Live Heatmap'}
+            {showHeatmap ? t("locationMap.hideHeatmap", "Hide Live Heatmap") : t("locationMap.showHeatmap", "Show Live Heatmap")}
             {showHeatmap && (
               <span
                 data-testid="heatmap-source-indicator"
-                title={heatmapSource === 'websocket' ? 'Live via WebSocket' : heatmapSource === 'polling' ? 'Fallback polling (WebSocket unavailable)' : 'Connecting…'}
+                title={heatmapSource === 'websocket' ? t("locationMap.heatmapLive", "Live via WebSocket") : heatmapSource === 'polling' ? t("locationMap.heatmapFallback", "Fallback polling (WebSocket unavailable)") : t("locationMap.heatmapConnecting", "Connecting…")}
                 style={{
                   width: '8px',
                   height: '8px',
@@ -310,7 +312,7 @@ export default function LocationMap({ center, nearbyPoints, confidenceScore, win
             >
               <Popup>
                 <strong>{point.areaName}</strong>
-                <br />AQI: {point.aqi}
+                <br />{t("locationMap.aqiLabel", "AQI")}: {point.aqi}
                 {selectedLayer !== 'aqi' && (
                   <>
                     <br />{activeLayer.label}: {point.pollutants?.[selectedLayer] ?? 'N/A'} µg/m³
@@ -336,7 +338,7 @@ export default function LocationMap({ center, nearbyPoints, confidenceScore, win
               <Popup>
                 <div className="community-report-popup">
                   <strong>{report.title}</strong>
-                  <div>Status: {report.status}</div>
+                  <div>{t("locationMap.reportStatus", "Status: {{status}}", { status: report.status })}</div>
                   {report.createdAt && (
                     <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '4px' }}>
                       {new Date(report.createdAt).toLocaleString()}
@@ -371,17 +373,17 @@ export default function LocationMap({ center, nearbyPoints, confidenceScore, win
         <div className="wind-insight" style={{ padding: '1rem', backgroundColor: 'var(--bg-card-alt, #f8fafc)', borderRadius: '0.5rem', marginTop: '1rem', borderLeft: '4px solid #3b82f6' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
             <svg viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="2" style={{ width: '20px', height: '20px', transform: 'rotate(180deg)', flexShrink: 0 }}><path d="M12 2v20M12 22l-4-4M12 22l4-4" /></svg>
-            <strong>Wind Legend:</strong>
-            <span style={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>Arrows indicate the direction wind is blowing.</span>
+            <strong>{t("locationMap.windLegend", "Wind Legend:")}</strong>
+            <span style={{ fontSize: '0.88rem', color: 'var(--text-secondary)' }}>{t("locationMap.windLegendDesc", "Arrows indicate the direction wind is blowing.")}</span>
           </div>
           <p style={{ margin: 0, fontSize: '0.92rem', wordBreak: 'break-word' }}>
-            Wind blowing {getWindDirectionText(windData.direction)} at {windData.speed} km/h — pollution patterns may shift in this direction.
+            {t("locationMap.windInsight", "Wind blowing {{direction}} at {{speed}} km/h — pollution patterns may shift in this direction.", { direction: getWindDirectionText(windData.direction), speed: windData.speed })}
           </p>
         </div>
       )}
 
       <div className="hotspots">
-        <h3>Most Polluted Areas Near You</h3>
+        <h3>{t("locationMap.hotspots", "Most Polluted Areas Near You")}</h3>
         <ul>
           {nearbyPoints
             .slice()
@@ -390,7 +392,7 @@ export default function LocationMap({ center, nearbyPoints, confidenceScore, win
             .map((point) => (
               <li key={`hot-${point.id}`}>
                 <span>{point.areaName}</span>
-                <strong>AQI {point.aqi}</strong>
+                <strong>{t("locationMap.aqiLabel", "AQI")} {point.aqi}</strong>
               </li>
             ))}
         </ul>
