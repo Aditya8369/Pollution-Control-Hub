@@ -1,0 +1,26 @@
+{
+  "expo": {
+    "name": "Pollution Control Hub",
+    "slug": "pollution-control-hub",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "splash": {
+      "backgroundColor": "#0f172a"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.pollutioncontrolhub.app"
+    },
+    "android": {
+      "package": "com.pollutioncontrolhub.app"
+    },
+    "web": {
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-sqlite"
+    ]
+  }
+}
