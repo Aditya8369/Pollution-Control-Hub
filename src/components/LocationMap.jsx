@@ -1,10 +1,9 @@
 // @ts-nocheck
 import { MapContainer, TileLayer, CircleMarker, Popup, Marker, useMap } from 'react-leaflet';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import 'leaflet.heat';
 
 delete L.Icon.Default.prototype._getIconUrl;
 
@@ -20,6 +19,7 @@ import { useCommunityReports } from '../hooks/useCommunityReports';
 import { useLiveHeatmap } from '../hooks/useLiveHeatmap';
 import PropTypes from "prop-types";
 import { getMapTileUrlTemplate, supportsWebP } from '../utils/mapTiles';
+import { loadHeatLayer } from '../utils/heatLayer';
 
 const SYMPTOM_REPORTS_STORAGE_KEY = 'pollution-symptom-reports';
 
@@ -38,25 +38,65 @@ const POLLUTANT_LAYERS = [
  * react-leaflet has no built-in heat-layer component, so this manages the
  * leaflet.heat layer imperatively and cleans it up on unmount/update.
  *
- * @param {{ points: Array<{lat: number, lon: number, aqi: number}> }} props
+ * The plugin is loaded through `loadHeatLayer` rather than imported at module
+ * scope. `leaflet.heat` is a script that expects a global `L`, and importing it
+ * as a module threw `ReferenceError: L is not defined` before it could define
+ * `L.heatLayer` — which took this whole file down with it. See
+ * `src/utils/heatLayer.js`.
+ *
+ * @param {{
+ *   points: Array<{lat: number, lon: number, aqi: number}>,
+ *   onUnavailable?: () => void,
+ * }} props
  */
-function HeatmapLayer({ points }) {
+function HeatmapLayer({ points, onUnavailable }) {
   const map = useMap();
 
   useEffect(() => {
     if (!points || points.length === 0) return undefined;
 
-    const heatPoints = points.map((p) => [p.lat, p.lon, Math.min(p.aqi, 300) / 300]);
-    const heatLayer = L.heatLayer(heatPoints, { radius: 35, blur: 25, maxZoom: 12 });
-    heatLayer.addTo(map);
+    // The layer is created asynchronously, so both the effect re-running and the
+    // component unmounting can happen before the plugin resolves. `cancelled`
+    // covers the first; `layer` is what the cleanup removes if the second wins the
+    // race — without it a layer created after unmount is never taken off the map.
+    let cancelled = false;
+    let layer = null;
+
+    loadHeatLayer(L).then((heatLayer) => {
+      if (cancelled) return;
+
+      if (typeof heatLayer !== 'function') {
+        // No plugin. Skip the overlay rather than throwing out of an effect: this
+        // component has no error boundary above it, so a throw here takes out the
+        // entire Map tab to hide one optional layer.
+        onUnavailable?.();
+        return;
+      }
+
+      const heatPoints = points.map((p) => [p.lat, p.lon, Math.min(p.aqi, 300) / 300]);
+      layer = heatLayer(heatPoints, { radius: 35, blur: 25, maxZoom: 12 });
+      layer.addTo(map);
+    });
 
     return () => {
-      map.removeLayer(heatLayer);
+      cancelled = true;
+      if (layer) map.removeLayer(layer);
     };
-  }, [map, points]);
+  }, [map, points, onUnavailable]);
 
   return null;
 }
+
+HeatmapLayer.propTypes = {
+  points: PropTypes.arrayOf(
+    PropTypes.shape({
+      lat: PropTypes.number,
+      lon: PropTypes.number,
+      aqi: PropTypes.number,
+    })
+  ),
+  onUnavailable: PropTypes.func,
+};
 
 function readGeotaggedSymptomReports() {
   try {
@@ -98,6 +138,11 @@ export default function LocationMap({ center, nearbyPoints, confidenceScore, win
   const [symptomReports, setSymptomReports] = useState(() => readGeotaggedSymptomReports());
   const [selectedLayer, setSelectedLayer] = useState('aqi');
   const [showHeatmap, setShowHeatmap] = useState(false);
+  // Set once the plugin has been asked for and could not be produced. Kept in the
+  // parent rather than in HeatmapLayer so the toggle — which is outside the map — can
+  // say so. An overlay that silently does nothing reads as a broken map.
+  const [heatmapUnavailable, setHeatmapUnavailable] = useState(false);
+  const handleHeatmapUnavailable = useCallback(() => setHeatmapUnavailable(true), []);
   const { points: liveHeatPoints, source: heatmapSource } = useLiveHeatmap(center.lat, center.lon);
   const tileUrlTemplate = getMapTileUrlTemplate('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', supportsWebP());
 
@@ -276,7 +321,7 @@ export default function LocationMap({ center, nearbyPoints, confidenceScore, win
             }}
           >
             {showHeatmap ? t("locationMap.hideHeatmap", "Hide Live Heatmap") : t("locationMap.showHeatmap", "Show Live Heatmap")}
-            {showHeatmap && (
+            {showHeatmap && !heatmapUnavailable && (
               <span
                 data-testid="heatmap-source-indicator"
                 title={heatmapSource === 'websocket' ? t("locationMap.heatmapLive", "Live via WebSocket") : heatmapSource === 'polling' ? t("locationMap.heatmapFallback", "Fallback polling (WebSocket unavailable)") : t("locationMap.heatmapConnecting", "Connecting…")}
@@ -290,6 +335,23 @@ export default function LocationMap({ center, nearbyPoints, confidenceScore, win
               />
             )}
           </button>
+          {showHeatmap && heatmapUnavailable && (
+            <p
+              role="status"
+              data-testid="heatmap-unavailable"
+              style={{
+                margin: 0,
+                alignSelf: 'center',
+                fontSize: '0.8rem',
+                color: 'var(--text-secondary, #64748b)'
+              }}
+            >
+              {t(
+                "locationMap.heatmapUnavailable",
+                "Heat overlay unavailable in this browser — readings are still shown as markers."
+              )}
+            </p>
+          )}
         </div>
       </div>
 
@@ -300,7 +362,9 @@ export default function LocationMap({ center, nearbyPoints, confidenceScore, win
             url={tileUrlTemplate}
           />
 
-          {showHeatmap && liveHeatPoints.length > 0 && <HeatmapLayer points={liveHeatPoints} />}
+          {showHeatmap && liveHeatPoints.length > 0 && (
+            <HeatmapLayer points={liveHeatPoints} onUnavailable={handleHeatmapUnavailable} />
+          )}
           {nearbyPoints.map((point) => (
             <CircleMarker
               key={point.id}
