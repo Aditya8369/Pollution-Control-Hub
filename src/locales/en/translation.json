@@ -25,6 +25,7 @@
     "CarbonCalculator": "Carbon Calculator",
     "toggleTheme": "Toggle Theme",
     "toggleNavigation": "Toggle navigation",
+    "copilot": "AI Copilot",
     "Compare": "Compare",
     "exposure": "Exposure Calculator",
     "widget": "AQI Widget",
@@ -421,5 +422,17 @@
     "resetBtn": "Reset Inputs",
     "savedNotice": "Calculation saved to history!",
     "totalEmissions": "Estimated Carbon Footprint"
+  },
+  "aiCopilot": {
+    "title": "🧠 AI Pollution Copilot",
+    "subtitle": "Ask a question in plain language about today's air quality.",
+    "predefinedLabel": "Suggested questions",
+    "empty": "Tap a suggested question above, or type your own below.",
+    "fallbackNote": "Rule-based answer (AI service not configured)",
+    "thinking": "Thinking...",
+    "error": "Something went wrong answering that. Please try again.",
+    "inputPlaceholder": "Ask about today's air quality...",
+    "inputAriaLabel": "Ask the AI Pollution Copilot",
+    "send": "Send"
   }
 }
