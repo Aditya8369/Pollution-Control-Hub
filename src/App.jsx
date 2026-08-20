@@ -41,6 +41,7 @@ import { useTranslation } from "react-i18next";
 import i18n from "./i18n";
 import { ThemeProvider, useTheme } from "./context/ThemeContext";
 import ThemeSwitcher from "./components/ThemeSwitcher";
+import DarkModeToggle from "./components/DarkModeToggle";
 import LanguageSwitcher from "./components/LanguageSwitcher";
 import CarbonFootprintCalculator from "./components/CarbonFootprintCalculator";
 import Leaderboard from "./components/Leaderboard";
@@ -455,6 +456,7 @@ function SectionNav({ activeSection, onSectionChange }) {
           ))}
           <div className="nav-divider"></div>
           <LanguageSwitcher />
+          <DarkModeToggle />
           <ThemeSwitcher />
         </div>
       </nav>
@@ -571,6 +573,7 @@ function SectionNav({ activeSection, onSectionChange }) {
         </nav>
 
         <LanguageSwitcher />
+        <DarkModeToggle />
         <ThemeSwitcher />
       </header>
     </>

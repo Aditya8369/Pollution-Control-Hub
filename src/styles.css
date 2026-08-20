@@ -11456,3 +11456,106 @@ a {
   opacity: 0.6;
   cursor: default;
 }
+
+/* ============================================================
+   Dark-Mode Toggle — Issue #748
+   Quick binary switch: dark ↔ light.
+   Uses existing CSS custom properties so it works across all
+   themes without extra overrides.
+   ============================================================ */
+
+.dark-mode-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.25rem 0.5rem 0.25rem 0.3rem;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    border-color 0.2s var(--ease, ease),
+    background 0.2s var(--ease, ease);
+}
+
+.dark-mode-toggle:hover {
+  border-color: var(--brand);
+  background: color-mix(in srgb, var(--brand) 10%, transparent);
+}
+
+.dark-mode-toggle:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}
+
+/* The pill track */
+.dark-mode-toggle__track {
+  position: relative;
+  display: inline-block;
+  width: 2.6rem;
+  height: 1.4rem;
+  border-radius: 999px;
+  background: var(--line);
+  flex-shrink: 0;
+  transition: background 0.25s var(--ease, ease);
+}
+
+.dark-mode-toggle--dark .dark-mode-toggle__track {
+  background: var(--brand);
+}
+
+/* The sliding thumb */
+.dark-mode-toggle__thumb {
+  position: absolute;
+  top: 50%;
+  left: 0.15rem;
+  transform: translateY(-50%);
+  width: 1.1rem;
+  height: 1.1rem;
+  border-radius: 50%;
+  background: var(--card);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    left 0.25s var(--ease, ease),
+    background 0.2s var(--ease, ease);
+}
+
+.dark-mode-toggle--dark .dark-mode-toggle__thumb {
+  left: calc(100% - 1.25rem);
+}
+
+/* Icon inside the thumb */
+.dark-mode-toggle__icon {
+  font-size: 0.65rem;
+  line-height: 1;
+  user-select: none;
+}
+
+/* Text label next to the pill */
+.dark-mode-toggle__label {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 600;
+  transition: color 0.2s;
+}
+
+.dark-mode-toggle:hover .dark-mode-toggle__label,
+.dark-mode-toggle--dark .dark-mode-toggle__label {
+  color: var(--ink);
+}
+
+/* Respect reduced-motion preference */
+@media (prefers-reduced-motion: reduce) {
+  .dark-mode-toggle,
+  .dark-mode-toggle__track,
+  .dark-mode-toggle__thumb {
+    transition: none;
+  }
+}
