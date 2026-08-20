@@ -25,6 +25,7 @@ import CityCompare from "./components/CityCompare";
 import IndoorTracker from "./components/IndoorTracker";
 import ExposureTracker from "./components/ExposureTracker";
 import SunSafetyDashboard from "./components/SunSafetyDashboard";
+import AIPollutionCopilot from "./components/AIPollutionCopilot";
 import {
   estimateWeeklyMonthlyAverages,
   fetchAirQualityByCoords,
@@ -314,6 +315,7 @@ function SectionNav({ activeSection, onSectionChange }) {
   const { t } = useTranslation();
   const sections = [
     { id: "home", label: "Home" },
+    { id: "copilot", label: "AI Copilot" },
     { id: "getting-started", label: "Getting Started" },
     { id: "Compare", label: "Compare" },
     { id: "exposure", label: "Exposure Calculator" },
@@ -1172,6 +1174,23 @@ function AppContent() {
                 }}
               >
                 <ExposureCalculator currentAqi={current?.us_aqi || 100} />
+              </div>
+            )}
+
+            {activeSection === "copilot" && (
+              <div
+                className="content-grid copilot-layout"
+                style={{
+                  maxWidth: "900px",
+                  margin: "2rem auto",
+                  width: "100%",
+                  display: "block"
+                }}
+              >
+                <AIPollutionCopilot
+                  current={current}
+                  cityName={position.cityName}
+                />
               </div>
             )}
 
