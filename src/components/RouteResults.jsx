@@ -38,28 +38,28 @@ function ActiveRouteStats({ activeRoute, mode = "" }) {
           gap: '1rem',
           marginBottom: '1.5rem',
           padding: '1rem 1.25rem',
-          background: '#f8fafc',
-          border: '1px solid #e2e8f0',
+          background: 'var(--card)',
+          border: '1px solid var(--line)',
           borderRadius: '0.75rem',
         }}
       >
         <div>
-          <div style={{ fontSize: '0.75rem', letterSpacing: '0.04em', textTransform: 'uppercase', color: '#475569', marginBottom: '0.25rem' }}>
+          <div style={{ fontSize: '0.75rem', letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: '0.25rem' }}>
             Mode
           </div>
-          <strong style={{ fontSize: '1rem', color: '#0f172a' }}>{routeMode}</strong>
+          <strong style={{ fontSize: '1rem', color: 'var(--ink)' }}>{routeMode}</strong>
         </div>
         <div>
-          <div style={{ fontSize: '0.75rem', letterSpacing: '0.04em', textTransform: 'uppercase', color: '#475569', marginBottom: '0.25rem' }}>
+          <div style={{ fontSize: '0.75rem', letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: '0.25rem' }}>
             PM2.5
           </div>
-          <strong style={{ fontSize: '1rem', color: '#0f172a' }}>{formatReading(activeRoute.pm25, 'µg/m³')}</strong>
+          <strong style={{ fontSize: '1rem', color: 'var(--ink)' }}>{formatReading(activeRoute.pm25, 'µg/m³')}</strong>
         </div>
         <div>
-          <div style={{ fontSize: '0.75rem', letterSpacing: '0.04em', textTransform: 'uppercase', color: '#475569', marginBottom: '0.25rem' }}>
+          <div style={{ fontSize: '0.75rem', letterSpacing: '0.04em', textTransform: 'uppercase', color: 'var(--muted)', marginBottom: '0.25rem' }}>
             Inhaled dose
           </div>
-          <strong style={{ fontSize: '1rem', color: '#0f172a' }}>{formatReading(activeRoute.inhaledDose, 'µg')}</strong>
+          <strong style={{ fontSize: '1rem', color: 'var(--ink)' }}>{formatReading(activeRoute.inhaledDose, 'µg')}</strong>
         </div>
       </div>
 
@@ -71,9 +71,9 @@ function ActiveRouteStats({ activeRoute, mode = "" }) {
             padding: '0.75rem 1rem',
             marginBottom: '1.25rem',
             borderRadius: '0.5rem',
-            backgroundColor: '#f8fafc',
-            border: '1px solid #dbeafe',
-            color: '#1e3a8a',
+            backgroundColor: 'var(--bg-card-alt, var(--card))',
+            border: '1px solid var(--line)',
+            color: 'var(--ink)',
           }}
         >
           {coverageText}

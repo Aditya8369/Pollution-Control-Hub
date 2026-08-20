@@ -76,15 +76,15 @@
   padding: 1rem;
   margin-bottom: 0.75rem;
   border-radius: 0.5rem;
-  border: 2px solid #e5e7eb;
-  background: #ffffff;
+  border: 2px solid var(--line);
+  background: var(--card);
   cursor: pointer;
   transition: all 0.2s ease-in-out;
 }
 
 .commute-route-option.active {
-  border-color: #0d9488;
-  background: #f0fdfa;
+  border-color: var(--brand);
+  background: color-mix(in srgb, var(--brand) 12%, var(--card));
 }
 
 .commute-route-option-head {
@@ -96,11 +96,11 @@
 
 .commute-route-option-title {
   font-size: 1.1rem;
-  color: #374151;
+  color: var(--ink);
 }
 
 .commute-route-option.active .commute-route-option-title {
-  color: #0f766e;
+  color: var(--brand);
 }
 
 .commute-cleanest-wrap {
@@ -122,7 +122,7 @@
   display: flex;
   justify-content: space-between;
   font-size: 0.9rem;
-  color: #4b5563;
+  color: var(--muted);
 }
 
 .commute-route-pm {
@@ -139,6 +139,82 @@
   display: inline-flex;
   align-items: center;
   gap: 0.25rem;
+}
+
+.commute-comparison {
+  margin: 1.5rem 0;
+  border: 1px solid var(--line);
+  border-radius: 0.75rem;
+  overflow: hidden;
+  background: var(--card);
+}
+
+.commute-comparison-toggle {
+  width: 100%;
+  text-align: left;
+  padding: 0.75rem 1rem;
+  background: var(--bg-card-alt, var(--card));
+  border: none;
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.commute-comparison-table-wrap {
+  overflow-x: auto;
+}
+
+.commute-comparison-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+  color: var(--ink);
+}
+
+.commute-comparison-table th,
+.commute-comparison-table td {
+  padding: 0.6rem 1rem;
+  text-align: left;
+  border-top: 1px solid var(--line);
+  white-space: nowrap;
+}
+
+.commute-comparison-table th {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+
+.commute-comparison-row--active {
+  background: color-mix(in srgb, var(--sky, var(--brand)) 10%, transparent);
+}
+
+.commute-comparison-row--recommended td {
+  color: #22c55e;
+  font-weight: 600;
+}
+
+.commute-comparison-select {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  font-weight: 600;
+  color: var(--brand);
+  cursor: pointer;
+  text-decoration: underline;
+  text-decoration-style: dotted;
+}
+
+.commute-comparison-badge {
+  background: #22c55e;
+  color: #ffffff;
+  padding: 0.2rem 0.5rem;
+  border-radius: 1rem;
+  font-size: 0.72rem;
+  font-weight: bold;
 }
 
 .commute-map-container {
