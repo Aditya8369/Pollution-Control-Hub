@@ -62,6 +62,50 @@ export default defineConfig({
       devOptions: { enabled: false },
     }),
   ],
+  build: {
+    rollupOptions: {
+      output: {
+        // Everything that is not lazy-loaded landed in one entry chunk, and that
+        // chunk had grown to 2.11 MB — past Workbox's 2 MiB precache ceiling, which
+        // fails `vite build` outright rather than warning. Raising
+        // `maximumFileSizeToCacheInBytes` would silence the message and leave the
+        // real problem: one 2 MB file the browser re-downloads in full every time
+        // any line of app code changes.
+        //
+        // Splitting on the libraries instead means a normal app change invalidates
+        // only the app chunk, and every chunk stays under the limit so the service
+        // worker can precache all of them.
+        //
+        // Matched on the module path rather than declared as `{ name: [pkg] }`.
+        // The array form only names a package's entry module, so react-dom's real
+        // payload — `react-dom/cjs/react-dom.production.min.js`, reached through a
+        // re-export — is a different module and lands somewhere else. Matching the
+        // path catches a package and everything under it.
+        manualChunks(id) {
+          if (!id.includes("node_modules")) return undefined;
+
+          // Grouped by what changes together, not one chunk per package. A chunk
+          // per package costs a request each and buys nothing, since these always
+          // ship as a set.
+          const groups = {
+            "vendor-react": ["/react/", "/react-dom/", "/scheduler/"],
+            "vendor-charts": ["/recharts/", "/d3-", "/victory-vendor/"],
+            "vendor-maps": ["/leaflet/", "/react-leaflet/", "/@react-leaflet/"],
+            "vendor-export": ["/jspdf/", "/html2canvas/", "/canvg/", "/dompurify/"],
+            "vendor-i18n": ["/i18next/", "/react-i18next/", "/i18next-browser-languagedetector/"],
+          };
+
+          const normalised = id.replace(/\\/g, "/");
+          for (const [chunk, prefixes] of Object.entries(groups)) {
+            if (prefixes.some((p) => normalised.includes(`node_modules${p}`))) {
+              return chunk;
+            }
+          }
+          return undefined;
+        },
+      },
+    },
+  },
   test: {
     environment: "jsdom",
     globals: true,
