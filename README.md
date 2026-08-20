@@ -15,9 +15,9 @@ A community-driven web app that turns raw air quality data into clear health gui
 </p>
 
 <p>
-  <img src="https://img.shields.io/github/issues/Aditya8369/Pollution-Control-Hub?style=flat-square" alt="Issues" />
-  <img src="https://img.shields.io/github/forks/Aditya8369/Pollution-Control-Hub?style=flat-square" alt="Forks" />
-  <img src="https://img.shields.io/github/stars/Aditya8369/Pollution-Control-Hub?style=flat-square" alt="Stars" />
+  <img src="https://img.shields.io/github/issues/Aditya8369/Pollution-Control-Hub.svg?style=flat-square" alt="Issues" />
+  <img src="https://img.shields.io/github/forks/Aditya8369/Pollution-Control-Hub.svg?style=flat-square" alt="Forks" />
+  <img src="https://img.shields.io/github/stars/Aditya8369/Pollution-Control-Hub.svg?style=flat-square" alt="Stars" />
   <img src="https://img.shields.io/badge/ECSoC-26-blueviolet?style=flat-square" alt="ECSoC26" />
 </p>
 
