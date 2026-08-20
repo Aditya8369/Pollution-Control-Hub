@@ -77,6 +77,18 @@ export default [
 
       ...jsxA11y.configs.recommended.rules,
 
+      // A horizontal scroll container has to be reachable by keyboard, or its overflow
+      // is unreadable without a mouse or a trackpad gesture. The WAI-ARIA authoring
+      // practice for that is exactly `role="region"` with an accessible name and
+      // `tabindex="0"` — the rule's own `roles` option exists for this case and already
+      // ships `tabpanel` in it for the same reason. Adding `region` rather than
+      // scattering eslint-disable comments, because the next scrollable panel will hit
+      // this too.
+      'jsx-a11y/no-noninteractive-tabindex': [
+        'error',
+        { tags: [], roles: ['tabpanel', 'region'], allowExpressionValues: true },
+      ],
+
       // `catch (_e)` is the established convention in this codebase for an error that is
       // deliberately swallowed. ESLint 9 defaults `caughtErrors` to 'all', which turned
       // every one of them into an error.

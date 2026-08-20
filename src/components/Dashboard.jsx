@@ -175,7 +175,10 @@ export default function Dashboard({
     e.dataTransfer.setData("text/plain", index.toString());
   };
 
-  const handleDragOver = (e, index) => {
+  // `_index` is unused: the drop target is decided in handleDrop, and this handler
+  // exists only to call preventDefault, without which the browser refuses the drop.
+  // The parameter stays in the signature because it documents what the row passes.
+  const handleDragOver = (e, _index) => {
     e.preventDefault();
   };
 
@@ -982,12 +985,16 @@ export default function Dashboard({
               </p>
             )}
             {hourlyWeather && hourlyWeather.length > 0 && (
-              <div 
-                // A11Y FIX: Make horizontal scrolling container accessible via keyboard tab
+              <div
+                // A horizontal scroll container has to be reachable by keyboard, or its
+                // overflow is unreadable without a mouse. `role="region"` with an
+                // accessible name and `tabIndex={0}` is the WAI-ARIA authoring practice
+                // for that; see the `no-noninteractive-tabindex` option in
+                // eslint.config.js.
                 style={{ display: 'flex', gap: '0.75rem', overflowX: 'auto', paddingBottom: '0.5rem' }}
                 tabIndex={0}
                 role="region"
-                aria-label="Hourly weather scrollable list"
+                aria-label="Hourly weather, scrollable"
               >
                 <div style={{ display: 'flex', gap: '0.75rem' }} role="list">
                   {hourlyWeather.map((point) => (
