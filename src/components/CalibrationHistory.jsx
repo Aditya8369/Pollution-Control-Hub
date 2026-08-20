@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import PropTypes from 'prop-types';
 import {
   getCalibrationHistory,
   getCalibrationVersion,
@@ -13,7 +14,14 @@ export default function CalibrationHistory({ sensorId }) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
 
-  async function loadHistory() {
+  // Which sensor the panel is currently showing. A read for a sensor the user has
+  // already navigated away from must not land on top of a newer one — without this,
+  // whichever IndexedDB request finished last won, so the panel could show sensor A's
+  // revisions under sensor B's heading.
+  const activeSensorRef = useRef(sensorId);
+  activeSensorRef.current = sensorId;
+
+  const loadHistory = useCallback(async () => {
     if (!sensorId) return;
 
     setLoading(true);
@@ -21,17 +29,26 @@ export default function CalibrationHistory({ sensorId }) {
 
     try {
       const history = await getCalibrationHistory(sensorId);
+      if (activeSensorRef.current !== sensorId) return;
       setVersions(history);
     } catch (err) {
+      if (activeSensorRef.current !== sensorId) return;
       setError(err.message || 'Failed to load calibration history.');
+      // Leaving stale revisions on screen next to an error implies they belong to this
+      // sensor. They may not.
+      setVersions([]);
     } finally {
-      setLoading(false);
+      if (activeSensorRef.current === sensorId) setLoading(false);
     }
-  }
+  }, [sensorId]);
 
   useEffect(() => {
+    // Clear before reading, so the previous sensor's revisions are never shown under the
+    // new sensor's heading while the new read is in flight.
+    setVersions([]);
+    setSelectedVersion(null);
     loadHistory();
-  }, [sensorId]);
+  }, [loadHistory]);
 
   async function handleSave(event) {
     event.preventDefault();
@@ -203,3 +220,7 @@ export default function CalibrationHistory({ sensorId }) {
     </section>
   );
 }
+
+CalibrationHistory.propTypes = {
+  sensorId: PropTypes.string,
+};
