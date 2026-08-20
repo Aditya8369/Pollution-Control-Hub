@@ -320,7 +320,9 @@
     "weeklyAvg": "Weekly Avg AQI",
     "monthlyAvg": "Monthly Avg AQI",
     "predicted": "Predicted Next-Day AQI",
-    "shortTerm": "Short-Term AQI Pattern ({{range}}h)"
+    "shortTerm": "Short-Term AQI Pattern ({{range}}h)",
+    "noData": "Not enough data",
+    "noReadings": "No hourly readings for this window yet — the pattern will appear once measurements arrive."
   },
   "scenarioSimulator": {
     "title": "Scenario Simulator",

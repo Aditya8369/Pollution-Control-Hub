@@ -31,8 +31,10 @@ export function getEmbeddedStyles() {
             }
           }
         }
-      } catch (e) {
-        // Ignore cross-origin stylesheet errors
+      } catch {
+        // A stylesheet from another origin throws on `cssRules` access. There is
+        // nothing to recover — the rules are simply not readable — so the export
+        // continues with whatever same-origin sheets it could reach.
       }
     }
   } catch (e) {
