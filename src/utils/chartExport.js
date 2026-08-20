@@ -92,30 +92,43 @@ function downloadFile(content, mimeType, filename) {
 
 /**
  * Exports the chart SVG to a standalone .svg file.
+ *
  * @param {Element} containerElement - Element containing the svg
  * @param {string} filename
+ * @returns {boolean} Whether there was a chart to export.
  */
 export function exportToSVG(containerElement, filename = "chart.svg") {
-  const svg = containerElement.querySelector("svg");
+  const svg = containerElement?.querySelector("svg");
   if (!svg) {
-    console.error("No SVG element found for export");
-    return;
+    // Returning false rather than logging: the caller is a click handler and is the
+    // only place that knows how to tell the person in front of it.
+    return false;
   }
   const svgString = serializeSVG(svg);
   downloadFile(svgString, "image/svg+xml;charset=utf-8", filename);
+  return true;
 }
 
 /**
  * Exports the chart SVG to a .png file with high-DPI resolution support.
+ *
+ * Returns a promise so a caller can tell a finished export from a failed one. It used to
+ * return `undefined` the instant it started the `img.onload` -> `canvas.toBlob` ->
+ * `link.click()` chain, which meant a silent failure was indistinguishable from success —
+ * `AnalyticsInsights` calls this from a click handler and had nothing to branch on. It is
+ * also why the test for it had to guess at a `setTimeout(..., 50)`: there was nothing to
+ * await, so the assertion fired after the test had already passed and escaped as an
+ * unhandled error (#904).
+ *
  * @param {Element} containerElement - Element containing the svg
  * @param {string} filename
  * @param {number} scaleMultiplier - Quality scale factor (defaults to 2 for crisp resolution)
+ * @returns {Promise<void>} Resolves once the download has been triggered.
  */
 export function exportToPNG(containerElement, filename = "chart.png", scaleMultiplier = 2) {
-  const svg = containerElement.querySelector("svg");
+  const svg = containerElement?.querySelector("svg");
   if (!svg) {
-    console.error("No SVG element found for export");
-    return;
+    return Promise.reject(new Error("No SVG element found for export"));
   }
 
   const svgString = serializeSVG(svg);
@@ -132,8 +145,7 @@ export function exportToPNG(containerElement, filename = "chart.png", scaleMulti
   
   const ctx = canvas.getContext("2d");
   if (!ctx) {
-    console.error("Failed to get 2d context");
-    return;
+    return Promise.reject(new Error("Failed to get a 2d canvas context"));
   }
 
   // Handle high-DPI scaling
@@ -143,13 +155,22 @@ export function exportToPNG(containerElement, filename = "chart.png", scaleMulti
   const svgBlob = new Blob([svgString], { type: "image/svg+xml;charset=utf-8" });
   const url = URL.createObjectURL(svgBlob);
 
-  img.onload = () => {
-    ctx.clearRect(0, 0, width, height);
-    ctx.drawImage(img, 0, 0, width, height);
-    
-    // Convert to PNG blob and download
-    canvas.toBlob((blob) => {
-      if (blob) {
+  return new Promise((resolve, reject) => {
+    img.onload = () => {
+      ctx.clearRect(0, 0, width, height);
+      ctx.drawImage(img, 0, 0, width, height);
+
+      // Convert to PNG blob and download
+      canvas.toBlob((blob) => {
+        URL.revokeObjectURL(url);
+
+        if (!blob) {
+          // Previously this branch did nothing at all, so a canvas the browser
+          // refused to encode looked exactly like a successful export.
+          reject(new Error("The canvas could not be encoded as a PNG"));
+          return;
+        }
+
         const link = document.createElement("a");
         link.href = URL.createObjectURL(blob);
         link.download = filename;
@@ -157,15 +178,15 @@ export function exportToPNG(containerElement, filename = "chart.png", scaleMulti
         link.click();
         document.body.removeChild(link);
         URL.revokeObjectURL(link.href);
-      }
+        resolve();
+      }, "image/png");
+    };
+
+    img.onerror = () => {
       URL.revokeObjectURL(url);
-    }, "image/png");
-  };
+      reject(new Error("Failed to load the chart SVG into an image for PNG conversion"));
+    };
 
-  img.onerror = (err) => {
-    console.error("Failed to load SVG into image for PNG conversion:", err);
-    URL.revokeObjectURL(url);
-  };
-
-  img.src = url;
+    img.src = url;
+  });
 }

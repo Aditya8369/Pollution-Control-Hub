@@ -1,5 +1,5 @@
-import { render, screen } from '@testing-library/react';
-import { describe, it, expect, vi, afterEach } from 'vitest';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import AnalyticsInsights, { formatKpi, buildTrendSeries } from './AnalyticsInsights';
 
 /**
@@ -34,6 +34,11 @@ vi.mock('../utils/chartExport', () => ({ exportToSVG, exportToPNG }));
 
 afterEach(() => {
     vi.clearAllMocks();
+});
+
+beforeEach(() => {
+    exportToSVG.mockReturnValue(true);
+    exportToPNG.mockResolvedValue(undefined);
 });
 
 /** An hour's worth of trend, `count` entries long. */
@@ -194,3 +199,43 @@ describe('AnalyticsInsights - the chart', () => {
         expect(screen.getByRole('button', { name: 'PNG' })).toBeEnabled();
     });
 });
+
+/**
+ * #904. `exportToPNG` was fire-and-forget, so a browser that refused to encode the
+ * canvas produced no file and no message — the button simply did nothing.
+ */
+describe('AnalyticsInsights - export failures', () => {
+    it('says so when the PNG export fails', async () => {
+        exportToPNG.mockRejectedValue(new Error('The canvas could not be encoded as a PNG'));
+
+        render(<AnalyticsInsights trend={trendOf(24)} timeRange={24} />);
+        fireEvent.click(screen.getByRole('button', { name: 'PNG' }));
+
+        expect(await screen.findByTestId('analytics-export-error')).toHaveTextContent(
+            /could not be exported/i
+        );
+    });
+
+    it('says so when there is no chart for the SVG export to find', () => {
+        exportToSVG.mockReturnValue(false);
+
+        render(<AnalyticsInsights trend={trendOf(24)} timeRange={24} />);
+        fireEvent.click(screen.getByRole('button', { name: 'SVG' }));
+
+        expect(screen.getByTestId('analytics-export-error')).toBeInTheDocument();
+    });
+
+    it('shows nothing when the export succeeds', async () => {
+        exportToSVG.mockReturnValue(true);
+        exportToPNG.mockResolvedValue(undefined);
+
+        render(<AnalyticsInsights trend={trendOf(24)} timeRange={24} />);
+        fireEvent.click(screen.getByRole('button', { name: 'SVG' }));
+        fireEvent.click(screen.getByRole('button', { name: 'PNG' }));
+
+        await waitFor(() =>
+            expect(screen.queryByTestId('analytics-export-error')).not.toBeInTheDocument()
+        );
+    });
+});
+
