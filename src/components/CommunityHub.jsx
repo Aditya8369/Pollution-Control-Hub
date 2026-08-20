@@ -1,6 +1,14 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { eventBus } from '../core/events';
+import InfoTooltip from './InfoTooltip';
+import { useAuth } from '../context/AuthContext';
+import { hasPermission } from '../config/rbac';
+import { fetchAirQualityByCoords } from '../services/airQualityService';
+import {
+  computeVerificationScore,
+  findNearbyReports,
+} from '../services/verificationService';
 
 const STORAGE_KEY = 'pollution-community-reports';
 const VOTES_STORAGE_KEY = 'pollution-community-voted-ids';
@@ -116,6 +124,9 @@ function readVotedIds() {
 
 export default function CommunityHub() {
   const { t } = useTranslation();
+  const { user } = useAuth() || {};
+  const isModerator = user && hasPermission(user.role, 'edit:report');
+
   const [reports, setReports] = useState(() => readReports());
   const [votedIds, setVotedIds] = useState(() => readVotedIds());
   const [filter, setFilter] = useState('All');
@@ -132,6 +143,14 @@ export default function CommunityHub() {
   const [locationCoords, setLocationCoords] = useState(null);
   const [locationStatus, setLocationStatus] = useState('idle');
   const [commentDrafts, setCommentDrafts] = useState({});
+
+  // Verification: keyed by report.id → VerificationResult
+  const [verificationResults, setVerificationResults] = useState({});
+
+  // AQI cache: keyed by "lat,lon" (2 d.p.) → AQI data object.
+  // useRef keeps a mutable map across renders without triggering re-renders.
+  const aqiCacheRef = useRef({});
+  const aqiCache = aqiCacheRef.current;
 
   useEffect(() => {
     try {
@@ -183,6 +202,56 @@ export default function CommunityHub() {
   useEffect(() => {
     localStorage.setItem(VOTES_STORAGE_KEY, JSON.stringify([...votedIds]));
   }, [votedIds]);
+
+  // ── Verification computation ───────────────────────────────────────────────
+  // Runs whenever reports change. For geotagged reports, fetches live AQI at
+  // that location (using skipGrid=true to avoid the 9-point grid fetch), cached
+  // in-memory so re-renders don't trigger extra network calls.
+  useEffect(() => {
+    let cancelled = false;
+
+    async function computeAll() {
+      const updates = {};
+
+      for (const report of reports) {
+        if (cancelled) return;
+
+        let aqiData = null;
+        if (typeof report.latitude === 'number' && typeof report.longitude === 'number') {
+          const cacheKey = `${report.latitude.toFixed(2)},${report.longitude.toFixed(2)}`;
+          if (aqiCache[cacheKey]) {
+            aqiData = aqiCache[cacheKey];
+          } else {
+            try {
+              aqiData = await fetchAirQualityByCoords(
+                report.latitude,
+                report.longitude,
+                undefined,
+                true // skipGrid
+              );
+              aqiCache[cacheKey] = aqiData;
+            } catch {
+              // AQI unavailable — relevant factors will score 0
+            }
+          }
+        }
+
+        const nearbyReports = findNearbyReports(report, reports);
+        updates[report.id] = computeVerificationScore(report, {
+          aqiData,
+          nearbyReports,
+          allReports: reports,
+        });
+      }
+
+      if (!cancelled) {
+        setVerificationResults(updates);
+      }
+    }
+
+    computeAll();
+    return () => { cancelled = true; };
+  }, [reports]); // aqiCache is a stable ref — intentionally omitted
 
   const handleGetLocation = () => {
     if (!navigator.geolocation) {
@@ -373,7 +442,14 @@ export default function CommunityHub() {
   const filteredReports = reports.filter((report) => {
     if (hashtagFilter !== 'All' && report.hashtag !== hashtagFilter) return false;
     if (filter === 'All') return true;
+    // Existing status-based filters
     if (filter === 'Verified') return report.status.startsWith('Verified');
+    if (filter === 'Pending' || filter === 'Addressed') return report.status === filter;
+    // Verification-state filters (computed, not persisted)
+    if (filter === 'Likely' || filter === 'Unverified') {
+      const vr = verificationResults[report.id];
+      return vr ? vr.verificationState === filter : false;
+    }
     return report.status === filter;
   });
 
@@ -389,7 +465,63 @@ export default function CommunityHub() {
     if (option === 'Pending') return t('communityHub.filterPending', 'Pending');
     if (option === 'Verified') return t('communityHub.filterVerified', 'Verified');
     if (option === 'Addressed') return t('communityHub.filterAddressed', 'Addressed');
+    if (option === 'Likely') return t('communityHub.filterLikely', 'Likely');
+    if (option === 'Unverified') return t('communityHub.filterUnverified', 'Unverified');
     return option;
+  };
+
+  /** Returns badge color based on verification state. */
+  const verificationBadgeStyle = (state, isDuplicate) => {
+    if (isDuplicate) return { background: '#fff7ed', color: '#c2410c' };
+    if (state === 'Verified') return { background: '#dcfce7', color: '#166534' };
+    if (state === 'Likely') return { background: '#fef9c3', color: '#854d0e' };
+    return { background: '#f1f5f9', color: '#475569' };
+  };
+
+  /** Builds the tooltip text from the 5-factor breakdown. */
+  const buildTooltipText = (result) => {
+    if (!result) return '';
+    const title = t('communityHub.verificationTooltipTitle', 'Confidence Breakdown');
+    const lines = result.factors.map(
+      (f) => `${t('communityHub.' + f.label, f.label)}: ${f.score}/${f.max}`
+    );
+    return `${title}\n${lines.join('\n')}`;
+  };
+
+  /** Moderator action: flag a report as suspicious (override → unverified). */
+  const handleMarkSuspicious = (reportId) => {
+    setReports((prev) =>
+      prev.map((r) =>
+        r.id !== reportId
+          ? r
+          : {
+              ...r,
+              moderatorOverride: 'unverified',
+              moderationNotes: t(
+                'communityHub.moderatorMarkSuspicious',
+                'Mark Suspicious'
+              ) + ' — ' + new Date().toISOString(),
+            }
+      )
+    );
+  };
+
+  /** Moderator action: force a report to Verified state. */
+  const handleModeratorVerify = (reportId) => {
+    setReports((prev) =>
+      prev.map((r) =>
+        r.id !== reportId
+          ? r
+          : {
+              ...r,
+              moderatorOverride: 'verified',
+              moderationNotes: t(
+                'communityHub.moderatorOverrideVerified',
+                'Override: Verified'
+              ) + ' — ' + new Date().toISOString(),
+            }
+      )
+    );
   };
 
   return (
@@ -467,8 +599,8 @@ export default function CommunityHub() {
         </button>
       </form>
 
-      <div className="filter-tabs" style={{ display: 'flex', gap: '8px', margin: '15px 0' }}>
-        {['All', 'Pending', 'Verified', 'Addressed'].map((statusOption) => (
+      <div className="filter-tabs" style={{ display: 'flex', gap: '8px', margin: '15px 0', flexWrap: 'wrap' }}>
+        {['All', 'Pending', 'Verified', 'Likely', 'Unverified', 'Addressed'].map((statusOption) => (
           <button
             key={statusOption}
             type="button"
@@ -499,13 +631,32 @@ export default function CommunityHub() {
         ) : (
           filteredReports.map((report) => {
             const isVoted = votedIds.has(report.id);
+            const vr = verificationResults[report.id];
+            const vrState = vr?.verificationState ?? null;
+            const vrScore = vr?.confidenceScore ?? null;
+            const vrIsDuplicate = vr?.isDuplicate ?? false;
+            const vrBadgeStyle = verificationBadgeStyle(vrState, vrIsDuplicate);
+            const vrTooltipText = buildTooltipText(vr);
             return (
               <div key={report.id} className="report-card" style={{ border: '1px solid var(--line)', padding: '15px', borderRadius: '8px', background: 'var(--card)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                  <h3 style={{ margin: 0, fontSize: '1.1rem' }}>{report.title}</h3>
-                  <span className={`status-badge ${report.status.toLowerCase().replace(/[^a-z]/g, '')}`} style={{ fontSize: '0.8rem', padding: '2px 8px', borderRadius: '12px', background: report.status.startsWith('Verified') ? '#dcfce7' : '#fef3c7', color: report.status.startsWith('Verified') ? '#166534' : '#92400e' }}>
-                    {statusLabel(report.status)}
-                  </span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px', gap: '8px', flexWrap: 'wrap' }}>
+                  <h3 style={{ margin: 0, fontSize: '1.1rem', flex: 1, minWidth: 0 }}>{report.title}</h3>
+                  <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexShrink: 0 }}>
+                    <span className={`status-badge ${report.status.toLowerCase().replace(/[^a-z]/g, '')}`} style={{ fontSize: '0.8rem', padding: '2px 8px', borderRadius: '12px', background: report.status.startsWith('Verified') ? '#dcfce7' : '#fef3c7', color: report.status.startsWith('Verified') ? '#166534' : '#92400e' }}>
+                      {statusLabel(report.status)}
+                    </span>
+                    {vrState !== null && (
+                      <span
+                        className="verification-badge"
+                        style={{ fontSize: '0.8rem', padding: '2px 8px', borderRadius: '12px', display: 'inline-flex', alignItems: 'center', gap: '4px', ...vrBadgeStyle }}
+                      >
+                        {vrIsDuplicate
+                          ? t('communityHub.statusDuplicate', 'Possible Duplicate')
+                          : t('communityHub.verificationBadge', '{{state}} ({{pct}}%)', { state: vrState === 'Verified' ? t('communityHub.filterVerified', 'Verified') : vrState === 'Likely' ? t('communityHub.filterLikely', 'Likely') : t('communityHub.filterUnverified', 'Unverified'), pct: vrScore })}
+                        {vrTooltipText && <InfoTooltip text={vrTooltipText} />}
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <p style={{ margin: '0 0 10px 0', color: 'var(--muted)', fontSize: '0.95rem' }}>{report.description}</p>
                 {report.hashtag && (
@@ -580,6 +731,55 @@ export default function CommunityHub() {
                     </button>
                   </form>
                 </div>
+
+                {isModerator && (
+                  <div
+                    className="moderator-panel"
+                    style={{
+                      marginTop: '12px',
+                      borderTop: '1px dashed var(--line)',
+                      paddingTop: '10px',
+                      display: 'flex',
+                      gap: '8px',
+                      alignItems: 'center',
+                      flexWrap: 'wrap',
+                    }}
+                  >
+                    <span style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--muted)', flex: '0 0 auto' }}>
+                      {t('communityHub.moderatorPanel', 'Moderator Actions')}:
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => handleMarkSuspicious(report.id)}
+                      style={{
+                        fontSize: '0.8rem',
+                        padding: '3px 10px',
+                        borderRadius: '6px',
+                        background: '#fef2f2',
+                        color: '#b91c1c',
+                        border: '1px solid #fecaca',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {t('communityHub.moderatorMarkSuspicious', 'Mark Suspicious')}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleModeratorVerify(report.id)}
+                      style={{
+                        fontSize: '0.8rem',
+                        padding: '3px 10px',
+                        borderRadius: '6px',
+                        background: '#f0fdf4',
+                        color: '#166534',
+                        border: '1px solid #bbf7d0',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {t('communityHub.moderatorOverrideVerified', 'Override: Verified')}
+                    </button>
+                  </div>
+                )}
               </div>
             );
           })

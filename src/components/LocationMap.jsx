@@ -20,6 +20,10 @@ import { useLiveHeatmap } from '../hooks/useLiveHeatmap';
 import PropTypes from "prop-types";
 import { getMapTileUrlTemplate, supportsWebP } from '../utils/mapTiles';
 import { loadHeatLayer } from '../utils/heatLayer';
+import {
+  computeVerificationScore,
+  findNearbyReports,
+} from '../services/verificationService';
 
 const SYMPTOM_REPORTS_STORAGE_KEY = 'pollution-symptom-reports';
 
@@ -186,6 +190,29 @@ export default function LocationMap({ center, nearbyPoints, confidenceScore, win
     iconSize: [28, 28],
     iconAnchor: [14, 14]
   });
+
+  /**
+   * Returns a Leaflet divIcon whose background colour reflects the report's
+   * verification state. Falls back to the default purple when state is unknown.
+   *
+   * @param {'Verified'|'Likely'|'Unverified'|null} state
+   * @param {boolean} isDuplicate
+   * @returns {L.DivIcon}
+   */
+  const makeVerificationIcon = (state, isDuplicate) => {
+    let bgColor = '#8b5cf6'; // default purple
+    if (isDuplicate) bgColor = '#f97316';
+    else if (state === 'Verified') bgColor = '#16a34a';
+    else if (state === 'Likely') bgColor = '#d97706';
+    else if (state === 'Unverified') bgColor = '#94a3b8';
+
+    return L.divIcon({
+      className: 'community-report-marker-icon',
+      html: `<div style="background-color: ${bgColor}; color: white; border: 2px solid white; border-radius: 50%; width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 16px; height: 16px;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>`,
+      iconSize: [28, 28],
+      iconAnchor: [14, 14],
+    });
+  };
 
   const symptomReportIcon = L.divIcon({
     className: 'symptom-report-marker-icon',
@@ -394,25 +421,55 @@ export default function LocationMap({ center, nearbyPoints, confidenceScore, win
               ))}
             </>
           )}
-          {showCommunityReports && communityReports.map((report) => (
-            <Marker
-              key={`community-report-${report.id}`}
-              position={[report.latitude, report.longitude]}
-              icon={communityReportIcon}
-            >
-              <Popup>
-                <div className="community-report-popup">
-                  <strong>{report.title}</strong>
-                  <div>{t("locationMap.reportStatus", "Status: {{status}}", { status: report.status })}</div>
-                  {report.createdAt && (
-                    <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '4px' }}>
-                      {new Date(report.createdAt).toLocaleString()}
+          {showCommunityReports && communityReports.map((report) => {
+            // Compute verification score synchronously — AQI data is not available
+            // on the map side (no async fetch here), so only the non-AQI factors
+            // (nearby reports, votes, freshness, duplicates) contribute. This keeps
+            // the map rendering fast and consistent with the CommunityHub badge.
+            const nearbyReports = findNearbyReports(report, communityReports);
+            const vr = computeVerificationScore(report, {
+              nearbyReports,
+              allReports: communityReports,
+            });
+            const icon = makeVerificationIcon(vr.verificationState, vr.isDuplicate);
+
+            const vrLabel = vr.isDuplicate
+              ? t('communityHub.statusDuplicate', 'Possible Duplicate')
+              : vr.verificationState === 'Verified'
+                ? t('communityHub.filterVerified', 'Verified')
+                : vr.verificationState === 'Likely'
+                  ? t('communityHub.filterLikely', 'Likely')
+                  : t('communityHub.filterUnverified', 'Unverified');
+
+            return (
+              <Marker
+                key={`community-report-${report.id}`}
+                position={[report.latitude, report.longitude]}
+                icon={icon}
+              >
+                <Popup>
+                  <div className="community-report-popup">
+                    <strong>{report.title}</strong>
+                    <div>{t("locationMap.reportStatus", "Status: {{status}}", { status: report.status })}</div>
+                    <div style={{ marginTop: '4px', fontSize: '0.82rem' }}>
+                      {t('communityHub.verificationBadge', '{{state}} ({{pct}}%)', {
+                        state: vrLabel,
+                        pct: vr.confidenceScore,
+                      })}
                     </div>
-                  )}
-                </div>
-              </Popup>
-            </Marker>
-          ))}
+                    <div style={{ fontSize: '0.82rem', color: '#475569', marginTop: '2px' }}>
+                      {t('communityHub.reportsNearby', 'Reports nearby: {{count}}', { count: vr.nearbyCount })}
+                    </div>
+                    {report.createdAt && (
+                      <div style={{ fontSize: '0.75rem', color: '#64748b', marginTop: '4px' }}>
+                        {new Date(report.createdAt).toLocaleString()}
+                      </div>
+                    )}
+                  </div>
+                </Popup>
+              </Marker>
+            );
+          })}
           {showSymptomReports && symptomReports.map((report) => (
             <Marker
               key={`symptom-report-${report.id}`}
