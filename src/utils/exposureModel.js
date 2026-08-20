@@ -150,6 +150,88 @@ export function getSeverity(ratio) {
 }
 
 /**
+ * Transport mode a logged activity can be tagged with. Descriptive metadata
+ * only for now — it does not currently change the exposure calculation,
+ * since the activity's own multiplier (e.g. "Traffic Commute") already
+ * captures the exposure effect; this records *how* rather than re-scoring it.
+ *
+ * @type {{ id: string, label: string }[]}
+ */
+export const TRANSPORT_MODES = [
+  { id: 'none', label: 'N/A' },
+  { id: 'walk', label: '🚶 Walking' },
+  { id: 'cycle', label: '🚲 Cycling' },
+  { id: 'car', label: '🚗 Car (AC on)' },
+  { id: 'auto', label: '🛺 Auto / Open-air' },
+  { id: 'bus', label: '🚌 Bus' },
+  { id: 'metro', label: '🚇 Metro / Train' },
+  { id: 'bike', label: '🏍️ Motorbike' },
+];
+
+/**
+ * A single multi-location exposure log entry — one activity done at one
+ * location, with its own AQI. Unlike {@link calculateExposure}, which scores
+ * a whole day against one ambient AQI, this lets each activity carry the AQI
+ * of wherever it actually happened (issue #865).
+ *
+ * @typedef {Object} ExposureLogEntry
+ * @property {string|number} id
+ * @property {string} type - One of the {@link ACTIVITIES} ids.
+ * @property {number} hours
+ * @property {string} locationName
+ * @property {number|null} aqi - Ambient US AQI at that location, or null if unavailable.
+ * @property {string} transportMode - One of the {@link TRANSPORT_MODES} ids.
+ */
+
+/**
+ * Scores a day built from several logged (activity, location, AQI) entries.
+ *
+ * @param {ExposureLogEntry[]} entries
+ * @returns {{
+ *   exposure: number, totalHours: number, ratio: number, percentOfGuideline: number,
+ *   severity: {label: string, color: string, bg: string},
+ *   breakdown: {entry: ExposureLogEntry, activity: any, hours: number, pm25: number, exposure: number}[],
+ *   dayCoverage: 'short'|'long'|null,
+ *   topContributor: {entry: ExposureLogEntry, activity: any, hours: number, pm25: number, exposure: number} | null
+ * }}
+ */
+export function calculateMultiLocationExposure(entries) {
+  const list = Array.isArray(entries) ? entries : [];
+
+  const breakdown = list.map((entry) => {
+    const activity = getActivity(entry?.type);
+    const hours = Number(entry?.hours);
+    const safeHours = Number.isFinite(hours) && hours > 0 ? hours : 0;
+    const pm25 = aqiToPm25(entry?.aqi);
+    const exposure = safeHours * activity.multiplier * pm25;
+    return { entry, activity, hours: safeHours, pm25, exposure };
+  });
+
+  const exposure = breakdown.reduce((sum, b) => sum + b.exposure, 0);
+  const totalHours = breakdown.reduce((sum, b) => sum + b.hours, 0);
+  const ratio = exposure / SAFE_DAILY_EXPOSURE;
+
+  let dayCoverage = null;
+  if (totalHours > 0 && totalHours < HOURS_IN_DAY) dayCoverage = 'short';
+  else if (totalHours > HOURS_IN_DAY) dayCoverage = 'long';
+
+  const topContributor = breakdown.reduce(
+    (max, b) => (!max || b.exposure > max.exposure ? b : max),
+    null
+  );
+
+  return {
+    exposure: Math.round(exposure),
+    totalHours: Math.round(totalHours * 10) / 10,
+    ratio,
+    percentOfGuideline: Math.round(ratio * 100),
+    severity: getSeverity(ratio),
+    breakdown,
+    dayCoverage,
+    topContributor,
+  };
+}
+/**
  * A single logged activity.
  * @typedef {Object} LoggedActivity
  * @property {number|string} id

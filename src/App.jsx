@@ -23,6 +23,7 @@ import Commute from "./components/Commute";
 import GettingStarted from "./components/GettingStarted";
 import CityCompare from "./components/CityCompare";
 import IndoorTracker from "./components/IndoorTracker";
+import ExposureTracker from "./components/ExposureTracker";
 import SunSafetyDashboard from "./components/SunSafetyDashboard";
 import {
   estimateWeeklyMonthlyAverages,
@@ -321,6 +322,7 @@ function SectionNav({ activeSection, onSectionChange }) {
     { id: "game", label: "Game" },
     { id: "community", label: "Community" },
     { id: "indoor", label: "Indoor Air" },
+    { id: "exposure-tracker", label: "Exposure Score" },
     { id: "history", label: "History" },
     { id: "historical-data", label: "Data Explorer" },
     { id: "Commute", label: "Commute" },
@@ -1185,6 +1187,15 @@ function AppContent() {
                 style={{ maxWidth: "1100px", margin: "2rem auto", width: "100%", display: "block" }}
               >
                 <IndoorTracker current={current} cityName={position.cityName} />
+              </div>
+            )}
+
+            {activeSection === "exposure-tracker" && (
+              <div
+                className="content-grid exposure-tracker-layout"
+                style={{ maxWidth: "1100px", margin: "2rem auto", width: "100%", display: "block" }}
+              >
+                <ExposureTracker current={current} cityName={position.cityName} />
               </div>
             )}
 
