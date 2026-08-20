@@ -23,6 +23,7 @@ import { getAQIBand, getPollutantColor, get7DayForecast, getWeatherDetails } fro
 import { fetchHourlyWeather } from "../services/weatherService";
 import MorningBriefing from "./MorningBriefing";
 import AnalyticsInsights from "./AnalyticsInsights";
+import AQIForecastChart from "./AQIForecastChart";
 import { eventBus } from "../core/events";
 import ChallengesWidget from "./ChallengesWidget";
 import WindPollutionRose from "./WindPollutionRose";
@@ -93,6 +94,21 @@ function CustomTooltip({ active, payload }) {
   return null;
 }
 
+/**
+ * The personalisable widget stack, in its default order.
+ *
+ * One table rather than an id list, a title ternary and a default array that all had to
+ * be edited together — adding the forecast panel to three places in agreement is exactly
+ * the kind of edit that half-lands.
+ */
+const DEFAULT_WIDGETS = [
+  { id: 'morning-briefing', title: 'Morning Briefing', visible: true },
+  { id: 'aqi-forecast', title: '24-72 Hour AQI Forecast', visible: true },
+  { id: 'challenges', title: 'Challenges & Activities', visible: true },
+  { id: 'factoid', title: 'Did You Know?', visible: true },
+  { id: 'analytics-insights', title: 'Analytics Insights', visible: true },
+];
+
 /** @param {any} params */
 export default function Dashboard({
   cityName,
@@ -133,15 +149,12 @@ export default function Dashboard({
         if (stored) {
           const parsed = JSON.parse(stored);
           if (Array.isArray(parsed) && parsed.length > 0) {
-            const defaultIds = ['morning-briefing', 'challenges', 'factoid', 'analytics-insights'];
-            const missing = defaultIds.filter(id => !parsed.some(w => w.id === id));
+            const defaultIds = DEFAULT_WIDGETS.map(w => w.id);
+            const missing = DEFAULT_WIDGETS.filter(w => !parsed.some(p => p.id === w.id));
             const cleaned = parsed.filter(w => defaultIds.includes(w.id));
-            missing.forEach(id => {
-              const title = id === 'morning-briefing' ? 'Morning Briefing' :
-                            id === 'challenges' ? 'Challenges & Activities' :
-                            id === 'factoid' ? 'Did You Know?' : 'Analytics Insights';
-              cleaned.push({ id, title, visible: true });
-            });
+            // A widget added after a visitor last saved their layout is appended
+            // visible, rather than being invisible until they reset their preferences.
+            missing.forEach(widget => cleaned.push({ ...widget }));
             return cleaned;
           }
         }
@@ -149,12 +162,7 @@ export default function Dashboard({
     } catch (e) {
       console.error("Failed to load dashboard layout preference", e);
     }
-    return [
-      { id: 'morning-briefing', title: 'Morning Briefing', visible: true },
-      { id: 'challenges', title: 'Challenges & Activities', visible: true },
-      { id: 'factoid', title: 'Did You Know?', visible: true },
-      { id: 'analytics-insights', title: 'Analytics Insights', visible: true }
-    ];
+    return DEFAULT_WIDGETS.map(widget => ({ ...widget }));
   });
 
   useEffect(() => {
@@ -767,6 +775,8 @@ export default function Dashboard({
             switch (widget.id) {
               case 'morning-briefing':
                 return <MorningBriefing key="morning-briefing" current={current} trend={trend} />;
+              case 'aqi-forecast':
+                return <AQIForecastChart key="aqi-forecast" lat={lat} lon={lon} cityName={cityName} />;
               case 'challenges':
                 return <ChallengesWidget key="challenges" />;
               case 'factoid':
