@@ -301,3 +301,68 @@ describe('useRouteHistory - storage failures', () => {
         getItem.mockRestore();
     });
 });
+
+/**
+ * #894. A second implementation of this hook was pasted above the reviewed one. It
+ * redeclared the React imports and the hook itself — a syntax error, so `npm run build`
+ * and `npm run lint` failed outright and this file plus the four Commute suites could
+ * not even be collected. Nothing here caught it, because a file that will not parse runs
+ * no assertions at all.
+ *
+ * These tests pin the shape of what the hook hands back. A narrowing paste — the one
+ * that landed returned only `{ routeHistory, addHistoryEntry }` — fails here, in a
+ * message that names the missing member, instead of in a Rollup stack trace.
+ */
+describe('useRouteHistory - public surface (regression for #894)', () => {
+    const EXPECTED_MEMBERS = [
+        'routeHistory',
+        'savedLocations',
+        'newLocationLabel',
+        'setNewLocationLabel',
+        'addHistoryEntry',
+        'saveLocation',
+        'deleteSavedLocation',
+    ];
+
+    it('returns every member Commute and RouteHistory destructure', () => {
+        const { result } = renderHook(() => useRouteHistory());
+
+        expect(Object.keys(result.current).sort()).toEqual([...EXPECTED_MEMBERS].sort());
+    });
+
+    it('exposes the four callables as functions', () => {
+        const { result } = renderHook(() => useRouteHistory());
+
+        expect(typeof result.current.setNewLocationLabel).toBe('function');
+        expect(typeof result.current.addHistoryEntry).toBe('function');
+        expect(typeof result.current.saveLocation).toBe('function');
+        expect(typeof result.current.deleteSavedLocation).toBe('function');
+    });
+
+    it('takes addHistoryEntry(origin, destination), not a single entry object', () => {
+        // The pasted copy took one object. Called the way the app calls it, that stored
+        // `{ origin: 'A' }` with the destination dropped on the floor.
+        const { result } = renderHook(() => useRouteHistory());
+
+        act(() => result.current.addHistoryEntry('Hauz Khas', 'Saket'));
+
+        expect(result.current.routeHistory[0].origin).toBe('Hauz Khas');
+        expect(result.current.routeHistory[0].destination).toBe('Saket');
+        expect(result.current.routeHistory[0].timestamp).toEqual(expect.any(String));
+    });
+
+    it('keeps history local — it does not reach for a network it has no backend for', async () => {
+        const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+            /** @type {any} */({ ok: true, json: async () => [] })
+        );
+
+        const { result } = renderHook(() => useRouteHistory());
+        act(() => result.current.addHistoryEntry('A', 'B'));
+        act(() => result.current.setNewLocationLabel('Home'));
+        act(() => result.current.saveLocation('Hauz Khas'));
+
+        expect(fetchSpy).not.toHaveBeenCalled();
+
+        fetchSpy.mockRestore();
+    });
+});

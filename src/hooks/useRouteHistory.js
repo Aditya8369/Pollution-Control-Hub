@@ -1,49 +1,17 @@
-import { useEffect, useRef, useState } from 'react';
-import { useState, useEffect } from 'react';
-import { useAuth } from '../context/AuthContext';
+import { useEffect, useRef, useState } from "react";
 
-export function useRouteHistory() {
-  const { user } = useAuth();
-  const [routeHistory, setRouteHistory] = useState([]);
+/**
+ * Route search history and saved locations for the Clean Route Planner, held in
+ * localStorage.
+ *
+ * There is no server side to this. A second implementation of this hook was pasted in
+ * above this one and synced to `/api/users/:id/history`; that endpoint does not exist —
+ * the project is a static Vite build with no backend — and the paste redeclared both the
+ * React imports and the hook itself, which is a syntax error, so `npm run build`,
+ * `npm run lint` and five test files all stopped working. Signing history in to an
+ * account needs an API before it needs a hook; until one exists, this stays local.
+ */
 
-  useEffect(() => {
-    async function fetchHistory() {
-      if (user) {
-        try {
-          // Fetch from backend API when authenticated
-          const res = await fetch(`/api/users/${user.id}/history`);
-          const data = await res.json();
-          setRouteHistory(data);
-        } catch (err) {
-          console.error("Failed to fetch server route history", err);
-        }
-      } else {
-        // Fallback to localStorage for guest users
-        const local = localStorage.getItem('pollution_route_history');
-        if (local) setRouteHistory(JSON.parse(local));
-      }
-    }
-    fetchHistory();
-  }, [user]);
-
-  const addHistoryEntry = async (entry) => {
-    const updated = [entry, ...routeHistory];
-    setRouteHistory(updated);
-
-    if (user) {
-      // Sync entry to server backend
-      await fetch(`/api/users/${user.id}/history`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(entry),
-      });
-    } else {
-      localStorage.setItem('pollution_route_history', JSON.stringify(updated));
-    }
-  };
-
-  return { routeHistory, addHistoryEntry };
-}
 const HISTORY_STORAGE_KEY = "commute-route-history";
 const SAVED_LOCATIONS_KEY = "commute-saved-locations";
 const MAX_HISTORY = 10;
