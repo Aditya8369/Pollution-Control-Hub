@@ -7,6 +7,7 @@ import RouteForm from "./RouteForm";
 import SavedLocations from "./SavedLocations";
 import RouteHistory from "./RouteHistory";
 import RouteResults from "./RouteResults";
+import RouteComparison from "./RouteComparison";
 import RouteMap from "./RouteMap";
 import "leaflet/dist/leaflet.css";
 
@@ -100,7 +101,7 @@ const Commute = () => {
     // A11Y FIX: Semantic landmark for screen readers
     <main className="commute-container" aria-labelledby="commute-heading">
       <h2 id="commute-heading">Clean Route Planner</h2>
-      
+
       {geoError && (
         // A11Y FIX: role="alert" ensures screen readers announce errors immediately
         <div className="geo-error-banner" role="alert" aria-live="assertive">
@@ -115,7 +116,7 @@ const Commute = () => {
           </button>
         </div>
       )}
-      
+
       {routeError && (
         <div
           className="commute-error-banner"
@@ -147,7 +148,7 @@ const Commute = () => {
           </button>
         </div>
       )}
-      
+
       <SavedLocations
         savedLocations={savedLocations}
         applySavedLocation={applySavedLocation}
@@ -178,6 +179,13 @@ const Commute = () => {
         mode={mode}
         isCalculating={isCalculating}
       />
+      {!isCalculating && (
+        <RouteComparison
+          routes={routes}
+          activeRouteIndex={activeRouteIndex}
+          setActiveRouteIndex={setActiveRouteIndex}
+        />
+      )}
       <RouteMap
         routes={routes}
         activeRouteIndex={activeRouteIndex}
