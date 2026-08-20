@@ -12,6 +12,20 @@ vi.mock('react-leaflet', () => ({
   CircleMarker: ({ children }) => <div data-testid="circle-marker">{children}</div>,
   Marker: ({ children }) => <div data-testid="marker">{children}</div>,
   Popup: ({ children }) => <div data-testid="popup">{children}</div>,
+  useMap: () => ({ addLayer: vi.fn(), removeLayer: vi.fn() }),
+}));
+
+// #895. The heat plugin is a script that expects a global `L`. `LocationMap` used to
+// import it at module scope, which threw `ReferenceError: L is not defined` and stopped
+// this entire file being collected — the mock above never got a chance to help, because
+// the plugin does not read the module it replaces. Loading it through `heatLayer.js`
+// means it can be substituted here like anything else.
+const loadHeatLayer = vi.hoisted(() => vi.fn(async () => null));
+vi.mock('../utils/heatLayer', () => ({ loadHeatLayer }));
+
+const liveHeatmap = vi.hoisted(() => ({ points: [], source: 'connecting' }));
+vi.mock('../hooks/useLiveHeatmap', () => ({
+  useLiveHeatmap: () => liveHeatmap,
 }));
 
 vi.mock('leaflet', () => ({
@@ -139,5 +153,75 @@ describe('LocationMap Component', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /Show Community Reports/i }));
     expect(screen.queryByText('Legacy Trash Burning')).not.toBeInTheDocument();
+  });
+});
+
+/**
+ * #895. Two things are being pinned here. The first is simply that this file can be
+ * collected at all — every test above it had been silently un-run since the plugin
+ * import landed. The second is that a browser without the plugin gets a map with no
+ * heat overlay, rather than no map.
+ */
+describe('LocationMap - live heatmap (regression for #895)', () => {
+  const defaultProps = {
+    center: { lat: 28.6139, lon: 77.209 },
+    nearbyPoints: [
+      { id: '1', lat: 28.62, lon: 77.21, areaName: 'Connaught Place', aqi: 150 },
+    ],
+    confidenceScore: 'High',
+    windData: null,
+  };
+
+  beforeEach(() => {
+    localStorage.clear();
+    loadHeatLayer.mockReset();
+    loadHeatLayer.mockResolvedValue(null);
+    liveHeatmap.points = [{ lat: 28.62, lon: 77.21, aqi: 150 }];
+    liveHeatmap.source = 'websocket';
+  });
+
+  afterEach(() => {
+    localStorage.clear();
+    liveHeatmap.points = [];
+    liveHeatmap.source = 'connecting';
+  });
+
+  it('renders the map without asking for the plugin until the overlay is wanted', () => {
+    render(<LocationMap {...defaultProps} />);
+
+    expect(screen.getByTestId('location-map')).toBeInTheDocument();
+    expect(loadHeatLayer).not.toHaveBeenCalled();
+  });
+
+  it('adds the layer to the map once the plugin resolves', async () => {
+    const layer = { addTo: vi.fn() };
+    const factory = vi.fn(() => layer);
+    loadHeatLayer.mockResolvedValue(factory);
+
+    render(<LocationMap {...defaultProps} />);
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('toggle-live-heatmap'));
+    });
+
+    expect(factory).toHaveBeenCalledTimes(1);
+    // aqi 150 of a 300 ceiling -> 0.5 intensity.
+    expect(factory.mock.calls[0][0]).toEqual([[28.62, 77.21, 0.5]]);
+    expect(layer.addTo).toHaveBeenCalled();
+    expect(screen.queryByTestId('heatmap-unavailable')).not.toBeInTheDocument();
+  });
+
+  it('keeps the map and says so when the plugin cannot be loaded', async () => {
+    loadHeatLayer.mockResolvedValue(null);
+
+    render(<LocationMap {...defaultProps} />);
+    await act(async () => {
+      fireEvent.click(screen.getByTestId('toggle-live-heatmap'));
+    });
+
+    // Previously this threw out of a useEffect with no error boundary above it, so one
+    // optional overlay took the entire Map tab with it.
+    expect(screen.getByTestId('location-map')).toBeInTheDocument();
+    expect(screen.getByTestId('heatmap-unavailable')).toBeInTheDocument();
+    expect(screen.queryByTestId('heatmap-source-indicator')).not.toBeInTheDocument();
   });
 });
