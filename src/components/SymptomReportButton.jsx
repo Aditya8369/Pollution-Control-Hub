@@ -2,14 +2,6 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { eventBus } from '../core/events';
 
 export const SYMPTOM_REPORTS_STORAGE_KEY = 'pollution-symptom-reports';
-
-/**
- * How many reports are kept.
- *
- * The list was never trimmed, so it grew until localStorage refused the write — and the
- * write failure was swallowed, leaving the dialog to thank the visitor for a report that
- * had not been stored. A cap plus a reported failure is better than either.
- */
 export const MAX_STORED_REPORTS = 200;
 
 const SYMPTOM_OPTIONS = [
@@ -23,21 +15,13 @@ const SYMPTOM_OPTIONS = [
     'Skin irritation',
 ];
 
-/** Elements that can hold focus inside the dialog, in document order. */
 const FOCUSABLE_SELECTOR =
     'button:not([disabled]), [href], input:not([disabled]), select, textarea, [tabindex]:not([tabindex="-1"])';
 
-/**
- * Rounds a coordinate to ~1.1km precision so stored reports stay
- * approximate rather than an exact trace of the reporter.
- * @param {number} value
- * @returns {number}
- */
 function toApproximateCoord(value) {
     return Math.round(value * 100) / 100;
 }
 
-/** @returns {any[]} */
 export function readSymptomReports() {
     try {
         const raw = localStorage.getItem(SYMPTOM_REPORTS_STORAGE_KEY);
@@ -48,22 +32,12 @@ export function readSymptomReports() {
     }
 }
 
-/**
- * Persists the reports, trimming to the newest {@link MAX_STORED_REPORTS}.
- *
- * @param {any[]} reports
- * @returns {boolean} Whether the write landed. The caller has to know: a report the
- *   visitor was thanked for and that was silently dropped is worse than an error.
- */
 export function saveSymptomReports(reports) {
     const trimmed = reports.slice(-MAX_STORED_REPORTS);
-
     try {
         localStorage.setItem(SYMPTOM_REPORTS_STORAGE_KEY, JSON.stringify(trimmed));
         return true;
     } catch {
-        // Most likely a full quota. Retry once with a much shorter list before giving up,
-        // so one oversized history does not permanently block reporting.
         try {
             localStorage.setItem(
                 SYMPTOM_REPORTS_STORAGE_KEY,
@@ -76,11 +50,9 @@ export function saveSymptomReports(reports) {
     }
 }
 
-/** @param {{fallbackPosition?: {lat: number, lon: number}}} params */
 export default function SymptomReportButton({ fallbackPosition }) {
     const [isOpen, setIsOpen] = useState(false);
     const [selectedSymptoms, setSelectedSymptoms] = useState([]);
-    /** idle | submitting | submitted | failed */
     const [status, setStatus] = useState('idle');
 
     const dialogRef = useRef(null);
@@ -88,7 +60,6 @@ export default function SymptomReportButton({ fallbackPosition }) {
     const triggerRef = useRef(null);
     const closeTimerRef = useRef(null);
 
-    /** @param {string} symptom */
     const toggleSymptom = (symptom) => {
         setSelectedSymptoms((prev) =>
             prev.includes(symptom) ? prev.filter((s) => s !== symptom) : [...prev, symptom]
@@ -105,20 +76,12 @@ export default function SymptomReportButton({ fallbackPosition }) {
         setStatus('idle');
     }, []);
 
-    // Focus management and the Escape/Tab handling that `aria-modal` promises.
-    //
-    // None of this was here: focus stayed on the trigger behind the backdrop, which
-    // assistive technology treats as inert once aria-modal is set, so the dialog was
-    // never announced and Tab walked the page behind it. Escape did nothing, and the
-    // only way out with a keyboard was to tab through every checkbox to reach Cancel.
-    // This mirrors what SolutionsAwareness already does for its article modal.
     useEffect(() => {
         if (!isOpen) return undefined;
 
         const previouslyFocused = document.activeElement;
         closeBtnRef.current?.focus();
 
-        /** @param {KeyboardEvent} event */
         const handleKeyDown = (event) => {
             if (event.key === 'Escape') {
                 event.stopPropagation();
@@ -147,10 +110,6 @@ export default function SymptomReportButton({ fallbackPosition }) {
 
         return () => {
             window.removeEventListener('keydown', handleKeyDown);
-            // Back to whatever opened the dialog. A pointer-opened dialog can leave
-            // `document.activeElement` on <body>, in which case the trigger is where
-            // focus belongs — dropping it on <body> restarts tab order at the top of
-            // the page, which is the thing that makes a modal painful to use.
             const restoreTo =
                 previouslyFocused instanceof HTMLElement && previouslyFocused !== document.body
                     ? previouslyFocused
@@ -159,8 +118,6 @@ export default function SymptomReportButton({ fallbackPosition }) {
         };
     }, [isOpen, closeModal]);
 
-    // A pending auto-close must not outlive the component. Nothing cancelled the old
-    // timer, so unmounting inside its 1.2 seconds set state on a component that was gone.
     useEffect(() => {
         return () => {
             if (closeTimerRef.current) clearTimeout(closeTimerRef.current);
@@ -168,33 +125,46 @@ export default function SymptomReportButton({ fallbackPosition }) {
     }, []);
 
     const submitReport = () => {
-        // Geolocation can take up to the 5s timeout below, and the button used to stay
-        // live throughout — three clicks while the permission prompt was up filed three
-        // reports, which then showed as three separate markers on the map. A failed
-        // attempt can still be retried; only an in-flight or completed one is refused.
         if (selectedSymptoms.length === 0 || status === 'submitting' || status === 'submitted') return;
 
         setStatus('submitting');
 
-        /** @param {{lat: number, lon: number}|null} coords */
-        const finalize = (coords) => {
-            const reports = readSymptomReports();
-            reports.push({
+        const finalize = async (coords) => {
+            const newReport = {
                 id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
                 symptoms: selectedSymptoms,
                 timestamp: new Date().toISOString(),
+                // Privacy measure: we only send approximate coordinates
                 latitude: coords ? toApproximateCoord(coords.lat) : null,
                 longitude: coords ? toApproximateCoord(coords.lon) : null,
-            });
+            };
 
-            if (!saveSymptomReports(reports)) {
+            // 1. Save locally
+            const reports = readSymptomReports();
+            reports.push(newReport);
+            const savedLocally = saveSymptomReports(reports);
+
+            // 2. Send to backend
+            try {
+                const response = await fetch('/api/symptoms', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(newReport),
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to send to server');
+                }
+
+                eventBus.emit('SYMPTOM_REPORT_SUBMITTED');
+                setStatus('submitted');
+                closeTimerRef.current = setTimeout(closeModal, 1200);
+
+            } catch (error) {
+                console.error('Error submitting symptom report:', error);
+                // If backend fails but local succeeds, we still show a localized failure to be safe
                 setStatus('failed');
-                return;
             }
-
-            eventBus.emit('SYMPTOM_REPORT_SUBMITTED');
-            setStatus('submitted');
-            closeTimerRef.current = setTimeout(closeModal, 1200);
         };
 
         if (navigator.geolocation) {
@@ -225,9 +195,6 @@ export default function SymptomReportButton({ fallbackPosition }) {
                 <div
                     className="symptom-report-modal-backdrop"
                     role="presentation"
-                    // Closes on the backdrop itself rather than stopping propagation on
-                    // the dialog. Same behaviour, but the dialog keeps no handler of its
-                    // own, which is what jsx-a11y was flagging.
                     onClick={(event) => {
                         if (event.target === event.currentTarget) closeModal();
                     }}
@@ -265,8 +232,7 @@ export default function SymptomReportButton({ fallbackPosition }) {
                             <>
                                 {status === 'failed' && (
                                     <p className="symptom-report-error" role="alert">
-                                        Your report could not be saved — this browser&apos;s storage is
-                                        full or unavailable. Nothing was recorded.
+                                        Your report could not be saved right now. Please try again later.
                                     </p>
                                 )}
 
