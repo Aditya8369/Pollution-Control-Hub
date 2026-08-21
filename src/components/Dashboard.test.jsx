@@ -128,6 +128,14 @@ describe('Dashboard Widget Personalization', () => {
     expect(screen.getByRole('checkbox', { name: /Challenges & Activities/i })).toBeInTheDocument();
     expect(screen.getByRole('checkbox', { name: /Did You Know\?/i })).toBeInTheDocument();
     expect(screen.getByRole('checkbox', { name: /Analytics Insights/i })).toBeInTheDocument();
+    expect(screen.getByRole('checkbox', { name: /Location Map & Heatmap/i })).toBeInTheDocument();
+    expect(screen.getByRole('checkbox', { name: /7-Day Forecast Chart/i })).toBeInTheDocument();
+    expect(screen.getByRole('checkbox', { name: /Alerts & Warnings/i })).toBeInTheDocument();
+    expect(screen.getByRole('checkbox', { name: /Health Advisory/i })).toBeInTheDocument();
+    expect(screen.getByRole('checkbox', { name: /Pollen & Allergen Forecast/i })).toBeInTheDocument();
+    expect(screen.getByRole('checkbox', { name: /Sun Safety/i })).toBeInTheDocument();
+    expect(screen.getByRole('checkbox', { name: /Solutions & Actions/i })).toBeInTheDocument();
+    expect(screen.getByRole('checkbox', { name: /Pollution Scenario Simulator/i })).toBeInTheDocument();
   });
 
   it('allows toggling widget visibility and persists layout preference in localStorage', () => {
