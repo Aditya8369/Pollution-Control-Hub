@@ -222,15 +222,40 @@ export async function fetchHistoricalData(lat, lon, years = 1) {
 }
 
 /**
+ * Determines the CSV delimiter based on a given locale or the detected user locale.
+ * If the locale formats numbers with a comma decimal separator (e.g., French, German),
+ * a semicolon is used. Otherwise, a comma is used.
+ *
+ * @param {string} [locale] - Optional locale to override detection.
+ * @returns {string} The delimiter character (',' or ';').
+ */
+export function getDelimiterForLocale(locale) {
+  const targetLocale =
+    locale ||
+    (typeof navigator !== 'undefined' && (navigator.languages?.[0] || navigator.language)) ||
+    'en-US';
+  try {
+    const parts = new Intl.NumberFormat(targetLocale).formatToParts(1.1);
+    const decimalPart = parts.find((part) => part.type === 'decimal');
+    return decimalPart && decimalPart.value === ',' ? ';' : ',';
+  } catch (e) {
+    return ',';
+  }
+}
+
+/**
  * Formats daily historical AQI/pollution entries into a CSV string with headers, ordered chronologically.
  * @param {Array<object>} dailyData
  * @param {string} [startDate]
  * @param {string} [endDate]
+ * @param {string} [delimiter] - Optional CSV delimiter. If not specified, detected based on user locale.
  * @returns {string} CSV string content
  */
-export function formatHistoricalCSV(dailyData, startDate, endDate) {
+export function formatHistoricalCSV(dailyData, startDate, endDate, delimiter) {
+  const actualDelimiter = delimiter !== undefined ? delimiter : getDelimiterForLocale();
+
   if (!Array.isArray(dailyData) || dailyData.length === 0) {
-    return 'Date,AQI,PM2.5,PM10,NO2,Ozone,CO';
+    return ['Date', 'AQI', 'PM2.5', 'PM10', 'NO2', 'Ozone', 'CO'].join(actualDelimiter);
   }
 
   const filtered = dailyData
@@ -253,5 +278,5 @@ export function formatHistoricalCSV(dailyData, startDate, endDate) {
     day.co != null ? day.co : ''
   ]);
 
-  return [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
+  return [headers.join(actualDelimiter), ...rows.map((r) => r.join(actualDelimiter))].join('\n');
 }
