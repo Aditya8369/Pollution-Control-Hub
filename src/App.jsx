@@ -13,6 +13,7 @@ import QuizSection from "./components/QuizSection";
 import SolutionsAwareness from "./components/SolutionsAwareness";
 import ScenarioSimulator from "./components/ScenarioSimulator";
 import HistoricalAnalysis from "./components/HistoricalAnalysis";
+import HistoricalPollutionExplorer from "./components/HistoricalPollutionExplorer";
 import Factoid from "./components/Factoid";
 import HistoricalData from "./components/HistoricalData";
 import LocationSearch from "./components/LocationSearch";
@@ -329,6 +330,7 @@ function SectionNav({ activeSection, onSectionChange }) {
     { id: "heatmap-timeline", label: "Pollution Timeline" },
     { id: "history", label: "History" },
     { id: "historical-data", label: "Data Explorer" },
+    { id: "historical-explorer", label: "Pollution Explorer" },
     { id: "Commute", label: "Commute" },
     { id: "CarbonCalculator", label: "Carbon Calculator" },
     { id: "glossary", label: "Glossary" },
@@ -1213,11 +1215,16 @@ function AppContent() {
                 <HistoricalAnalysis position={position} />
               </div>
             )}
-            {activeSection === "historical-data" && (
-              <div className="content-grid history-layout">
-                <HistoricalData position={position} />
-              </div>
-            )}
+             {activeSection === "historical-data" && (
+               <div className="content-grid history-layout">
+                 <HistoricalData position={position} />
+               </div>
+             )}
+             {activeSection === "historical-explorer" && (
+               <div className="content-grid history-layout">
+                 <HistoricalPollutionExplorer position={position} />
+               </div>
+             )}
 
             {activeSection === "quiz" && (
               <div className="content-grid quiz-layout">
