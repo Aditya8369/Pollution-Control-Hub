@@ -338,7 +338,8 @@
     "predicted": "Predicted Next-Day AQI",
     "shortTerm": "Short-Term AQI Pattern ({{range}}h)",
     "noData": "Not enough data",
-    "noReadings": "No hourly readings for this window yet — the pattern will appear once measurements arrive."
+    "noReadings": "No hourly readings for this window yet — the pattern will appear once measurements arrive.",
+    "exportFailed": "The chart could not be exported."
   },
   "scenarioSimulator": {
     "title": "Scenario Simulator",

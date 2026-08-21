@@ -1,6 +1,6 @@
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { useTranslation } from 'react-i18next';
-import { useMemo, useRef } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import PropTypes from 'prop-types';
 import { exportToSVG, exportToPNG } from '../utils/chartExport';
 
@@ -85,14 +85,25 @@ export default function AnalyticsInsights({ analytics = {}, trend = [], timeRang
     { key: 'prediction', label: t('analyticsInsights.predicted'), ...formatKpi(analytics?.prediction) },
   ];
 
+  const [exportError, setExportError] = useState(null);
+
   const handleDownloadSVG = () => {
     if (!chartContainerRef.current) return;
-    exportToSVG(chartContainerRef.current, `short_term_aqi_trend.svg`);
+    setExportError(
+      exportToSVG(chartContainerRef.current, `short_term_aqi_trend.svg`)
+        ? null
+        : t('analyticsInsights.exportFailed', 'The chart could not be exported.')
+    );
   };
 
   const handleDownloadPNG = () => {
     if (!chartContainerRef.current) return;
-    exportToPNG(chartContainerRef.current, `short_term_aqi_trend.png`, 2);
+    setExportError(null);
+    // The export used to be fire-and-forget, so a browser that refused to encode the
+    // canvas produced no file and no message — the button simply did nothing.
+    exportToPNG(chartContainerRef.current, `short_term_aqi_trend.png`, 2).catch(() =>
+      setExportError(t('analyticsInsights.exportFailed', 'The chart could not be exported.'))
+    );
   };
 
   return (
@@ -142,6 +153,11 @@ export default function AnalyticsInsights({ analytics = {}, trend = [], timeRang
             </button>
           </div>
         </div>
+        {exportError && (
+          <p role="alert" data-testid="analytics-export-error" style={{ margin: '0 0 0.75rem', color: 'var(--danger, #ef4444)', fontSize: '0.8rem' }}>
+            {exportError}
+          </p>
+        )}
         <div ref={chartContainerRef} style={{ width: '100%' }}>
           {hasChart ? (
             <ResponsiveContainer width="100%" height={240}>
