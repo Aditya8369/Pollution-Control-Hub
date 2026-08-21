@@ -31,6 +31,13 @@ const AQIForecastChart = lazy(() => import("./AQIForecastChart"));
 const ChallengesWidget = lazy(() => import("./ChallengesWidget"));
 const WindPollutionRose = lazy(() => import("./WindPollutionRose"));
 const Factoid = lazy(() => import("./Factoid"));
+const LocationMap = lazy(() => import("./LocationMap"));
+const AlertsPanel = lazy(() => import("./AlertsPanel"));
+const HealthAdvisory = lazy(() => import("./HealthAdvisory"));
+const PollenAllergenForecast = lazy(() => import("./PollenAllergenForecast"));
+const SunSafetyDashboard = lazy(() => import("./SunSafetyDashboard"));
+const SolutionsAwareness = lazy(() => import("./SolutionsAwareness"));
+const ScenarioSimulator = lazy(() => import("./ScenarioSimulator"));
 
 /**
  * Lightweight skeleton loader for lazy-loaded widgets.
@@ -121,11 +128,19 @@ function CustomTooltip({ active, payload }) {
  * The personalisable widget stack, in its default order.
  */
 const DEFAULT_WIDGETS = [
+  { id: 'location-map', title: 'Location Map & Heatmap', visible: true },
   { id: 'morning-briefing', title: 'Morning Briefing', visible: true },
   { id: 'aqi-forecast', title: '24-72 Hour AQI Forecast', visible: true },
+  { id: 'forecast-chart', title: '7-Day Forecast Chart', visible: true },
+  { id: 'alerts-panel', title: 'Alerts & Warnings', visible: true },
+  { id: 'health-advisory', title: 'Health Advisory', visible: true },
+  { id: 'pollen-forecast', title: 'Pollen & Allergen Forecast', visible: true },
+  { id: 'sun-safety', title: 'Sun Safety', visible: true },
   { id: 'challenges', title: 'Challenges & Activities', visible: true },
   { id: 'factoid', title: 'Did You Know?', visible: true },
   { id: 'analytics-insights', title: 'Analytics Insights', visible: true },
+  { id: 'solutions-awareness', title: 'Solutions & Actions', visible: true },
+  { id: 'scenario-simulator', title: 'Pollution Scenario Simulator', visible: true },
 ];
 
 /** @param {any} params */
@@ -143,7 +158,11 @@ export default function Dashboard({
   confidenceScore,
   dataCompleteness,
   isFallback,
-  analytics
+  analytics,
+  nearbyPoints,
+  windData,
+  windError,
+  exposureEstimate
 }) {
   const forecastKey = lat && lon ? `forecast_${lat.toFixed(4)}_${lon.toFixed(4)}` : null;
   const {
@@ -789,10 +808,220 @@ export default function Dashboard({
             {layout.map((widget) => {
               if (!widget.visible) return null;
               switch (widget.id) {
+                case 'location-map':
+                  return (
+                    <LocationMap
+                      key="location-map"
+                      center={{ lat, lon, cityName }}
+                      nearbyPoints={nearbyPoints}
+                      confidenceScore={confidenceScore}
+                      windData={windData}
+                      windError={windError}
+                    />
+                  );
                 case 'morning-briefing':
                   return <MorningBriefing key="morning-briefing" current={current} trend={trend} />;
                 case 'aqi-forecast':
                   return <AQIForecastChart key="aqi-forecast" lat={lat} lon={lon} cityName={cityName} />;
+                case 'forecast-chart':
+                  return (
+                    <div key="forecast-chart" className={styles.chartGrid} style={{ margin: 0 }}>
+                      <article className={`${styles.chartCard} ${styles.forecastCard}`} style={{ gridColumn: '1 / -1', margin: 0 }}>
+                        <h3>7-Day AQI & Weather Forecast</h3>
+                        {forecastError && <p style={{ color: 'var(--danger)', padding: '1rem' }} role="alert">Failed to load forecast data.</p>}
+                        {!forecastData && !forecastError && (
+                          <div
+                            role="status"
+                            aria-live="polite"
+                            style={{
+                              padding: '2rem',
+                              textAlign: 'center',
+                              opacity: 0.7
+                            }}
+                          >
+                            <span
+                              className="loading-spinner live-dot active"
+                              aria-hidden="true"
+                              style={{ display: 'inline-block', marginRight: '0.5rem' }}></span>
+                            Loading 7-day forecast...
+                          </div>
+                        )}
+                        {forecastData && forecastData.length > 0 && (
+                          <div data-testid="7-day-forecast-chart" style={{ marginTop: '1rem', marginBottom: '1.5rem' }}>
+                            <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '0.95rem', color: 'var(--muted)', fontWeight: '600' }}>
+                              7-Day Predictive AQI Trend & Confidence Bounds
+                            </h4>
+                            <div role="img" aria-label="Area chart showing 7-day predictive AQI trend and confidence bounds">
+                              <ResponsiveContainer width="100%" height={260}>
+                                <AreaChart
+                                  data={forecastData.map((d) => ({
+                                    ...d,
+                                    label: new Date(d.date).toLocaleDateString(undefined, {
+                                      weekday: 'short',
+                                      month: 'short',
+                                      day: 'numeric',
+                                      timeZone: 'UTC'
+                                    }),
+                                  }))}
+                                  margin={{ top: 10, right: 20, left: 0, bottom: 0 }}
+                                >
+                                  <CartesianGrid strokeDasharray="3 3" stroke="#d7e6e1" />
+                                  <XAxis dataKey="label" tickLine={false} />
+                                  <YAxis tickLine={false} />
+                                  <Tooltip
+                                    formatter={(val, name) => {
+                                      if (name === "Confidence Range") {
+                                        const tuple = Array.isArray(val) ? val : [val, val];
+                                        return [`${tuple[0]} – ${tuple[1]} AQI`, 'Confidence Bounds'];
+                                      }
+                                      return [`${val} AQI`, 'Predicted AQI'];
+                                    }}
+                                  />
+                                  <Area
+                                    type="monotone"
+                                    dataKey="confidenceRange"
+                                    stroke="none"
+                                    fill="#0d9488"
+                                    fillOpacity={0.18}
+                                    name="Confidence Range"
+                                  />
+                                  <Line
+                                    type="monotone"
+                                    dataKey="aqi"
+                                    stroke="#0d9488"
+                                    strokeWidth={3}
+                                    dot={{ r: 4, fill: "#0d9488" }}
+                                    name="Predicted AQI"
+                                  />
+                                </AreaChart>
+                              </ResponsiveContainer>
+                            </div>
+                          </div>
+                        )}
+                        {forecastData && (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', marginTop: '1rem' }} role="list" aria-label="7-Day forecast details">
+                            {forecastData.map((day) => {
+                              const weather = getWeatherDetails(day.weatherCode);
+                              const band = getAQIBand(day.aqi);
+                              const isBest = day.aqi === minAqi;
+                              const isWorst = day.aqi === maxAqi;
+
+                              const formattedDate = new Date(day.date).toLocaleDateString(undefined, {
+                                weekday: 'short',
+                                month: 'short',
+                                day: 'numeric',
+                                timeZone: 'UTC'
+                              });
+
+                              return (
+                                <div
+                                  key={day.date}
+                                  role="listitem"
+                                  style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '1rem',
+                                    padding: '0.75rem 1rem',
+                                    borderRadius: '8px',
+                                    background: 'var(--bg-card-alt, rgba(0,0,0,0.015))',
+                                    border: '1px solid var(--line)',
+                                    flexWrap: 'wrap'
+                                  }}
+                                >
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', minWidth: '150px' }}>
+                                    <span style={{ fontSize: '1.25rem' }} title={weather.label} aria-hidden="true">{weather.icon}</span>
+                                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                      <span style={{ fontWeight: '600', fontSize: '0.95rem', color: 'var(--ink)' }}>{formattedDate}</span>
+                                      <span style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>{weather.label}</span>
+                                    </div>
+                                  </div>
+
+                                  <div style={{ flex: '1 1 200px', minWidth: '150px' }} aria-hidden="true">
+                                    <div style={{ height: '8px', width: '100%', background: 'var(--line)', borderRadius: '4px', overflow: 'hidden' }}>
+                                      <div
+                                        style={{
+                                          height: '100%',
+                                          width: animateForecast ? `${Math.min(100, (day.aqi / 300) * 100)}%` : '0%',
+                                          background: band.color,
+                                          borderRadius: '4px',
+                                          transition: 'width 1s cubic-bezier(0.22, 1, 0.36, 1)'
+                                        }}
+                                      />
+                                    </div>
+                                  </div>
+
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', minWidth: '120px' }}>
+                                    <span style={{ fontWeight: '700', fontSize: '1.1rem', color: band.color }} aria-label={`AQI ${day.aqi}`}>{day.aqi}</span>
+                                    <span
+                                      style={{
+                                        padding: '0.15rem 0.5rem',
+                                        borderRadius: '999px',
+                                        backgroundColor: `${band.color}22`,
+                                        color: band.color,
+                                        fontSize: '0.75rem',
+                                        fontWeight: '600',
+                                        whiteSpace: 'nowrap'
+                                      }}
+                                    >
+                                      {band.label}
+                                    </span>
+                                  </div>
+
+                                  {isBest && (
+                                    <span
+                                      style={{
+                                        padding: '0.2rem 0.6rem',
+                                        borderRadius: '6px',
+                                        backgroundColor: 'rgba(34, 197, 94, 0.15)',
+                                        color: '#15803d',
+                                        fontSize: '0.75rem',
+                                        fontWeight: '700',
+                                        border: '1px solid rgba(34, 197, 94, 0.3)'
+                                      }}
+                                    >
+                                      <span aria-hidden="true">✨</span> Best Day
+                                    </span>
+                                  )}
+                                  {isWorst && (
+                                    <span
+                                      style={{
+                                        padding: '0.2rem 0.6rem',
+                                        borderRadius: '6px',
+                                        backgroundColor: 'rgba(239, 68, 68, 0.15)',
+                                        color: '#b91c1c',
+                                        fontSize: '0.75rem',
+                                        fontWeight: '700',
+                                        border: '1px solid rgba(239, 68, 68, 0.3)'
+                                      }}
+                                    >
+                                      <span aria-hidden="true">⚠️</span> Worst Day
+                                    </span>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </article>
+                    </div>
+                  );
+                case 'alerts-panel':
+                  return (
+                    <AlertsPanel
+                      key="alerts-panel"
+                      cityName={cityName}
+                      current={current}
+                      confidenceScore={confidenceScore}
+                      dataCompleteness={dataCompleteness}
+                      exposureEstimate={exposureEstimate}
+                    />
+                  );
+                case 'health-advisory':
+                  return <HealthAdvisory key="health-advisory" lat={lat} lon={lon} />;
+                case 'pollen-forecast':
+                  return <PollenAllergenForecast key="pollen-forecast" lat={lat} lon={lon} />;
+                case 'sun-safety':
+                  return <SunSafetyDashboard key="sun-safety" lat={lat} lon={lon} />;
                 case 'challenges':
                   return <ChallengesWidget key="challenges" />;
                 case 'factoid':
@@ -806,6 +1035,10 @@ export default function Dashboard({
                       timeRange={timeRange}
                     />
                   );
+                case 'solutions-awareness':
+                  return <SolutionsAwareness key="solutions-awareness" />;
+                case 'scenario-simulator':
+                  return <ScenarioSimulator key="scenario-simulator" current={current} />;
                 default:
                   return null;
               }
@@ -813,188 +1046,6 @@ export default function Dashboard({
           </Suspense>
         </div>
 
-        <div className={styles.chartGrid}>
-          <article className={`${styles.chartCard} ${styles.forecastCard}`} style={{ gridColumn: '1 / -1' }}>
-            <h3>7-Day AQI & Weather Forecast</h3>
-            {forecastError && <p style={{ color: 'var(--danger)', padding: '1rem' }} role="alert">Failed to load forecast data.</p>}
-            {!forecastData && !forecastError && (
-              <div
-                role="status"
-                aria-live="polite"
-                style={{
-                  padding: '2rem',
-                  textAlign: 'center',
-                  opacity: 0.7
-                }}
-              >
-                <span
-                  className="loading-spinner live-dot active"
-                  aria-hidden="true"
-                  style={{ display: 'inline-block', marginRight: '0.5rem' }}></span>
-                Loading 7-day forecast...
-              </div>
-            )}
-            {forecastData && forecastData.length > 0 && (
-              <div data-testid="7-day-forecast-chart" style={{ marginTop: '1rem', marginBottom: '1.5rem' }}>
-                <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '0.95rem', color: 'var(--muted)', fontWeight: '600' }}>
-                  7-Day Predictive AQI Trend & Confidence Bounds
-                </h4>
-                <div role="img" aria-label="Area chart showing 7-day predictive AQI trend and confidence bounds">
-                  <ResponsiveContainer width="100%" height={260}>
-                    <AreaChart
-                      data={forecastData.map((d) => ({
-                        ...d,
-                        label: new Date(d.date).toLocaleDateString(undefined, {
-                          weekday: 'short',
-                          month: 'short',
-                          day: 'numeric',
-                          timeZone: 'UTC'
-                        }),
-                      }))}
-                      margin={{ top: 10, right: 20, left: 0, bottom: 0 }}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" stroke="#d7e6e1" />
-                      <XAxis dataKey="label" />
-                      <YAxis />
-                      <Tooltip
-                        formatter={(val, name) => {
-                          if (name === "Confidence Range") {
-                            const tuple = Array.isArray(val) ? val : [val, val];
-                            return [`${tuple[0]} – ${tuple[1]} AQI`, 'Confidence Bounds'];
-                          }
-                          return [`${val} AQI`, 'Predicted AQI'];
-                        }}
-                      />
-                      <Area
-                        type="monotone"
-                        dataKey="confidenceRange"
-                        stroke="none"
-                        fill="#0d9488"
-                        fillOpacity={0.18}
-                        name="Confidence Range"
-                      />
-                      <Line
-                        type="monotone"
-                        dataKey="aqi"
-                        stroke="#0d9488"
-                        strokeWidth={3}
-                        dot={{ r: 4, fill: "#0d9488" }}
-                        name="Predicted AQI"
-                      />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                </div>
-              </div>
-            )}
-            {forecastData && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem', marginTop: '1rem' }} role="list" aria-label="7-Day forecast details">
-                {forecastData.map((day) => {
-                  const weather = getWeatherDetails(day.weatherCode);
-                  const band = getAQIBand(day.aqi);
-                  const isBest = day.aqi === minAqi;
-                  const isWorst = day.aqi === maxAqi;
-
-                  const formattedDate = new Date(day.date).toLocaleDateString(undefined, {
-                    weekday: 'short',
-                    month: 'short',
-                    day: 'numeric',
-                    timeZone: 'UTC'
-                  });
-
-                  return (
-                    <div
-                      key={day.date}
-                      role="listitem"
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '1rem',
-                        padding: '0.75rem 1rem',
-                        borderRadius: '8px',
-                        background: 'var(--bg-card-alt, rgba(0,0,0,0.015))',
-                        border: '1px solid var(--line)',
-                        flexWrap: 'wrap'
-                      }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', minWidth: '150px' }}>
-                        <span style={{ fontSize: '1.25rem' }} title={weather.label} aria-hidden="true">{weather.icon}</span>
-                        <div style={{ display: 'flex', flexDirection: 'column' }}>
-                          <span style={{ fontWeight: '600', fontSize: '0.95rem', color: 'var(--ink)' }}>{formattedDate}</span>
-                          <span style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>{weather.label}</span>
-                        </div>
-                      </div>
-
-                      <div style={{ flex: '1 1 200px', minWidth: '150px' }} aria-hidden="true">
-                        <div style={{ height: '8px', width: '100%', background: 'var(--line)', borderRadius: '4px', overflow: 'hidden' }}>
-                          <div
-                            style={{
-                              height: '100%',
-                              width: animateForecast ? `${Math.min(100, (day.aqi / 300) * 100)}%` : '0%',
-                              background: band.color,
-                              borderRadius: '4px',
-                              transition: 'width 1s cubic-bezier(0.22, 1, 0.36, 1)'
-                            }}
-                          />
-                        </div>
-                      </div>
-
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', minWidth: '120px' }}>
-                        <span style={{ fontWeight: '700', fontSize: '1.1rem', color: band.color }} aria-label={`AQI ${day.aqi}`}>{day.aqi}</span>
-                        <span
-                          style={{
-                            padding: '0.15rem 0.5rem',
-                            borderRadius: '999px',
-                            backgroundColor: `${band.color}22`,
-                            color: band.color,
-                            fontSize: '0.75rem',
-                            fontWeight: '600',
-                            whiteSpace: 'nowrap'
-                          }}
-                        >
-                          {band.label}
-                        </span>
-                      </div>
-
-                      {isBest && (
-                        <span
-                          style={{
-                            padding: '0.2rem 0.6rem',
-                            borderRadius: '6px',
-                            backgroundColor: 'rgba(34, 197, 94, 0.15)',
-                            color: '#15803d',
-                            fontSize: '0.75rem',
-                            fontWeight: '700',
-                            border: '1px solid rgba(34, 197, 94, 0.3)'
-                          }}
-                        >
-                          <span aria-hidden="true">✨</span> Best Day
-                        </span>
-                      )}
-                      {isWorst && (
-                        <span
-                          style={{
-                            padding: '0.2rem 0.6rem',
-                            borderRadius: '6px',
-                            backgroundColor: 'rgba(239, 68, 68, 0.15)',
-                            color: '#b91c1c',
-                            fontSize: '0.75rem',
-                            fontWeight: '700',
-                            border: '1px solid rgba(239, 68, 68, 0.3)'
-                          }}
-                        >
-                          <span aria-hidden="true">⚠️</span> Worst Day
-                        </span>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </article>
-
-          <article className="chart-card" style={{ gridColumn: '1 / -1' }}>
-            <h3>Hourly Weather Forecast</h3>
-            {hourlyWeatherError && (
               <p style={{ color: 'var(--danger)', padding: '1rem' }} role="alert">
                 Failed to load hourly weather data.
               </p>
