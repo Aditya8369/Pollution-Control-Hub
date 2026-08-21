@@ -314,6 +314,83 @@ export async function fetchLocalGrid(
 }
 
 /**
+ * A single grid point's full hourly time series, used to power the pollution
+ * heatmap timeline (issue #889) — unlike {@link fetchLocalGrid}, which
+ * collapses each point down to its current-hour reading only.
+ * @typedef {Object} GridTimelinePoint
+ * @property {string} id
+ * @property {number} lat
+ * @property {number} lon
+ * @property {string} areaName
+ * @property {string[]} times - ISO hourly timestamps, local to the location.
+ * @property {{ us_aqi: (number|null)[], pm2_5: (number|null)[], pm10: (number|null)[], nitrogen_dioxide: (number|null)[], ozone: (number|null)[] }} hourly
+ */
+
+/**
+ * Fetches a full day's hourly AQI/pollutant time series for the center point
+ * and its 8 surrounding grid points, so a timeline UI can scrub through the
+ * day and render a heatmap for any selected hour.
+ *
+ * @param {number} lat - Center latitude.
+ * @param {number} lon - Center longitude.
+ * @param {AbortSignal} [signal]
+ * @returns {Promise<GridTimelinePoint[]>}
+ */
+export async function fetchLocalGridTimeline(
+  lat: number,
+  lon: number,
+  signal?: AbortSignal
+): Promise<any[]> {
+  if (!isValidCoord(lat, lon)) return [];
+
+  const cacheKey = `grid-timeline-${lat.toFixed(2)},${lon.toFixed(2)}`;
+  const cached = await cacheStore.getFresh(cacheKey, CACHE_TTL.GRID);
+  if (cached && cached.data) return cached.data;
+
+  const gridOffsets = [
+    { dx: 0, dy: 0 },
+    ...[-1, 0, 1].flatMap((dy) =>
+      [-1, 0, 1]
+        .filter((dx) => !(dx === 0 && dy === 0))
+        .map((dx) => ({ dx, dy }))
+    ),
+  ];
+
+  const results = await Promise.all(
+    gridOffsets.map(async ({ dx, dy }, i) => {
+      const gLat = parseFloat((lat + dy * GRID_STEP).toFixed(4));
+      const gLon = parseFloat((lon + dx * GRID_STEP).toFixed(4));
+      const url = `${BASE_URL}?latitude=${gLat}&longitude=${gLon}&hourly=us_aqi,pm2_5,pm10,nitrogen_dioxide,ozone&timezone=auto&forecast_days=1`;
+      try {
+        const response = await fetch(url, { signal });
+        if (!response.ok) return null;
+        const data = await response.json();
+        return {
+          id: dx === 0 && dy === 0 ? 'grid-center' : `grid-${i}`,
+          lat: gLat,
+          lon: gLon,
+          areaName: dx === 0 && dy === 0 ? 'Center' : (DIRECTION_LABELS[`${dx},${dy}`] || `Zone ${i}`),
+          times: data.hourly?.time || [],
+          hourly: {
+            us_aqi: data.hourly?.us_aqi || [],
+            pm2_5: data.hourly?.pm2_5 || [],
+            pm10: data.hourly?.pm10 || [],
+            nitrogen_dioxide: data.hourly?.nitrogen_dioxide || [],
+            ozone: data.hourly?.ozone || [],
+          },
+        };
+      } catch {
+        return null;
+      }
+    })
+  );
+
+  const points = results.filter(Boolean);
+  cacheStore.set(cacheKey, points);
+  return points;
+}
+
+/**
  * Evaluates dataset completeness and quality metrics to yield a confidence rating score.
  *
  * @param {Object} hourly - Object containing array streams for various pollutants.
