@@ -797,6 +797,7 @@ interface CityComparison {
   pm2_5: number | null;
   pm10: number | null;
   unavailable: boolean;
+  trend?: any[];
 }
 
 export async function fetchCityComparisons(signal?: AbortSignal): Promise<CityComparison[]> {
@@ -820,7 +821,8 @@ export async function fetchCityComparisons(signal?: AbortSignal): Promise<CityCo
           aqi: result.current.us_aqi,
           pm2_5: result.current.pm2_5,
           pm10: result.current.pm10,
-          unavailable: false
+          unavailable: false,
+          trend: result.trend
         };
       } catch (error) {
         if (error.name === 'AbortError') throw error;
@@ -830,7 +832,8 @@ export async function fetchCityComparisons(signal?: AbortSignal): Promise<CityCo
           aqi: null,
           pm2_5: null,
           pm10: null,
-          unavailable: true
+          unavailable: true,
+          trend: []
         };
       }
     })

@@ -49,6 +49,7 @@ import EmbeddableWidgetGenerator from "./components/EmbeddableWidgetGenerator";
 import Glossary from "./components/Glossary";
 import BadgeNotification from "./components/BadgeNotification";
 import Achievements from "./components/Achievements";
+import CityPollutionLeaderboard from "./components/CityPollutionLeaderboard";
 
 const AqiMissionGame = lazy(() => import("./components/AqiMissionGame"));
 const HotspotScoutGame = lazy(() => import("./components/HotspotScoutGame"));
@@ -333,6 +334,7 @@ function SectionNav({ activeSection, onSectionChange }) {
     { id: "CarbonCalculator", label: "Carbon Calculator" },
     { id: "glossary", label: "Glossary" },
     { id: "achievements", label: "Achievements" },
+    { id: "city-leaderboard", label: "City Leaderboard" },
   ];
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef(null);
@@ -1315,6 +1317,7 @@ function AppContent() {
 
             {activeSection === "Commute" && <Commute />}
             {activeSection === "Compare" && <CityCompare />}
+            {activeSection === "city-leaderboard" && <CityPollutionLeaderboard />}
             {activeSection === "CarbonCalculator" && (
               <div
                 className="content-grid carbon-calculator-layout"
