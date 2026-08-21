@@ -14,21 +14,47 @@ import {
   Pie,
   Cell
 } from "recharts";
-import { useRef, useState, useEffect, useMemo } from "react";
+import { lazy, Suspense, useRef, useState, useEffect, useMemo } from "react";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 import styles from "./Dashboard.module.css";
 import { useSWR } from "../hooks/useSWR";
 import { getAQIBand, getPollutantColor, get7DayForecast, getWeatherDetails } from "../services/airQualityService";
 import { fetchHourlyWeather } from "../services/weatherService";
-import MorningBriefing from "./MorningBriefing";
-import AnalyticsInsights from "./AnalyticsInsights";
-import AQIForecastChart from "./AQIForecastChart";
 import { eventBus } from "../core/events";
-import ChallengesWidget from "./ChallengesWidget";
-import WindPollutionRose from "./WindPollutionRose";
-import Factoid from "./Factoid";
 import SymptomReportButton from "./SymptomReportButton";
+
+// Lazy-load heavy widgets and sub-components
+const MorningBriefing = lazy(() => import("./MorningBriefing"));
+const AnalyticsInsights = lazy(() => import("./AnalyticsInsights"));
+const AQIForecastChart = lazy(() => import("./AQIForecastChart"));
+const ChallengesWidget = lazy(() => import("./ChallengesWidget"));
+const WindPollutionRose = lazy(() => import("./WindPollutionRose"));
+const Factoid = lazy(() => import("./Factoid"));
+
+/**
+ * Lightweight skeleton loader for lazy-loaded widgets.
+ */
+function WidgetLoader() {
+  return (
+    <div style={{
+      padding: '2rem',
+      textAlign: 'center',
+      color: 'var(--muted, #64748b)',
+      background: 'var(--bg-card, #ffffff)',
+      borderRadius: '0.75rem',
+      border: '1px solid var(--border-color, #e2e8f0)',
+      marginBottom: '1rem'
+    }}>
+      <span
+        className="loading-spinner live-dot active"
+        aria-hidden="true"
+        style={{ display: 'inline-block', marginRight: '0.5rem' }}
+      ></span>
+      Loading widget...
+    </div>
+  );
+}
 
 /** @param {any} isoTime */
 function shortTimeLabel(isoTime) {
@@ -37,9 +63,6 @@ function shortTimeLabel(isoTime) {
 
 /**
  * Renders a reading, or an em dash when the hour had no value.
- *
- * The service returns null for a missing reading rather than 0, so nothing here may
- * print a bare number without checking — "0" would read as a measurement of clean air.
  *
  * @param {number|null|undefined} value
  * @returns {string}
@@ -96,10 +119,6 @@ function CustomTooltip({ active, payload }) {
 
 /**
  * The personalisable widget stack, in its default order.
- *
- * One table rather than an id list, a title ternary and a default array that all had to
- * be edited together — adding the forecast panel to three places in agreement is exactly
- * the kind of edit that half-lands.
  */
 const DEFAULT_WIDGETS = [
   { id: 'morning-briefing', title: 'Morning Briefing', visible: true },
@@ -152,8 +171,6 @@ export default function Dashboard({
             const defaultIds = DEFAULT_WIDGETS.map(w => w.id);
             const missing = DEFAULT_WIDGETS.filter(w => !parsed.some(p => p.id === w.id));
             const cleaned = parsed.filter(w => defaultIds.includes(w.id));
-            // A widget added after a visitor last saved their layout is appended
-            // visible, rather than being invisible until they reset their preferences.
             missing.forEach(widget => cleaned.push({ ...widget }));
             return cleaned;
           }
@@ -183,9 +200,6 @@ export default function Dashboard({
     e.dataTransfer.setData("text/plain", index.toString());
   };
 
-  // `_index` is unused: the drop target is decided in handleDrop, and this handler
-  // exists only to call preventDefault, without which the browser refuses the drop.
-  // The parameter stays in the signature because it documents what the row passes.
   const handleDragOver = (e, _index) => {
     e.preventDefault();
   };
@@ -574,7 +588,6 @@ export default function Dashboard({
             <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>
               Relative magnitude vs. WHO guidelines. Larger segments indicate higher severity.
             </p>
-            {/* A11Y FIX: Recharts SVGs require role="img" and aria-label on parent containers */}
             <div style={{ flex: 1, minHeight: '200px' }} role="img" aria-label="Donut chart displaying current pollutants against WHO guidelines.">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
@@ -645,7 +658,6 @@ export default function Dashboard({
                   <span className={styles.pollutantPercent} style={{ color: p.color }}>{pct}%</span>
                 </div>
 
-                {/* A11Y FIX: Semantically define this as a progressbar so screen readers read the percentage naturally */}
                 <div 
                   className={styles.pollutantProgressTrack}
                   role="progressbar"
@@ -771,32 +783,34 @@ export default function Dashboard({
           </div>
         )}
 
-        {/* Personalized Widget Stack */}
+        {/* Personalized Widget Stack Wrapped in Suspense for Lazy Loading */}
         <div className="personalized-widgets-stack">
-          {layout.map((widget) => {
-            if (!widget.visible) return null;
-            switch (widget.id) {
-              case 'morning-briefing':
-                return <MorningBriefing key="morning-briefing" current={current} trend={trend} />;
-              case 'aqi-forecast':
-                return <AQIForecastChart key="aqi-forecast" lat={lat} lon={lon} cityName={cityName} />;
-              case 'challenges':
-                return <ChallengesWidget key="challenges" />;
-              case 'factoid':
-                return <Factoid key="factoid" label="Did You Know?" />;
-              case 'analytics-insights':
-                return (
-                  <AnalyticsInsights
-                    key="analytics-insights"
-                    analytics={analytics}
-                    trend={trend}
-                    timeRange={timeRange}
-                  />
-                );
-              default:
-                return null;
-            }
-          })}
+          <Suspense fallback={<WidgetLoader />}>
+            {layout.map((widget) => {
+              if (!widget.visible) return null;
+              switch (widget.id) {
+                case 'morning-briefing':
+                  return <MorningBriefing key="morning-briefing" current={current} trend={trend} />;
+                case 'aqi-forecast':
+                  return <AQIForecastChart key="aqi-forecast" lat={lat} lon={lon} cityName={cityName} />;
+                case 'challenges':
+                  return <ChallengesWidget key="challenges" />;
+                case 'factoid':
+                  return <Factoid key="factoid" label="Did You Know?" />;
+                case 'analytics-insights':
+                  return (
+                    <AnalyticsInsights
+                      key="analytics-insights"
+                      analytics={analytics}
+                      trend={trend}
+                      timeRange={timeRange}
+                    />
+                  );
+                default:
+                  return null;
+              }
+            })}
+          </Suspense>
         </div>
 
         <div className={styles.chartGrid}>
@@ -825,7 +839,6 @@ export default function Dashboard({
                 <h4 style={{ margin: '0 0 0.5rem 0', fontSize: '0.95rem', color: 'var(--muted)', fontWeight: '600' }}>
                   7-Day Predictive AQI Trend & Confidence Bounds
                 </h4>
-                {/* A11Y FIX: Chart accessibility wrapper */}
                 <div role="img" aria-label="Area chart showing 7-day predictive AQI trend and confidence bounds">
                   <ResponsiveContainer width="100%" height={260}>
                     <AreaChart
@@ -996,11 +1009,6 @@ export default function Dashboard({
             )}
             {hourlyWeather && hourlyWeather.length > 0 && (
               <div
-                // A horizontal scroll container has to be reachable by keyboard, or its
-                // overflow is unreadable without a mouse. `role="region"` with an
-                // accessible name and `tabIndex={0}` is the WAI-ARIA authoring practice
-                // for that; see the `no-noninteractive-tabindex` option in
-                // eslint.config.js.
                 style={{ display: 'flex', gap: '0.75rem', overflowX: 'auto', paddingBottom: '0.5rem' }}
                 tabIndex={0}
                 role="region"
@@ -1048,8 +1056,10 @@ export default function Dashboard({
             )}
           </article>
 
-          {/* Wind & Pollution Rose Chart */}
-          <WindPollutionRose lat={lat} lon={lon} />
+          {/* Lazy-loaded Wind & Pollution Rose Chart */}
+          <Suspense fallback={<WidgetLoader />}>
+            <WindPollutionRose lat={lat} lon={lon} />
+          </Suspense>
 
           <article className="chart-card">
             <h3>AQI Trend ({timeRange}h)</h3>
@@ -1058,10 +1068,9 @@ export default function Dashboard({
               data-testid="aqi-trend-chart"
               role="tabpanel"
               aria-labelledby={`time-tab-${timeRange}`}
-              tabIndex={0} // A11Y FIX: Allow users to tab into the panel
-              style={{ outline: 'none' }} // Prevents messy focus ring on click, relies on standard internal focus
+              tabIndex={0}
+              style={{ outline: 'none' }}
             >
-              {/* A11Y FIX: Wrapper for Recharts */}
               <div role="img" aria-label={`Line chart displaying AQI trend over the last ${timeRange} hours`}>
                 <ResponsiveContainer width="100%" height={280}>
                   <LineChart data={chartData}>
@@ -1078,7 +1087,6 @@ export default function Dashboard({
 
           <article data-testid="city-comparisons" className="chart-card">
             <h3>City-Wise AQI Comparison</h3>
-            {/* A11Y FIX: Wrapper for Recharts */}
             <div role="img" aria-label="Horizontal bar chart comparing Air Quality Index across different cities">
               <ResponsiveContainer width="100%" height={280}>
                 <BarChart data={measuredCities} layout="vertical" margin={{ left: 30 }}>
