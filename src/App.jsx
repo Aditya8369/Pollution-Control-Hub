@@ -24,6 +24,7 @@ import GettingStarted from "./components/GettingStarted";
 import CityCompare from "./components/CityCompare";
 import IndoorTracker from "./components/IndoorTracker";
 import ExposureTracker from "./components/ExposureTracker";
+import HeatmapTimeline from "./components/HeatmapTimeline";
 import SunSafetyDashboard from "./components/SunSafetyDashboard";
 import AIPollutionCopilot from "./components/AIPollutionCopilot";
 import {
@@ -325,6 +326,7 @@ function SectionNav({ activeSection, onSectionChange }) {
     { id: "community", label: "Community" },
     { id: "indoor", label: "Indoor Air" },
     { id: "exposure-tracker", label: "Exposure Score" },
+    { id: "heatmap-timeline", label: "Pollution Timeline" },
     { id: "history", label: "History" },
     { id: "historical-data", label: "Data Explorer" },
     { id: "Commute", label: "Commute" },
@@ -1215,6 +1217,15 @@ function AppContent() {
                 style={{ maxWidth: "1100px", margin: "2rem auto", width: "100%", display: "block" }}
               >
                 <ExposureTracker current={current} cityName={position.cityName} />
+              </div>
+            )}
+
+            {activeSection === "heatmap-timeline" && (
+              <div
+                className="content-grid heatmap-timeline-layout"
+                style={{ maxWidth: "1100px", margin: "2rem auto", width: "100%", display: "block" }}
+              >
+                <HeatmapTimeline lat={position.lat} lon={position.lon} cityName={position.cityName} />
               </div>
             )}
 
