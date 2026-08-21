@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { formatHistoricalCSV } from './historicalDataService';
+import { formatHistoricalCSV, getDelimiterForLocale } from './historicalDataService';
 
 describe('formatHistoricalCSV', () => {
   const mockDailyData = [
@@ -96,5 +96,53 @@ describe('formatHistoricalCSV', () => {
     expect(lines).toHaveLength(3); // header + 2 valid rows
     expect(lines[1]).toContain('2026-07-01');
     expect(lines[2]).toContain('2026-07-04');
+  });
+
+  describe('getDelimiterForLocale', () => {
+    it('returns comma for locales that format numbers with dot decimal separator', () => {
+      expect(getDelimiterForLocale('en-US')).toBe(',');
+      expect(getDelimiterForLocale('en-GB')).toBe(',');
+      expect(getDelimiterForLocale('hi-IN')).toBe(',');
+      expect(getDelimiterForLocale('bn-IN')).toBe(',');
+    });
+
+    it('returns semicolon for locales that format numbers with comma decimal separator', () => {
+      expect(getDelimiterForLocale('de-DE')).toBe(';');
+      expect(getDelimiterForLocale('fr-FR')).toBe(';');
+      expect(getDelimiterForLocale('it-IT')).toBe(';');
+    });
+
+    it('falls back to comma for invalid or undefined locales', () => {
+      expect(getDelimiterForLocale('invalid-locale')).toBe(',');
+      expect(getDelimiterForLocale(undefined)).toBe(',');
+    });
+  });
+
+  describe('formatHistoricalCSV with specific delimiters', () => {
+    const mockDailyDataForDelimiter = [
+      { date: '2026-07-01', maxAqi: 100, pm25: 35, pm10: 70, no2: 10, ozone: 20, co: 4 },
+      { date: '2026-07-02', maxAqi: 120, pm25: 45, pm10: 80, no2: 15, ozone: 25, co: 5 },
+    ];
+
+    it('uses semicolon delimiter when explicitly provided', () => {
+      const csv = formatHistoricalCSV(mockDailyDataForDelimiter, undefined, undefined, ';');
+      const lines = csv.split('\n');
+      expect(lines[0]).toBe('Date;AQI;PM2.5;PM10;NO2;Ozone;CO');
+      expect(lines[1]).toBe('2026-07-01;100;35;70;10;20;4');
+      expect(lines[2]).toBe('2026-07-02;120;45;80;15;25;5');
+    });
+
+    it('uses comma delimiter when explicitly provided', () => {
+      const csv = formatHistoricalCSV(mockDailyDataForDelimiter, undefined, undefined, ',');
+      const lines = csv.split('\n');
+      expect(lines[0]).toBe('Date,AQI,PM2.5,PM10,NO2,Ozone,CO');
+      expect(lines[1]).toBe('2026-07-01,100,35,70,10,20,4');
+      expect(lines[2]).toBe('2026-07-02,120,45,80,15,25,5');
+    });
+
+    it('uses custom delimiter when empty dataset is formatted', () => {
+      const csv = formatHistoricalCSV([], undefined, undefined, ';');
+      expect(csv).toBe('Date;AQI;PM2.5;PM10;NO2;Ozone;CO');
+    });
   });
 });

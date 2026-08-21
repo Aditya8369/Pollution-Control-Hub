@@ -7,6 +7,8 @@ class DatabaseService {
 
   constructor(pool: Pool) {
     this.pool = pool;
+    this.cache = new Map();
+    this.lastUpdated = Date.now();
   }
 
   async readData(query: string) {
