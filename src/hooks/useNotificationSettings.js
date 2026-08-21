@@ -108,9 +108,6 @@ export function useNotificationSettings() {
 
     const updateSettings = useCallback((next) => {
         setSettings((prev) => {
-            // Sanitised on the way in as well as on the way out: the form validates before
-            // it calls this, but the hook is exported and should not be able to store a
-            // threshold that would disable alerting.
             const merged = sanitiseSettings({
                 ...prev,
                 ...next,
