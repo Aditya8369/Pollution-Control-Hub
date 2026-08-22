@@ -59,6 +59,7 @@ import EmbeddableWidgetGenerator from "./components/EmbeddableWidgetGenerator";
 import Glossary from "./components/Glossary";
 import BadgeNotification from "./components/BadgeNotification";
 import Achievements from "./components/Achievements";
+import EcoImpactDashboard from "./components/EcoImpactDashboard";
 import SmartAlertsDashboard from "./components/SmartAlertsDashboard";
 import CityPollutionLeaderboard from "./components/CityPollutionLeaderboard";
 
@@ -348,6 +349,7 @@ function SectionNav({ activeSection, onSectionChange }) {
     { id: "CarbonCalculator", label: "Carbon Calculator" },
     { id: "glossary", label: "Glossary" },
     { id: "achievements", label: "Achievements" },
+    { id: "eco-impact", label: "Eco Impact" },
     { id: "city-leaderboard", label: "City Leaderboard" },
     { id: "smart-alerts", label: "Smart Alerts" },
   ];
@@ -1349,6 +1351,14 @@ function AppContent() {
                 style={{ maxWidth: "1100px", margin: "2rem auto", width: "100%", display: "block" }}
               >
                 <Achievements />
+              </div>
+            )}
+            {activeSection === "eco-impact" && (
+              <div
+                className="content-grid eco-impact-layout"
+                style={{ maxWidth: "900px", margin: "2rem auto", width: "100%", display: "block" }}
+              >
+                <EcoImpactDashboard />
               </div>
             )}
             <Footer />
