@@ -1,8 +1,9 @@
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { useTranslation } from 'react-i18next';
-import { useMemo, useRef, useState } from 'react';
+import { useMemo, useRef, useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { exportToSVG, exportToPNG } from '../utils/chartExport';
+import { generateAIInsights } from '../services/aiInsightsService';
 
 /** Fallback when `timeRange` arrives missing or nonsensical. Matches the dashboard default. */
 const DEFAULT_TIME_RANGE = 24;
@@ -71,9 +72,34 @@ const exportButtonStyle = {
  *   timeRange?: number,
  * }} props
  */
-export default function AnalyticsInsights({ analytics = {}, trend = [], timeRange = DEFAULT_TIME_RANGE }) {
+export default function AnalyticsInsights({ analytics = {}, trend = [], timeRange = DEFAULT_TIME_RANGE, lat, lon, cityName }) {
   const { t } = useTranslation();
   const chartContainerRef = useRef(null);
+
+  const [insights, setInsights] = useState([]);
+  const [loadingInsights, setLoadingInsights] = useState(false);
+  const [insightsError, setInsightsError] = useState(null);
+
+  useEffect(() => {
+    if (lat != null && lon != null) {
+      setLoadingInsights(true);
+      setInsightsError(null);
+      generateAIInsights(lat, lon, cityName)
+        .then(result => {
+          if (result.error) {
+            setInsightsError(result.error);
+          } else {
+            setInsights(result.insights);
+          }
+        })
+        .catch(err => {
+          setInsightsError(err.message || 'Error fetching insights');
+        })
+        .finally(() => {
+          setLoadingInsights(false);
+        });
+    }
+  }, [lat, lon, cityName]);
 
   const range = Number.isFinite(timeRange) && timeRange > 0 ? timeRange : DEFAULT_TIME_RANGE;
   const dynamicSeries = useMemo(() => buildTrendSeries(trend, range), [trend, range]);
@@ -127,6 +153,61 @@ export default function AnalyticsInsights({ analytics = {}, trend = [], timeRang
             </p>
           </article>
         ))}
+      </div>
+
+      {/* AI Insights Section */}
+      <div className="ai-insights-card" style={{ marginBottom: '1.5rem', padding: '1.5rem', background: 'var(--bg-app, #f8fafc)', borderRadius: '0.75rem', border: '1px solid var(--border-color, #e2e8f0)' }}>
+        <h3 style={{ margin: '0 0 1rem 0', display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-primary)' }}>
+          <span aria-hidden="true">✨</span> AI Pollution Insights
+        </h3>
+        
+        {loadingInsights && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', opacity: 0.7 }}>
+            <span className="loading-spinner live-dot active" aria-hidden="true" style={{ display: 'inline-block' }}></span>
+            <p style={{ margin: 0 }}>Analyzing historical data for insights...</p>
+          </div>
+        )}
+        
+        {insightsError && !loadingInsights && (
+          <p role="alert" style={{ margin: 0, color: 'var(--danger, #ef4444)' }}>{insightsError}</p>
+        )}
+        
+        {!loadingInsights && !insightsError && insights.length === 0 && (
+          <p style={{ margin: 0, opacity: 0.7 }}>No meaningful insights could be generated at this time. We may need more historical data for this location.</p>
+        )}
+        
+        {!loadingInsights && insights.length > 0 && (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem' }}>
+            {insights.map((insight) => (
+              <div key={insight.id} style={{ background: 'var(--card, #fff)', padding: '1.25rem', borderRadius: '0.5rem', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)', border: '1px solid var(--border-color, #e2e8f0)' }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                  <span style={{ fontSize: '1.5rem', lineHeight: 1 }} aria-hidden="true">{insight.icon}</span>
+                  <div style={{ flex: 1 }}>
+                    <h4 style={{ margin: '0 0 0.25rem 0', fontSize: '1.05rem', color: 'var(--text-primary)' }}>{insight.title}</h4>
+                    <span style={{ 
+                      fontSize: '0.7rem', 
+                      padding: '0.15rem 0.5rem', 
+                      borderRadius: '9999px', 
+                      background: insight.confidence === 'High' ? '#dcfce7' : '#fef08a', 
+                      color: insight.confidence === 'High' ? '#166534' : '#854d0e', 
+                      fontWeight: '700',
+                      display: 'inline-block'
+                    }}>
+                      {insight.confidence} Confidence
+                    </span>
+                  </div>
+                </div>
+                <p 
+                  style={{ margin: '0 0 0.75rem 0', fontSize: '0.9rem', color: 'var(--text-secondary, #475569)', lineHeight: 1.5 }}
+                  dangerouslySetInnerHTML={{ __html: insight.description.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') }} 
+                />
+                <div style={{ fontSize: '0.75rem', color: 'var(--muted, #94a3b8)', borderTop: '1px solid var(--line, #f1f5f9)', paddingTop: '0.5rem' }}>
+                  Source: {insight.source}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="chart-card">
