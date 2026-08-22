@@ -103,4 +103,10 @@ describe('CalendarHeatmap - legend', () => {
       expect(screen.getByText(label)).toBeInTheDocument();
     }
   });
+
+  it('renders pollutant-specific heatmaps when pollutant prop is supplied', () => {
+    render(<CalendarHeatmap data={[{ date: '2024-01-01', pm25: 28, maxAqi: 80 }]} pollutant="pm2_5" />);
+    expect(screen.getByLabelText('2024-01-01: PM2.5 28, Moderate')).toBeInTheDocument();
+    expect(screen.getByText(/PM2.5 Severity Legend/i)).toBeInTheDocument();
+  });
 });

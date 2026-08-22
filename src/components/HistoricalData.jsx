@@ -5,6 +5,7 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Responsi
 import { fetchHistoricalRange } from "../services/airQualityService";
 import { formatHistoricalCSV } from "../services/historicalDataService";
 import { exportToSVG, exportToPNG } from "../utils/chartExport";
+import { POLLUTANTS, aggregateData } from "../utils/dataAggregation";
 
 // Use the local calendar date, not toISOString() (which converts to UTC and,
 // in UTC+ timezones like IST, rolls the date forward by a day in the evening).
@@ -22,6 +23,8 @@ export default function HistoricalData({ position }) {
     const [rawData, setRawData] = useState(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
+    const [granularity, setGranularity] = useState("daily");
+    const [selectedPollutants, setSelectedPollutants] = useState(["us_aqi", "pm2_5", "pm10"]);
     const chartContainerRef = useRef(null);
 
     const fetchData = useCallback(async () => {
@@ -43,55 +46,35 @@ export default function HistoricalData({ position }) {
         }
     }, [position, startDate, endDate]);
 
-    const dailyData = useMemo(() => {
+    const rawItems = useMemo(() => {
         if (!rawData?.hourly?.time) return [];
-
-        const byDate = new Map();
-        rawData.hourly.time.forEach((timestamp, idx) => {
-            const date = timestamp.split("T")[0];
-            if (!byDate.has(date)) {
-                byDate.set(date, { date, pm25: [], pm10: [], no2: [], ozone: [], co: [], aqi: [] });
-            }
-            const bucket = byDate.get(date);
-            bucket.pm25.push(rawData.hourly.pm2_5?.[idx]);
-            bucket.pm10.push(rawData.hourly.pm10?.[idx]);
-            bucket.no2.push(rawData.hourly.nitrogen_dioxide?.[idx]);
-            bucket.ozone.push(rawData.hourly.ozone?.[idx]);
-            bucket.co.push(rawData.hourly.carbon_monoxide?.[idx]);
-            bucket.aqi.push(rawData.hourly.us_aqi?.[idx]);
-        });
-
-        const avg = (arr) => {
-            const valid = arr.filter((v) => typeof v === "number" && !isNaN(v));
-            return valid.length ? Math.round(valid.reduce((a, b) => a + b, 0) / valid.length) : null;
-        };
-
-        return Array.from(byDate.values())
-            .map((bucket) => ({
-                date: bucket.date,
-                maxAqi: avg(bucket.aqi),
-                pm25: avg(bucket.pm25),
-                pm10: avg(bucket.pm10),
-                no2: avg(bucket.no2),
-                ozone: avg(bucket.ozone),
-                co: avg(bucket.co),
-            }))
-            .sort((a, b) => a.date.localeCompare(b.date));
+        return rawData.hourly.time.map((time, idx) => ({
+            time,
+            date: time.split("T")[0],
+            us_aqi: rawData.hourly.us_aqi?.[idx],
+            pm2_5: rawData.hourly.pm2_5?.[idx],
+            pm10: rawData.hourly.pm10?.[idx],
+            nitrogen_dioxide: rawData.hourly.nitrogen_dioxide?.[idx],
+            ozone: rawData.hourly.ozone?.[idx],
+            carbon_monoxide: rawData.hourly.carbon_monoxide?.[idx],
+        }));
     }, [rawData]);
 
-    const chartData = useMemo(
-        () =>
-            dailyData.map((d) => ({
-                date: d.date,
-                AQI: d.maxAqi,
-                "PM2.5": d.pm25,
-                PM10: d.pm10,
-                NO2: d.no2,
-                Ozone: d.ozone,
-                CO: d.co,
-            })),
-        [dailyData]
-    );
+    const dailyData = useMemo(() => {
+        return aggregateData(rawItems, "daily", ["us_aqi", "pm2_5", "pm10", "nitrogen_dioxide", "ozone", "carbon_monoxide"]).map(d => ({
+            date: d.rawTime || d.label,
+            maxAqi: d.us_aqi,
+            pm25: d.pm2_5,
+            pm10: d.pm10,
+            no2: d.nitrogen_dioxide,
+            ozone: d.ozone,
+            co: d.carbon_monoxide
+        }));
+    }, [rawItems]);
+
+    const chartData = useMemo(() => {
+        return aggregateData(rawItems, granularity, selectedPollutants);
+    }, [rawItems, granularity, selectedPollutants]);
 
     const handleDownloadCSV = () => {
         const csv = formatHistoricalCSV(dailyData, toISODate(startDate), toISODate(endDate));
@@ -185,6 +168,69 @@ export default function HistoricalData({ position }) {
                 </button>
             </div>
 
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "1rem", alignItems: "center", marginBottom: "1.25rem", background: "var(--bg-card-alt, rgba(0,0,0,0.02))", padding: "1rem", borderRadius: "8px", border: "1px solid var(--line)" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }} data-testid="historical-granularity-controls">
+                    <span style={{ fontSize: "0.85rem", fontWeight: 600, color: "var(--muted)" }}>Granularity:</span>
+                    {[
+                        { id: "hourly", label: "Hourly" },
+                        { id: "daily", label: "Daily Avg" },
+                        { id: "weekly", label: "Weekly Avg" }
+                    ].map((g) => (
+                        <button
+                            key={g.id}
+                            type="button"
+                            className="btn-secondary text-sm"
+                            style={{
+                                padding: "0.25rem 0.6rem",
+                                fontSize: "0.8rem",
+                                fontWeight: granularity === g.id ? "bold" : "normal",
+                                backgroundColor: granularity === g.id ? "var(--brand)" : undefined,
+                                color: granularity === g.id ? "#ffffff" : undefined
+                            }}
+                            onClick={() => setGranularity(g.id)}
+                        >
+                            {g.label}
+                        </button>
+                    ))}
+                </div>
+
+                <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap" }} data-testid="historical-pollutant-controls">
+                    <span style={{ fontSize: "0.85rem", fontWeight: 600, color: "var(--muted)", marginRight: "0.25rem" }}>Compare Pollutants:</span>
+                    {Object.entries(POLLUTANTS).map(([key, item]) => {
+                        const isSelected = selectedPollutants.includes(key);
+                        return (
+                            <button
+                                key={key}
+                                type="button"
+                                aria-pressed={isSelected}
+                                onClick={() => {
+                                    if (isSelected) {
+                                        if (selectedPollutants.length > 1) {
+                                            setSelectedPollutants(selectedPollutants.filter(p => p !== key));
+                                        }
+                                    } else {
+                                        setSelectedPollutants([...selectedPollutants, key]);
+                                    }
+                                }}
+                                style={{
+                                    padding: "0.25rem 0.6rem",
+                                    borderRadius: "999px",
+                                    fontSize: "0.8rem",
+                                    fontWeight: "600",
+                                    border: `1.5px solid ${item.color}`,
+                                    backgroundColor: isSelected ? item.color : "transparent",
+                                    color: isSelected ? "#ffffff" : item.color,
+                                    cursor: "pointer",
+                                    transition: "all 0.2s ease"
+                                }}
+                            >
+                                {item.name}
+                            </button>
+                        );
+                    })}
+                </div>
+            </div>
+
             {error && <p style={{ color: "var(--danger)" }}>{error}</p>}
 
             {chartData.length > 0 && (
@@ -192,7 +238,7 @@ export default function HistoricalData({ position }) {
                     <ResponsiveContainer width="100%" height={360}>
                         <LineChart data={chartData}>
                             <CartesianGrid strokeDasharray="3 3" stroke="var(--line)" />
-                            <XAxis dataKey="date" tick={{ fontSize: 11, fill: "var(--muted)" }} minTickGap={30} />
+                            <XAxis dataKey="label" tick={{ fontSize: 11, fill: "var(--muted)" }} minTickGap={30} />
                             <YAxis tick={{ fontSize: 11, fill: "var(--muted)" }} />
                             <Tooltip
                                 contentStyle={{
@@ -201,14 +247,29 @@ export default function HistoricalData({ position }) {
                                     borderRadius: "8px",
                                     fontSize: "0.85rem",
                                 }}
+                                formatter={(val, name) => {
+                                    const pollutantConfig = Object.values(POLLUTANTS).find(p => p.name === name || p.key === name);
+                                    const unit = pollutantConfig?.unit || '';
+                                    return [`${val} ${unit}`, name];
+                                }}
                             />
                             <Legend wrapperStyle={{ fontSize: "0.85rem" }} />
-                            <Line type="monotone" dataKey="AQI" stroke="#0d9488" dot={false} strokeWidth={2} />
-                            <Line type="monotone" dataKey="PM2.5" stroke="#ef4444" dot={false} strokeWidth={1.5} />
-                            <Line type="monotone" dataKey="PM10" stroke="#f59e0b" dot={false} strokeWidth={1.5} />
-                            <Line type="monotone" dataKey="NO2" stroke="#3b82f6" dot={false} strokeWidth={1.5} />
-                            <Line type="monotone" dataKey="Ozone" stroke="#8b5cf6" dot={false} strokeWidth={1.5} />
-                            <Line type="monotone" dataKey="CO" stroke="#64748b" dot={false} strokeWidth={1.5} />
+                            {selectedPollutants.map((key) => {
+                                const config = POLLUTANTS[key];
+                                if (!config) return null;
+                                return (
+                                    <Line
+                                        key={key}
+                                        type="monotone"
+                                        dataKey={key}
+                                        name={config.name}
+                                        stroke={config.color}
+                                        dot={false}
+                                        strokeWidth={key === "us_aqi" ? 2.5 : 1.5}
+                                        activeDot={{ r: 5 }}
+                                    />
+                                );
+                            })}
                         </LineChart>
                     </ResponsiveContainer>
                 </div>

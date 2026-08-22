@@ -7,6 +7,7 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
+  Legend,
   ResponsiveContainer,
   BarChart,
   Bar,
@@ -15,6 +16,7 @@ import {
   Cell
 } from "recharts";
 import { lazy, Suspense, useRef, useState, useEffect, useMemo } from "react";
+import { POLLUTANTS, aggregateData } from "../utils/dataAggregation";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 import styles from "./Dashboard.module.css";
@@ -159,7 +161,7 @@ export default function Dashboard({
   dataCompleteness,
   isFallback,
   analytics,
-  nearbyPoints,
+  nearbyPoints = [],
   windData,
   windError,
   exposureEstimate
@@ -178,6 +180,8 @@ export default function Dashboard({
   } = useSWR(weatherKey, () => fetchHourlyWeather(lat, lon), { ttl: 60 * 60 * 1000 });
 
   const [animateForecast, setAnimateForecast] = useState(false);
+  const [selectedPollutants, setSelectedPollutants] = useState(['us_aqi', 'pm2_5']);
+  const [trendGranularity, setTrendGranularity] = useState('hourly');
 
   const [isCustomizing, setIsCustomizing] = useState(false);
   const [layout, setLayout] = useState(() => {
@@ -386,10 +390,10 @@ export default function Dashboard({
   const forecastAqiValues = forecastData ? forecastData.map(d => d.aqi) : [];
   const minAqi = forecastAqiValues.length > 0 ? Math.min(...forecastAqiValues) : Infinity;
   const maxAqi = forecastAqiValues.length > 0 ? Math.max(...forecastAqiValues) : -Infinity;
-  const chartData = trend.slice(-timeRange).map((item) => ({
-    ...item,
-    label: shortTimeLabel(item.time)
-  }));
+  const chartData = useMemo(() => {
+    const slice = (trend || []).slice(-timeRange);
+    return aggregateData(slice, trendGranularity, selectedPollutants);
+  }, [trend, timeRange, trendGranularity, selectedPollutants]);
 
   const pollutants = [
     { name: 'PM2.5', value: current.pm2_5, limit: 15, impact: 'Fine particles can penetrate lungs and enter the bloodstream.', color: getPollutantColor(current.pm2_5, 15) },
@@ -813,7 +817,7 @@ export default function Dashboard({
                     <LocationMap
                       key="location-map"
                       center={{ lat, lon, cityName }}
-                      nearbyPoints={nearbyPoints}
+                      nearbyPoints={nearbyPoints || []}
                       confidenceScore={confidenceScore}
                       windData={windData}
                       windError={windError}
@@ -1046,10 +1050,14 @@ export default function Dashboard({
           </Suspense>
         </div>
 
-              <p style={{ color: 'var(--danger)', padding: '1rem' }} role="alert">
-                Failed to load hourly weather data.
-              </p>
-            )}
+        <div className={styles.chartGrid}>
+          <article className="chart-card">
+          <h3>Hourly Weather Forecast</h3>
+          {hourlyWeatherError && (
+            <p style={{ color: 'var(--danger)', padding: '1rem' }} role="alert">
+              Failed to load hourly weather data.
+            </p>
+          )}
             {!hourlyWeather && !hourlyWeatherError && (
               <p style={{ padding: '1rem', color: 'var(--muted)' }} aria-live="polite">Loading hourly weather…</p>
             )}
@@ -1113,7 +1121,79 @@ export default function Dashboard({
           </Suspense>
 
           <article className="chart-card">
-            <h3>AQI Trend ({timeRange}h)</h3>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '0.75rem' }}>
+              <h3 style={{ margin: 0 }}>Historical & Real-Time Trend ({timeRange}h)</h3>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }} data-testid="granularity-selector">
+                <span style={{ fontSize: '0.85rem', color: 'var(--muted)', fontWeight: '600' }}>Granularity:</span>
+                {[
+                  { id: 'hourly', label: 'Hourly' },
+                  { id: '3h', label: '3h Avg' },
+                  { id: 'daily', label: 'Daily Avg' }
+                ].map((g) => (
+                  <button
+                    key={g.id}
+                    type="button"
+                    className="btn-secondary text-sm"
+                    style={{
+                      padding: '0.25rem 0.6rem',
+                      fontSize: '0.8rem',
+                      fontWeight: trendGranularity === g.id ? 'bold' : 'normal',
+                      backgroundColor: trendGranularity === g.id ? 'var(--brand)' : undefined,
+                      color: trendGranularity === g.id ? '#fff' : undefined,
+                    }}
+                    onClick={() => setTrendGranularity(g.id)}
+                  >
+                    {g.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '1rem', alignItems: 'center' }} data-testid="pollutant-overlay-controls">
+              <span style={{ fontSize: '0.85rem', color: 'var(--muted)', fontWeight: '600', marginRight: '0.25rem' }}>Compare Pollutants:</span>
+              {Object.entries(POLLUTANTS).map(([key, item]) => {
+                const isSelected = selectedPollutants.includes(key);
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    aria-pressed={isSelected}
+                    onClick={() => {
+                      if (isSelected) {
+                        if (selectedPollutants.length > 1) {
+                          setSelectedPollutants(selectedPollutants.filter(p => p !== key));
+                        }
+                      } else {
+                        setSelectedPollutants([...selectedPollutants, key]);
+                      }
+                    }}
+                    style={{
+                      padding: '0.25rem 0.6rem',
+                      borderRadius: '999px',
+                      fontSize: '0.8rem',
+                      fontWeight: '600',
+                      border: `1.5px solid ${item.color}`,
+                      backgroundColor: isSelected ? item.color : 'transparent',
+                      color: isSelected ? '#ffffff' : item.color,
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.35rem'
+                    }}
+                  >
+                    <span style={{
+                      width: '8px',
+                      height: '8px',
+                      borderRadius: '50%',
+                      backgroundColor: isSelected ? '#ffffff' : item.color
+                    }} aria-hidden="true" />
+                    {item.name}
+                  </button>
+                );
+              })}
+            </div>
+
             <div
               id="aqi-trend-chart"
               data-testid="aqi-trend-chart"
@@ -1122,14 +1202,36 @@ export default function Dashboard({
               tabIndex={0}
               style={{ outline: 'none' }}
             >
-              <div role="img" aria-label={`Line chart displaying AQI trend over the last ${timeRange} hours`}>
+              <div role="img" aria-label={`Line chart displaying trends over the last ${timeRange} hours for ${selectedPollutants.join(', ')}`}>
                 <ResponsiveContainer width="100%" height={280}>
                   <LineChart data={chartData}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#d7e6e1" />
                     <XAxis dataKey="label" minTickGap={28} />
                     <YAxis />
-                    <Tooltip />
-                    <Line type="monotone" dataKey="us_aqi" stroke="#0d9488" strokeWidth={3} dot={false} />
+                    <Tooltip
+                      formatter={(val, name) => {
+                        const pollutantConfig = Object.values(POLLUTANTS).find(p => p.name === name || p.key === name);
+                        const unit = pollutantConfig?.unit || '';
+                        return [`${val} ${unit}`, name];
+                      }}
+                    />
+                    <Legend wrapperStyle={{ fontSize: '0.85rem' }} />
+                    {selectedPollutants.map((pollutantKey) => {
+                      const config = POLLUTANTS[pollutantKey];
+                      if (!config) return null;
+                      return (
+                        <Line
+                          key={pollutantKey}
+                          type="monotone"
+                          dataKey={pollutantKey}
+                          name={config.name}
+                          stroke={config.color}
+                          strokeWidth={pollutantKey === 'us_aqi' ? 3 : 2}
+                          dot={false}
+                          activeDot={{ r: 5 }}
+                        />
+                      );
+                    })}
                   </LineChart>
                 </ResponsiveContainer>
               </div>

@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { usePopper } from 'react-popper';
-import { getAQIBand, UNKNOWN_AQI_BAND } from '../services/airQualityService';
+import { UNKNOWN_AQI_BAND } from '../services/airQualityService';
+import { getPollutantBand, POLLUTANTS } from '../utils/dataAggregation';
 import { buildCalendarGrid } from '../utils/calendarGrid';
 import PropTypes from "prop-types";
 
@@ -14,21 +15,31 @@ const AQI_LEGEND_BANDS = [
   { label: 'Hazardous', color: '#7f1d1d' },
 ];
 
+function getCellPollutantValue(cell, pollutantKey) {
+  if (!cell) return null;
+  const target = cell.entry || cell;
+  if (pollutantKey === 'pm2_5' || pollutantKey === 'pm25') return target.pm25 ?? target.pm2_5;
+  if (pollutantKey === 'pm10') return target.pm10;
+  if (pollutantKey === 'nitrogen_dioxide' || pollutantKey === 'no2') return target.no2 ?? target.nitrogen_dioxide;
+  if (pollutantKey === 'ozone') return target.ozone;
+  if (pollutantKey === 'carbon_monoxide' || pollutantKey === 'co') return target.co ?? target.carbon_monoxide;
+  return target.maxAqi ?? target.us_aqi ?? target.aqi ?? cell.maxAqi;
+}
+
+function hasCellReading(cell, pollutantKey) {
+  if (!cell || cell.kind === 'pad') return false;
+  const val = getCellPollutantValue(cell, pollutantKey);
+  return typeof val === 'number' && Number.isFinite(val);
+}
+
 /**
- * Displays a calendar heatmap of historical AQI values.
- *
- * Cell placement comes from each record's date, not from its index in `data` --
- * see buildCalendarGrid(). Days the archive has no reading for are rendered as an
- * explicit "no data" cell rather than being coloured, so a gap in coverage cannot
- * read as a clean day.
+ * Displays a calendar heatmap of historical pollutant values.
  *
  * @param {Object} props Component props.
- * @param {Array<{
- *   date: string,
- *   maxAqi: number|null
- * }>} props.data Daily AQI records used to render the heatmap.
+ * @param {Array<Object>} props.data Daily AQI/pollutant records used to render the heatmap.
+ * @param {string} [props.pollutant='us_aqi'] Active pollutant key ('us_aqi', 'pm2_5', 'pm10', 'nitrogen_dioxide', 'ozone', 'carbon_monoxide').
  */
-export default function CalendarHeatmap({ data }) {
+export default function CalendarHeatmap({ data, pollutant = 'us_aqi' }) {
   const [activeTooltip, setActiveTooltip] = useState(null);
   const [referenceElement, setReferenceElement] = useState(null);
   const [popperElement, setPopperElement] = useState(null);
@@ -61,14 +72,14 @@ export default function CalendarHeatmap({ data }) {
     [markers]
   );
 
-  const handleCellMouseEnter = (e, cell, aqiBand) => {
+  const handleCellMouseEnter = (e, cell, band, value) => {
     setReferenceElement(e.currentTarget);
     setActiveTooltip({
       date: cell.date,
-      maxAqi: cell.maxAqi,
+      value: value ?? cell.maxAqi,
       hasReading: cell.hasReading,
-      label: aqiBand.label,
-      color: aqiBand.color,
+      label: band.label,
+      color: band.color,
     });
   };
 
@@ -76,6 +87,8 @@ export default function CalendarHeatmap({ data }) {
     setActiveTooltip(null);
     setReferenceElement(null);
   };
+
+  const pollutantConfig = POLLUTANTS[pollutant] || POLLUTANTS.us_aqi;
 
   if (weeks.length === 0) {
     return (
@@ -139,16 +152,17 @@ export default function CalendarHeatmap({ data }) {
                     );
                   }
 
-                  // Inside the range but with no reading. Deliberately not passed
-                  // through the AQI colour scale: an unmeasured day is not a clean day.
-                  if (!cell.hasReading) {
+                  const val = getCellPollutantValue(cell, pollutant);
+                  const isMeasured = hasCellReading(cell, pollutant);
+
+                  if (!isMeasured) {
                     return (
                       <div
                         key={cell.date}
                         className="calendar-day calendar-day-nodata"
                         style={{ backgroundColor: UNKNOWN_AQI_BAND.color }}
                         title={`${cell.date}: no reading`}
-                        onMouseEnter={(e) => handleCellMouseEnter(e, cell, UNKNOWN_AQI_BAND)}
+                        onMouseEnter={(e) => handleCellMouseEnter(e, cell, UNKNOWN_AQI_BAND, null)}
                         onMouseLeave={handleCellMouseLeave}
                         role="img"
                         aria-label={`${cell.date}: no reading available`}
@@ -156,19 +170,19 @@ export default function CalendarHeatmap({ data }) {
                     );
                   }
 
-                  const aqiBand = getAQIBand(cell.maxAqi);
+                  const band = getPollutantBand(val, pollutant);
 
                   return (
                     <div
                       key={cell.date}
                       className="calendar-day"
-                      style={{ backgroundColor: aqiBand.color }}
+                      style={{ backgroundColor: band.color }}
                       // Native tooltip as accessible fallback
-                      title={`${cell.date}: AQI ${cell.maxAqi} — ${aqiBand.label}`}
-                      onMouseEnter={(e) => handleCellMouseEnter(e, cell, aqiBand)}
+                      title={`${cell.date}: ${pollutantConfig.name} ${val ?? '—'} ${pollutantConfig.unit} — ${band.label}`}
+                      onMouseEnter={(e) => handleCellMouseEnter(e, cell, band, val)}
                       onMouseLeave={handleCellMouseLeave}
                       role="img"
-                      aria-label={`${cell.date}: AQI ${cell.maxAqi}, ${aqiBand.label}`}
+                      aria-label={`${cell.date}: ${pollutantConfig.name} ${val ?? '—'}, ${band.label}`}
                     />
                   );
                 })}
@@ -198,7 +212,7 @@ export default function CalendarHeatmap({ data }) {
                   className="calendar-tooltip-badge"
                   style={{ backgroundColor: activeTooltip.color }}
                 >
-                  AQI {activeTooltip.maxAqi}
+                  {pollutantConfig.name} {activeTooltip.value} {pollutantConfig.unit}
                 </span>
                 <span className="calendar-tooltip-label">{activeTooltip.label}</span>
               </>
@@ -212,7 +226,7 @@ export default function CalendarHeatmap({ data }) {
       {/* ── Legend ─────────────────────────────────────────────── */}
       <div className="calendar-legend">
         <div className="calendar-legend-title">
-          AQI Legend
+          {pollutantConfig.name} Severity Legend
         </div>
 
         <div className="calendar-legend-grid">
