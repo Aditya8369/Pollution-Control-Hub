@@ -7,5 +7,6 @@ model SensorReading {
   co2       Float?
 
   @@index([sensorId, timestamp(sort: Desc)], name: "idx_sensor_readings_sensor_timestamp")
+  @@unique([sensorId, timestamp], name: "uq_sensor_readings_sensor_timestamp")
   @@map("sensor_readings")
 }
