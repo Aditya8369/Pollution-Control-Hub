@@ -1021,7 +1021,7 @@ export default function Dashboard({
                     />
                   );
                 case 'health-advisory':
-                  return <HealthAdvisory key="health-advisory" lat={lat} lon={lon} />;
+                  return <HealthAdvisory key="health-advisory" lat={lat} lon={lon} currentAqi={current?.aqi} />;
                 case 'pollen-forecast':
                   return <PollenAllergenForecast key="pollen-forecast" lat={lat} lon={lon} />;
                 case 'sun-safety':
