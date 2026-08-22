@@ -1,11 +1,17 @@
 import { useState, useMemo, useCallback, useRef } from "react";
-import DatePicker from "react-datepicker";
+import DatePicker, { registerLocale } from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { fetchHistoricalRange } from "../services/airQualityService";
 import { formatHistoricalCSV } from "../services/historicalDataService";
 import { exportToSVG, exportToPNG } from "../utils/chartExport";
 import { POLLUTANTS, aggregateData } from "../utils/dataAggregation";
+import { enUS, hi, bn } from "date-fns/locale";
+import { useTranslation } from "react-i18next";
+
+registerLocale("en", enUS);
+registerLocale("hi", hi);
+registerLocale("bn", bn);
 
 // Use the local calendar date, not toISOString() (which converts to UTC and,
 // in UTC+ timezones like IST, rolls the date forward by a day in the evening).
@@ -14,6 +20,32 @@ const toISODate = (date) =>
 
 /** @param {any} params */
 export default function HistoricalData({ position }) {
+    const { i18n } = useTranslation();
+
+    const getLocaleDateFormat = useCallback((locale) => {
+        try {
+            const formatObj = new Intl.DateTimeFormat(locale).formatToParts(new Date());
+            return formatObj
+                .map((obj) => {
+                    switch (obj.type) {
+                        case "day":
+                            return "dd";
+                        case "month":
+                            return "MM";
+                        case "year":
+                            return "yyyy";
+                        default:
+                            return obj.value;
+                    }
+                })
+                .join("");
+        } catch (e) {
+            return "dd/MM/yyyy";
+        }
+    }, []);
+
+    const currentDateFormat = useMemo(() => getLocaleDateFormat(i18n.language), [i18n.language, getLocaleDateFormat]);
+
     const [startDate, setStartDate] = useState(() => {
         const d = new Date();
         d.setDate(d.getDate() - 30);
@@ -122,6 +154,8 @@ export default function HistoricalData({ position }) {
                         startDate={startDate}
                         endDate={endDate}
                         maxDate={endDate}
+                        locale={i18n.language}
+                        dateFormat={currentDateFormat}
                     />
                 </div>
                 <div>
@@ -137,6 +171,8 @@ export default function HistoricalData({ position }) {
                         endDate={endDate}
                         minDate={startDate}
                         maxDate={new Date()}
+                        locale={i18n.language}
+                        dateFormat={currentDateFormat}
                     />
                 </div>
                 <button type="button" className="btn-primary" onClick={fetchData} disabled={loading}>
