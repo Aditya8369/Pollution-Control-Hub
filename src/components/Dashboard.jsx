@@ -1037,6 +1037,9 @@ export default function Dashboard({
                       analytics={analytics}
                       trend={trend}
                       timeRange={timeRange}
+                      lat={lat}
+                      lon={lon}
+                      cityName={cityName}
                     />
                   );
                 case 'solutions-awareness':
