@@ -1,4 +1,12 @@
-import { useEffect, useMemo, useState, useCallback, useRef, lazy, Suspense, } from "react";
+import {
+  useEffect,
+  useMemo,
+  useState,
+  useCallback,
+  useRef,
+  lazy,
+  Suspense,
+} from "react";
 import { useSWR } from "./hooks/useSWR";
 import { cacheStore } from "./utils/cacheStore";
 import AlertsPanel from "./components/AlertsPanel";
@@ -45,7 +53,8 @@ import { ThemeProvider, useTheme } from "./context/ThemeContext";
 import ThemeSwitcher from "./components/ThemeSwitcher";
 import LanguageSwitcher from "./components/LanguageSwitcher";
 import CarbonFootprintCalculator from "./components/CarbonFootprintCalculator";
-import Leaderboard from "./components/Leaderboard";
+// 1. FIXED: Changed to named import
+import { Leaderboard } from "./components/Leaderboard";
 import EmbeddableWidgetGenerator from "./components/EmbeddableWidgetGenerator";
 import Glossary from "./components/Glossary";
 import BadgeNotification from "./components/BadgeNotification";
@@ -327,6 +336,8 @@ function SectionNav({ activeSection, onSectionChange }) {
     { id: "widget", label: "AQI Widget" },
     { id: "game", label: "Game" },
     { id: "community", label: "Community" },
+    // 2. FIXED: Added the Leaderboard to the navigation menu so you can click it!
+    { id: "leaderboard", label: "Leaderboard" },
     { id: "indoor", label: "Indoor Air" },
     { id: "exposure-tracker", label: "Exposure Score" },
     { id: "heatmap-timeline", label: "Pollution Timeline" },

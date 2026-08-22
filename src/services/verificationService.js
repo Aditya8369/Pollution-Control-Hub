@@ -1,15 +1,16 @@
 /**
- * Community Pollution Verification Service (#867)
+ * Community Pollution Verification Service (#867 & #926)
  *
  * Pure, side-effect-free functions that compute a verification confidence
  * score for a community pollution report. Consumed by CommunityHub and LocationMap.
  *
- * Scoring model (max 100 pts):
+ * Scoring model (max 100 pts, capped):
  *   Factor 1 – Nearby reports      30 pts  (10 × geotagged reports within 5 km, last 7 days, max 3)
  *   Factor 2 – Official AQI level  25 pts  (requires GPS on report)
  *   Factor 3 – Pollutant-type match 20 pts (hashtag/title vs live pollutant levels)
  *   Factor 4 – Community votes     15 pts  (based on report.votes)
  *   Factor 5 – Timestamp freshness 10 pts  (age of report in hours/days)
+ *   Factor 6 – User Reputation     20 pts  (Issue #926: trust bonus for reputable authors)
  *
  * Moderator overrides short-circuit scoring:
  *   moderatorOverride = 'verified'   → score 100, state 'Verified'
@@ -215,11 +216,12 @@ export function deriveVerificationState(score) {
  * @param {Object|null} [options.aqiData]       - Live AQI data from fetchAirQualityByCoords.
  * @param {Object[]}    [options.nearbyReports]  - Pre-computed nearby report list.
  * @param {Object[]}    [options.allReports]     - Full report list (for duplicate check).
+ * @param {number}      [options.authorReputation] - User reputation score (Issue #926).
  * @returns {VerificationResult}
  */
 export function computeVerificationScore(
   report,
-  { aqiData = null, nearbyReports = [], allReports = [] } = {}
+  { aqiData = null, nearbyReports = [], allReports = [], authorReputation = 0 } = {}
 ) {
   // ── Moderator overrides short-circuit everything ──────────────────────────
   if (report.moderatorOverride === 'verified') {
@@ -313,8 +315,17 @@ export function computeVerificationScore(
   else if (ageHours <= 24) freshnessScore = 7;
   else if (ageHours <= 72) freshnessScore = 4;
 
+  // ── Factor 6: User Reputation (max 20 pts) ───────────────────────────────
+  // Issue #926: Reward trusted users with automatic verification bumps
+  let reputationScore = 0;
+  const rep = authorReputation || report.authorReputation || 0;
+  
+  if (rep >= 100) reputationScore = 20;
+  else if (rep >= 50) reputationScore = 10;
+  else if (rep >= 10) reputationScore = 5;
+
   const rawScore =
-    nearbyScore + aqiScore + pollutantScore + votesScore + freshnessScore;
+    nearbyScore + aqiScore + pollutantScore + votesScore + freshnessScore + reputationScore;
 
   // ── Duplicate detection ──────────────────────────────────────────────────
   const { isDuplicate, duplicateOf } = detectDuplicates(report, allReports);
@@ -336,11 +347,12 @@ export function computeVerificationScore(
     duplicateOf,
     nearbyCount: nearbyReports.length,
     factors: [
-      { label: 'verificationNearby',    score: nearbyScore,     max: 30 },
-      { label: 'verificationAqi',       score: aqiScore,        max: 25 },
-      { label: 'verificationPollutant', score: pollutantScore,  max: 20 },
-      { label: 'verificationVotes',     score: votesScore,      max: 15 },
-      { label: 'verificationFreshness', score: freshnessScore,  max: 10 },
+      { label: 'verificationNearby',     score: nearbyScore,     max: 30 },
+      { label: 'verificationAqi',        score: aqiScore,        max: 25 },
+      { label: 'verificationPollutant',  score: pollutantScore,  max: 20 },
+      { label: 'verificationVotes',      score: votesScore,      max: 15 },
+      { label: 'verificationFreshness',  score: freshnessScore,  max: 10 },
+      { label: 'verificationReputation', score: reputationScore, max: 20 },
     ],
   };
 }

@@ -9,6 +9,8 @@ import {
   computeVerificationScore,
   findNearbyReports,
 } from '../services/verificationService';
+// Issue #926: Import our new reputation system logic
+import { updateUserReputation } from '../services/reputationService';
 
 const STORAGE_KEY = 'pollution-community-reports';
 const VOTES_STORAGE_KEY = 'pollution-community-voted-ids';
@@ -298,6 +300,7 @@ export default function CommunityHub() {
 
     const newReport = {
       id: crypto.randomUUID(),
+      authorId: user?.id || null, // Issue #926: Tracking the author for reputation points
       title: cleanTitle,
       description: cleanDescription,
       image: safeImage,
@@ -319,6 +322,11 @@ export default function CommunityHub() {
     setLocationStatus('idle');
 
     eventBus.emit('COMMUNITY_REPORT_SUBMITTED', newReport);
+
+    // Issue #926: Step 2 - Award points for valid reports
+    if (user?.id) {
+      updateUserReputation(user.id, 'VALID_REPORT').catch(console.error);
+    }
   };
 
   /** @param {any} event */
@@ -411,6 +419,11 @@ export default function CommunityHub() {
     );
 
     setVotedIds((prev) => new Set(prev).add(id));
+
+    // Issue #926: Step 3 - Award points for confirming incidents
+    if (user?.id) {
+      updateUserReputation(user.id, 'CONFIRM_INCIDENT').catch(console.error);
+    }
   };
 
   /** @param {string} reportId */
@@ -491,18 +504,23 @@ export default function CommunityHub() {
   /** Moderator action: flag a report as suspicious (override → unverified). */
   const handleMarkSuspicious = (reportId) => {
     setReports((prev) =>
-      prev.map((r) =>
-        r.id !== reportId
-          ? r
-          : {
-              ...r,
-              moderatorOverride: 'unverified',
-              moderationNotes: t(
-                'communityHub.moderatorMarkSuspicious',
-                'Mark Suspicious'
-              ) + ' — ' + new Date().toISOString(),
-            }
-      )
+      prev.map((r) => {
+        if (r.id !== reportId) return r;
+
+        // Issue #926: Step 4 - Penalize spam/false reports
+        if (r.authorId) {
+          updateUserReputation(r.authorId, 'SPAM_PENALTY').catch(console.error);
+        }
+
+        return {
+          ...r,
+          moderatorOverride: 'unverified',
+          moderationNotes: t(
+            'communityHub.moderatorMarkSuspicious',
+            'Mark Suspicious'
+          ) + ' — ' + new Date().toISOString(),
+        };
+      })
     );
   };
 
@@ -513,13 +531,13 @@ export default function CommunityHub() {
         r.id !== reportId
           ? r
           : {
-              ...r,
-              moderatorOverride: 'verified',
-              moderationNotes: t(
-                'communityHub.moderatorOverrideVerified',
-                'Override: Verified'
-              ) + ' — ' + new Date().toISOString(),
-            }
+            ...r,
+            moderatorOverride: 'verified',
+            moderationNotes: t(
+              'communityHub.moderatorOverrideVerified',
+              'Override: Verified'
+            ) + ' — ' + new Date().toISOString(),
+          }
       )
     );
   };
