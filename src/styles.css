@@ -11456,3 +11456,115 @@ a {
   opacity: 0.6;
   cursor: default;
 }
+
+
+/* --- Eco Impact Dashboard --- */
+.eco-impact-log-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  margin: 0.75rem 0 1rem;
+}
+
+.eco-impact-log-form label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--muted, #94a3b8);
+}
+
+.eco-impact-log-form select,
+.eco-impact-log-form input {
+  padding: 0.5rem 0.7rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--line, #334155);
+  background: var(--card, #1e293b);
+  color: var(--ink, #f8fafc);
+}
+
+.eco-impact-log-form input {
+  width: 110px;
+}
+
+.eco-impact-log-form button {
+  padding: 0.5rem 1.1rem;
+  border-radius: 0.5rem;
+  border: none;
+  background: var(--brand, #2dd4bf);
+  color: #04201c;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.eco-impact-logged-note {
+  font-size: 0.85rem;
+  color: #22c55e;
+  margin: 0 0 1rem;
+}
+
+.eco-impact-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.eco-impact-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0.25rem;
+  padding: 1rem 0.5rem;
+  border-radius: 0.75rem;
+  background: var(--card, #1e293b);
+  border: 1px solid var(--line, #334155);
+}
+
+.eco-impact-stat-icon {
+  font-size: 1.5rem;
+}
+
+.eco-impact-stat-value {
+  font-size: 1.6rem;
+  font-weight: 700;
+}
+
+.eco-impact-stat-label {
+  font-size: 0.8rem;
+  color: var(--muted, #94a3b8);
+}
+
+.eco-impact-estimates {
+  margin-bottom: 1.25rem;
+}
+
+.eco-impact-estimates h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0 0 0.6rem;
+}
+
+.eco-impact-estimates-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 0.6rem;
+}
+
+.eco-impact-estimate {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.7rem 0.9rem;
+  border-radius: 0.6rem;
+  background: rgba(34, 197, 94, 0.08);
+  border: 1px solid rgba(34, 197, 94, 0.25);
+  font-size: 0.9rem;
+}
+
+.eco-impact-empty {
+  color: var(--muted, #94a3b8);
+  font-size: 0.9rem;
+  text-align: center;
+  padding: 1rem 0;
+}

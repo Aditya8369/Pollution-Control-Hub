@@ -32,6 +32,7 @@
     "indoor": "অন্দর বায়ু",
     "historical-data": "ডেটা এক্সপ্লোরার",
     "glossary": "শব্দকোষ",
+    "eco-impact": "পরিবেশ প্রভাব",
     "achievements": "অর্জনসমূহ"
   },
   "status": {
@@ -452,5 +453,29 @@
     "inputPlaceholder": "আজকের বায়ুর গুণমান সম্পর্কে জিজ্ঞাসা করুন...",
     "inputAriaLabel": "এআই দূষণ কো-পাইলটকে জিজ্ঞাসা করুন",
     "send": "পাঠান"
+  },
+  "ecoImpact": {
+    "title": "🏆 আপনার পরিবেশ প্রভাব",
+    "subtitle": "এই মাসে — {{month}}",
+    "tripTypeLabel": "একটি ভ্রমণ লগ করুন",
+    "tripType": {
+      "cycling": "সাইকেল ভ্রমণ",
+      "publicTransport": "গণপরিবহন ভ্রমণ",
+      "carAvoided": "গাড়ি ভ্রমণ এড়ানো হয়েছে"
+    },
+    "distanceLabel": "দূরত্ব কিলোমিটারে",
+    "distancePlaceholder": "দূরত্ব (কিমি)",
+    "logButton": "ভ্রমণ লগ করুন",
+    "loggedNote": "ভ্রমণ লগ হয়েছে! আপনার প্রভাব নিচে আপডেট হয়েছে।",
+    "cyclingTrips": "সাইকেল ভ্রমণ",
+    "transitTrips": "গণপরিবহন",
+    "carTripsAvoided": "এড়ানো গাড়ি ভ্রমণ",
+    "estimatedHeading": "আনুমানিক",
+    "co2Avoided": "CO₂ এড়ানো হয়েছে: {{kg}} কেজি",
+    "distanceAvoided": "গাড়ির দূরত্ব এড়ানো হয়েছে: {{km}} কিমি",
+    "empty": "আপনার প্রভাব ট্র্যাক করা শুরু করতে উপরে আপনার প্রথম পরিবেশ-বান্ধব ভ্রমণ লগ করুন।",
+    "chartCycling": "সাইকেল",
+    "chartTransit": "গণপরিবহন",
+    "chartCarAvoided": "গাড়ি এড়ানো"
   }
 }
