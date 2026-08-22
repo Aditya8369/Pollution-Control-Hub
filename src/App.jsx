@@ -50,6 +50,7 @@ import EmbeddableWidgetGenerator from "./components/EmbeddableWidgetGenerator";
 import Glossary from "./components/Glossary";
 import BadgeNotification from "./components/BadgeNotification";
 import Achievements from "./components/Achievements";
+import SmartAlertsDashboard from "./components/SmartAlertsDashboard";
 import CityPollutionLeaderboard from "./components/CityPollutionLeaderboard";
 
 const AqiMissionGame = lazy(() => import("./components/AqiMissionGame"));
@@ -337,6 +338,7 @@ function SectionNav({ activeSection, onSectionChange }) {
     { id: "glossary", label: "Glossary" },
     { id: "achievements", label: "Achievements" },
     { id: "city-leaderboard", label: "City Leaderboard" },
+    { id: "smart-alerts", label: "Smart Alerts" },
   ];
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef(null);
@@ -1308,6 +1310,7 @@ function AppContent() {
             {activeSection === "Commute" && <Commute />}
             {activeSection === "Compare" && <CityCompare />}
             {activeSection === "city-leaderboard" && <CityPollutionLeaderboard />}
+            {activeSection === "smart-alerts" && <SmartAlertsDashboard position={position} />}
             {activeSection === "CarbonCalculator" && (
               <div
                 className="content-grid carbon-calculator-layout"
