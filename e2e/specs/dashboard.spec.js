@@ -157,3 +157,38 @@ test.describe('Dashboard — Analytics Insights', () => {
     await expect(analytics).toContainText(/week|month|average/i);
   });
 });
+
+// ── Dashboard widget personalization ──────────────────────────────────────────
+
+test.describe('Dashboard — widget personalization', () => {
+  test('allows users to toggle widget visibility and persists it in localStorage', async ({ mockPage }) => {
+    // 1. Personalize drawer should not be visible initially
+    const drawerTitle = mockPage.getByText('Personalize Your Dashboard');
+    await expect(drawerTitle).not.toBeVisible();
+
+    // 2. Click the personalization button
+    const personalizeBtn = mockPage.getByRole('button', { name: /Personalize dashboard/i });
+    await expect(personalizeBtn).toBeVisible();
+    await personalizeBtn.click();
+
+    // 3. Drawer should now be visible
+    await expect(drawerTitle).toBeVisible();
+
+    // 4. Toggle the Location Map widget checkbox
+    const mapCheckbox = mockPage.getByRole('checkbox', { name: /Location Map & Heatmap/i });
+    await expect(mapCheckbox).toBeVisible();
+    await expect(mapCheckbox).toBeChecked();
+
+    // Click checkbox to uncheck it
+    await mapCheckbox.click();
+    await expect(mapCheckbox).not.toBeChecked();
+
+    // 5. Verify layout is saved in localStorage
+    const savedLayoutJson = await mockPage.evaluate(() => localStorage.getItem('pch_dashboard_layout'));
+    expect(savedLayoutJson).not.toBeNull();
+    const savedLayout = JSON.parse(savedLayoutJson);
+    const mapWidget = savedLayout.find(w => w.id === 'location-map');
+    expect(mapWidget).toBeDefined();
+    expect(mapWidget.visible).toBe(false);
+  });
+});

@@ -5,6 +5,7 @@ import CalendarHeatmap from './CalendarHeatmap';
 import CalibrationHistory from './CalibrationHistory';
 import { fetchHistoricalData, formatHistoricalCSV } from '../services/historicalDataService';
 import { dayAqi } from '../utils/historicalAggregate';
+import { POLLUTANTS } from '../utils/dataAggregation';
 
 const EXPORT_BG = 'var(--brand, #0d9488)';
 const EXPORT_BG_ALT = 'var(--muted, #0d9488)';
@@ -38,6 +39,7 @@ export default function HistoricalAnalysis({ position }) {
   const [endDate, setEndDate] = useState('');
   const [dateError, setDateError] = useState('');
   const [isExportingPDF, setIsExportingPDF] = useState(false);
+  const [activePollutant, setActivePollutant] = useState('us_aqi');
 
   const workerRef = useRef(null);
   const containerRef = useRef(null);
@@ -580,8 +582,32 @@ export default function HistoricalAnalysis({ position }) {
       </div>
 
       <div className="heatmap-section" style={{ overflow: 'hidden' }}>
-        <h3 style={{ fontSize: '1.1rem', fontWeight: 500, margin: '0 0 1rem' }}>{t("historicalAnalysis.heatmapTitle", "Daily Severity Calendar")}</h3>
-        <CalendarHeatmap data={data.daily} />
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '1rem' }}>
+          <h3 style={{ fontSize: '1.1rem', fontWeight: 500, margin: 0 }}>{t("historicalAnalysis.heatmapTitle", "Daily Severity Calendar")}</h3>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }} data-testid="heatmap-pollutant-selector">
+            <span style={{ fontSize: '0.85rem', color: 'var(--muted)', fontWeight: 500 }}>Select Pollutant:</span>
+            {Object.entries(POLLUTANTS).map(([key, item]) => (
+              <button
+                key={key}
+                type="button"
+                className="btn-secondary text-sm"
+                style={{
+                  padding: '0.25rem 0.6rem',
+                  fontSize: '0.8rem',
+                  fontWeight: activePollutant === key ? 'bold' : 'normal',
+                  backgroundColor: activePollutant === key ? item.color : undefined,
+                  color: activePollutant === key ? '#ffffff' : undefined,
+                  border: `1px solid ${item.color}`
+                }}
+                onClick={() => setActivePollutant(key)}
+              >
+                {item.name}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <CalendarHeatmap data={data.daily} pollutant={activePollutant} />
 
         <CalibrationHistory
           sensorId={`${position.lat.toFixed(4)}-${position.lon.toFixed(4)}`}

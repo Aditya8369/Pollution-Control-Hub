@@ -50,6 +50,7 @@ import Glossary from "./components/Glossary";
 import BadgeNotification from "./components/BadgeNotification";
 import Achievements from "./components/Achievements";
 import SmartAlertsDashboard from "./components/SmartAlertsDashboard";
+import CityPollutionLeaderboard from "./components/CityPollutionLeaderboard";
 
 const AqiMissionGame = lazy(() => import("./components/AqiMissionGame"));
 const HotspotScoutGame = lazy(() => import("./components/HotspotScoutGame"));
@@ -1124,49 +1125,28 @@ function AppContent() {
                 </button>
               </div>
             )}          {activeSection === "home" && current && (
-              <div key="dashboard-grid" className="content-grid">
-                <Dashboard
-                  cityName={position.cityName}
-                  lat={position.lat}
-                  lon={position.lon}
-                  current={current}
-                  trend={trend}
-                  cityComparisons={cityComparisons}
-                  timeRange={timeRange}
-                  onTimeRangeChange={setTimeRange}
-                  lastUpdated={lastUpdated}
-                  isRefreshing={isRefreshing}
-                  confidenceScore={confidenceScore}
-                  dataCompleteness={dataCompleteness}
-                  analytics={analytics}
-                />
-
-                <LocationMap
-                  center={position}
-                  nearbyPoints={nearbyPoints}
-                  confidenceScore={confidenceScore}
-                  windData={windData}
-                  windError={windError?.message}
-                />
-
-                <AlertsPanel
-                  cityName={position.cityName}
-                  current={current}
-                  confidenceScore={confidenceScore}
-                  dataCompleteness={dataCompleteness}
-                  exposureEstimate={exposureEstimate}
-                />
-
-                <HealthAdvisory
-                  // @ts-ignore
-                  lat={position.lat} lon={position.lon} />
-                <PollenAllergenForecast lat={position.lat} lon={position.lon} />
-                <SunSafetyDashboard lat={position.lat} lon={position.lon} />
-                <SolutionsAwareness />
-
-                <ScenarioSimulator current={current} />
-              </div>
-            )}
+            <div key="dashboard-grid" className="content-grid">
+              <Dashboard
+                cityName={position.cityName}
+                lat={position.lat}
+                lon={position.lon}
+                current={current}
+                trend={trend}
+                cityComparisons={cityComparisons}
+                timeRange={timeRange}
+                onTimeRangeChange={setTimeRange}
+                lastUpdated={lastUpdated}
+                isRefreshing={isRefreshing}
+                confidenceScore={confidenceScore}
+                dataCompleteness={dataCompleteness}
+                analytics={analytics}
+                nearbyPoints={nearbyPoints}
+                windData={windData}
+                windError={windError?.message}
+                exposureEstimate={exposureEstimate}
+              />
+            </div>
+          )}
 
             {activeSection === "exposure" && (
               <div

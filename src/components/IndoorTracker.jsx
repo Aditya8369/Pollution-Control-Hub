@@ -162,6 +162,7 @@ export default function IndoorTracker({ current, cityName }) {
         voc: saved?.voc ?? "",
     }));
     const [errors, setErrors] = useState({});
+    const [toast, setToast] = useState(null);
 
     const [connectorId, setConnectorId] = useState(DEVICE_CONNECTORS[0].id);
     const [connectorConfigInput, setConnectorConfigInput] = useState({});
@@ -176,6 +177,21 @@ export default function IndoorTracker({ current, cityName }) {
     } = useDeviceReading();
     const activeConnector = getConnector(connectorId);
     const suppliedFields = deviceConfig ? getConnector(deviceConfig.connectorId)?.suppliedFields ?? [] : [];
+
+    useEffect(() => {
+        if (deviceError) {
+            setToast({
+                type: "error",
+                message: `Sensor API Connection Error: ${deviceError}`
+            });
+        }
+    }, [deviceError]);
+
+    useEffect(() => {
+        if (!toast) return;
+        const timer = setTimeout(() => setToast(null), 5000);
+        return () => clearTimeout(timer);
+    }, [toast]);
 
     // Whenever the connected device delivers a fresh reading, merge its fields
     // into the saved reading (keeping any manually-entered fields the device
@@ -290,6 +306,50 @@ export default function IndoorTracker({ current, cityName }) {
                     conditions{cityName ? ` in ${cityName}` : ""}.
                 </p>
             </div>
+
+            {toast && (
+                <div
+                    data-testid="sensor-toast"
+                    className="badge-toast"
+                    style={{
+                        position: "relative",
+                        bottom: "auto",
+                        right: "auto",
+                        width: "100%",
+                        maxWidth: "none",
+                        backgroundColor: "rgba(239, 68, 68, 0.1)",
+                        border: "1px solid rgba(239, 68, 68, 0.3)",
+                        color: "#ef4444",
+                        borderRadius: "0.5rem",
+                        padding: "0.85rem 1rem",
+                        marginBottom: "1rem",
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        fontSize: "0.85rem",
+                        boxShadow: "none",
+                    }}
+                >
+                    <span>{toast.message}</span>
+                    <button
+                        type="button"
+                        onClick={() => setToast(null)}
+                        aria-label="Dismiss toast"
+                        style={{
+                            background: "none",
+                            border: "none",
+                            color: "inherit",
+                            cursor: "pointer",
+                            fontSize: "1.2rem",
+                            lineHeight: 1,
+                            padding: "0 0.25rem",
+                            opacity: 0.7,
+                        }}
+                    >
+                        &times;
+                    </button>
+                </div>
+            )}
 
             <div
                 data-testid="indoor-device-panel"

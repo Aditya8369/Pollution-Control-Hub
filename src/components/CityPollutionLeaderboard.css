@@ -1,0 +1,70 @@
+.city-leaderboard {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 2rem;
+  background-color: var(--card);
+  border-radius: var(--r-md);
+  box-shadow: var(--shadow-md);
+}
+
+.city-leaderboard h2 {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.filters {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.filters select {
+  padding: 0.5rem;
+  border-radius: var(--r-sm);
+  border: 1px solid var(--line);
+  background-color: var(--card);
+  color: var(--ink);
+}
+
+.highlights {
+  display: flex;
+  justify-content: space-around;
+  margin-bottom: 2rem;
+}
+
+.highlight-card {
+  padding: 1.5rem;
+  border-radius: var(--r-md);
+  text-align: center;
+  width: 45%;
+}
+
+.highlight-card.cleanest {
+  background-color: rgba(16, 185, 129, 0.1);
+  border: 1px solid #10b981;
+}
+
+.highlight-card.polluted {
+  background-color: rgba(239, 68, 68, 0.1);
+  border: 1px solid #ef4444;
+}
+
+.leaderboard-table-container {
+  overflow-x: auto;
+}
+
+.leaderboard-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.leaderboard-table th, .leaderboard-table td {
+  padding: 1rem;
+  text-align: left;
+  border-bottom: 1px solid var(--line);
+}
+
+.trend-cell {
+  padding: 0 !important;
+}
