@@ -25,6 +25,7 @@ import CityCompare from "./components/CityCompare";
 import IndoorTracker from "./components/IndoorTracker";
 import ExposureTracker from "./components/ExposureTracker";
 import HeatmapTimeline from "./components/HeatmapTimeline";
+import AnomalyAlert from "./components/AnomalyAlert";
 import SunSafetyDashboard from "./components/SunSafetyDashboard";
 import AIPollutionCopilot from "./components/AIPollutionCopilot";
 import {
@@ -328,6 +329,7 @@ function SectionNav({ activeSection, onSectionChange }) {
     { id: "indoor", label: "Indoor Air" },
     { id: "exposure-tracker", label: "Exposure Score" },
     { id: "heatmap-timeline", label: "Pollution Timeline" },
+    { id: "anomaly-alert", label: "Anomaly Detection" },
     { id: "history", label: "History" },
     { id: "historical-data", label: "Data Explorer" },
     { id: "Commute", label: "Commute" },
@@ -1123,28 +1125,28 @@ function AppContent() {
                 </button>
               </div>
             )}          {activeSection === "home" && current && (
-            <div key="dashboard-grid" className="content-grid">
-              <Dashboard
-                cityName={position.cityName}
-                lat={position.lat}
-                lon={position.lon}
-                current={current}
-                trend={trend}
-                cityComparisons={cityComparisons}
-                timeRange={timeRange}
-                onTimeRangeChange={setTimeRange}
-                lastUpdated={lastUpdated}
-                isRefreshing={isRefreshing}
-                confidenceScore={confidenceScore}
-                dataCompleteness={dataCompleteness}
-                analytics={analytics}
-                nearbyPoints={nearbyPoints}
-                windData={windData}
-                windError={windError?.message}
-                exposureEstimate={exposureEstimate}
-              />
-            </div>
-          )}
+              <div key="dashboard-grid" className="content-grid">
+                <Dashboard
+                  cityName={position.cityName}
+                  lat={position.lat}
+                  lon={position.lon}
+                  current={current}
+                  trend={trend}
+                  cityComparisons={cityComparisons}
+                  timeRange={timeRange}
+                  onTimeRangeChange={setTimeRange}
+                  lastUpdated={lastUpdated}
+                  isRefreshing={isRefreshing}
+                  confidenceScore={confidenceScore}
+                  dataCompleteness={dataCompleteness}
+                  analytics={analytics}
+                  nearbyPoints={nearbyPoints}
+                  windData={windData}
+                  windError={windError?.message}
+                  exposureEstimate={exposureEstimate}
+                />
+              </div>
+            )}
 
             {activeSection === "exposure" && (
               <div
@@ -1207,6 +1209,15 @@ function AppContent() {
                 style={{ maxWidth: "1100px", margin: "2rem auto", width: "100%", display: "block" }}
               >
                 <HeatmapTimeline lat={position.lat} lon={position.lon} cityName={position.cityName} />
+              </div>
+            )}
+
+            {activeSection === "anomaly-alert" && (
+              <div
+                className="content-grid anomaly-alert-layout"
+                style={{ maxWidth: "1100px", margin: "2rem auto", width: "100%", display: "block" }}
+              >
+                <AnomalyAlert lat={position.lat} lon={position.lon} current={current} cityName={position.cityName} />
               </div>
             )}
 
