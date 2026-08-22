@@ -34,17 +34,39 @@ export class SensorBatcher {
 
     const flushStartTime = Date.now();
 
+    // Deduplicate within the batch to prevent useless DB constraint failures
+    const uniqueRecordsMap = new Map();
+    for (const record of batchToProcess) {
+      const sId = record.sensor_id || record.sensorId;
+      const tStamp = record.timestamp;
+      
+      // Only deduplicate if both fields exist (fallback to pushing normally if malformed)
+      if (sId && tStamp) {
+        const key = `${sId}_${tStamp}`;
+        if (!uniqueRecordsMap.has(key)) {
+          uniqueRecordsMap.set(key, record);
+        }
+      } else {
+        // Use a unique symbol/object as key if fields are missing so it doesn't get squashed
+        uniqueRecordsMap.set(record, record);
+      }
+    }
+    
+    const deduplicatedBatch = Array.from(uniqueRecordsMap.values());
+
+    if (deduplicatedBatch.length === 0) return;
+
     try {
       // TODO: Replace with your actual database bulk insert method
-      // e.g., await this.dbClient.sensorData.insertMany(batchToProcess);
-      await this.bulkInsert(batchToProcess);
+      // e.g., await this.dbClient.sensorData.insertMany(deduplicatedBatch);
+      await this.bulkInsert(deduplicatedBatch);
       
       // Calculate and monitor queue lag
       const flushDuration = Date.now() - flushStartTime;
       const timeSinceLastFlush = Date.now() - this.lastFlushTime;
       
       console.log(
-        `[Monitor] Flushed ${batchToProcess.length} records. ` +
+        `[Monitor] Flushed ${deduplicatedBatch.length} records. ` +
         `DB Write Time: ${flushDuration}ms | Time since last flush: ${timeSinceLastFlush}ms`
       );
       
