@@ -34,6 +34,7 @@ import IndoorTracker from "./components/IndoorTracker";
 import ExposureTracker from "./components/ExposureTracker";
 import HeatmapTimeline from "./components/HeatmapTimeline";
 import AnomalyAlert from "./components/AnomalyAlert";
+import EmergencyMode from "./components/EmergencyMode";
 import SunSafetyDashboard from "./components/SunSafetyDashboard";
 import AIPollutionCopilot from "./components/AIPollutionCopilot";
 import {
@@ -54,7 +55,7 @@ import ThemeSwitcher from "./components/ThemeSwitcher";
 import LanguageSwitcher from "./components/LanguageSwitcher";
 import CarbonFootprintCalculator from "./components/CarbonFootprintCalculator";
 // 1. FIXED: Changed to named import
-import { Leaderboard } from "./components/Leaderboard";
+import Leaderboard from "./components/Leaderboard";
 import EmbeddableWidgetGenerator from "./components/EmbeddableWidgetGenerator";
 import Glossary from "./components/Glossary";
 import BadgeNotification from "./components/BadgeNotification";
@@ -1053,6 +1054,13 @@ function AppContent() {
       <a href="#main-content" className="skip-link">
         Skip to main content
       </a>
+      <EmergencyMode
+        lat={position.lat}
+        lon={position.lon}
+        current={current}
+        nearbyPoints={nearbyPoints}
+        cityName={position.cityName}
+      />
       {/* 1. Structural fix: Renders the navigation element at the very top */}
       <SectionNav
         activeSection={activeSection}
