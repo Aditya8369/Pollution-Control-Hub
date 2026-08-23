@@ -70,6 +70,23 @@ function shortTimeLabel(isoTime) {
   return new Date(isoTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 
+function relativeTimeLabel(isoTime) {
+  if (!isoTime) return "Just now";
+
+  const diffSeconds = Math.max(0, Math.floor((Date.now() - new Date(isoTime).getTime()) / 1000));
+
+  if (diffSeconds < 60) return "Just now";
+
+  const minutes = Math.floor(diffSeconds / 60);
+  if (minutes < 60) return `${minutes} minute${minutes === 1 ? "" : "s"} ago`;
+
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours} hour${hours === 1 ? "" : "s"} ago`;
+
+  const days = Math.floor(hours / 24);
+  return `${days} day${days === 1 ? "" : "s"} ago`;
+}
+
 /**
  * Renders a reading, or an em dash when the hour had no value.
  *
@@ -580,8 +597,14 @@ export default function Dashboard({
                 </button>
               ))}
             </div>
-            <p className={styles.dashboardMeta} aria-live="polite">
-              {isRefreshing ? 'Updating data...' : `Updated ${lastUpdated ? new Date(lastUpdated).toLocaleTimeString() : 'just now'}`}
+            <p
+              className={styles.dashboardMeta}
+              aria-live="polite"
+              title={lastUpdated ? new Date(lastUpdated).toLocaleString() : undefined}
+            >
+              {isRefreshing
+                ? 'Updating data...'
+                : `Last updated: ${relativeTimeLabel(lastUpdated)}`}
             </p>
           </div>
         </div>
