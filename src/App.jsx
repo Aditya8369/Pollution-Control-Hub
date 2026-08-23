@@ -67,6 +67,7 @@ import CityPollutionLeaderboard from "./components/CityPollutionLeaderboard";
 const AqiMissionGame = lazy(() => import("./components/AqiMissionGame"));
 const HotspotScoutGame = lazy(() => import("./components/HotspotScoutGame"));
 const RiverOriginGame = lazy(() => import("./components/RiverOriginGame"));
+const MarineWaterQualitySuite = lazy(() => import("./components/MarineWaterQualitySuite"));
 
 const DEFAULT_POSITION = {
   lat: 28.6139,
@@ -352,6 +353,7 @@ function SectionNav({ activeSection, onSectionChange }) {
     { id: "achievements", label: "Achievements" },
     { id: "eco-impact", label: "Eco Impact" },
     { id: "city-leaderboard", label: "City Leaderboard" },
+    { id: "marine", label: "Marine Water Quality" },
     { id: "smart-alerts", label: "Smart Alerts" },
   ];
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -1331,6 +1333,11 @@ function AppContent() {
             {activeSection === "Commute" && <Commute />}
             {activeSection === "Compare" && <CityCompare />}
             {activeSection === "city-leaderboard" && <CityPollutionLeaderboard />}
+            {activeSection === "marine" && (
+              <Suspense fallback={<div className="loading-spinner" role="status" aria-label="Loading marine suite" />}>
+                <MarineWaterQualitySuite />
+              </Suspense>
+            )}
             {activeSection === "smart-alerts" && <SmartAlertsDashboard position={position} />}
             {activeSection === "CarbonCalculator" && (
               <div
