@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { eventBus } from '../core/events';
 
 const CHALLENGES = [
   "Use public transport today",
@@ -56,7 +57,7 @@ export default function ChallengesWidget() {
         assignedDate: today,
         completed: false
       };
-      
+
       try {
         localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(newData));
       } catch (e) {
@@ -66,18 +67,22 @@ export default function ChallengesWidget() {
   }, []);
 
   const handleMarkComplete = () => {
+    completeChallenge();
+  };
+
+  function completeChallenge() {
     if (completed) return;
-    
+
     setCompleted(true);
-    
+
     // Update points
     const newPoints = points + 10;
     setPoints(newPoints);
-    
+
     // Update local storage
     try {
       localStorage.setItem(POINTS_KEY, newPoints.toString());
-      
+
       const today = new Date().toDateString();
       const updatedData = {
         currentChallenge: challenge,
@@ -88,12 +93,36 @@ export default function ChallengesWidget() {
     } catch (e) {
       console.warn("Failed to update challenge status in localStorage", e);
     }
-  };
+  }
+
+  // Connects to the Eco Impact Dashboard (src/utils/ecoImpactStore.js): logging a
+  // trip that matches today's assigned challenge (e.g. "Use public transport
+  // today" + a logged public-transport trip) auto-completes it instead of making
+  // the user separately click "Mark Complete" for something they already did.
+  useEffect(() => {
+    function handleEcoTripLogged(trip) {
+      if (!challenge || completed || !trip) return;
+      const text = challenge.toLowerCase();
+      const isPublicTransportMatch = trip.type === "publicTransport" && text.includes("public transport");
+      const isWalkOrCycleMatch =
+        (trip.type === "cycling" || trip.type === "carAvoided") &&
+        (text.includes("cycle") || text.includes("walk"));
+
+      if (isPublicTransportMatch || isWalkOrCycleMatch) {
+        completeChallenge();
+      }
+    }
+
+    eventBus.on("ECO_TRIP_LOGGED", handleEcoTripLogged);
+    return () => eventBus.off("ECO_TRIP_LOGGED", handleEcoTripLogged);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- completeChallenge
+    // closes over challenge/completed/points, which are already in this array.
+  }, [challenge, completed, points]);
 
   return (
     <article className="kpi-card challenges-widget" data-testid="challenges-widget">
       <h3>🌱 Daily Challenge</h3>
-      
+
       <div style={{ marginTop: '1rem', marginBottom: '1.5rem', minHeight: '3rem' }}>
         <p style={{ fontSize: '1.1rem', fontWeight: '500', color: 'var(--ink)' }}>
           {challenge || "Loading challenge..."}
@@ -102,10 +131,10 @@ export default function ChallengesWidget() {
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
         {completed ? (
-          <div style={{ 
-            padding: '0.75rem', 
-            backgroundColor: '#f0fdf4', 
-            color: '#15803d', 
+          <div style={{
+            padding: '0.75rem',
+            backgroundColor: '#f0fdf4',
+            color: '#15803d',
             borderRadius: '6px',
             textAlign: 'center',
             fontWeight: '600',
@@ -114,8 +143,8 @@ export default function ChallengesWidget() {
             ✔ Challenge Completed
           </div>
         ) : (
-          <button 
-            type="button" 
+          <button
+            type="button"
             onClick={handleMarkComplete}
             disabled={!challenge}
             style={{
@@ -132,9 +161,9 @@ export default function ChallengesWidget() {
             Mark Complete
           </button>
         )}
-        
-        <div style={{ 
-          textAlign: 'center', 
+
+        <div style={{
+          textAlign: 'center',
           fontSize: '0.95rem',
           fontWeight: '600',
           color: 'var(--muted)'

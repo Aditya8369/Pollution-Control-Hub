@@ -32,6 +32,7 @@
     "indoor": "इनडोर वायु",
     "historical-data": "डेटा एक्सप्लोरर",
     "glossary": "शब्दावली",
+    "eco-impact": "पर्यावरण प्रभाव",
     "achievements": "उपलब्धियां"
   },
   "status": {
@@ -453,5 +454,29 @@
     "inputPlaceholder": "आज की वायु गुणवत्ता के बारे में पूछें...",
     "inputAriaLabel": "AI प्रदूषण कोपायलट से पूछें",
     "send": "भेजें"
+  },
+  "ecoImpact": {
+    "title": "🏆 आपका पर्यावरण प्रभाव",
+    "subtitle": "इस महीने — {{month}}",
+    "tripTypeLabel": "एक यात्रा लॉग करें",
+    "tripType": {
+      "cycling": "साइकिल यात्रा",
+      "publicTransport": "सार्वजनिक परिवहन यात्रा",
+      "carAvoided": "कार यात्रा टाली गई"
+    },
+    "distanceLabel": "दूरी किलोमीटर में",
+    "distancePlaceholder": "दूरी (किमी)",
+    "logButton": "यात्रा लॉग करें",
+    "loggedNote": "यात्रा लॉग हो गई! आपका प्रभाव नीचे अपडेट हो गया है।",
+    "cyclingTrips": "साइकिल यात्राएं",
+    "transitTrips": "सार्वजनिक परिवहन",
+    "carTripsAvoided": "टाली गई कार यात्राएं",
+    "estimatedHeading": "अनुमानित",
+    "co2Avoided": "CO₂ बचा: {{kg}} किग्रा",
+    "distanceAvoided": "टाली गई कार दूरी: {{km}} किमी",
+    "empty": "अपना प्रभाव ट्रैक करना शुरू करने के लिए ऊपर अपनी पहली पर्यावरण-अनुकूल यात्रा लॉग करें।",
+    "chartCycling": "साइकिल",
+    "chartTransit": "सार्वजनिक परिवहन",
+    "chartCarAvoided": "कार टाली गई"
   }
 }

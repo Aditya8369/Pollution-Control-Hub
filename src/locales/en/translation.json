@@ -32,7 +32,8 @@
     "indoor": "Indoor Air",
     "historical-data": "Data Explorer",
     "glossary": "Glossary",
-    "achievements": "Achievements"
+    "achievements": "Achievements",
+    "eco-impact": "Eco Impact"
   },
   "status": {
     "loading": "Loading",
@@ -453,5 +454,29 @@
     "inputPlaceholder": "Ask about today's air quality...",
     "inputAriaLabel": "Ask the AI Pollution Copilot",
     "send": "Send"
+  },
+  "ecoImpact": {
+    "title": "🏆 Your Eco Impact",
+    "subtitle": "This Month — {{month}}",
+    "tripTypeLabel": "Log a trip",
+    "tripType": {
+      "cycling": "Cycling trip",
+      "publicTransport": "Public transport trip",
+      "carAvoided": "Car trip avoided"
+    },
+    "distanceLabel": "Distance in kilometers",
+    "distancePlaceholder": "Distance (km)",
+    "logButton": "Log Trip",
+    "loggedNote": "Trip logged! Your impact below has been updated.",
+    "cyclingTrips": "Cycling trips",
+    "transitTrips": "Public transport",
+    "carTripsAvoided": "Car trips avoided",
+    "estimatedHeading": "Estimated",
+    "co2Avoided": "CO₂ avoided: {{kg}} kg",
+    "distanceAvoided": "Car distance avoided: {{km}} km",
+    "empty": "Log your first eco-friendly trip above to start tracking your impact.",
+    "chartCycling": "Cycling",
+    "chartTransit": "Public transport",
+    "chartCarAvoided": "Car avoided"
   }
 }
