@@ -1,6 +1,17 @@
 import { render, screen, fireEvent, act } from '@testing-library/react';
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import HistoricalData from './HistoricalData';
+import React from 'react';
+
+vi.mock('react-datepicker', async (importOriginal) => {
+  const actual = await importOriginal();
+  return {
+    ...actual,
+    default: vi.fn().mockImplementation((props) => {
+      return <input data-testid="mock-datepicker" data-locale={props.locale} data-format={props.dateFormat} readOnly />;
+    }),
+  };
+});
 
 globalThis.ResizeObserver = class ResizeObserver {
   observe() {}
@@ -39,5 +50,14 @@ describe('HistoricalData Component - Controls (#828)', () => {
       fireEvent.click(no2Btn);
     });
     expect(no2Btn).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  it('passes active locale and date format to DatePicker', () => {
+    render(<HistoricalData {...defaultProps} />);
+
+    const datepickers = screen.getAllByTestId('mock-datepicker');
+    expect(datepickers.length).toBe(2);
+    expect(datepickers[0]).toHaveAttribute('data-locale', 'en');
+    expect(datepickers[0]).toHaveAttribute('data-format');
   });
 });
