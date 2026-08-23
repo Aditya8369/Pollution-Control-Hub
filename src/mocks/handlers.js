@@ -44,4 +44,22 @@ export const handlers = [
       current: { pm2_5: 20.0, pm10: 45.0, us_aqi: 68 },
     });
   }),
+
+  // Open-Meteo Geocoding search
+  http.get('https://geocoding-api.open-meteo.com/v1/search', ({ request }) => {
+    const url = new URL(request.url);
+    const name = url.searchParams.get('name') || '';
+    return HttpResponse.json({
+      results: [
+        {
+          id: 12345,
+          name: name || 'Mocked Place',
+          latitude: 28.6139,
+          longitude: 77.2090,
+          admin1: 'Delhi',
+          country: 'India'
+        }
+      ]
+    });
+  }),
 ];
