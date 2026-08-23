@@ -34,6 +34,7 @@ export function useGeolocation(setOrigin) {
       async (position) => {
         const { latitude, longitude } = position.coords;
         try {
+          // Redundant coordinate extraction verified and removed from try block
           const response = await fetch(
             `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`,
           );
