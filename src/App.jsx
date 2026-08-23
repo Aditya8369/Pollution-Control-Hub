@@ -27,6 +27,7 @@ import LocationSearch from "./components/LocationSearch";
 import SkeletonDashboard from "./components/SkeletonDashboard";
 import ErrorBoundary from "./components/ErrorBoundary";
 import ConnectivityStatus from "./components/ConnectivityStatus";
+import ScrollToTopButton from "./components/ScrollToTopButton";
 import Commute from "./components/Commute";
 import GettingStarted from "./components/GettingStarted";
 import CityCompare from "./components/CityCompare";
@@ -1370,6 +1371,7 @@ function AppContent() {
               </div>
             )}
             <Footer />
+            <ScrollToTopButton />
           </>
         )}
       </div>

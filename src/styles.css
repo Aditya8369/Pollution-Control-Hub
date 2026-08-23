@@ -10665,6 +10665,53 @@ a {
   z-index: 1000;
 }
 
+/* ── Scroll-to-top button (#406) ──────────────────────────────────────────
+ * Bottom-right, offset above .badge-toast (bottom: 1.5rem) so the two never
+ * overlap even when both are visible at once.
+ */
+.scroll-to-top-btn {
+  position: fixed;
+  bottom: 5.5rem;
+  right: 1.5rem;
+  width: 3rem;
+  height: 3rem;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--ink);
+  box-shadow: var(--shadow-lg);
+  font-size: 1.25rem;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 950;
+  transition: transform 150ms ease, opacity 150ms ease, background 150ms ease;
+  animation: fade-in 150ms ease forwards;
+}
+
+.scroll-to-top-btn:hover {
+  transform: translateY(-3px);
+  background: var(--accent, #0ea5e9);
+  color: #fff;
+}
+
+.scroll-to-top-btn:focus-visible {
+  outline: 2px solid var(--accent, #0ea5e9);
+  outline-offset: 2px;
+}
+
+@media (max-width: 640px) {
+  .scroll-to-top-btn {
+    bottom: 4.75rem;
+    right: 1rem;
+    width: 2.75rem;
+    height: 2.75rem;
+    font-size: 1.1rem;
+  }
+}
+
 /* ── Calendar heatmap: days with no reading ──────────────────────────────
  * A day inside the range that the archive holds no reading for. Distinct from
  * .calendar-day.empty, which is structural padding outside the range entirely.
