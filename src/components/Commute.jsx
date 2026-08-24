@@ -55,7 +55,15 @@ const Commute = () => {
     }
   }, [mode]);
 
-  const { isLocating, geoError, setGeoError, locationSuccess, handleGetLocation } = useGeolocation(setOrigin);
+  const { isLocating, geoError, setGeoError, locationSuccess, handleGetLocation: fetchLocation } = useGeolocation();
+  
+  const handleGetLocation = async () => {
+    const result = await fetchLocation();
+    if (result && result.address) {
+      setOrigin(result.address);
+    }
+  };
+
   const {
     routeHistory,
     savedLocations,
