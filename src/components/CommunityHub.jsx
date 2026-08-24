@@ -91,17 +91,16 @@ export function readReports() {
     const parsed = raw ? JSON.parse(raw) : [];
     if (!Array.isArray(parsed)) return [];
 
-    if (!parsed.some(needsEntityMigration)) return parsed;
-
-    const migrated = parsed.map((report) =>
-      needsEntityMigration(report)
-        ? {
-          ...report,
-          title: decodeStoredEntities(report.title),
-          description: decodeStoredEntities(report.description),
-        }
-        : report
-    );
+    const migrated = parsed.map((report) => {
+      let r = { ...report };
+      if (needsEntityMigration(report)) {
+        r.title = decodeStoredEntities(report.title);
+        r.description = decodeStoredEntities(report.description);
+      }
+      if (r.status === 'Pending') r.status = 'New';
+      if (r.status === 'Addressed') r.status = 'Resolved';
+      return r;
+    });
 
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(migrated));
@@ -124,6 +123,18 @@ function readVotedIds() {
   }
 }
 
+const INCIDENT_CATEGORIES = [
+  'Garbage burning',
+  'Industrial smoke',
+  'Construction dust',
+  'Excessive traffic pollution',
+  'Chemical smell',
+  'Smoke from vehicles',
+  'Waste dumping',
+];
+
+const SEVERITY_LEVELS = ['Low', 'Medium', 'High', 'Critical'];
+
 export default function CommunityHub() {
   const { t } = useTranslation();
   const { user } = useAuth() || {};
@@ -131,13 +142,24 @@ export default function CommunityHub() {
 
   const [reports, setReports] = useState(() => readReports());
   const [votedIds, setVotedIds] = useState(() => readVotedIds());
+  
+  // Filters
   const [filter, setFilter] = useState('All');
   const [hashtagFilter, setHashtagFilter] = useState('All');
+  const [typeFilter, setTypeFilter] = useState('All');
+  const [severityFilter, setSeverityFilter] = useState('All');
+  const [dateFilter, setDateFilter] = useState('All Time');
+  const [locationFilter, setLocationFilter] = useState('');
+
+  const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({
     title: '',
     description: '',
     image: '',
-    hashtag: ''
+    hashtag: '',
+    category: '',
+    severity: 'Medium',
+    locationName: ''
   });
   const [fileInputKey, setFileInputKey] = useState(Date.now());
   const [uploadError, setUploadError] = useState('');
@@ -303,11 +325,14 @@ export default function CommunityHub() {
       authorId: user?.id || null, // Issue #926: Tracking the author for reputation points
       title: cleanTitle,
       description: cleanDescription,
+      category: form.category,
+      severity: form.severity,
+      locationName: form.locationName.trim().slice(0, 100),
       image: safeImage,
       hashtag: form.hashtag,
       votes: 0,
       createdAt: new Date().toISOString(),
-      status: "Pending",
+      status: "New",
       verifiedAt: "",
       moderationNotes: "",
       latitude: locationCoords ? locationCoords.latitude : null,
@@ -316,7 +341,8 @@ export default function CommunityHub() {
     };
 
     setReports((prev) => [newReport, ...prev]);
-    setForm({ title: '', description: '', image: '', hashtag: '' });
+    setForm({ title: '', description: '', image: '', hashtag: '', category: '', severity: 'Medium', locationName: '' });
+    setShowForm(false);
     setFileInputKey(Date.now());
     setLocationCoords(null);
     setLocationStatus('idle');
@@ -402,8 +428,8 @@ export default function CommunityHub() {
         let verifiedAtTimestamp = report.verifiedAt;
         let notes = report.moderationNotes;
 
-        if (nextVotes >= VOTE_THRESHOLD && ageInDays <= X_DAYS && report.status === "Pending") {
-          updatedStatus = "Verified (community)";
+        if (nextVotes >= VOTE_THRESHOLD && ageInDays <= X_DAYS && report.status === "New") {
+          updatedStatus = "Verified";
           verifiedAtTimestamp = new Date().toISOString();
           notes = "Automatically verified via community consensus upvotes.";
         }
@@ -454,30 +480,62 @@ export default function CommunityHub() {
 
   const filteredReports = reports.filter((report) => {
     if (hashtagFilter !== 'All' && report.hashtag !== hashtagFilter) return false;
-    if (filter === 'All') return true;
-    // Existing status-based filters
-    if (filter === 'Verified') return report.status.startsWith('Verified');
-    if (filter === 'Pending' || filter === 'Addressed') return report.status === filter;
-    // Verification-state filters (computed, not persisted)
-    if (filter === 'Likely' || filter === 'Unverified') {
-      const vr = verificationResults[report.id];
-      return vr ? vr.verificationState === filter : false;
+    
+    // Status
+    if (filter !== 'All') {
+      if (filter === 'Verified' && !report.status.startsWith('Verified')) return false;
+      if ((filter === 'New' || filter === 'Under Review' || filter === 'Resolved') && report.status !== filter) return false;
+      if (filter === 'Likely' || filter === 'Unverified') {
+        const vr = verificationResults[report.id];
+        if (!vr || vr.verificationState !== filter) return false;
+      }
     }
-    return report.status === filter;
+    
+    // Type/Category
+    if (typeFilter !== 'All' && report.category !== typeFilter) return false;
+    
+    // Severity
+    if (severityFilter !== 'All' && report.severity !== severityFilter) return false;
+    
+    // Date
+    if (dateFilter && dateFilter !== 'All Time') {
+       const reportDate = new Date(report.createdAt);
+       const now = new Date();
+       // @ts-ignore
+       const diff = now - reportDate;
+       if (dateFilter === 'Last 24 Hours' && diff > 24 * 60 * 60 * 1000) return false;
+       if (dateFilter === 'Last 7 Days' && diff > 7 * 24 * 60 * 60 * 1000) return false;
+       if (dateFilter === 'Last 30 Days' && diff > 30 * 24 * 60 * 60 * 1000) return false;
+    }
+    
+    // Location
+    if (locationFilter) {
+       const term = locationFilter.toLowerCase();
+       const locName = (report.locationName || '').toLowerCase();
+       const desc = (report.description || '').toLowerCase();
+       const title = (report.title || '').toLowerCase();
+       if (!locName.includes(term) && !desc.includes(term) && !title.includes(term)) {
+           return false;
+       }
+    }
+    
+    return true;
   });
 
   const statusLabel = (status) => {
-    if (status === 'Pending') return t('communityHub.statusPending', 'Pending');
-    if (status === 'Addressed') return t('communityHub.statusAddressed', 'Addressed');
-    if (status.startsWith('Verified')) return t('communityHub.statusVerified', 'Verified (community)');
+    if (status === 'New') return t('communityHub.statusNew', 'New');
+    if (status === 'Under Review') return t('communityHub.statusUnderReview', 'Under Review');
+    if (status === 'Resolved') return t('communityHub.statusResolved', 'Resolved');
+    if (status.startsWith('Verified')) return t('communityHub.statusVerified', 'Verified');
     return status;
   };
 
   const filterLabel = (option) => {
     if (option === 'All') return t('communityHub.filterAll', 'All');
-    if (option === 'Pending') return t('communityHub.filterPending', 'Pending');
+    if (option === 'New') return t('communityHub.filterNew', 'New');
+    if (option === 'Under Review') return t('communityHub.filterUnderReview', 'Under Review');
     if (option === 'Verified') return t('communityHub.filterVerified', 'Verified');
-    if (option === 'Addressed') return t('communityHub.filterAddressed', 'Addressed');
+    if (option === 'Resolved') return t('communityHub.filterResolved', 'Resolved');
     if (option === 'Likely') return t('communityHub.filterLikely', 'Likely');
     if (option === 'Unverified') return t('communityHub.filterUnverified', 'Unverified');
     return option;
@@ -544,24 +602,58 @@ export default function CommunityHub() {
 
   return (
     <section data-testid="community-hub" className="panel">
-      <div className="panel-head">
-        <h2>{t("communityHub.title", "Community Contribution")}</h2>
-        <p>{t("communityHub.subtitle", "Report local pollution issues with evidence and crowd voting")}</p>
+      <div className="panel-head" style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', alignItems: 'center' }}>
+        <div>
+          <h2>{t("communityHub.title", "Community Contribution")}</h2>
+          <p>{t("communityHub.subtitle", "Report local pollution issues with evidence and crowd voting")}</p>
+        </div>
+        <button onClick={() => setShowForm(!showForm)} className="btn-primary" style={{marginTop: '10px'}}>
+          {showForm ? t("communityHub.cancelReport", "Cancel") : t("communityHub.reportPollution", "Report Pollution")}
+        </button>
       </div>
 
-      <form className="community-form" onSubmit={onSubmit}>
+      {showForm && (
+      <form className="community-form" onSubmit={onSubmit} style={{marginTop: '15px'}}>
         <input
           type="text"
           value={form.title}
           maxLength={MAX_TITLE_LENGTH}
           placeholder={t("communityHub.placeholderTitle", "Issue title (e.g., Garbage burning)")}
           onChange={(event) => setForm((prev) => ({ ...prev, title: event.target.value }))}
+          required
         />
+        <select
+          value={form.category}
+          onChange={(event) => setForm((prev) => ({ ...prev, category: event.target.value }))}
+          required
+        >
+          <option value="" disabled>{t("communityHub.categoryPlaceholder", "Select Incident Category")}</option>
+          {INCIDENT_CATEGORIES.map((category) => (
+            <option key={category} value={category}>{category}</option>
+          ))}
+        </select>
+        <select
+          value={form.severity}
+          onChange={(event) => setForm((prev) => ({ ...prev, severity: event.target.value }))}
+          required
+        >
+          {SEVERITY_LEVELS.map((severity) => (
+            <option key={severity} value={severity}>{severity}</option>
+          ))}
+        </select>
         <textarea
           value={form.description}
           maxLength={MAX_DESCRIPTION_LENGTH}
           placeholder={t("communityHub.placeholderDesc", "Describe location and issue details")}
           onChange={(event) => setForm((prev) => ({ ...prev, description: event.target.value }))}
+          required
+        />
+        <input
+          type="text"
+          value={form.locationName}
+          maxLength={100}
+          placeholder={t("communityHub.placeholderLocationName", "Location Name or Address")}
+          onChange={(event) => setForm((prev) => ({ ...prev, locationName: event.target.value }))}
         />
         <select
           value={form.hashtag}
@@ -599,11 +691,11 @@ export default function CommunityHub() {
               fontSize: '0.85rem'
             }}
           >
-            {locationStatus === 'locating' ? t("communityHub.locating", "Locating...") : t("communityHub.useCurrentLocation", "Use Current Location")}
+            {locationStatus === 'locating' ? t("communityHub.locating", "Locating...") : t("communityHub.useCurrentLocation", "Use GPS for Location")}
           </button>
           {locationStatus === 'success' && (
             <span className="location-status-text" style={{ fontSize: '0.85rem', color: '#16a34a', fontWeight: '500' }}>
-              {t("communityHub.locationAttached", "Location attached")}
+              {t("communityHub.locationAttached", "GPS Location attached")}
             </span>
           )}
           {locationStatus === 'error' && (
@@ -616,9 +708,43 @@ export default function CommunityHub() {
           {isProcessingImage ? t("communityHub.processingImage", "Processing image...") : t("communityHub.submit", "Submit Report")}
         </button>
       </form>
+      )}
 
-      <div className="filter-tabs" style={{ display: 'flex', gap: '8px', margin: '15px 0', flexWrap: 'wrap' }}>
-        {['All', 'Pending', 'Verified', 'Likely', 'Unverified', 'Addressed'].map((statusOption) => (
+      <div className="filters-section" style={{ background: 'var(--card)', padding: '15px', borderRadius: '8px', marginBottom: '15px', marginTop: '15px' }}>
+        <h4 style={{ margin: '0 0 10px 0' }}>{t("communityHub.filters", "Filters")}</h4>
+        <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap' }}>
+          <label style={{display: 'flex', flexDirection: 'column', fontSize: '0.85rem'}}>
+            {t("communityHub.filterType", "Type")}
+            <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)} style={{padding: '5px', marginTop: '4px'}}>
+              <option value="All">All Types</option>
+              {INCIDENT_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+          </label>
+          <label style={{display: 'flex', flexDirection: 'column', fontSize: '0.85rem'}}>
+            {t("communityHub.filterSeverity", "Severity")}
+            <select value={severityFilter} onChange={(e) => setSeverityFilter(e.target.value)} style={{padding: '5px', marginTop: '4px'}}>
+              <option value="All">All Severities</option>
+              {SEVERITY_LEVELS.map(s => <option key={s} value={s}>{s}</option>)}
+            </select>
+          </label>
+          <label style={{display: 'flex', flexDirection: 'column', fontSize: '0.85rem'}}>
+            {t("communityHub.filterDate", "Date")}
+            <select value={dateFilter} onChange={(e) => setDateFilter(e.target.value)} style={{padding: '5px', marginTop: '4px'}}>
+              <option value="All Time">All Time</option>
+              <option value="Last 24 Hours">Last 24 Hours</option>
+              <option value="Last 7 Days">Last 7 Days</option>
+              <option value="Last 30 Days">Last 30 Days</option>
+            </select>
+          </label>
+          <label style={{display: 'flex', flexDirection: 'column', fontSize: '0.85rem'}}>
+            {t("communityHub.filterLocation", "Location (Search)")}
+            <input type="text" value={locationFilter} onChange={(e) => setLocationFilter(e.target.value)} placeholder="Search location..." style={{padding: '5px', marginTop: '4px', maxWidth: '150px'}} />
+          </label>
+        </div>
+      </div>
+
+      <div className="filter-tabs" style={{ display: 'flex', gap: '8px', marginBottom: '15px', flexWrap: 'wrap' }}>
+        {['All', 'New', 'Under Review', 'Verified', 'Likely', 'Unverified', 'Resolved'].map((statusOption) => (
           <button
             key={statusOption}
             type="button"
