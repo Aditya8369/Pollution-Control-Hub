@@ -3,6 +3,7 @@ import { useState, useCallback } from 'react';
 const NOTIFICATION_SETTINGS_KEY = 'notification-settings';
 
 export const DEFAULT_NOTIFICATION_SETTINGS = {
+    alertsEnabled: true,
     aqiThreshold: 200,
     pollutantThresholds: {
         pm2_5: 15,
@@ -11,6 +12,7 @@ export const DEFAULT_NOTIFICATION_SETTINGS = {
         ozone: 100,
         carbon_monoxide: 4000,
     },
+    activePollutants: ['pm2_5', 'pm10', 'nitrogen_dioxide', 'ozone', 'carbon_monoxide'],
     quietHours: { enabled: false, start: '22:00', end: '07:00' },
 };
 
@@ -72,13 +74,22 @@ export function sanitiseSettings(raw) {
     if (!raw || typeof raw !== 'object') return { ...DEFAULT_NOTIFICATION_SETTINGS };
 
     const aqiThreshold = parseThreshold(raw.aqiThreshold);
+    
+    // Ensure activePollutants is an array of strings that exist in the defaults
+    let activePollutants = DEFAULT_NOTIFICATION_SETTINGS.activePollutants;
+    if (Array.isArray(raw.activePollutants)) {
+        const validKeys = Object.keys(DEFAULT_NOTIFICATION_SETTINGS.pollutantThresholds);
+        activePollutants = raw.activePollutants.filter(p => validKeys.includes(p));
+    }
 
     return {
+        alertsEnabled: raw.alertsEnabled !== false, // Default true
         aqiThreshold: aqiThreshold === null ? DEFAULT_NOTIFICATION_SETTINGS.aqiThreshold : aqiThreshold,
         pollutantThresholds: sanitiseThresholds(
             raw.pollutantThresholds,
             DEFAULT_NOTIFICATION_SETTINGS.pollutantThresholds
         ),
+        activePollutants,
         quietHours: sanitiseQuietHours(raw.quietHours),
     };
 }

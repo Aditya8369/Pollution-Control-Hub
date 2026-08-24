@@ -262,3 +262,42 @@ describe('IndoorTracker - stored reading hygiene', () => {
         expect(screen.queryByTestId('indoor-reading-time')).not.toBeInTheDocument();
     });
 });
+
+describe('IndoorTracker - sensor API unhandled rejection and toast notification', () => {
+    let fetchSpy;
+
+    beforeEach(() => {
+        fetchSpy = vi.spyOn(global, 'fetch');
+    });
+
+    afterEach(() => {
+        fetchSpy.mockRestore();
+    });
+
+    it('handles network error (rejected promise) gracefully and displays a toast', async () => {
+        fetchSpy.mockRejectedValue(new TypeError('Failed to fetch'));
+
+        render(<IndoorTracker current={OUTDOOR} cityName="Delhi" />);
+
+        // Switch connector to PurpleAir and fill details
+        fireEvent.change(screen.getByTestId('device-connector-select'), { target: { value: 'purpleair' } });
+        fireEvent.change(screen.getByPlaceholderText('e.g. 12345'), { target: { value: '12345' } });
+        fireEvent.change(screen.getByPlaceholderText('PurpleAir read key'), { target: { value: 'test-api-key' } });
+
+        // Connect device
+        fireEvent.click(screen.getByTestId('connect-device'));
+
+        // Verify toast message is rendered on screen with the error message
+        const toast = await screen.findByTestId('sensor-toast');
+        expect(toast).toBeInTheDocument();
+        expect(toast).toHaveTextContent(/Sensor API Connection Error/i);
+        expect(toast).toHaveTextContent(/Failed to fetch/i);
+
+        // Verify the client did not crash (can still interact or see title)
+        expect(screen.getByText('Indoor vs. Outdoor Air Quality')).toBeInTheDocument();
+
+        // Dismiss the toast
+        fireEvent.click(screen.getByLabelText('Dismiss toast'));
+        expect(screen.queryByTestId('sensor-toast')).not.toBeInTheDocument();
+    });
+});

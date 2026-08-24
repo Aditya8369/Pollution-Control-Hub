@@ -62,6 +62,12 @@ export default defineConfig({
       devOptions: { enabled: false },
     }),
   ],
+  server: {
+    https: true,
+  },
+  preview: {
+    https: true,
+  },
   build: {
     rollupOptions: {
       output: {

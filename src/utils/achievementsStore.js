@@ -3,6 +3,7 @@ import { eventBus } from "../core/events";
 export const ACHIEVEMENTS_STORAGE_KEY = "pollution-hub-achievements";
 const PERFECT_QUIZZES_KEY = "pollution-hub-perfect-quizzes";
 const ROUTES_PLANNED_KEY = "pollution-hub-routes-planned";
+const ECO_TRIPS_LOGGED_KEY = "pollution-hub-eco-trips-logged-count";
 
 export const BADGES = [
     {
@@ -64,6 +65,12 @@ export const BADGES = [
         name: "River Master",
         description: "Complete the River Origin Challenge with zero mistakes.",
         icon: "👑",
+    },
+    {
+        id: "eco-warrior",
+        name: "Eco Warrior",
+        description: "Log 10 eco-friendly trips in the Eco Impact Dashboard.",
+        icon: "🌍",
     },
 ];
 
@@ -172,6 +179,19 @@ function handleRiverOriginCompleted(payload) {
     }
 }
 
+function handleEcoTripLogged() {
+    const count = (Number(localStorage.getItem(ECO_TRIPS_LOGGED_KEY)) || 0) + 1;
+    try {
+        localStorage.setItem(ECO_TRIPS_LOGGED_KEY, String(count));
+    } catch {
+        // ignore persistence failure
+    }
+
+    if (count >= 10) {
+        awardBadge("eco-warrior");
+    }
+}
+
 let engineStarted = false;
 export function initAchievementsEngine() {
     if (engineStarted) return;
@@ -184,6 +204,7 @@ export function initAchievementsEngine() {
     eventBus.on("AQI_MISSION_COMPLETED", handleAqiMissionCompleted);
     eventBus.on("HOTSPOT_SCOUT_COMPLETED", handleHotspotScoutCompleted);
     eventBus.on("RIVER_ORIGIN_COMPLETED", handleRiverOriginCompleted);
+    eventBus.on("ECO_TRIP_LOGGED", handleEcoTripLogged);
 }
 
 // Self-register on first import so no extra wiring is needed anywhere.
