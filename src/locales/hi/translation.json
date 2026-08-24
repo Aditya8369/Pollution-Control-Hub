@@ -311,7 +311,14 @@
     "moderatorMarkSuspicious": "संदिग्ध चिह्नित करें",
     "moderatorOverrideVerified": "ओवरराइड: सत्यापित",
     "moderatorPanel": "मॉडरेटर क्रियाएं",
-    "reportsNearby": "पास की रिपोर्टें: {{count}}"
+    "reportsNearby": "पास की रिपोर्टें: {{count}}",
+    "labelTitle": "समस्या का शीर्षक",
+    "labelDesc": "समस्या का विवरण",
+    "labelCategory": "घटना की श्रेणी",
+    "labelSeverity": "घटना की गंभीरता",
+    "labelLocationName": "स्थान का नाम या पता",
+    "labelHashtag": "हैशटैग (वैकल्पिक)",
+    "labelPhoto": "फ़ोटो प्रमाण (वैकल्पिक)"
   },
   "historicalAnalysis": {
     "loading": "3 साल के ऐतिहासिक एक्यूआई डेटा का विश्लेषण किया जा रहा है...",

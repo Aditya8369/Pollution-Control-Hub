@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import CommunityHub from './CommunityHub';
 
@@ -14,26 +14,61 @@ describe('CommunityHub Component', () => {
     localStorage.clear();
   });
 
-  it('submits a report without location attached by default', async () => {
+  /** Renders the hub and opens the collapsible report form. */
+  function renderWithFormOpen() {
     render(<CommunityHub />);
-
     fireEvent.click(screen.getByRole('button', { name: /Report Pollution/i }));
+  }
 
-    const titleInput = screen.getByPlaceholderText(/Issue title/i);
-    const descInput = screen.getByPlaceholderText(/Describe location/i);
-    const categorySelect = screen.getByRole('combobox', { name: '' }); // We might need to query by text
-    // actually, let's use document.querySelector
-    const selects = document.querySelectorAll('select');
-    const categorySelectEl = selects[0];
-    const severitySelectEl = selects[1];
+  /**
+   * The report form's controls, queried by accessible name.
+   *
+   * These used to be pulled out of `document.querySelectorAll('select')` by
+   * index, because the selects had no accessible name to query by — three
+   * unnamed combo boxes in a row. Reaching past Testing Library like that was a
+   * fair signal the markup was wrong rather than the query.
+   */
+  function formControls() {
+    return {
+      title: screen.getByRole('textbox', { name: 'Issue title' }),
+      description: screen.getByRole('textbox', { name: 'Issue description' }),
+      category: screen.getByRole('combobox', { name: 'Incident category' }),
+      severity: screen.getByRole('combobox', { name: 'Incident severity' }),
+      hashtag: screen.getByRole('combobox', { name: 'Hashtag (optional)' }),
+      submit: screen.getByRole('button', { name: /Submit Report/i }),
+    };
+  }
 
-    const submitBtn = screen.getByRole('button', { name: /Submit Report/i });
+  /**
+   * Installs a geolocation stub.
+   *
+   * `vi.stubGlobal('navigator', { ...globalThis.navigator, geolocation })` does
+   * not work: `navigator`'s properties live on its prototype, so the spread
+   * copies nothing and every other consumer of `navigator` is handed an empty
+   * object. Defining the one property on the real navigator is what was meant.
+   */
+  function stubGeolocation(getCurrentPosition) {
+    const original = Object.getOwnPropertyDescriptor(globalThis.navigator, 'geolocation');
+    Object.defineProperty(globalThis.navigator, 'geolocation', {
+      value: { getCurrentPosition },
+      configurable: true,
+    });
+    return () => {
+      if (original) Object.defineProperty(globalThis.navigator, 'geolocation', original);
+      else delete globalThis.navigator.geolocation;
+    };
+  }
 
-    fireEvent.change(titleInput, { target: { value: 'Illegal Burning' } });
-    fireEvent.change(descInput, { target: { value: 'Smoke near main park' } });
-    fireEvent.change(categorySelectEl, { target: { value: 'Garbage burning' } });
-    fireEvent.change(severitySelectEl, { target: { value: 'High' } });
-    fireEvent.click(submitBtn);
+  it('submits a report without location attached by default', async () => {
+    renderWithFormOpen();
+
+    const form = formControls();
+
+    fireEvent.change(form.title, { target: { value: 'Illegal Burning' } });
+    fireEvent.change(form.description, { target: { value: 'Smoke near main park' } });
+    fireEvent.change(form.category, { target: { value: 'Garbage burning' } });
+    fireEvent.change(form.severity, { target: { value: 'High' } });
+    fireEvent.click(form.submit);
 
     await waitFor(() => {
       const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
@@ -47,7 +82,7 @@ describe('CommunityHub Component', () => {
     });
   });
 
-  it('submits a report with location attached when Use GPS for Location is clicked', async () => {
+  it('submits a report with location attached when Use Current Location is clicked', async () => {
     const mockGeolocation = {
       getCurrentPosition: vi.fn().mockImplementation((success) =>
         success({
@@ -58,40 +93,35 @@ describe('CommunityHub Component', () => {
         })
       ),
     };
-    vi.stubGlobal('navigator', {
-      ...globalThis.navigator,
-      geolocation: mockGeolocation,
-    });
+    const restore = stubGeolocation(mockGeolocation.getCurrentPosition);
 
-    render(<CommunityHub />);
+    try {
+      renderWithFormOpen();
 
-    fireEvent.click(screen.getByRole('button', { name: /Report Pollution/i }));
+      // The English translation reads "Use Current Location" / "Location
+      // attached". These queries were written against the inline defaults in the
+      // JSX, which translation.json overrides, so they were looking for text
+      // that never reaches the screen.
+      fireEvent.click(screen.getByRole('button', { name: /Use Current Location/i }));
+      expect(screen.getByText(/Location attached/i)).toBeInTheDocument();
 
-    const useLocationBtn = screen.getByRole('button', { name: /Use GPS for Location/i });
-    fireEvent.click(useLocationBtn);
+      const form = formControls();
+      fireEvent.change(form.title, { target: { value: 'Factory Smoke' } });
+      fireEvent.change(form.description, { target: { value: 'Dark emissions observed' } });
+      fireEvent.change(form.category, { target: { value: 'Industrial smoke' } });
+      fireEvent.change(form.severity, { target: { value: 'Medium' } });
+      fireEvent.click(form.submit);
 
-    expect(screen.getByText(/GPS Location attached/i)).toBeInTheDocument();
-
-    const titleInput = screen.getByPlaceholderText(/Issue title/i);
-    const descInput = screen.getByPlaceholderText(/Describe location/i);
-    const selects = document.querySelectorAll('select');
-    const categorySelectEl = selects[0];
-    const severitySelectEl = selects[1];
-    const submitBtn = screen.getByRole('button', { name: /Submit Report/i });
-
-    fireEvent.change(titleInput, { target: { value: 'Factory Smoke' } });
-    fireEvent.change(descInput, { target: { value: 'Dark emissions observed' } });
-    fireEvent.change(categorySelectEl, { target: { value: 'Industrial smoke' } });
-    fireEvent.change(severitySelectEl, { target: { value: 'Medium' } });
-    fireEvent.click(submitBtn);
-
-    await waitFor(() => {
-      const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-      expect(stored.length).toBe(1);
-      expect(stored[0].title).toBe('Factory Smoke');
-      expect(stored[0].latitude).toBe(28.6139);
-      expect(stored[0].longitude).toBe(77.209);
-    });
+      await waitFor(() => {
+        const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+        expect(stored.length).toBe(1);
+        expect(stored[0].title).toBe('Factory Smoke');
+        expect(stored[0].latitude).toBe(28.6139);
+        expect(stored[0].longitude).toBe(77.209);
+      });
+    } finally {
+      restore();
+    }
   });
 
   it('handles geolocation denial/error gracefully', async () => {
@@ -100,38 +130,79 @@ describe('CommunityHub Component', () => {
         error(new Error('Permission denied'))
       ),
     };
-    vi.stubGlobal('navigator', {
-      ...globalThis.navigator,
-      geolocation: mockGeolocation,
-    });
+    const restore = stubGeolocation(mockGeolocation.getCurrentPosition);
 
+    try {
+      renderWithFormOpen();
+
+      fireEvent.click(screen.getByRole('button', { name: /Use Current Location/i }));
+      expect(screen.getByText(/Unable to retrieve location/i)).toBeInTheDocument();
+
+      // Can still submit report
+      const form = formControls();
+      fireEvent.change(form.title, { target: { value: 'Dust Storm' } });
+      fireEvent.change(form.description, { target: { value: 'High dust' } });
+      fireEvent.change(form.category, { target: { value: 'Construction dust' } });
+      fireEvent.click(form.submit);
+
+      await waitFor(() => {
+        const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+        expect(stored.length).toBe(1);
+        expect(stored[0].title).toBe('Dust Storm');
+        expect(stored[0].latitude).toBeNull();
+        expect(stored[0].longitude).toBeNull();
+      });
+    } finally {
+      restore();
+    }
+  });
+
+  it('gives every control in the report form an accessible name', () => {
+    // Regression for #994. Three of the four selects had no label, no
+    // aria-label and no aria-labelledby, so a screen reader announced three
+    // unnamed combo boxes and Testing Library could not tell them apart:
+    // "Found multiple elements with the role combobox and name ''".
+    renderWithFormOpen();
+
+    const form = document.querySelector('form.community-form');
+    const controls = within(form).getAllByRole('combobox')
+      .concat(within(form).getAllByRole('textbox'));
+
+    expect(controls.length).toBeGreaterThanOrEqual(6);
+    for (const control of controls) {
+      expect(control).toHaveAccessibleName();
+    }
+
+    // ...and the names are distinct, so nothing is ambiguous to a reader
+    // navigating the form by control.
+    const names = controls.map((control) => control.getAttribute('aria-label'));
+    expect(new Set(names).size).toBe(names.length);
+  });
+
+  it('does not rewrite storage when a render finds nothing to migrate', () => {
+    // readReports() used to write the whole list back on every call, images
+    // included, and it is called from the useState initialiser as well as on
+    // mount. Two tabs open on the hub meant each one rewriting storage from
+    // whatever snapshot it read.
+    const current = [
+      {
+        id: '1',
+        title: 'Nothing to migrate',
+        description: 'Already in the current shape',
+        votes: 0,
+        createdAt: '2026-01-01T00:00:00.000Z',
+        status: 'New',
+      },
+    ];
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(current));
+
+    const setItem = vi.spyOn(Storage.prototype, 'setItem');
     render(<CommunityHub />);
-    fireEvent.click(screen.getByRole('button', { name: /Report Pollution/i }));
 
-    const useLocationBtn = screen.getByRole('button', { name: /Use GPS for Location/i });
-    fireEvent.click(useLocationBtn);
-
-    expect(screen.getByText(/Unable to retrieve location/i)).toBeInTheDocument();
-
-    // Can still submit report
-    const titleInput = screen.getByPlaceholderText(/Issue title/i);
-    const descInput = screen.getByPlaceholderText(/Describe location/i);
-    const selects = document.querySelectorAll('select');
-    const categorySelectEl = selects[0];
-    const submitBtn = screen.getByRole('button', { name: /Submit Report/i });
-
-    fireEvent.change(titleInput, { target: { value: 'Dust Storm' } });
-    fireEvent.change(descInput, { target: { value: 'High dust' } });
-    fireEvent.change(categorySelectEl, { target: { value: 'Construction dust' } });
-    fireEvent.click(submitBtn);
-
-    await waitFor(() => {
-      const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-      expect(stored.length).toBe(1);
-      expect(stored[0].title).toBe('Dust Storm');
-      expect(stored[0].latitude).toBeNull();
-      expect(stored[0].longitude).toBeNull();
-    });
+    // The persistence effect writes on mount; what must not happen is the read
+    // path writing a second, identical copy on top of it.
+    const reportWrites = setItem.mock.calls.filter(([key]) => key === STORAGE_KEY);
+    expect(reportWrites.length).toBeLessThanOrEqual(1);
   });
 
   it('maintains backward compatibility with legacy reports without coordinates', () => {
@@ -153,22 +224,17 @@ describe('CommunityHub Component', () => {
   });
 
   it('renders HTML in report text as inert literal text, without injecting elements', async () => {
-    render(<CommunityHub />);
-    fireEvent.click(screen.getByRole('button', { name: /Report Pollution/i }));
+    renderWithFormOpen();
 
-    const titleInput = screen.getByPlaceholderText(/Issue title/i);
-    const descInput = screen.getByPlaceholderText(/Describe location/i);
-    const selects = document.querySelectorAll('select');
-    const categorySelectEl = selects[0];
-    const submitBtn = screen.getByRole('button', { name: /Submit Report/i });
+    const form = formControls();
 
     const maliciousTitle = '<script>alert("XSS-Title")</script>';
     const maliciousDesc = '<img src=x onerror="alert(1)"> & "quotes"';
 
-    fireEvent.change(titleInput, { target: { value: maliciousTitle } });
-    fireEvent.change(descInput, { target: { value: maliciousDesc } });
-    fireEvent.change(categorySelectEl, { target: { value: 'Waste dumping' } });
-    fireEvent.click(submitBtn);
+    fireEvent.change(form.title, { target: { value: maliciousTitle } });
+    fireEvent.change(form.description, { target: { value: maliciousDesc } });
+    fireEvent.change(form.category, { target: { value: 'Waste dumping' } });
+    fireEvent.click(form.submit);
 
     const card = await screen.findByText(maliciousDesc);
 
@@ -183,12 +249,11 @@ describe('CommunityHub Component', () => {
   });
 
   it('rejects non-image files or invalid file extensions during upload', async () => {
-    render(<CommunityHub />);
-    fireEvent.click(screen.getByRole('button', { name: /Report Pollution/i }));
+    renderWithFormOpen();
 
     // Create a fake SVG file (disallowed MIME type)
     const file = new File(['<svg></svg>'], 'malicious.svg', { type: 'image/svg+xml' });
-    const fileInput = document.querySelector('input[type="file"]');
+    const fileInput = screen.getByLabelText('Photo evidence (optional)');
 
     fireEvent.change(fileInput, { target: { files: [file] } });
 

@@ -80,8 +80,25 @@ function needsEntityMigration(report) {
   return pattern.test(report?.title || '') || pattern.test(report?.description || '');
 }
 
+/** Status values written by earlier versions, and what they are called now. */
+const LEGACY_STATUS_RENAMES = {
+  Pending: 'New',
+  Addressed: 'Resolved',
+};
+
 /**
  * Loads reports from localStorage, decoding any that were persisted with HTML entities.
+ *
+ * The write-back only happens when the migration actually changed something.
+ * It used to be unconditional, which meant every call — and `readReports` is
+ * called from the `useState` initialiser as well as on mount — serialised the
+ * whole report list, base64 image data URIs included, and wrote it straight back
+ * over the top of itself. That is a synchronous `JSON.stringify` of up to
+ * several megabytes on the path to first paint, against a store this component
+ * already treats as scarce (there is a 5 MB warning and a pruning path further
+ * down). It was also a cross-tab hazard: two tabs open on the hub meant each one
+ * rewriting storage from whatever snapshot it read, so a report submitted in one
+ * could be erased by the other merely rendering.
  *
  * @returns {any[]}
  */
@@ -91,21 +108,32 @@ export function readReports() {
     const parsed = raw ? JSON.parse(raw) : [];
     if (!Array.isArray(parsed)) return [];
 
+    let changed = false;
+
     const migrated = parsed.map((report) => {
-      let r = { ...report };
+      const r = { ...report };
+
       if (needsEntityMigration(report)) {
         r.title = decodeStoredEntities(report.title);
         r.description = decodeStoredEntities(report.description);
+        changed = true;
       }
-      if (r.status === 'Pending') r.status = 'New';
-      if (r.status === 'Addressed') r.status = 'Resolved';
+
+      const renamed = LEGACY_STATUS_RENAMES[r.status];
+      if (renamed) {
+        r.status = renamed;
+        changed = true;
+      }
+
       return r;
     });
 
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(migrated));
-    } catch {
-      // Migration is best-effort; the decoded copy is still returned for this session.
+    if (changed) {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(migrated));
+      } catch {
+        // Migration is best-effort; the decoded copy is still returned for this session.
+      }
     }
 
     return migrated;
@@ -614,8 +642,14 @@ export default function CommunityHub() {
 
       {showForm && (
       <form className="community-form" onSubmit={onSubmit} style={{marginTop: '15px'}}>
+        {/* Every control below carries an explicit accessible name. A placeholder
+            is not one: it is announced inconsistently, and it disappears the
+            moment the field has content. Three of these selects had no name at
+            all, so a screen reader read out "combo box" three times over. */}
         <input
           type="text"
+          id="community-report-title"
+          aria-label={t("communityHub.labelTitle", "Issue title")}
           value={form.title}
           maxLength={MAX_TITLE_LENGTH}
           placeholder={t("communityHub.placeholderTitle", "Issue title (e.g., Garbage burning)")}
@@ -623,6 +657,8 @@ export default function CommunityHub() {
           required
         />
         <select
+          id="community-report-category"
+          aria-label={t("communityHub.labelCategory", "Incident category")}
           value={form.category}
           onChange={(event) => setForm((prev) => ({ ...prev, category: event.target.value }))}
           required
@@ -633,6 +669,8 @@ export default function CommunityHub() {
           ))}
         </select>
         <select
+          id="community-report-severity"
+          aria-label={t("communityHub.labelSeverity", "Incident severity")}
           value={form.severity}
           onChange={(event) => setForm((prev) => ({ ...prev, severity: event.target.value }))}
           required
@@ -642,6 +680,8 @@ export default function CommunityHub() {
           ))}
         </select>
         <textarea
+          id="community-report-description"
+          aria-label={t("communityHub.labelDesc", "Issue description")}
           value={form.description}
           maxLength={MAX_DESCRIPTION_LENGTH}
           placeholder={t("communityHub.placeholderDesc", "Describe location and issue details")}
@@ -650,12 +690,16 @@ export default function CommunityHub() {
         />
         <input
           type="text"
+          id="community-report-location"
+          aria-label={t("communityHub.labelLocationName", "Location name or address")}
           value={form.locationName}
           maxLength={100}
           placeholder={t("communityHub.placeholderLocationName", "Location Name or Address")}
           onChange={(event) => setForm((prev) => ({ ...prev, locationName: event.target.value }))}
         />
         <select
+          id="community-report-hashtag"
+          aria-label={t("communityHub.labelHashtag", "Hashtag (optional)")}
           value={form.hashtag}
           onChange={(event) => setForm((prev) => ({ ...prev, hashtag: event.target.value }))}
         >
@@ -667,6 +711,8 @@ export default function CommunityHub() {
         <input
           key={fileInputKey}
           type="file"
+          id="community-report-photo"
+          aria-label={t("communityHub.labelPhoto", "Photo evidence (optional)")}
           accept="image/jpeg,image/png,image/webp"
           onChange={uploadImage}
           style={{ width: '100%' }}
