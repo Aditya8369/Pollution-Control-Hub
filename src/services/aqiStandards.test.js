@@ -194,12 +194,32 @@ describe('subIndex — CPCB sub-index formula', () => {
     expect(subIndex(175, PM10)).toBe(150);
   });
 
-  it('closes the gaps between published bands by truncating', () => {
-    // The tables jump 30 → 31, so 30.4 falls in a gap. Truncation puts it at 30 rather
-    // than matching no band and silently scoring the pollutant 0.
+  it('closes the gaps between published bands by rounding', () => {
+    // The tables jump 30 → 31.
+    // 30.4 rounds to 30.
     expect(subIndex(30.4, PM25)).toBe(50);
-    expect(subIndex(30.9, PM25)).toBe(50);
-    expect(subIndex(60.7, PM25)).toBe(100);
+    // 30.5 rounds to 31 (score 51).
+    expect(subIndex(30.5, PM25)).toBe(51);
+    // 30.9 rounds to 31 (score 51).
+    expect(subIndex(30.9, PM25)).toBe(51);
+    
+    // 60.4 rounds to 60.
+    expect(subIndex(60.4, PM25)).toBe(100);
+    // 60.7 rounds to 61 (score 101).
+    expect(subIndex(60.7, PM25)).toBe(101);
+  });
+
+  it('handles rounding at decimal precisions (CO mg/m3)', () => {
+    const CO = CPCB_STANDARD.pollutants.carbon_monoxide.breakpoints;
+    // CO table jumps from 1.0 to 1.1. It has 1 decimal place precision.
+    // 1.04 rounds to 1.0.
+    expect(subIndex(1.04, CO)).toBe(50);
+    // 1.05 rounds to 1.1.
+    expect(subIndex(1.05, CO)).toBe(51);
+    // 2.04 rounds to 2.0.
+    expect(subIndex(2.04, CO)).toBe(100);
+    // 2.05 rounds to 2.1.
+    expect(subIndex(2.05, CO)).toBe(101);
   });
 
   it('caps readings above the top band at the scale maximum', () => {
