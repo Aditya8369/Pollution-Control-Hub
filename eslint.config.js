@@ -104,6 +104,22 @@ export default [
     },
   },
 
+  // ── Build and maintenance scripts ──────────────────────────────────────────
+  // Node programs, not browser code. `npm run lint` only walks `src`, so these
+  // were not linted at all; they are included here so that running eslint over
+  // them directly reports real problems rather than a wall of no-undef for
+  // `console` and `process`.
+  {
+    files: ['scripts/**/*.{js,mjs,cjs}'],
+    languageOptions: {
+      ecmaVersion: 'latest',
+      sourceType: 'module',
+      globals: {
+        ...globals.node,
+      },
+    },
+  },
+
   // ── Web workers ────────────────────────────────────────────────────────────
   // `self` is not defined in the browser set, so both workers were nothing but
   // no-undef errors.

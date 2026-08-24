@@ -55,7 +55,11 @@ import { ThemeProvider, useTheme } from "./context/ThemeContext";
 import ThemeSwitcher from "./components/ThemeSwitcher";
 import LanguageSwitcher from "./components/LanguageSwitcher";
 import CarbonFootprintCalculator from "./components/CarbonFootprintCalculator";
-// 1. FIXED: Changed to named import
+// Default import, matching Leaderboard.jsx's `export default`. The comment that
+// used to sit here claimed this was a named import, which is the confusion that
+// produced the shadow Leaderboard.tsx (#990) - that file exported a named
+// `Leaderboard` and nothing else, so tsc reported "no default export" against a
+// module the bundler never resolved.
 import Leaderboard from "./components/Leaderboard";
 import EmbeddableWidgetGenerator from "./components/EmbeddableWidgetGenerator";
 import Glossary from "./components/Glossary";
