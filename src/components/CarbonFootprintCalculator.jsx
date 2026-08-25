@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { calculateCarbonFootprint } from '../utils/carbonCalculator';
+import { localDayKey } from '../utils/localDay';
 import './CarbonFootprintCalculator.css';
 
 const HISTORY_STORAGE_KEY = 'carbon_calculator_history';
@@ -9,8 +10,16 @@ const HISTORY_STORAGE_KEY = 'carbon_calculator_history';
 // history already is, rather than requiring an account.
 const TIP_COMMITMENTS_KEY = 'carbon_tip_commitments';
 
+/**
+ * Today, in the user's own calendar.
+ *
+ * Tip commitments are stamped and de-duplicated with this key, so a UTC day
+ * boundary meant "done today" flipped at the wrong hour: a New York user who
+ * ticked a tip off at 20:00 could tick it off again straight away, and an Indian
+ * user who did so at 01:00 was credited against the previous day.
+ */
 function todayStr() {
-  return new Date().toISOString().slice(0, 10);
+  return localDayKey();
 }
 
 export default function CarbonFootprintCalculator() {
