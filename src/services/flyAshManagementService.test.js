@@ -28,7 +28,10 @@ describe('FlyAshManagementService', () => {
     expect(compliance).toBeDefined();
     expect(compliance.isFullyCompliant).toBe(false); // 68.5% is below 100% CPCB mandate
     expect(compliance.mandateDeficitPercent).toBeCloseTo(31.5, 1);
-    expect(compliance.complianceStatus).toBe('NON_COMPLIANT_DEFICIT');
+    // A 31.5-point deficit is past the 30-point line the module draws for
+    // CRITICAL_LEGAL_PENALTY, so NON_COMPLIANT_DEFICIT (10 < deficit <= 30) is
+    // not reachable for this fixture.
+    expect(compliance.complianceStatus).toBe('CRITICAL_LEGAL_PENALTY');
   });
 
   it('should calculate fly ash dyke overflow & groundwater leachate risk', () => {

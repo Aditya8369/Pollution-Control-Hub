@@ -2,22 +2,25 @@
  * Additional Toxic Plume Dispersion Gaussian Grid Calculator
  */
 
-export interface PlumeGridPoint {
-  xDistanceKm: number;
-  yDistanceKm: number;
-  concentrationPpm: number;
-  hazardLevel: 'SAFE' | 'WARNING' | 'DANGER' | 'LETHAL';
-}
+/**
+ * @typedef {Object} PlumeGridPoint
+ * @property {number} xDistanceKm
+ * @property {number} yDistanceKm
+ * @property {number} concentrationPpm
+ * @property {'SAFE' | 'WARNING' | 'DANGER' | 'LETHAL'} hazardLevel
+ */
 
 /**
  * Generates Gaussian dispersion grid matrix points for GIS mapping.
+ *
+ * @param {number} sourceQuantityGallons
+ * @param {number} windSpeedKph
+ * @param {number} [gridResolutionKm=0.5]
+ * @returns {PlumeGridPoint[]}
  */
-export function generatePlumeDispersionGrid(
-  sourceQuantityGallons: number,
-  windSpeedKph: number,
-  gridResolutionKm = 0.5
-): PlumeGridPoint[] {
-  const grid: PlumeGridPoint[] = [];
+export function generatePlumeDispersionGrid(sourceQuantityGallons, windSpeedKph, gridResolutionKm = 0.5) {
+  /** @type {PlumeGridPoint[]} */
+  const grid = [];
   const maxDistanceKm = 5.0;
 
   for (let x = 0; x <= maxDistanceKm; x += gridResolutionKm) {
@@ -31,7 +34,8 @@ export function generatePlumeDispersionGrid(
 
       const concPpm = Math.max(0, Math.round(conc * 100) / 100);
 
-      let hazardLevel: PlumeGridPoint['hazardLevel'] = 'SAFE';
+      /** @type {PlumeGridPoint['hazardLevel']} */
+      let hazardLevel = 'SAFE';
       if (concPpm > 500) {
         hazardLevel = 'LETHAL';
       } else if (concPpm > 100) {
