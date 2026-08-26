@@ -2,9 +2,11 @@ import React, {
   createContext,
   useContext,
   useState,
+  useEffect,
   useCallback,
   useMemo,
 } from "react";
+import { fetchUserTenants, updateTenantSettings as updateSettingsApi } from '../services/tenantService';
 
 const STORAGE_KEY = "pch_tenant_id";
 
@@ -22,11 +24,6 @@ const DEFAULT_TENANT_NAME = KNOWN_TENANTS[0].name;
 /**
  * The shape consumers receive from `useTenant()`.
  *
- * Declared rather than left to inference from the default below. Inference reads
- * `setTenant: () => {}` as taking no arguments, so every real `setTenant(id)` call
- * type-checked as "Expected 0 arguments, but got 1" — and `knownTenants` was absent
- * from the inferred type altogether, so reading it in TenantSwitcher was an error too.
- *
  * @typedef {object} TenantContextValue
  * @property {string} tenantId - The active tenant's id.
  * @property {string} tenantName - Its display name.
@@ -34,16 +31,30 @@ const DEFAULT_TENANT_NAME = KNOWN_TENANTS[0].name;
  * @property {() => void} clearTenant - Returns to the default and forgets the choice.
  * @property {boolean} isMultiTenant - False on the inert default context.
  * @property {{id: string, name: string}[]} knownTenants - Selectable tenants.
+ * @property {object|null} currentTenant - The full current tenant object from API.
+ * @property {object[]} tenants - All available tenants from API.
+ * @property {boolean} isLoading - Whether tenant data is being fetched.
+ * @property {string|null} error - Error message if fetching fails.
+ * @property {(tenantId: string) => Promise<void>} switchTenant - Switches to a different tenant.
+ * @property {() => Promise<void>} fetchTenants - Fetches tenant list from API.
+ * @property {(settings: object) => Promise<void>} updateTenantSettings - Updates tenant settings.
  */
 
 /** @type {import('react').Context<TenantContextValue>} */
 const TenantContext = createContext({
   tenantId: DEFAULT_TENANT_ID,
   tenantName: DEFAULT_TENANT_NAME,
-  setTenant: () => {},
-  clearTenant: () => {},
+  setTenant: () => { },
+  clearTenant: () => { },
   isMultiTenant: false,
   knownTenants: KNOWN_TENANTS,
+  currentTenant: null,
+  tenants: [],
+  isLoading: true,
+  error: null,
+  switchTenant: async () => { },
+  fetchTenants: async () => { },
+  updateTenantSettings: async () => { },
 });
 
 /**
@@ -61,8 +72,7 @@ function isKnownTenant(id) {
 /**
  * The display name for a tenant id.
  *
- * An unrecognised id resolves to the default name rather than being echoed back, so a
- * retired or hand-edited id can never surface in the UI as a label.
+ * An unrecognised id resolves to the default name rather than being echoed back.
  *
  * @param {string} id
  * @returns {string}
@@ -75,15 +85,7 @@ function nameFor(id) {
 /**
  * The tenant the visitor previously chose, or the default.
  *
- * Anything unrecognised in storage — a tenant since removed, a value written by an older
- * build, or something typed in by hand — is discarded rather than trusted. Returning it
- * would put an id the app has no name for into `tenantId`; the name lookup would quietly
- * fall back to "Default Organisation" while the id itself stayed wrong, so the switcher
- * would show the default with no row ticked.
- *
- * The read is guarded because `localStorage` throws outright when a browser blocks it —
- * Safari's private mode does — rather than returning null. The provider has to render
- * either way.
+ * Anything unrecognised in storage is discarded rather than trusted.
  *
  * @returns {string}
  */
@@ -123,46 +125,119 @@ function forgetTenant() {
 /**
  * Provides the active tenant and the operations that change it.
  *
- * Storage is written by the two actions that represent a decision — `setTenant` and
- * `clearTenant` — and by nothing else.
- *
- * It used to be written by an effect keyed on `tenantId`, which had two consequences.
- * `clearTenant()` removed the key and then set state to `"default"`; that state change
- * re-ran the effect, which wrote `"default"` straight back, so clearing never cleared
- * anything. And the same effect ran on mount, so a visitor who had never opened the
- * tenant switcher still got `pch_tenant_id=default` written to their browser on first
- * paint — leaving no way to tell "never chose one" apart from "deliberately chose the
- * default", and no way to change what the default means for anyone who already has the
- * key.
+ * Combines static known tenants with dynamic API-driven tenant management.
  */
 export function TenantProvider({ children }) {
   const [tenantId, setTenantId] = useState(readStoredTenant);
+  const [currentTenant, setCurrentTenant] = useState(null);
+  const [tenants, setTenants] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  const fetchTenants = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const data = await fetchUserTenants();
+      setTenants(data);
+
+      // If we have API tenants and no current tenant is set, use the first one
+      if (data.length > 0 && !currentTenant) {
+        const savedTenantId = localStorage.getItem(STORAGE_KEY);
+        const savedTenant = savedTenantId
+          ? data.find(t => t.id === savedTenantId) || data[0]
+          : data[0];
+
+        setCurrentTenant(savedTenant);
+        setTenantId(savedTenant.id);
+        persistTenant(savedTenant.id);
+      }
+    } catch (err) {
+      setError('Failed to fetch workspaces. Please try again.');
+      console.error('TenantContext fetch error:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [currentTenant]);
 
   const setTenant = useCallback((id) => {
-    // An unknown id is rejected at the door. Accepting it would persist a value that
-    // `readStoredTenant` is then obliged to throw away on the next load, so the
-    // selection would appear to work and silently not survive a reload.
+    // Reject unknown ids at the door
     if (!isKnownTenant(id)) return;
 
     setTenantId(id);
 
-    // The default is the absence of a choice, so selecting it clears the key rather than
-    // recording it. That keeps one meaning for "no key present".
+    // Find matching tenant from API data if available
+    const matchedTenant = tenants.find(t => t.id === id);
+    if (matchedTenant) {
+      setCurrentTenant(matchedTenant);
+    } else if (id === DEFAULT_TENANT_ID) {
+      setCurrentTenant(null);
+    }
+
+    // The default is the absence of a choice, so selecting it clears the key
     if (id === DEFAULT_TENANT_ID) {
       forgetTenant();
     } else {
       persistTenant(id);
     }
-  }, []);
+  }, [tenants]);
+
+  const switchTenant = useCallback(async (tenantId) => {
+    setIsLoading(true);
+    try {
+      const selected = tenants.find((t) => t.id === tenantId);
+      if (selected) {
+        setCurrentTenant(selected);
+        setTenantId(tenantId);
+        persistTenant(tenantId);
+      }
+    } catch (err) {
+      setError('Failed to switch workspace.');
+      console.error('TenantContext switch error:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [tenants]);
 
   const clearTenant = useCallback(() => {
     setTenantId(DEFAULT_TENANT_ID);
+    setCurrentTenant(null);
     forgetTenant();
   }, []);
 
-  // Derived from `tenantId` rather than mirrored into state of its own, so the name
-  // cannot lag the id by a render.
-  const tenantName = useMemo(() => nameFor(tenantId), [tenantId]);
+  const updateTenantSettings = useCallback(async (settings) => {
+    if (!currentTenant) return;
+    try {
+      const updated = await updateSettingsApi(currentTenant.id, settings);
+      setCurrentTenant(updated);
+      setTenants((prev) => prev.map((t) => (t.id === updated.id ? updated : t)));
+    } catch (err) {
+      setError('Failed to update workspace settings.');
+      console.error('TenantContext update error:', err);
+    }
+  }, [currentTenant]);
+
+  // Derived from `tenantId` rather than mirrored into state
+  const tenantName = useMemo(() => {
+    // Prefer API tenant name if available, fall back to static lookup
+    if (currentTenant) {
+      return currentTenant.name;
+    }
+    return nameFor(tenantId);
+  }, [tenantId, currentTenant]);
+
+  useEffect(() => {
+    const activeId = localStorage.getItem(STORAGE_KEY);
+    fetchTenants().then(() => {
+      if (activeId && tenants.length > 0) {
+        const saved = tenants.find((t) => t.id === activeId);
+        if (saved) {
+          setCurrentTenant(saved);
+          setTenantId(activeId);
+        }
+      }
+    });
+  }, []);
 
   const value = useMemo(
     () => ({
@@ -172,8 +247,15 @@ export function TenantProvider({ children }) {
       clearTenant,
       isMultiTenant: true,
       knownTenants: KNOWN_TENANTS,
+      currentTenant,
+      tenants,
+      isLoading,
+      error,
+      switchTenant,
+      fetchTenants,
+      updateTenantSettings,
     }),
-    [tenantId, tenantName, setTenant, clearTenant]
+    [tenantId, tenantName, setTenant, clearTenant, currentTenant, tenants, isLoading, error, switchTenant, fetchTenants, updateTenantSettings]
   );
 
   return (
