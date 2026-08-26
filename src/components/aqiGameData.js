@@ -118,6 +118,42 @@ export const ACTIONS = [
       pm2_5: 8,
       carbon_monoxide: 12
     }
+  },
+  {
+    id: 'cloud_seeding',
+    name: 'Cloud Seeding',
+    description: 'Trigger artificial rain to wash away heavy particulate matter, though it may increase ground ozone.',
+    category: 'technology',
+    icon: '🌧️',
+    reductions: {
+      pm2_5: 45,
+      pm10: 55,
+      ozone: -15 // Cascading effect: increases ozone
+    }
+  },
+  {
+    id: 'cool_roofs',
+    name: 'City-wide Cool Roofs',
+    description: 'Reflective paints on buildings to lower urban heat, significantly reducing ground-level ozone.',
+    category: 'urban',
+    icon: '🏠',
+    reductions: {
+      ozone: 35,
+      nitrogen_dioxide: 10
+    }
+  },
+  {
+    id: 'emergency_lockdown',
+    name: 'Traffic & Industry Lockdown',
+    description: 'Halt all non-essential activities. Drops emissions drastically but causes a slight CO spike from residential heating.',
+    category: 'policy',
+    icon: '🛑',
+    reductions: {
+      pm2_5: 50,
+      pm10: 50,
+      nitrogen_dioxide: 60,
+      carbon_monoxide: -20 // Cascading effect
+    }
   }
 ];
 
@@ -174,6 +210,64 @@ export const MISSIONS = [
       ozone: 85,
       carbon_monoxide: 3200,
       us_aqi: 330 // Hazardous
+    }
+  },
+  {
+    id: 'wildfire_emergency',
+    name: 'Wildfire Smoke Drift',
+    difficulty: 'Extreme',
+    description: 'Fierce winds are blowing wildfire smoke into the city. A secondary wave hits halfway through. Act fast!',
+    targetImprovement: 50, // percent
+    allowedSteps: 3,
+    timerDuration: 20, // seconds - time sensitive
+    icon: '🔥',
+    environmentalModifiers: { pm2_5: 1.5, pm10: 1.3 }, // Wind makes baseline worse
+    timeSensitiveCascade: { pm2_5: 1.4, pm10: 1.2 }, // Spikes again at half time
+    simulatedCurrent: {
+      pm2_5: 200,
+      pm10: 250,
+      nitrogen_dioxide: 80,
+      ozone: 100,
+      carbon_monoxide: 4000,
+      us_aqi: 250 // Very Unhealthy baseline
+    }
+  },
+  {
+    id: 'heatwave_ozone',
+    name: 'Lethal Summer Heatwave',
+    difficulty: 'Hard',
+    description: 'Scorching temperatures are cooking vehicle exhaust into toxic ozone. You have minimal budget.',
+    targetImprovement: 40,
+    allowedSteps: 2, // limited budget
+    timerDuration: 25,
+    icon: '🌡️',
+    environmentalModifiers: { ozone: 1.8 }, // Huge ozone spike due to heat
+    simulatedCurrent: {
+      pm2_5: 80,
+      pm10: 110,
+      nitrogen_dioxide: 150,
+      ozone: 120, // High baseline
+      carbon_monoxide: 1500,
+      us_aqi: 200 // Unhealthy
+    }
+  },
+  {
+    id: 'night_inversion',
+    name: 'Winter Temperature Inversion',
+    difficulty: 'Medium',
+    description: 'Cold air is trapping pollutants near the ground. Public awareness is low, making policies less effective.',
+    targetImprovement: 25,
+    allowedSteps: 3,
+    timerDuration: 40,
+    icon: '❄️',
+    policyEffectiveness: 0.7, // Only 70% effective due to lack of public compliance/awareness
+    simulatedCurrent: {
+      pm2_5: 160,
+      pm10: 210,
+      nitrogen_dioxide: 110,
+      ozone: 30,
+      carbon_monoxide: 2200,
+      us_aqi: 210 // Very Unhealthy
     }
   }
 ];

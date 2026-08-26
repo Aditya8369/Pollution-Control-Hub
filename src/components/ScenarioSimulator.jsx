@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useId, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   BarChart,
@@ -10,92 +10,58 @@ import {
   ResponsiveContainer,
   Legend
 } from "recharts";
+import {
+  PRESET_SCENARIOS,
+  DEFAULT_SCENARIO_ID,
+  buildScenarioComparison,
+} from "../utils/scenarioModel";
 
-// Pre-set guided scenarios with impact formulas
-const PRESET_SCENARIOS = [
-  {
-    id: "ev_transition",
-    title: "⚡ 30% EV Adoption",
-    description: "Replace 30% of fossil-fuel vehicles on city roads with zero-emission EVs.",
-    no2ReductionPct: 25,
-    pm25ReductionPct: 15,
-    details: "Dramatically lowers tailpipe combustion NO₂ emissions and reduces brake dust PM2.5."
-  },
-  {
-    id: "urban_canopy",
-    title: "🌳 20% Green Canopy",
-    description: "Expand city tree cover, rooftop gardens, and urban parks by 20%.",
-    no2ReductionPct: 10,
-    pm25ReductionPct: 20,
-    details: "Leaves and vegetation trap airborne fine particulate matter and absorb gaseous pollutants."
-  },
-  {
-    id: "industrial_scrubbers",
-    title: "🏭 Emission Controls",
-    description: "Mandate advanced particulate scrubbers across nearby factories and power plants.",
-    no2ReductionPct: 35,
-    pm25ReductionPct: 40,
-    details: "Targeted stack filtration cuts bulk industrial PM2.5 and atmospheric nitrogen oxides."
-  },
-  {
-    id: "renewable_grid",
-    title: "☀️ 50% Clean Energy",
-    description: "Transition half of the regional electricity grid to clean renewable energy sources.",
-    no2ReductionPct: 30,
-    pm25ReductionPct: 25,
-    details: "Phases out coal and gas thermal generation, drastically cleaning regional air sheds."
-  }
-];
+/** EV adoption slider bounds, in percent. */
+const EV_MIN = 5;
+const EV_MAX = 100;
+const EV_STEP = 5;
+const EV_DEFAULT = 30;
 
-export default function ScenarioSimulator({ current }) {
+/**
+ * "What-If" scenario simulator.
+ *
+ * The arithmetic lives in `src/utils/scenarioModel.js`; this file is the chrome
+ * around it. The one rule worth restating here: a pollutant with no reading is
+ * named as missing and left off the chart. It is never given a stand-in value —
+ * the chart's red bar is labelled "Current Baseline", and a bar under that label
+ * has to be a measurement.
+ *
+ * @param {{ current?: any, cityName?: string }} params
+ */
+export default function ScenarioSimulator({ current, cityName }) {
   const { t } = useTranslation();
-  const [selectedScenarioId, setSelectedScenarioId] = useState(PRESET_SCENARIOS[0].id);
-  const [customEvPct, setCustomEvPct] = useState(30);
+  const [selectedScenarioId, setSelectedScenarioId] = useState(DEFAULT_SCENARIO_ID);
+  const [customEvPct, setCustomEvPct] = useState(EV_DEFAULT);
+  const evSliderId = useId();
 
-  const currentPm25 = current?.pm2_5 || 35;
-  const currentNo2 = current?.nitrogen_dioxide || 28;
-
-  const activeScenario = useMemo(
-    () => PRESET_SCENARIOS.find((s) => s.id === selectedScenarioId) || PRESET_SCENARIOS[0],
-    [selectedScenarioId]
+  const { scenario, rows, measuredRows, missingRows, hasAnyReading } = useMemo(
+    () => buildScenarioComparison({ current, scenarioId: selectedScenarioId, evPct: customEvPct }),
+    [current, selectedScenarioId, customEvPct]
   );
 
-  const { simulatedPm25, simulatedNo2, no2Drop, pm25Drop } = useMemo(() => {
-    let no2Red = activeScenario.no2ReductionPct;
-    let pm25Red = activeScenario.pm25ReductionPct;
+  const baselineLabel = t("scenarioSimulator.chartBaseline", "Current Baseline");
+  const simulatedLabel = t("scenarioSimulator.chartSimulated", "Simulated Level");
 
-    if (activeScenario.id === "ev_transition") {
-      no2Red = Math.round((customEvPct / 30) * 25);
-      pm25Red = Math.round((customEvPct / 30) * 15);
-    }
+  const chartData = measuredRows.map((row) => ({
+    pollutant: t(row.labelKey, row.labelFallback),
+    [baselineLabel]: row.baseline,
+    [simulatedLabel]: row.simulated,
+  }));
 
-    const simNo2 = Math.max(2, Number((currentNo2 * (1 - no2Red / 100)).toFixed(1)));
-    const simPm25 = Math.max(2, Number((currentPm25 * (1 - pm25Red / 100)).toFixed(1)));
-
-    return {
-      simulatedNo2: simNo2,
-      simulatedPm25: simPm25,
-      no2Drop: no2Red,
-      pm25Drop: pm25Red
-    };
-  }, [activeScenario, customEvPct, currentNo2, currentPm25]);
-
-  const chartData = [
-    {
-      pollutant: t("scenarioSimulator.chartPm25Axis", "PM2.5 (µg/m³)"),
-      Baseline: Number(currentPm25.toFixed(1)),
-      Simulated: simulatedPm25
-    },
-    {
-      pollutant: t("scenarioSimulator.chartNo2Axis", "NO₂ (µg/m³)"),
-      Baseline: Number(currentNo2.toFixed(1)),
-      Simulated: simulatedNo2
-    }
-  ];
+  const missingNames = missingRows.map((row) => t(row.nameKey, row.nameFallback));
 
   return (
-    <article className="chart-card scenario-simulator-card" style={{ gridColumn: "1 / -1", width: "100%" }}>
-      {/* NEW: Accessibility CSS injected here for distinct keyboard focus styling */}
+    <article
+      className="chart-card scenario-simulator-card"
+      data-testid="scenario-simulator"
+      style={{ gridColumn: "1 / -1", width: "100%" }}
+    >
+      {/* Distinct keyboard focus styling for the controls in this card. */}
       <style>{`
         .accessible-scenario-btn:focus-visible,
         .accessible-slider:focus-visible {
@@ -116,15 +82,22 @@ export default function ScenarioSimulator({ current }) {
 
         {/* Left Column: Preset Buttons & Controls */}
         <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "0.75rem" }}>
-            {PRESET_SCENARIOS.map((scenario) => {
-              const isSelected = scenario.id === selectedScenarioId;
+          <div
+            role="group"
+            aria-label={t("scenarioSimulator.presetsTitle", "Intervention presets")}
+            style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "0.75rem" }}
+          >
+            {PRESET_SCENARIOS.map((preset) => {
+              const isSelected = preset.id === selectedScenarioId;
               return (
                 <button
-                  key={scenario.id}
+                  key={preset.id}
                   type="button"
                   className="accessible-scenario-btn"
-                  onClick={() => setSelectedScenarioId(scenario.id)}
+                  // The selected state was carried only by a border colour, which is
+                  // not a channel assistive tech can read.
+                  aria-pressed={isSelected}
+                  onClick={() => setSelectedScenarioId(preset.id)}
                   style={{
                     textAlign: "left",
                     padding: "0.75rem 1rem",
@@ -143,10 +116,10 @@ export default function ScenarioSimulator({ current }) {
                       marginBottom: "0.2rem"
                     }}
                   >
-                    {t(`scenarioSimulator.scenarios.${scenario.id}.title`, scenario.title)}
+                    {t(`scenarioSimulator.scenarios.${preset.id}.title`, preset.title)}
                   </div>
                   <div style={{ fontSize: "0.78rem", color: "var(--muted, #94a3b8)", lineHeight: "1.3" }}>
-                    {t(`scenarioSimulator.scenarios.${scenario.id}.description`, scenario.description)}
+                    {t(`scenarioSimulator.scenarios.${preset.id}.description`, preset.description)}
                   </div>
                 </button>
               );
@@ -164,15 +137,22 @@ export default function ScenarioSimulator({ current }) {
               }}
             >
               <div style={{ display: "flex", justifyContent: "space-between", fontSize: "0.85rem", fontWeight: "600", marginBottom: "0.5rem", color: "var(--ink, #f8fafc)" }}>
-                <span>{t("scenarioSimulator.evSliderLabel", "Adjust Citywide EV Fleet Adoption:")}</span>
-                <span style={{ color: "var(--brand, #2dd4bf)", fontWeight: "bold" }}>{t("scenarioSimulator.evPct", "{{pct}}% EVs", { pct: customEvPct })}</span>
+                {/* A real <label> rather than a <span>, so the slider has a name. */}
+                <label htmlFor={evSliderId}>
+                  {t("scenarioSimulator.evSliderLabel", "Adjust Citywide EV Fleet Adoption:")}
+                </label>
+                <span style={{ color: "var(--brand, #2dd4bf)", fontWeight: "bold" }}>
+                  {t("scenarioSimulator.evPct", "{{pct}}% EVs", { pct: customEvPct })}
+                </span>
               </div>
               <input
+                id={evSliderId}
                 type="range"
-                min="5"
-                max="100"
-                step="5"
+                min={EV_MIN}
+                max={EV_MAX}
+                step={EV_STEP}
                 value={customEvPct}
+                aria-valuetext={t("scenarioSimulator.evPct", "{{pct}}% EVs", { pct: customEvPct })}
                 onChange={(e) => setCustomEvPct(Number(e.target.value))}
                 className="accessible-slider"
                 style={{ width: "100%", cursor: "pointer", accentColor: "var(--brand, #0d9488)" }}
@@ -181,7 +161,7 @@ export default function ScenarioSimulator({ current }) {
           )}
         </div>
 
-        {/* Right Column: Impact Badges & Animated Visualizer Chart */}
+        {/* Right Column: Impact Badges & Visualizer Chart */}
         <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
           <div
             style={{
@@ -194,33 +174,98 @@ export default function ScenarioSimulator({ current }) {
               borderLeft: "4px solid var(--brand, #0d9488)"
             }}
           >
-            <div style={{ fontSize: "0.85rem", color: "var(--ink, #f8fafc)" }}>
-              <strong>{t("scenarioSimulator.no2ReductionLabel", "NO₂ Reduction:")}</strong> <span style={{ color: "#22c55e", fontWeight: "bold" }}>-{no2Drop}%</span>
-            </div>
-            <div style={{ fontSize: "0.85rem", color: "var(--ink, #f8fafc)" }}>
-              <strong>{t("scenarioSimulator.pm25ReductionLabel", "PM2.5 Reduction:")}</strong> <span style={{ color: "#22c55e", fontWeight: "bold" }}>-{pm25Drop}%</span>
-            </div>
+            {rows.map((row) => (
+              <div key={row.field} style={{ fontSize: "0.85rem", color: "var(--ink, #f8fafc)" }}>
+                <strong>{t(row.reductionLabelKey, row.reductionLabelFallback)}</strong>{" "}
+                <span style={{ color: "#22c55e", fontWeight: "bold" }}>-{row.reductionPct}%</span>
+              </div>
+            ))}
             <div style={{ fontSize: "0.82rem", color: "var(--muted, #94a3b8)", flex: "1 1 100%" }}>
-              💡 {t(`scenarioSimulator.scenarios.${activeScenario.id}.details`, activeScenario.details)}
+              💡 {t(`scenarioSimulator.scenarios.${scenario.id}.details`, scenario.details)}
             </div>
           </div>
 
-          <div style={{ width: "100%", height: 260, display: "flex", justifyContent: "center", alignItems: "center" }}>
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={chartData} margin={{ top: 15, right: 20, left: 0, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="var(--line, #334155)" />
-                <XAxis dataKey="pollutant" tick={{ fontSize: 12, fontWeight: "bold", fill: "var(--ink, #f8fafc)" }} />
-                <YAxis tick={{ fill: "var(--muted, #94a3b8)" }} />
-                <Tooltip
-                  formatter={(val) => [`${val} µg/m³`]}
-                  contentStyle={{ background: "var(--card, #1e293b)", border: "1px solid var(--line, #334155)", color: "var(--ink, #fff)" }}
-                />
-                <Legend wrapperStyle={{ color: "var(--ink, #f8fafc)" }} />
-                <Bar dataKey="Baseline" name={t("scenarioSimulator.chartBaseline", "Current Baseline")} fill="#ef4444" radius={[6, 6, 0, 0]} isAnimationActive={true} />
-                <Bar dataKey="Simulated" name={t("scenarioSimulator.chartSimulated", "Simulated Level")} fill="#22c55e" radius={[6, 6, 0, 0]} isAnimationActive={true} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
+          {missingNames.length > 0 && (
+            <p
+              data-testid="scenario-missing-notice"
+              role="status"
+              style={{
+                margin: 0,
+                fontSize: "0.8rem",
+                color: "var(--muted, #94a3b8)",
+                borderLeft: "3px solid var(--line, #334155)",
+                paddingLeft: "0.75rem",
+              }}
+            >
+              {t(
+                "scenarioSimulator.missingReadings",
+                "No current reading for {{pollutants}}{{location}}, so it is left off the chart rather than estimated.",
+                {
+                  pollutants: missingNames.join(", "),
+                  location: cityName ? ` in ${cityName}` : "",
+                }
+              )}
+            </p>
+          )}
+
+          {hasAnyReading ? (
+            <div style={{ width: "100%", height: 260, display: "flex", justifyContent: "center", alignItems: "center" }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={chartData} margin={{ top: 15, right: 20, left: 0, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="var(--line, #334155)" />
+                  <XAxis dataKey="pollutant" tick={{ fontSize: 12, fontWeight: "bold", fill: "var(--ink, #f8fafc)" }} />
+                  <YAxis tick={{ fill: "var(--muted, #94a3b8)" }} />
+                  <Tooltip
+                    formatter={(val) => [`${val} µg/m³`]}
+                    contentStyle={{ background: "var(--card, #1e293b)", border: "1px solid var(--line, #334155)", color: "var(--ink, #fff)" }}
+                  />
+                  <Legend wrapperStyle={{ color: "var(--ink, #f8fafc)" }} />
+                  <Bar dataKey={baselineLabel} fill="#ef4444" radius={[6, 6, 0, 0]} isAnimationActive={true} />
+                  <Bar dataKey={simulatedLabel} fill="#22c55e" radius={[6, 6, 0, 0]} isAnimationActive={true} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          ) : (
+            <p
+              data-testid="scenario-no-readings"
+              role="status"
+              style={{ fontSize: "0.85rem", color: "var(--muted, #94a3b8)", margin: 0 }}
+            >
+              {t(
+                "scenarioSimulator.noReadings",
+                "Live PM2.5 and NO₂ readings aren't available right now, so there is nothing to simulate against. The scenario percentages above still apply once a reading comes in."
+              )}
+            </p>
+          )}
+
+          {/* A text equivalent of the chart. The bars alone are colour-coded only,
+              and a screen reader gets nothing out of an SVG of rectangles. */}
+          {hasAnyReading && (
+            <table
+              data-testid="scenario-comparison-table"
+              style={{ width: "100%", fontSize: "0.8rem", borderCollapse: "collapse" }}
+            >
+              <caption style={{ captionSide: "bottom", color: "var(--muted, #94a3b8)", paddingTop: "0.5rem", textAlign: "left" }}>
+                {t("scenarioSimulator.compareResultsTitle", "City simulation results")}
+              </caption>
+              <thead>
+                <tr>
+                  <th scope="col" style={{ textAlign: "left" }}>{t("scenarioSimulator.tablePollutant", "Pollutant")}</th>
+                  <th scope="col" style={{ textAlign: "right" }}>{t("scenarioSimulator.tableBefore", "Before")}</th>
+                  <th scope="col" style={{ textAlign: "right" }}>{t("scenarioSimulator.tableAfter", "After")}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {measuredRows.map((row) => (
+                  <tr key={row.field}>
+                    <th scope="row" style={{ textAlign: "left", fontWeight: 500 }}>{t(row.nameKey, row.nameFallback)}</th>
+                    <td style={{ textAlign: "right" }}>{row.baseline} µg/m³</td>
+                    <td style={{ textAlign: "right" }}>{row.simulated} µg/m³</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
 
       </div>

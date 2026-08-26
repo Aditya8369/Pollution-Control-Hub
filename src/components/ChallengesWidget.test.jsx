@@ -1,6 +1,7 @@
-import { render, screen, fireEvent } from '@testing-library/react';
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { render, screen, fireEvent, act } from '@testing-library/react';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import ChallengesWidget from './ChallengesWidget';
+import { eventBus } from '../core/events';
 
 describe('ChallengesWidget', () => {
   beforeEach(() => {
@@ -9,63 +10,88 @@ describe('ChallengesWidget', () => {
 
   afterEach(() => {
     localStorage.clear();
+    vi.restoreAllMocks();
   });
 
-  it('renders a challenge and points', () => {
+  it('renders tabs and challenge points', () => {
     render(<ChallengesWidget />);
     
-    expect(screen.getByText('🌱 Daily Challenge')).toBeInTheDocument();
+    expect(screen.getByText('🌱 Eco Challenges')).toBeInTheDocument();
+    expect(screen.getByTestId('daily-tab-btn')).toBeInTheDocument();
+    expect(screen.getByTestId('weekly-tab-btn')).toBeInTheDocument();
     
     const pointsEl = screen.getByTestId('challenge-points');
-    expect(pointsEl).toHaveTextContent('0');
-    
-    const markCompleteBtn = screen.getByRole('button', { name: /mark complete/i });
-    expect(markCompleteBtn).toBeInTheDocument();
+    expect(pointsEl).toHaveTextContent('0 pts');
   });
 
-  it('completing a challenge updates UI and points', () => {
+  it('completing a manual daily challenge updates UI and points', async () => {
     render(<ChallengesWidget />);
     
-    const markCompleteBtn = screen.getByRole('button', { name: /mark complete/i });
-    fireEvent.click(markCompleteBtn);
+    // Find a manual challenge checkmark button (e.g. for "Use public transport today" or similar)
+    const doneButtons = screen.getAllByRole('button', { name: /done/i });
+    expect(doneButtons.length).toBeGreaterThan(0);
     
-    expect(screen.getByText('✔ Challenge Completed')).toBeInTheDocument();
+    // Click the first manual done button
+    fireEvent.click(doneButtons[0]);
+    
+    // Should display a checkmark
+    expect(await screen.findByText('✔')).toBeInTheDocument();
     
     const pointsEl = screen.getByTestId('challenge-points');
-    expect(pointsEl).toHaveTextContent('10');
+    expect(pointsEl).toHaveTextContent('10 pts');
   });
 
-  it('preserves challenge state across rerenders for the same day', () => {
-    // Initial render and complete
-    const { unmount } = render(<ChallengesWidget />);
-    const markCompleteBtn = screen.getByRole('button', { name: /mark complete/i });
-    fireEvent.click(markCompleteBtn);
-    unmount();
-
-    // Re-render, should still be completed and have 10 points
+  it('allows switching between Daily and Weekly challenge tabs', () => {
     render(<ChallengesWidget />);
-    expect(screen.getByText('✔ Challenge Completed')).toBeInTheDocument();
-    expect(screen.getByTestId('challenge-points')).toHaveTextContent('10');
+    
+    // Switch to weekly tab
+    fireEvent.click(screen.getByTestId('weekly-tab-btn'));
+    
+    // Weekly challenge should display progress bar info e.g. "0/5" or similar
+    expect(screen.getByText(/Plan 5 clean commute routes this week/i)).toBeInTheDocument();
+    expect(screen.getByText('0/5')).toBeInTheDocument();
   });
 
-  it('assigns a new challenge and resets completion on a new day', () => {
-    // Simulate completing a challenge yesterday
-    const yesterday = new Date(Date.now() - 86400000).toDateString();
-    localStorage.setItem("pollution_hub_daily_challenge", JSON.stringify({
-      currentChallenge: "Test challenge",
-      assignedDate: yesterday,
-      completed: true
+  it('auto-completes a daily challenge on event receipt', async () => {
+    // Inject custom challenge structure to force "Report a symptom today" challenge to be active
+    const today = new Date().toDateString();
+    localStorage.setItem("pollution_hub_challenges_data", JSON.stringify({
+      assignedDate: today,
+      dailies: [
+        { id: "report-symptom", text: "Report a symptom today", points: 15, type: "auto", event: "SYMPTOM_REPORT_SUBMITTED", completed: false },
+        { id: "check-aqi", text: "Check AQI", points: 10, type: "manual", completed: false },
+        { id: "avoid-plastic", text: "Avoid plastic", points: 10, type: "manual", completed: false }
+      ]
     }));
-    localStorage.setItem("pollution_hub_total_points", "50");
 
     render(<ChallengesWidget />);
     
-    // Should reset completion status for the new day
-    const markCompleteBtn = screen.getByRole('button', { name: /mark complete/i });
-    expect(markCompleteBtn).toBeInTheDocument();
-    expect(screen.queryByText('✔ Challenge Completed')).not.toBeInTheDocument();
+    expect(screen.getByText('Report a symptom today')).toBeInTheDocument();
+    expect(screen.getByText('Auto')).toBeInTheDocument();
+
+    // Trigger event
+    act(() => {
+      eventBus.emit("SYMPTOM_REPORT_SUBMITTED");
+    });
+
+    // Verify it is completed (checkmark is shown)
+    expect(await screen.findByText('✔')).toBeInTheDocument();
+    expect(screen.getByTestId('challenge-points')).toHaveTextContent('15 pts');
+  });
+
+  it('progresses weekly challenges on event receipt', async () => {
+    render(<ChallengesWidget />);
     
-    // Should still have points from yesterday
-    expect(screen.getByTestId('challenge-points')).toHaveTextContent('50');
+    // Switch to weekly tab
+    fireEvent.click(screen.getByTestId('weekly-tab-btn'));
+    expect(screen.getByText('0/5')).toBeInTheDocument();
+
+    // Trigger route planned event
+    act(() => {
+      eventBus.emit("ROUTE_PLANNED");
+    });
+
+    // Progress should update to 1/5
+    expect(screen.getByText('1/5')).toBeInTheDocument();
   });
 });

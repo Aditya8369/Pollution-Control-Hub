@@ -1,9 +1,11 @@
 import { eventBus } from "../core/events";
+import { readContributionStats } from "./contributionStats";
 
 export const ACHIEVEMENTS_STORAGE_KEY = "pollution-hub-achievements";
 const PERFECT_QUIZZES_KEY = "pollution-hub-perfect-quizzes";
 const ROUTES_PLANNED_KEY = "pollution-hub-routes-planned";
-const ECO_TRIPS_LOGGED_KEY = "pollution-hub-eco-trips-logged-count";
+const DAILY_COMPLETIONS_KEY = "pollution-hub-daily-completions";
+const SYMPTOM_DATES_KEY = "pollution-hub-symptom-dates";
 
 export const BADGES = [
     {
@@ -67,10 +69,28 @@ export const BADGES = [
         icon: "👑",
     },
     {
-        id: "eco-warrior",
-        name: "Eco Warrior",
-        description: "Log 10 eco-friendly trips in the Eco Impact Dashboard.",
-        icon: "🌍",
+        id: "daily-warrior",
+        name: "Daily Warrior",
+        description: "Complete 5 daily challenges.",
+        icon: "🛡️",
+    },
+    {
+        id: "point-milestone",
+        name: "Point Collector",
+        description: "Reach a total of 500 contribution points.",
+        icon: "💰",
+    },
+    {
+        id: "symptom-tracker",
+        name: "Symptom Tracker",
+        description: "Report symptoms on 3 different days.",
+        icon: "🩺",
+    },
+    {
+        id: "eco-champion",
+        name: "Eco Champion",
+        description: "Earn 5 or more badges.",
+        icon: "🏆",
     },
 ];
 
@@ -104,7 +124,14 @@ function awardBadge(badgeId) {
     } catch {
         // localStorage unavailable/full - badge still announced for this session
     }
+    
     eventBus.emit("BADGE_EARNED", badge);
+
+    // Eco Champion check (earn 5 or more badges)
+    const earnedCount = Object.keys(earned).length;
+    if (earnedCount >= 5 && !earned["eco-champion"] && badgeId !== "eco-champion") {
+        awardBadge("eco-champion");
+    }
 }
 
 function handleReportSubmitted() {
@@ -179,16 +206,40 @@ function handleRiverOriginCompleted(payload) {
     }
 }
 
-function handleEcoTripLogged() {
-    const count = (Number(localStorage.getItem(ECO_TRIPS_LOGGED_KEY)) || 0) + 1;
+function handleChallengeCompleted(challenge) {
+    if (challenge && challenge.points) {
+        const count = (Number(localStorage.getItem(DAILY_COMPLETIONS_KEY)) || 0) + 1;
+        try {
+            localStorage.setItem(DAILY_COMPLETIONS_KEY, String(count));
+        } catch {
+            // ignore
+        }
+
+        if (count >= 5) {
+            awardBadge("daily-warrior");
+        }
+    }
+    checkPointMilestone();
+}
+
+function handleSymptomSubmitted() {
+    const symptomDates = new Set(readJson(SYMPTOM_DATES_KEY, []));
+    symptomDates.add(new Date().toDateString());
     try {
-        localStorage.setItem(ECO_TRIPS_LOGGED_KEY, String(count));
+        localStorage.setItem(SYMPTOM_DATES_KEY, JSON.stringify([...symptomDates]));
     } catch {
-        // ignore persistence failure
+        // ignore
     }
 
-    if (count >= 10) {
-        awardBadge("eco-warrior");
+    if (symptomDates.size >= 3) {
+        awardBadge("symptom-tracker");
+    }
+}
+
+function checkPointMilestone() {
+    const stats = readContributionStats();
+    if (stats.points >= 500) {
+        awardBadge("point-milestone");
     }
 }
 
@@ -204,7 +255,9 @@ export function initAchievementsEngine() {
     eventBus.on("AQI_MISSION_COMPLETED", handleAqiMissionCompleted);
     eventBus.on("HOTSPOT_SCOUT_COMPLETED", handleHotspotScoutCompleted);
     eventBus.on("RIVER_ORIGIN_COMPLETED", handleRiverOriginCompleted);
-    eventBus.on("ECO_TRIP_LOGGED", handleEcoTripLogged);
+    eventBus.on("CHALLENGE_COMPLETED", handleChallengeCompleted);
+    eventBus.on("SYMPTOM_REPORT_SUBMITTED", handleSymptomSubmitted);
+    eventBus.on("CONTRIBUTION_STATS_CHANGED", checkPointMilestone);
 }
 
 // Self-register on first import so no extra wiring is needed anywhere.

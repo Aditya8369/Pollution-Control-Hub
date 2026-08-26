@@ -205,7 +205,7 @@ const DIRECTION_LABELS = {
  * @param {number} lon - Longitude in degrees (-180 to 180).
  * @returns {boolean} True if coordinates are valid numbers within geographical limits.
  */
-function isValidCoord(lat: number, lon: number): boolean {
+export function isValidCoord(lat: number, lon: number): boolean {
   return (
     typeof lat === 'number' && typeof lon === 'number' &&
     lat >= -90 && lat <= 90 &&
@@ -1016,18 +1016,15 @@ function breakpointPrecision(breakpoints: Breakpoint[]): number {
 }
 
 /**
- * Truncates a concentration to a table's reporting precision.
- *
- * The EPA algorithm truncates rather than rounds (Technical Assistance Document for the
- * Reporting of Daily Air Quality, step 1), so 12.09 µg/m³ is treated as 12.0.
+ * Rounds a concentration to a table's reporting precision.
  *
  * @param {number} concentration
  * @param {number} decimals
  * @returns {number}
  */
-function truncateToPrecision(concentration: number, decimals: number): number {
+function roundToPrecision(concentration: number, decimals: number): number {
   const factor = 10 ** decimals;
-  return Math.floor(concentration * factor) / factor;
+  return Math.round(concentration * factor) / factor;
 }
 
 /**
@@ -1055,7 +1052,7 @@ export function subAqi(concentration: number, breakpoints: Breakpoint[]): number
   // Negative readings are sensor noise, not clean air below the scale.
   if (concentration <= 0) return 0;
 
-  const value = truncateToPrecision(concentration, breakpointPrecision(breakpoints));
+  const value = roundToPrecision(concentration, breakpointPrecision(breakpoints));
 
   const highest = breakpoints[breakpoints.length - 1];
   if (value > highest.cHigh) return 500;
@@ -1318,11 +1315,20 @@ export async function get7DayForecast(lat: number, lon: number, signal?: AbortSi
 
 export const fetch7DayForecast = get7DayForecast;
 
-interface PollenData {
-  tree: number;
-  grass: number;
-  weed: number;
-  mold: null;
+/**
+ * A current-hour pollen snapshot.
+ *
+ * Every count is `number | null`, and `null` means "the endpoint had nothing for
+ * this", not zero. `mold` is always null today: the Open-Meteo air-quality API has
+ * no fungal spore series, so there is nothing to read. It stays on the shape
+ * because the UI has a card for it, and a card for a field that does not exist has
+ * to be able to say so.
+ */
+export interface PollenData {
+  tree: number | null;
+  grass: number | null;
+  weed: number | null;
+  mold: number | null;
   isFallback: boolean;
 }
 
@@ -1418,5 +1424,10 @@ export function getPollenSeverity(
     if (value < 50) return { label: 'Moderate', color: '#f59e0b' };
     return { label: 'High', color: '#ef4444' };
   }
-  return { label: 'Low', color: '#1f9d55' };
+
+  // An allergen type with no thresholds defined is an *unknown* severity, not a
+  // low one. The old fallback returned a confident green "Low" for any value of
+  // any unrecognised type - including 'mold', which the card was already calling
+  // it with.
+  return { label: 'Unknown', color: 'var(--muted)' };
 }
