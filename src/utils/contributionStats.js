@@ -91,12 +91,89 @@ function readReports() {
 }
 
 /**
+ * Trust ladder for #926, lowest rung first.
+ *
+ * Derived from the points a visitor has actually earned, like everything else
+ * here. A version of this shipped as a hard-coded array of fictional users with
+ * fictional email addresses in a shadow `Leaderboard.tsx` — the same mistake
+ * this module was written to undo, in a file the bundler never even reached.
+ */
+export const TRUST_LEVELS = Object.freeze([
+  { name: 'Newcomer', minPoints: 0 },
+  { name: 'Contributor', minPoints: 50 },
+  { name: 'Trusted', minPoints: 200 },
+  { name: 'Advanced', minPoints: 500 },
+  { name: 'Expert', minPoints: 1000 },
+]);
+
+/**
+ * Badges, each with the recorded activity that earns it.
+ *
+ * A badge is a claim about what someone did, so every one of these has to be
+ * answerable from the stats. Nothing is awarded for showing up.
+ */
+export const BADGE_DEFINITIONS = Object.freeze([
+  { id: 'first-report', label: 'First Report', icon: '📝', earned: (s) => s.reports >= 1 },
+  { id: 'verified-reporter', label: 'Verified Reporter', icon: '🛡️', earned: (s) => s.verified >= 1 },
+  { id: 'first-responder', label: 'First Responder', icon: '🚨', earned: (s) => s.reports >= 5 },
+  { id: 'learner', label: 'Learner', icon: '🧠', earned: (s) => s.quizzes >= 10 },
+  { id: 'scholar', label: 'Scholar', icon: '🎓', earned: (s) => s.quizzes >= 50 },
+  { id: 'challenger', label: 'Challenger', icon: '🏅', earned: (s) => s.challengePoints >= 100 },
+]);
+
+/**
+ * The highest trust level a points total reaches.
+ *
+ * @param {number} points
+ * @returns {string}
+ */
+export function trustLevelForPoints(points) {
+  const total = Number.isFinite(points) ? points : 0;
+  let current = TRUST_LEVELS[0].name;
+  for (const level of TRUST_LEVELS) {
+    if (total >= level.minPoints) current = level.name;
+  }
+  return current;
+}
+
+/**
+ * The next rung, and how far away it is. Null once the top has been reached.
+ *
+ * @param {number} points
+ * @returns {{name: string, pointsAway: number} | null}
+ */
+export function nextTrustLevel(points) {
+  const total = Number.isFinite(points) ? points : 0;
+  const next = TRUST_LEVELS.find((level) => total < level.minPoints);
+  return next ? { name: next.name, pointsAway: next.minPoints - total } : null;
+}
+
+/**
+ * The badges a set of stats has earned.
+ *
+ * @param {{reports: number, verified: number, quizzes: number, challengePoints: number}} stats
+ * @returns {{id: string, label: string, icon: string}[]}
+ */
+export function earnedBadges(stats) {
+  const safe = {
+    reports: toCount(stats?.reports),
+    verified: toCount(stats?.verified),
+    quizzes: toCount(stats?.quizzes),
+    challengePoints: toCount(stats?.challengePoints),
+  };
+  return BADGE_DEFINITIONS.filter((badge) => badge.earned(safe))
+    .map(({ id, label, icon }) => ({ id, label, icon }));
+}
+
+/**
  * @typedef {Object} ContributionStats
  * @property {number} reports - Reports submitted.
  * @property {number} verified - Of those, how many reached a verified status.
  * @property {number} quizzes - Quiz questions answered.
  * @property {number} challengePoints - Points earned from daily challenges.
  * @property {number} points - The weighted total.
+ * @property {string} trustLevel - Trust rung the total has reached.
+ * @property {{id: string, label: string, icon: string}[]} badges - Badges earned.
  */
 
 /**
@@ -123,7 +200,13 @@ export function readContributionStats() {
     quizzes * POINT_VALUES.quizAnswer +
     challengePoints;
 
-  return { reports: reportCount, verified: verifiedCount, quizzes, challengePoints, points };
+  const base = { reports: reportCount, verified: verifiedCount, quizzes, challengePoints, points };
+
+  return {
+    ...base,
+    trustLevel: trustLevelForPoints(points),
+    badges: earnedBadges(base),
+  };
 }
 
 /**

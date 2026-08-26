@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Industrial Emission Compliance & Flare Stack Telemetry Surveillance Engine</title>
+    <style>
+        :root {
+            --eco-primary: #1B4332;
+            --eco-secondary: #2D6A4F;
+            --eco-accent: #52B788;
+            --eco-warning: #D97706;
+            --eco-danger: #DC2626;
+            --eco-dark: #1F2937;
+            --eco-light: #F8FAFC;
+            --transition: all 0.3s ease;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--eco-light);
+            color: var(--eco-dark);
+            line-height: 1.6;
+        }
+
+        header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            background: rgba(27, 67, 50, 0.95);
+            backdrop-filter: blur(8px);
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem 5%;
+            z-index: 1000;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+
+        .logo {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #A3E635;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        nav ul {
+            display: flex;
+            list-style: none;
+            gap: 1.5rem;
+        }
+
+        nav a {
+            color: white;
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: var(--transition);
+        }
+
+        nav a:hover {
+            color: #A3E635;
+        }
+
+        .container {
+            max-width: 1300px;
+            margin: 90px auto 4rem;
+            padding: 2rem;
+        }
+
+        .dashboard-header {
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+
+        .dashboard-header h1 {
+            font-size: 2.2rem;
+            color: var(--eco-primary);
+            margin-bottom: 0.5rem;
+        }
+
+        .dashboard-header p {
+            color: #6B7280;
+        }
+
+        /* Metric Cards Grid */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2.5rem;
+        }
+
+        .metric-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            border-left: 4px solid var(--eco-accent);
+        }
+
+        .metric-card.warning { border-left-color: var(--eco-warning); }
+        .metric-card.danger { border-left-color: var(--eco-danger); }
+
+        .metric-card h3 {
+            font-size: 0.9rem;
+            color: #6B7280;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 0.5rem;
+        }
+
+        .metric-value {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: var(--eco-dark);
+        }
+
+        .metric-status {
+            font-size: 0.8rem;
+            margin-top: 0.5rem;
+            font-weight: 600;
+        }
+
+        .status-normal { color: var(--eco-secondary); }
+        .status-warning { color: var(--eco-warning); }
+        .status-danger { color: var(--eco-danger); }
+
+        /* Main Control Panels */
+        .panel-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 2rem;
+            margin-bottom: 2.5rem;
+        }
+
+        @media(max-width: 1024px) {
+            .panel-grid { grid-template-columns: 1fr; }
+        }
+
+        .panel {
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        }
+
+        .panel h2 {
+            font-size: 1.3rem;
+            color: var(--eco-primary);
+            margin-bottom: 1.5rem;
+            border-bottom: 2px solid #F3F4F6;
+            padding-bottom: 0.5rem;
+        }
+
+        /* Telemetry Visualizer Simulated Chart */
+        .chart-container {
+            height: 280px;
+            display: flex;
+            align-items: flex-end;
+            gap: 12px;
+            padding: 1rem 0 0;
+            border-bottom: 2px solid #E5E7EB;
+            position: relative;
+        }
+
+        .bar-group {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            height: 100%;
+            justify-content: flex-end;
+        }
+
+        .bar {
+            width: 100%;
+            background: var(--eco-accent);
+            border-radius: 4px 4px 0 0;
+            transition: height 0.5s ease;
+        }
+
+        .bar.high { background: var(--eco-danger); }
+        .bar.med { background: var(--eco-warning); }
+
+        .bar-label {
+            font-size: 0.75rem;
+            color: #6B7280;
+            margin-top: 0.5rem;
+        }
+
+        /* Compliance Score Ring/Box */
+        .compliance-score-box {
+            text-align: center;
+            padding: 2rem 0;
+        }
+
+        .score-circle {
+            width: 140px;
+            height: 140px;
+            border-radius: 50%;
+            background: conic-gradient(var(--eco-accent) 0deg 320deg, #E5E7EB 320deg 360deg);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1.5rem;
+            position: relative;
+        }
+
+        .score-inner {
+            width: 110px;
+            height: 110px;
+            background: white;
+            border-radius: 50%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .score-number {
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: var(--eco-primary);
+        }
+
+        /* Alert Feed Table */
+        .alert-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+
+        .alert-table th, .alert-table td {
+            padding: 0.75rem 1rem;
+            text-align: left;
+            border-bottom: 1px solid #E5E7EB;
+            font-size: 0.9rem;
+        }
+
+        .alert-table th {
+            background-color: #F9FAFB;
+            color: #4B5563;
+            font-weight: 600;
+        }
+
+        .badge {
+            padding: 0.25rem 0.6rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: bold;
+        }
+
+        .badge-danger { background: #FEE2E2; color: #991B1B; }
+        .badge-warning { background: #FEF3C7; color: #92400E; }
+        .badge-normal { background: #D1FAE5; color: #065F46; }
+
+        /* Controls / Simulation Button */
+        .controls-bar {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+
+        .btn {
+            background: var(--eco-primary);
+            color: white;
+            border: none;
+            padding: 0.6rem 1.2rem;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: var(--transition);
+        }
+
+        .btn:hover { background: var(--eco-secondary); }
+        .btn-outline { background: transparent; border: 1px solid var(--eco-primary); color: var(--eco-primary); }
+        .btn-outline:hover { background: var(--eco-primary); color: white; }
+
+        footer {
+            background: var(--eco-dark);
+            color: #9CA3AF;
+            text-align: center;
+            padding: 2rem;
+            margin-top: 4rem;
+            font-size: 0.9rem;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="logo">Pollution-Control-Hub</div>
+        <nav>
+            <ul>
+                <li><a href="#overview">Overview</a></li>
+                <li><a href="#telemetry">Telemetry Visualizer</a></li>
+                <li><a href="#compliance">Compliance & Alerts</a></li>
+                <li><a href="#engine">Surveillance Engine</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <div class="container">
+        <div class="dashboard-header" id="overview">
+            <h1>Industrial Emission Compliance & Flare Stack Telemetry</h1>
+            <p>Real-time continuous emission monitoring system (CEMS) and automated regulatory compliance surveillance engine.</p>
+        </div>
+
+        <!-- Metric Cards -->
+        <div class="metrics-grid">
+            <div class="metric-card">
+                <h3>SO2 Emissions</h3>
+                <div class="metric-value">142 <span style="font-size: 1rem; color: #6B7280;">mg/Nm³</span></div>
+                <div class="metric-status status-normal">● Normal (Limit: 200)</div>
+            </div>
+            <div class="metric-card warning">
+                <h3>NOx Concentration</h3>
+                <div class="metric-value">285 <span style="font-size: 1rem; color: #6B7280;">mg/Nm³</span></div>
+                <div class="metric-status status-warning">▲ Approaching Threshold (300)</div>
+            </div>
+            <div class="metric-card danger">
+                <h3>Flare Stack CO</h3>
+                <div class="metric-value">68 <span style="font-size: 1rem; color: #6B7280;">ppm</span></div>
+                <div class="metric-status status-danger">■ Limit Exceeded (Limit: 50)</div>
+            </div>
+            <div class="metric-card">
+                <h3>Particulate Matter</h3>
+                <div class="metric-value">34 <span style="font-size: 1rem; color: #6B7280;">mg/Nm³</span></div>
+                <div class="metric-status status-normal">● Optimal (Limit: 50)</div>
+            </div>
+        </div>
+
+        <!-- Panels Grid -->
+        <div class="panel-grid">
+            <!-- Telemetry Visualizer -->
+            <div class="panel" id="telemetry">
+                <h2>Real-Time Stack Telemetry Stream</h2>
+                <p style="font-size: 0.85rem; color: #6B7280; margin-bottom: 1rem;">Live hourly readings for Stack Alpha (SO2 & NOx correlation).</p>
+                
+                <div class="chart-container" id="chartBars">
+                    <!-- Dynamically simulated or static rendered bars -->
+                    <div class="bar-group"><div class="bar" style="height: 45%;"></div><span class="bar-label">00:00</span></div>
+                    <div class="bar-group"><div class="bar" style="height: 52%;"></div><span class="bar-label">04:00</span></div>
+                    <div class="bar-group"><div class="bar med" style="height: 75%;"></div><span class="bar-label">08:00</span></div>
+                    <div class="bar-group"><div class="bar high" style="height: 92%;"></div><span class="bar-label">12:00</span></div>
+                    <div class="bar-group"><div class="bar med" style="height: 68%;"></div><span class="bar-label">16:00</span></div>
+                    <div class="bar-group"><div class="bar" style="height: 50%;"></div><span class="bar-label">20:00</span></div>
+                </div>
+
+                <div class="controls-bar">
+                    <button class="btn" onclick="triggerSimulation()">Refresh Telemetry Stream</button>
+                    <button class="btn btn-outline" onclick="exportReport()">Export CSV Report</button>
+                </div>
+            </div>
+
+            <!-- Compliance Score Panel -->
+            <div class="panel" id="compliance">
+                <h2>Compliance Scoring</h2>
+                <div class="compliance-score-box">
+                    <div class="score-circle">
+                        <div class="score-inner">
+                            <span class="score-number">89%</span>
+                            <span style="font-size: 0.75rem; color: #6B7280;">Index Rating</span>
+                        </div>
+                    </div>
+                    <p style="font-size: 0.9rem; color: #4B5563;">Overall facility rating is compliant with CPCB/State Pollution Control Board standards, with 1 active flare alert.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Regulatory Violation Alerts Feed -->
+        <div class="panel">
+            <h2>Automated Regulatory Threshold Violation Alerts</h2>
+            <table class="alert-table">
+                <thead>
+                    <tr>
+                        <th>Timestamp</th>
+                        <th>Facility Unit</th>
+                        <th>Parameter</th>
+                        <th>Recorded Value</th>
+                        <th>Severity</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>2026-08-23 17:15 IST</td>
+                        <td>Flare Stack #03</td>
+                        <td>Carbon Monoxide (CO)</td>
+                        <td>68 ppm (Limit 50)</td>
+                        <td><span class="badge badge-danger">CRITICAL</span></td>
+                        <td>Auto-Notification Dispatched</td>
+                    </tr>
+                    <tr>
+                        <td>2026-08-23 14:30 IST</td>
+                        <td>Boiler Stack #02</td>
+                        <td>Nitrogen Oxides (NOx)</td>
+                        <td>292 mg/Nm³</td>
+                        <td><span class="badge badge-warning">WARNING</span></td>
+                        <td>Under Review</td>
+                    </tr>
+                    <tr>
+                        <td>2026-08-23 09:10 IST</td>
+                        <td>Primary Scrubber</td>
+                        <td>Sulfur Dioxide (SO2)</td>
+                        <td>120 mg/Nm³</td>
+                        <td><span class="badge badge-normal">NORMAL</span></td>
+                        <td>Resolved</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <footer>
+        <p>&copy; 2026 Pollution-Control-Hub | Industrial Emission Compliance & Flare Stack Telemetry Surveillance Engine (#878)</p>
+    </footer>
+
+    <script>
+        function triggerSimulation() {
+            const bars = document.querySelectorAll('.bar');
+            bars.forEach(bar => {
+                const randomHeight = Math.floor(Math.random() * 60) + 30;
+                bar.style.height = randomHeight + '%';
+                if (randomHeight > 80) {
+                    bar.className = 'bar high';
+                } else if (randomHeight > 65) {
+                    bar.className = 'bar med';
+                } else {
+                    bar.className = 'bar';
+                }
+            });
+            alert('Telemetry stream successfully synchronized with remote CEMS sensors.');
+        }
+
+        function exportReport() {
+            alert('Telemetry Surveillance Report successfully compiled and exported as CSV.');
+        }
+    </script>
+</body>
+</html>

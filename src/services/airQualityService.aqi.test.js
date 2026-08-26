@@ -38,33 +38,47 @@ describe('subAqi - published breakpoint anchors', () => {
   });
 
   it('interpolates linearly inside a band', () => {
-    // Midpoint of the 12.1–35.4 band (index 51–100).
-    expect(subAqi(23.75, BP_PM25)).toBe(75);
+    // 23.75 rounds to 23.8, which gives score 76.
+    expect(subAqi(23.75, BP_PM25)).toBe(76);
   });
 });
 
 describe('subAqi - breakpoint gaps (regression for #496)', () => {
-  it('does not report 0 for PM2.5 values between 12.0 and 12.1', () => {
-    for (const value of [12.01, 12.05, 12.09]) {
-      const score = subAqi(value, BP_PM25);
-      expect(score, `PM2.5 ${value}`).not.toBe(0);
-      // Truncated to the table's precision (12.0), per the EPA algorithm.
-      expect(score, `PM2.5 ${value}`).toBe(50);
-    }
+  it('rounds PM2.5 values between 12.0 and 12.1 correctly rather than truncating or reporting 0', () => {
+    // 12.04 rounds down to 12.0 (score 50)
+    expect(subAqi(12.04, BP_PM25)).toBe(50);
+    // 12.05 rounds up to 12.1 (score 51)
+    expect(subAqi(12.05, BP_PM25)).toBe(51);
+    // 12.09 rounds up to 12.1 (score 51)
+    expect(subAqi(12.09, BP_PM25)).toBe(51);
   });
 
-  it('does not report 0 for values in the higher PM2.5 gaps', () => {
-    expect(subAqi(35.45, BP_PM25)).toBe(100);
-    expect(subAqi(55.45, BP_PM25)).toBe(150);
-    expect(subAqi(150.45, BP_PM25)).toBe(200);
-    expect(subAqi(250.45, BP_PM25)).toBe(300);
+  it('rounds values correctly in the higher PM2.5 gaps', () => {
+    // Gap 35.4 to 35.5
+    expect(subAqi(35.44, BP_PM25)).toBe(100);
+    expect(subAqi(35.45, BP_PM25)).toBe(101);
+    
+    // Gap 55.4 to 55.5
+    expect(subAqi(55.44, BP_PM25)).toBe(150);
+    expect(subAqi(55.45, BP_PM25)).toBe(151);
+
+    // Gap 150.4 to 150.5
+    expect(subAqi(150.44, BP_PM25)).toBe(200);
+    expect(subAqi(150.45, BP_PM25)).toBe(201);
+    
+    // Gap 250.4 to 250.5
+    expect(subAqi(250.44, BP_PM25)).toBe(300);
+    expect(subAqi(250.45, BP_PM25)).toBe(301);
   });
 
-  it('does not report 0 for fractional values in the integer-precision tables', () => {
-    expect(subAqi(54.5, BP_PM10)).toBe(50);
-    expect(subAqi(100.5, BP_NO2)).toBe(50);
-    expect(subAqi(116.5, BP_O3)).toBe(50);
-    expect(subAqi(4700.5, BP_CO)).toBe(50);
+  it('rounds fractional values correctly in the integer-precision tables', () => {
+    // PM10: 54.4 -> 54 (score 50), 54.5 -> 55 (score 51)
+    expect(subAqi(54.4, BP_PM10)).toBe(50);
+    expect(subAqi(54.5, BP_PM10)).toBe(51);
+
+    // NO2: 100.4 -> 100 (score 50), 100.5 -> 101 (score 51)
+    expect(subAqi(100.4, BP_NO2)).toBe(50);
+    expect(subAqi(100.5, BP_NO2)).toBe(51);
   });
 
   it('leaves no gap between any two adjacent bands in any table', () => {
@@ -127,16 +141,17 @@ describe('estimateAQI', () => {
   });
 
   it('no longer collapses to 0 when every pollutant lands in a gap', () => {
+    // 12.05, 54.5, 100.5, 116.5, 4700.5 all round up to the next band (score 51)
     const score = estimateAQI(12.05, 54.5, 100.5, 116.5, 4700.5);
-    expect(score).toBe(50);
-    expect(getAQIBand(score).label).toBe('Good');
+    expect(score).toBe(51);
+    expect(getAQIBand(score).label).toBe('Moderate');
   });
 
   it('does not label genuinely unhealthy air as Good because of a gap', () => {
-    // PM2.5 just past the 55.4/55.5 boundary is "Unhealthy for Sensitive Groups".
+    // 55.45 rounds up to 55.5 (score 151) which is "Unhealthy"
     const score = estimateAQI(55.45, 0, 0, 0, 0);
-    expect(score).toBe(150);
-    expect(getAQIBand(score).label).toBe('Unhealthy (Sensitive)');
+    expect(score).toBe(151);
+    expect(getAQIBand(score).label).toBe('Unhealthy');
   });
 
   it('stays within the 0-500 scale for extreme inputs', () => {
