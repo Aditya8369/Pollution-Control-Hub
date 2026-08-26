@@ -118,18 +118,21 @@ export function buildCalendarGrid(data) {
 
   // Index by date rather than trusting order. A duplicate date keeps the last entry,
   // which is what a Map-derived source would have produced anyway.
+  // Track first/last date as we insert instead of sorting all keys afterward --
+  // that turns the range lookup from O(n log n) into O(n), which matters once
+  // `data` spans a multi-year window with thousands of entries.
   /** @type {Map<string, any>} */
   const byDate = new Map();
+  let firstDate = null;
+  let lastDate = null;
   for (const entry of data) {
     if (!entry || !parseDate(entry.date)) continue;
     byDate.set(entry.date, entry);
+    if (firstDate === null || entry.date < firstDate) firstDate = entry.date;
+    if (lastDate === null || entry.date > lastDate) lastDate = entry.date;
   }
 
   if (byDate.size === 0) return empty;
-
-  const sortedDates = [...byDate.keys()].sort();
-  const firstDate = sortedDates[0];
-  const lastDate = sortedDates[sortedDates.length - 1];
 
   const first = parseDate(firstDate);
   const last = parseDate(lastDate);
