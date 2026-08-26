@@ -13,6 +13,41 @@ function todayStr() {
   return new Date().toISOString().slice(0, 10);
 }
 
+// Quick "what if" presets (issue #841) — each takes the user's current
+// baseline inputs and returns a modified copy for the scenario side of the
+// comparison. Kept as plain transforms so adding a new preset is a one-liner.
+const SCENARIO_PRESETS = [
+  {
+    id: 'preset-ev',
+    label: '🔋 Switch to an EV',
+    apply: (inputs) => ({ ...inputs, vehicleType: 'ev' }),
+  },
+  {
+    id: 'preset-halve-driving',
+    label: '🚗 Halve Car Travel',
+    apply: (inputs) => ({ ...inputs, vehicleKm: Math.round(inputs.vehicleKm / 2) }),
+  },
+  {
+    id: 'preset-transit-switch',
+    label: '🚌 Swap Driving for Transit',
+    apply: (inputs) => ({
+      ...inputs,
+      publicTransitKm: inputs.publicTransitKm + inputs.vehicleKm,
+      vehicleKm: 0,
+    }),
+  },
+  {
+    id: 'preset-cut-electricity',
+    label: '⚡ Cut Electricity 30%',
+    apply: (inputs) => ({ ...inputs, electricityKwh: Math.round(inputs.electricityKwh * 0.7) }),
+  },
+  {
+    id: 'preset-skip-flights',
+    label: '✈️ Skip One Long Flight',
+    apply: (inputs) => ({ ...inputs, longFlights: Math.max(0, inputs.longFlights - 1) }),
+  },
+];
+
 export default function CarbonFootprintCalculator() {
   const { t } = useTranslation();
 
@@ -27,6 +62,11 @@ export default function CarbonFootprintCalculator() {
   const [history, setHistory] = useState([]);
   const [saveSuccessMsg, setSaveSuccessMsg] = useState('');
   const [commitments, setCommitments] = useState({});
+
+  // What-If Scenario Mode (issue #841): a second, independently-editable copy
+  // of the same inputs, compared side-by-side against the baseline above.
+  const [scenarioActive, setScenarioActive] = useState(false);
+  const [scenarioInputs, setScenarioInputs] = useState(null);
 
   useEffect(() => {
     try {
@@ -54,6 +94,45 @@ export default function CarbonFootprintCalculator() {
       longFlights
     });
   }, [vehicleType, vehicleKm, electricityKwh, lpgCylinders, publicTransitKm, shortFlights, longFlights]);
+
+  const scenarioResults = useMemo(() => {
+    if (!scenarioActive || !scenarioInputs) return null;
+    return calculateCarbonFootprint(scenarioInputs);
+  }, [scenarioActive, scenarioInputs]);
+
+  const scenarioDeltaKg = scenarioResults
+    ? Math.round((scenarioResults.totalMonthlyKg - results.totalMonthlyKg) * 10) / 10
+    : 0;
+  const scenarioDeltaPercent = scenarioResults && results.totalMonthlyKg > 0
+    ? Math.round((scenarioDeltaKg / results.totalMonthlyKg) * 100)
+    : 0;
+
+  const handleToggleScenario = () => {
+    if (scenarioActive) {
+      setScenarioActive(false);
+      return;
+    }
+    // "Create a copy of their current inputs" (step 2) — the scenario starts
+    // identical to the baseline, so any change the user makes is the delta.
+    setScenarioInputs({
+      vehicleType, vehicleKm, electricityKwh, lpgCylinders, publicTransitKm, shortFlights, longFlights
+    });
+    setScenarioActive(true);
+  };
+
+  const setScenarioField = (field, value) => {
+    setScenarioInputs((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const applyScenarioPreset = (preset) => {
+    setScenarioInputs((prev) => preset.apply(prev));
+  };
+
+  const resetScenarioToBaseline = () => {
+    setScenarioInputs({
+      vehicleType, vehicleKm, electricityKwh, lpgCylinders, publicTransitKm, shortFlights, longFlights
+    });
+  };
 
   const handleReset = () => {
     setVehicleType('petrol');
@@ -155,6 +234,171 @@ export default function CarbonFootprintCalculator() {
           )}
         </p>
       </div>
+
+      {scenarioActive && scenarioInputs && scenarioResults && (
+        <div className="carbon-card carbon-scenario-panel" aria-label="What-If Scenario Comparison">
+          <h3 className="carbon-subheading">🔀 What-If Scenario Comparison</h3>
+          <p className="carbon-tip-text" style={{ marginBottom: '1rem' }}>
+            Adjust the scenario inputs below to see the projected change versus your current baseline.
+          </p>
+
+          <div className="carbon-scenario-presets">
+            {SCENARIO_PRESETS.map((preset) => (
+              <button
+                key={preset.id}
+                type="button"
+                className="carbon-scenario-preset-btn"
+                onClick={() => applyScenarioPreset(preset)}
+              >
+                {preset.label}
+              </button>
+            ))}
+            <button type="button" className="btn-text-cancel" onClick={resetScenarioToBaseline}>
+              Reset to Baseline
+            </button>
+          </div>
+
+          <div className="carbon-scenario-compare-grid">
+            <div className="carbon-scenario-inputs">
+              <div className="carbon-form-group">
+                <label htmlFor="scenario-vehicle-type">Vehicle Fuel Type</label>
+                <select
+                  id="scenario-vehicle-type"
+                  className="carbon-select"
+                  value={scenarioInputs.vehicleType}
+                  onChange={(e) => setScenarioField('vehicleType', e.target.value)}
+                >
+                  <option value="petrol">Petrol Car (0.192 kg CO₂/km)</option>
+                  <option value="diesel">Diesel Car (0.171 kg CO₂/km)</option>
+                  <option value="ev">Electric Vehicle (0.053 kg CO₂/km)</option>
+                  <option value="motorbike">Motorbike / Scooter (0.082 kg CO₂/km)</option>
+                </select>
+              </div>
+
+              <div className="carbon-form-group">
+                <div className="carbon-label-row">
+                  <label htmlFor="scenario-vehicle-km">Distance Travelled</label>
+                  <span className="carbon-value-display">{scenarioInputs.vehicleKm} km / month</span>
+                </div>
+                <input
+                  id="scenario-vehicle-km"
+                  type="range"
+                  min="0"
+                  max="2500"
+                  step="10"
+                  value={scenarioInputs.vehicleKm}
+                  onChange={(e) => setScenarioField('vehicleKm', Number(e.target.value))}
+                  className="carbon-range-slider"
+                />
+              </div>
+
+              <div className="carbon-form-group">
+                <div className="carbon-label-row">
+                  <label htmlFor="scenario-electricity">Electricity Consumption</label>
+                  <span className="carbon-value-display">{scenarioInputs.electricityKwh} kWh / month</span>
+                </div>
+                <input
+                  id="scenario-electricity"
+                  type="range"
+                  min="0"
+                  max="1000"
+                  step="5"
+                  value={scenarioInputs.electricityKwh}
+                  onChange={(e) => setScenarioField('electricityKwh', Number(e.target.value))}
+                  className="carbon-range-slider"
+                />
+              </div>
+
+              <div className="carbon-form-group">
+                <div className="carbon-label-row">
+                  <label htmlFor="scenario-lpg">LPG Cooking Gas</label>
+                  <span className="carbon-value-display">{scenarioInputs.lpgCylinders} cylinder(s) / month</span>
+                </div>
+                <input
+                  id="scenario-lpg"
+                  type="range"
+                  min="0"
+                  max="5"
+                  step="0.5"
+                  value={scenarioInputs.lpgCylinders}
+                  onChange={(e) => setScenarioField('lpgCylinders', Number(e.target.value))}
+                  className="carbon-range-slider"
+                />
+              </div>
+
+              <div className="carbon-form-group">
+                <div className="carbon-label-row">
+                  <label htmlFor="scenario-transit">Bus / Metro / Train</label>
+                  <span className="carbon-value-display">{scenarioInputs.publicTransitKm} km / month</span>
+                </div>
+                <input
+                  id="scenario-transit"
+                  type="range"
+                  min="0"
+                  max="1500"
+                  step="10"
+                  value={scenarioInputs.publicTransitKm}
+                  onChange={(e) => setScenarioField('publicTransitKm', Number(e.target.value))}
+                  className="carbon-range-slider"
+                />
+              </div>
+
+              <div className="carbon-form-row-2col">
+                <div className="carbon-form-group">
+                  <label htmlFor="scenario-short-flights">Short Flights / yr</label>
+                  <input
+                    id="scenario-short-flights"
+                    type="number"
+                    min="0"
+                    max="50"
+                    value={scenarioInputs.shortFlights}
+                    onChange={(e) => setScenarioField('shortFlights', Math.max(0, Number(e.target.value)))}
+                    className="carbon-number-input"
+                  />
+                </div>
+                <div className="carbon-form-group">
+                  <label htmlFor="scenario-long-flights">Long Flights / yr</label>
+                  <input
+                    id="scenario-long-flights"
+                    type="number"
+                    min="0"
+                    max="50"
+                    value={scenarioInputs.longFlights}
+                    onChange={(e) => setScenarioField('longFlights', Math.max(0, Number(e.target.value)))}
+                    className="carbon-number-input"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="carbon-scenario-results">
+              <div className="carbon-scenario-result-row">
+                <span>Baseline</span>
+                <strong>{results.totalMonthlyKg} kg CO₂e/mo</strong>
+                <span className={`carbon-impact-badge ${results.impactLevel.badgeClass}`}>
+                  {results.impactLevel.level}
+                </span>
+              </div>
+              <div className="carbon-scenario-result-row">
+                <span>Scenario</span>
+                <strong>{scenarioResults.totalMonthlyKg} kg CO₂e/mo</strong>
+                <span className={`carbon-impact-badge ${scenarioResults.impactLevel.badgeClass}`}>
+                  {scenarioResults.impactLevel.level}
+                </span>
+              </div>
+
+              <div
+                className={`carbon-scenario-delta ${scenarioDeltaKg <= 0 ? 'carbon-scenario-delta--good' : 'carbon-scenario-delta--bad'}`}
+                data-testid="scenario-delta"
+              >
+                {scenarioDeltaKg <= 0 ? '🌿' : '⚠️'}{' '}
+                {Math.abs(scenarioDeltaKg)} kg CO₂e/mo {scenarioDeltaKg <= 0 ? 'lower' : 'higher'}
+                {' '}({Math.abs(scenarioDeltaPercent)}% {scenarioDeltaKg <= 0 ? 'reduction' : 'increase'})
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="carbon-layout-grid">
         <div className="carbon-inputs-column">
@@ -295,6 +539,13 @@ export default function CarbonFootprintCalculator() {
             </button>
             <button type="button" className="btn-secondary carbon-btn-reset" onClick={handleReset}>
               🔄 {t('carbonCalculator.resetBtn', 'Reset Inputs')}
+            </button>
+            <button
+              type="button"
+              className={`btn-secondary carbon-btn-scenario ${scenarioActive ? 'active' : ''}`}
+              onClick={handleToggleScenario}
+            >
+              🔀 {scenarioActive ? 'Exit Scenario Mode' : 'Compare Plans ("What-If")'}
             </button>
           </div>
 

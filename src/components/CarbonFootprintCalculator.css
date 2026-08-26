@@ -723,3 +723,98 @@
     justify-content: center;
   }
 }
+
+/* ── What-If Scenario panel (issue #841) ──────────────────────────────── */
+.carbon-btn-scenario.active {
+  background: rgba(34, 197, 94, 0.15);
+  border-color: #22c55e;
+  color: #22c55e;
+}
+
+.carbon-scenario-panel {
+  margin: -0.5rem 0 1.5rem;
+}
+
+.carbon-scenario-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-bottom: 1.25rem;
+}
+
+.carbon-scenario-preset-btn {
+  padding: 0.45rem 0.9rem;
+  border-radius: 999px;
+  border: 1.5px solid var(--line, #334155);
+  background: var(--card, #1e293b);
+  color: var(--ink, #f8fafc);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.carbon-scenario-preset-btn:hover {
+  border-color: #22c55e;
+  background: rgba(34, 197, 94, 0.12);
+}
+
+.carbon-scenario-compare-grid {
+  display: grid;
+  grid-template-columns: 1.3fr 1fr;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+.carbon-scenario-results {
+  position: sticky;
+  top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 1rem;
+  border-radius: 0.75rem;
+  background: rgba(34, 197, 94, 0.06);
+  border: 1px solid rgba(34, 197, 94, 0.2);
+}
+
+.carbon-scenario-result-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+  color: var(--muted, #94a3b8);
+}
+
+.carbon-scenario-result-row strong {
+  color: var(--ink, #f8fafc);
+}
+
+.carbon-scenario-delta {
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  font-weight: 700;
+  font-size: 0.95rem;
+  text-align: center;
+}
+
+.carbon-scenario-delta--good {
+  background: rgba(34, 197, 94, 0.18);
+  color: #22c55e;
+}
+
+.carbon-scenario-delta--bad {
+  background: rgba(239, 68, 68, 0.18);
+  color: #ef4444;
+}
+
+@media (max-width: 780px) {
+  .carbon-scenario-compare-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .carbon-scenario-results {
+    position: static;
+  }
+}
