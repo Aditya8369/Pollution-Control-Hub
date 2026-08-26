@@ -81,21 +81,33 @@ export default function HistoricalAnalysis({ position }) {
   useEffect(() => {
     let active = true;
 
+    async function loadRange(years) {
+      const rawData = await fetchHistoricalData(position.lat, position.lon, years);
+      if (!active) return;
+      if (workerRef.current) {
+        // Offload processing to worker
+        workerRef.current.postMessage(rawData);
+      } else {
+        setError('Historical data processing is unavailable.');
+        setLoading(false);
+      }
+    }
+
     async function loadData() {
       try {
         setLoading(true);
         setError(null);
-        // Fetch last 3 years of data
-        const rawData = await fetchHistoricalData(position.lat, position.lon, 3);
-
+        // Issue #840: fetch a fast 1-year slice first so the heatmap paints
+        // quickly, then silently extend to the full 3-year window in the
+        // background. The worker's onmessage handler (below) calls setData
+        // again when the larger fetch resolves, replacing the 1-year view.
+        await loadRange(1);
         if (active) {
-          if (workerRef.current) {
-            // Offload processing to worker
-            workerRef.current.postMessage(rawData);
-          } else {
-            setError('Historical data processing is unavailable.');
-            setLoading(false);
-          }
+          loadRange(3).catch((err) => {
+            // The fast 1-year view is still showing; don't surface this as a
+            // blocking error, just leave the shorter range in place.
+            console.error('Failed to extend historical data to 3 years:', err);
+          });
         }
       } catch (err) {
         if (active) {

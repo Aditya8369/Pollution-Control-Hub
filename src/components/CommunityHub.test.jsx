@@ -17,12 +17,22 @@ describe('CommunityHub Component', () => {
   it('submits a report without location attached by default', async () => {
     render(<CommunityHub />);
 
+    fireEvent.click(screen.getByRole('button', { name: /Report Pollution/i }));
+
     const titleInput = screen.getByPlaceholderText(/Issue title/i);
     const descInput = screen.getByPlaceholderText(/Describe location/i);
+    const categorySelect = screen.getByRole('combobox', { name: '' }); // We might need to query by text
+    // actually, let's use document.querySelector
+    const selects = document.querySelectorAll('select');
+    const categorySelectEl = selects[0];
+    const severitySelectEl = selects[1];
+
     const submitBtn = screen.getByRole('button', { name: /Submit Report/i });
 
     fireEvent.change(titleInput, { target: { value: 'Illegal Burning' } });
     fireEvent.change(descInput, { target: { value: 'Smoke near main park' } });
+    fireEvent.change(categorySelectEl, { target: { value: 'Garbage burning' } });
+    fireEvent.change(severitySelectEl, { target: { value: 'High' } });
     fireEvent.click(submitBtn);
 
     await waitFor(() => {
@@ -30,12 +40,14 @@ describe('CommunityHub Component', () => {
       expect(stored.length).toBe(1);
       expect(stored[0].title).toBe('Illegal Burning');
       expect(stored[0].description).toBe('Smoke near main park');
+      expect(stored[0].category).toBe('Garbage burning');
+      expect(stored[0].severity).toBe('High');
       expect(stored[0].latitude).toBeNull();
       expect(stored[0].longitude).toBeNull();
     });
   });
 
-  it('submits a report with location attached when Use Current Location is clicked', async () => {
+  it('submits a report with location attached when Use GPS for Location is clicked', async () => {
     const mockGeolocation = {
       getCurrentPosition: vi.fn().mockImplementation((success) =>
         success({
@@ -53,17 +65,24 @@ describe('CommunityHub Component', () => {
 
     render(<CommunityHub />);
 
-    const useLocationBtn = screen.getByRole('button', { name: /Use Current Location/i });
+    fireEvent.click(screen.getByRole('button', { name: /Report Pollution/i }));
+
+    const useLocationBtn = screen.getByRole('button', { name: /Use GPS for Location/i });
     fireEvent.click(useLocationBtn);
 
-    expect(screen.getByText(/Location attached/i)).toBeInTheDocument();
+    expect(screen.getByText(/GPS Location attached/i)).toBeInTheDocument();
 
     const titleInput = screen.getByPlaceholderText(/Issue title/i);
     const descInput = screen.getByPlaceholderText(/Describe location/i);
+    const selects = document.querySelectorAll('select');
+    const categorySelectEl = selects[0];
+    const severitySelectEl = selects[1];
     const submitBtn = screen.getByRole('button', { name: /Submit Report/i });
 
     fireEvent.change(titleInput, { target: { value: 'Factory Smoke' } });
     fireEvent.change(descInput, { target: { value: 'Dark emissions observed' } });
+    fireEvent.change(categorySelectEl, { target: { value: 'Industrial smoke' } });
+    fireEvent.change(severitySelectEl, { target: { value: 'Medium' } });
     fireEvent.click(submitBtn);
 
     await waitFor(() => {
@@ -87,8 +106,9 @@ describe('CommunityHub Component', () => {
     });
 
     render(<CommunityHub />);
+    fireEvent.click(screen.getByRole('button', { name: /Report Pollution/i }));
 
-    const useLocationBtn = screen.getByRole('button', { name: /Use Current Location/i });
+    const useLocationBtn = screen.getByRole('button', { name: /Use GPS for Location/i });
     fireEvent.click(useLocationBtn);
 
     expect(screen.getByText(/Unable to retrieve location/i)).toBeInTheDocument();
@@ -96,10 +116,13 @@ describe('CommunityHub Component', () => {
     // Can still submit report
     const titleInput = screen.getByPlaceholderText(/Issue title/i);
     const descInput = screen.getByPlaceholderText(/Describe location/i);
+    const selects = document.querySelectorAll('select');
+    const categorySelectEl = selects[0];
     const submitBtn = screen.getByRole('button', { name: /Submit Report/i });
 
     fireEvent.change(titleInput, { target: { value: 'Dust Storm' } });
     fireEvent.change(descInput, { target: { value: 'High dust' } });
+    fireEvent.change(categorySelectEl, { target: { value: 'Construction dust' } });
     fireEvent.click(submitBtn);
 
     await waitFor(() => {
@@ -131,9 +154,12 @@ describe('CommunityHub Component', () => {
 
   it('renders HTML in report text as inert literal text, without injecting elements', async () => {
     render(<CommunityHub />);
+    fireEvent.click(screen.getByRole('button', { name: /Report Pollution/i }));
 
     const titleInput = screen.getByPlaceholderText(/Issue title/i);
     const descInput = screen.getByPlaceholderText(/Describe location/i);
+    const selects = document.querySelectorAll('select');
+    const categorySelectEl = selects[0];
     const submitBtn = screen.getByRole('button', { name: /Submit Report/i });
 
     const maliciousTitle = '<script>alert("XSS-Title")</script>';
@@ -141,6 +167,7 @@ describe('CommunityHub Component', () => {
 
     fireEvent.change(titleInput, { target: { value: maliciousTitle } });
     fireEvent.change(descInput, { target: { value: maliciousDesc } });
+    fireEvent.change(categorySelectEl, { target: { value: 'Waste dumping' } });
     fireEvent.click(submitBtn);
 
     const card = await screen.findByText(maliciousDesc);
@@ -157,6 +184,7 @@ describe('CommunityHub Component', () => {
 
   it('rejects non-image files or invalid file extensions during upload', async () => {
     render(<CommunityHub />);
+    fireEvent.click(screen.getByRole('button', { name: /Report Pollution/i }));
 
     // Create a fake SVG file (disallowed MIME type)
     const file = new File(['<svg></svg>'], 'malicious.svg', { type: 'image/svg+xml' });

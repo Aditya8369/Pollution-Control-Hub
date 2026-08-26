@@ -357,22 +357,15 @@ function breakpointPrecision(breakpoints: Breakpoint[]): number {
 }
 
 /**
- * Truncates a concentration to a table's reporting precision.
- *
- * The published tables are not contiguous — PM2.5 runs to 30 and resumes at 31, CO to 1.0
- * and resumes at 1.1. Truncating before the lookup is what closes those gaps. Without it
- * a reading of 30.4 µg/m³ matches no band, and the pollutant is silently scored 0.
- *
- * Truncation rather than rounding also matches how the EPA's own algorithm is specified,
- * which keeps this module consistent with `subAqi` in `airQualityService.ts`.
+ * Rounds a concentration to a table's reporting precision.
  *
  * @param concentration - The measured value.
  * @param decimals - Places to keep.
- * @returns The truncated value.
+ * @returns The rounded value.
  */
-function truncateToPrecision(concentration: number, decimals: number): number {
+function roundToPrecision(concentration: number, decimals: number): number {
   const factor = 10 ** decimals;
-  return Math.floor(concentration * factor) / factor;
+  return Math.round(concentration * factor) / factor;
 }
 
 /**
@@ -423,7 +416,7 @@ export function subIndex(
   // so it cannot help satisfy the three-pollutant minimum.
   if (concentration < 0) return null;
 
-  const value = truncateToPrecision(
+  const value = roundToPrecision(
     concentration,
     breakpointPrecision(breakpoints)
   );
