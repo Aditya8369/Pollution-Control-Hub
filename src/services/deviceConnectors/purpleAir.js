@@ -29,19 +29,23 @@ export async function fetchReading({ sensorId, apiKey } = {}) {
     }
 
     const url = `https://api.purpleair.com/v1/sensors/${encodeURIComponent(sensorId)}?fields=pm2.5_atm`;
-    const response = await fetch(url, {
-        headers: { "X-API-Key": apiKey },
-    });
+    try {
+        const response = await fetch(url, {
+            headers: { "X-API-Key": apiKey },
+        });
 
-    if (!response.ok) {
-        throw new Error(`PurpleAir request failed: ${response.status}`);
+        if (!response.ok) {
+            throw new Error(`PurpleAir request failed: ${response.status}`);
+        }
+
+        const data = await response.json();
+        const pm25 = data?.sensor?.["pm2.5_atm"];
+        if (typeof pm25 !== "number") {
+            throw new Error("PurpleAir response did not include a PM2.5 reading.");
+        }
+
+        return { pm2_5: Math.round(pm25 * 10) / 10 };
+    } catch (error) {
+        throw new Error(error instanceof Error ? error.message : "Failed to connect to PurpleAir sensor API.");
     }
-
-    const data = await response.json();
-    const pm25 = data?.sensor?.["pm2.5_atm"];
-    if (typeof pm25 !== "number") {
-        throw new Error("PurpleAir response did not include a PM2.5 reading.");
-    }
-
-    return { pm2_5: Math.round(pm25 * 10) / 10 };
 }

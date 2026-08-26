@@ -2603,6 +2603,15 @@
     position: sticky;
     padding: var(--sp-2) var(--sp-3);
     margin: 0 0 var(--sp-4);
+    justify-content: space-between;
+  }
+
+  .section-nav-desktop {
+    display: none !important;
+  }
+
+  .section-nav-mobile {
+    display: flex !important;
   }
 
   .mobile-nav-overlay {
@@ -5934,6 +5943,86 @@ a {
   border-radius: 999px;
   padding: 0.3rem;
   box-shadow: var(--shadow-sm);
+}
+
+.section-nav-desktop {
+  display: flex;
+}
+
+.section-nav-mobile {
+  display: none;
+  width: 100%;
+  justify-content: space-between;
+  align-items: center;
+  position: relative;
+}
+
+.section-nav.menu-open {
+  z-index: 901;
+}
+
+.mobile-nav-toggle-wrap {
+  display: flex;
+  align-items: center;
+}
+
+.mobile-nav-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.hamburger-btn {
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--ink);
+  border-radius: 50%;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  padding: 0;
+}
+
+.mobile-nav-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 1rem;
+  right: 1rem;
+  margin-top: 0.5rem;
+  background: var(--card);
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  padding: 0.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  z-index: 950;
+  max-height: calc(100vh - 6rem);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.mobile-nav-dropdown button {
+  width: 100%;
+  text-align: center;
+  padding: 0.75rem 1rem;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.mobile-nav-dropdown button.active {
+  background: linear-gradient(120deg, var(--brand), var(--sky));
+  color: #fff;
 }
 
 .section-nav button {
@@ -10665,6 +10754,53 @@ a {
   z-index: 1000;
 }
 
+/* ── Scroll-to-top button (#406) ──────────────────────────────────────────
+ * Bottom-right, offset above .badge-toast (bottom: 1.5rem) so the two never
+ * overlap even when both are visible at once.
+ */
+.scroll-to-top-btn {
+  position: fixed;
+  bottom: 5.5rem;
+  right: 1.5rem;
+  width: 3rem;
+  height: 3rem;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--ink);
+  box-shadow: var(--shadow-lg);
+  font-size: 1.25rem;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 950;
+  transition: transform 150ms ease, opacity 150ms ease, background 150ms ease;
+  animation: fade-in 150ms ease forwards;
+}
+
+.scroll-to-top-btn:hover {
+  transform: translateY(-3px);
+  background: var(--accent, #0ea5e9);
+  color: #fff;
+}
+
+.scroll-to-top-btn:focus-visible {
+  outline: 2px solid var(--accent, #0ea5e9);
+  outline-offset: 2px;
+}
+
+@media (max-width: 640px) {
+  .scroll-to-top-btn {
+    bottom: 4.75rem;
+    right: 1rem;
+    width: 2.75rem;
+    height: 2.75rem;
+    font-size: 1.1rem;
+  }
+}
+
 /* ── Calendar heatmap: days with no reading ──────────────────────────────
  * A day inside the range that the archive holds no reading for. Distinct from
  * .calendar-day.empty, which is structural padding outside the range entirely.
@@ -11455,4 +11591,116 @@ a {
 .ai-copilot-input-row button:disabled {
   opacity: 0.6;
   cursor: default;
+}
+
+
+/* --- Eco Impact Dashboard --- */
+.eco-impact-log-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  margin: 0.75rem 0 1rem;
+}
+
+.eco-impact-log-form label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--muted, #94a3b8);
+}
+
+.eco-impact-log-form select,
+.eco-impact-log-form input {
+  padding: 0.5rem 0.7rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--line, #334155);
+  background: var(--card, #1e293b);
+  color: var(--ink, #f8fafc);
+}
+
+.eco-impact-log-form input {
+  width: 110px;
+}
+
+.eco-impact-log-form button {
+  padding: 0.5rem 1.1rem;
+  border-radius: 0.5rem;
+  border: none;
+  background: var(--brand, #2dd4bf);
+  color: #04201c;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.eco-impact-logged-note {
+  font-size: 0.85rem;
+  color: #22c55e;
+  margin: 0 0 1rem;
+}
+
+.eco-impact-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.eco-impact-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 0.25rem;
+  padding: 1rem 0.5rem;
+  border-radius: 0.75rem;
+  background: var(--card, #1e293b);
+  border: 1px solid var(--line, #334155);
+}
+
+.eco-impact-stat-icon {
+  font-size: 1.5rem;
+}
+
+.eco-impact-stat-value {
+  font-size: 1.6rem;
+  font-weight: 700;
+}
+
+.eco-impact-stat-label {
+  font-size: 0.8rem;
+  color: var(--muted, #94a3b8);
+}
+
+.eco-impact-estimates {
+  margin-bottom: 1.25rem;
+}
+
+.eco-impact-estimates h3 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0 0 0.6rem;
+}
+
+.eco-impact-estimates-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 0.6rem;
+}
+
+.eco-impact-estimate {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.7rem 0.9rem;
+  border-radius: 0.6rem;
+  background: rgba(34, 197, 94, 0.08);
+  border: 1px solid rgba(34, 197, 94, 0.25);
+  font-size: 0.9rem;
+}
+
+.eco-impact-empty {
+  color: var(--muted, #94a3b8);
+  font-size: 0.9rem;
+  text-align: center;
+  padding: 1rem 0;
 }

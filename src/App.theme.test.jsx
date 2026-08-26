@@ -44,17 +44,13 @@ describe('App Theme Infrastructure & ThemeSwitcher (Issue #417)', () => {
     document.documentElement.removeAttribute('data-theme');
     delete document.documentElement.dataset.theme;
 
-    vi.stubGlobal('navigator', {
-      onLine: true,
-      geolocation: { getCurrentPosition: vi.fn() },
-    });
+    global.navigator.geolocation = { getCurrentPosition: vi.fn() };
     window.scrollTo = vi.fn();
     ({ default: App } = await import('./App'));
   });
 
   afterEach(() => {
     localStorage.clear();
-    vi.unstubAllGlobals();
   });
 
   it('defaults to dark theme when no preference exists', async () => {

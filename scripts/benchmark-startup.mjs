@@ -70,7 +70,7 @@ function runBenchmark() {
 try {
     console.log("🔍 Starting Vite startup benchmark...\n");
 
-    const { elapsed, stdout, stderr, deprecationWarnings } = await runBenchmark();
+    const { elapsed, deprecationWarnings } = await runBenchmark();
 
     console.log(`\n--- Benchmark Results ---`);
     console.log(`Startup time: ${elapsed.toFixed(0)}ms`);

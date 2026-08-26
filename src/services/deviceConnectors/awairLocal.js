@@ -27,20 +27,24 @@ export async function fetchReading({ deviceIp } = {}) {
     }
 
     const url = `http://${deviceIp}/air-data/latest`;
-    const response = await fetch(url);
-    if (!response.ok) {
-        throw new Error(`Awair local request failed: ${response.status}`);
+    try {
+        const response = await fetch(url);
+        if (!response.ok) {
+            throw new Error(`Awair local request failed: ${response.status}`);
+        }
+
+        const data = await response.json();
+        const reading = {};
+        if (typeof data.pm25 === "number") reading.pm2_5 = data.pm25;
+        if (typeof data.co2 === "number") reading.co2 = data.co2;
+        if (typeof data.voc === "number") reading.voc = data.voc;
+
+        if (Object.keys(reading).length === 0) {
+            throw new Error("Awair device did not return any recognized readings.");
+        }
+
+        return reading;
+    } catch (error) {
+        throw new Error(error instanceof Error ? error.message : "Failed to connect to Awair Local sensor API.");
     }
-
-    const data = await response.json();
-    const reading = {};
-    if (typeof data.pm25 === "number") reading.pm2_5 = data.pm25;
-    if (typeof data.co2 === "number") reading.co2 = data.co2;
-    if (typeof data.voc === "number") reading.voc = data.voc;
-
-    if (Object.keys(reading).length === 0) {
-        throw new Error("Awair device did not return any recognized readings.");
-    }
-
-    return reading;
 }

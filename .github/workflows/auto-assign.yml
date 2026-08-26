@@ -24,10 +24,38 @@ jobs:
           ISSUE_NUMBER: ${{ github.event.issue.number }}
           COMMENTER: ${{ github.event.comment.user.login }}
         run: |
-          # 1. Fetch currently open assigned issues for the commenter
+          # 1. Check if the issue is already assigned to a contributor
+          ASSIGNEE_COUNT=$(gh issue view "$ISSUE_NUMBER" \
+            --repo "$GITHUB_REPOSITORY" \
+            --json assignees \
+            --jq '.assignees | length')
+
+          if [ "$ASSIGNEE_COUNT" -ge 1 ]; then
+            CURRENT_ASSIGNEE=$(gh issue view "$ISSUE_NUMBER" \
+              --repo "$GITHUB_REPOSITORY" \
+              --json assignees \
+              --jq '.assignees[0].login')
+
+            # If the commenter is already assigned, do nothing
+            if [ "$CURRENT_ASSIGNEE" = "$COMMENTER" ]; then
+              echo "Issue #$ISSUE_NUMBER is already assigned to @$COMMENTER."
+              exit 0
+            fi
+
+            # Warn another contributor trying to claim an already assigned issue
+            WARNING_MESSAGE="Hi @$COMMENTER! ⚠️ This issue is already assigned to @$CURRENT_ASSIGNEE.\n\nOnly **one contributor can be assigned to an issue at a time**. Please choose another available issue to claim. Thank you! 🙌"
+
+            gh issue comment "$ISSUE_NUMBER" \
+              --body "$WARNING_MESSAGE" \
+              --repo "$GITHUB_REPOSITORY"
+
+            exit 0
+          fi
+
+          # 2. Fetch currently open assigned issues for the commenter
           OPEN_ASSIGNED_ISSUES=$(gh issue list --assignee "$COMMENTER" --state open --repo "$GITHUB_REPOSITORY" --json number --jq 'length')
 
-          # 2. Fetch open PRs submitted by commenter
+          # 3. Fetch open PRs submitted by commenter
           OPEN_PRS=$(gh pr list --author "$COMMENTER" --state open --repo "$GITHUB_REPOSITORY" --json number --jq 'length')
 
           # Active issues pending PR (assigned issues minus PRs raised)
@@ -38,7 +66,7 @@ jobs:
 
           echo "Commenter @$COMMENTER has $OPEN_ASSIGNED_ISSUES open issues and $OPEN_PRS open PRs (Active pending: $ACTIVE_PENDING)."
 
-          # 3. Enforce 5 active issue limit
+          # 4. Enforce 5 active issue limit
           if [ "$OPEN_ASSIGNED_ISSUES" -ge 5 ] && [ "$ACTIVE_PENDING" -ge 5 ]; then
             MESSAGE="Hi @$COMMENTER! You currently have **$OPEN_ASSIGNED_ISSUES active assigned issues** without open Pull Requests. To ensure fair opportunities for all contributors, the maximum limit is **5 active issues** at a time.\n\nPlease submit Pull Requests for your current issues before claiming a new one! ✨"
             gh issue comment "$ISSUE_NUMBER" --body "$MESSAGE" --repo "$GITHUB_REPOSITORY"

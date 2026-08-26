@@ -115,27 +115,38 @@ export default function AqiMissionGame({ current }) {
   const getSimulatedResults = () => {
     if (!currentPollutants) return { pollutants: {}, aqi: 0, improvement: 0 };
 
-    let pm2_5 = currentPollutants.pm2_5;
-    let pm10 = currentPollutants.pm10;
-    let nitrogen_dioxide = currentPollutants.nitrogen_dioxide;
-    let ozone = currentPollutants.ozone;
-    let carbon_monoxide = currentPollutants.carbon_monoxide;
+    let pm2_5 = currentPollutants.pm2_5 * (selectedMission.environmentalModifiers?.pm2_5 || 1);
+    let pm10 = currentPollutants.pm10 * (selectedMission.environmentalModifiers?.pm10 || 1);
+    let nitrogen_dioxide = currentPollutants.nitrogen_dioxide * (selectedMission.environmentalModifiers?.nitrogen_dioxide || 1);
+    let ozone = currentPollutants.ozone * (selectedMission.environmentalModifiers?.ozone || 1);
+    let carbon_monoxide = currentPollutants.carbon_monoxide * (selectedMission.environmentalModifiers?.carbon_monoxide || 1);
+
+    if (selectedMission.timeSensitiveCascade && timeLeft < selectedMission.timerDuration / 2) {
+      // e.g., halfway through the timer, a secondary environmental spike hits
+      pm2_5 *= selectedMission.timeSensitiveCascade.pm2_5 || 1;
+      pm10 *= selectedMission.timeSensitiveCascade.pm10 || 1;
+      nitrogen_dioxide *= selectedMission.timeSensitiveCascade.nitrogen_dioxide || 1;
+      ozone *= selectedMission.timeSensitiveCascade.ozone || 1;
+      carbon_monoxide *= selectedMission.timeSensitiveCascade.carbon_monoxide || 1;
+    }
+
+    const policyEffectiveness = selectedMission.policyEffectiveness ?? 1;
 
     deployedActions.forEach((actionId) => {
       const action = ACTIONS.find((a) => a.id === actionId);
       if (!action) return;
-      if (action.reductions.pm2_5) pm2_5 *= (1 - action.reductions.pm2_5 / 100);
-      if (action.reductions.pm10) pm10 *= (1 - action.reductions.pm10 / 100);
-      if (action.reductions.nitrogen_dioxide) nitrogen_dioxide *= (1 - action.reductions.nitrogen_dioxide / 100);
-      if (action.reductions.ozone) ozone *= (1 - action.reductions.ozone / 100);
-      if (action.reductions.carbon_monoxide) carbon_monoxide *= (1 - action.reductions.carbon_monoxide / 100);
+      if (action.reductions.pm2_5 !== undefined) pm2_5 *= (1 - (action.reductions.pm2_5 * policyEffectiveness) / 100);
+      if (action.reductions.pm10 !== undefined) pm10 *= (1 - (action.reductions.pm10 * policyEffectiveness) / 100);
+      if (action.reductions.nitrogen_dioxide !== undefined) nitrogen_dioxide *= (1 - (action.reductions.nitrogen_dioxide * policyEffectiveness) / 100);
+      if (action.reductions.ozone !== undefined) ozone *= (1 - (action.reductions.ozone * policyEffectiveness) / 100);
+      if (action.reductions.carbon_monoxide !== undefined) carbon_monoxide *= (1 - (action.reductions.carbon_monoxide * policyEffectiveness) / 100);
     });
 
-    const finalPm25 = Math.round(pm2_5);
-    const finalPm10 = Math.round(pm10);
-    const finalNo2 = Math.round(nitrogen_dioxide);
-    const finalO3 = Math.round(ozone);
-    const finalCO = Math.round(carbon_monoxide);
+    const finalPm25 = Math.max(0, Math.round(pm2_5));
+    const finalPm10 = Math.max(0, Math.round(pm10));
+    const finalNo2 = Math.max(0, Math.round(nitrogen_dioxide));
+    const finalO3 = Math.max(0, Math.round(ozone));
+    const finalCO = Math.max(0, Math.round(carbon_monoxide));
 
     const finalAqi = estimateAQI(finalPm25, finalPm10, finalNo2, finalO3, finalCO);
     

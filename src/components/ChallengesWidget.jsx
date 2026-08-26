@@ -145,7 +145,31 @@ export default function ChallengesWidget() {
       awardPoints(pointsAwarded);
       saveToStorage(nextDailies, weeklies, today, currentMonday);
     }
-  };
+  }
+
+  // Connects to the Eco Impact Dashboard (src/utils/ecoImpactStore.js): logging a
+  // trip that matches today's assigned challenge (e.g. "Use public transport
+  // today" + a logged public-transport trip) auto-completes it instead of making
+  // the user separately click "Mark Complete" for something they already did.
+  useEffect(() => {
+    function handleEcoTripLogged(trip) {
+      if (!challenge || completed || !trip) return;
+      const text = challenge.toLowerCase();
+      const isPublicTransportMatch = trip.type === "publicTransport" && text.includes("public transport");
+      const isWalkOrCycleMatch =
+        (trip.type === "cycling" || trip.type === "carAvoided") &&
+        (text.includes("cycle") || text.includes("walk"));
+
+      if (isPublicTransportMatch || isWalkOrCycleMatch) {
+        completeChallenge();
+      }
+    }
+
+    eventBus.on("ECO_TRIP_LOGGED", handleEcoTripLogged);
+    return () => eventBus.off("ECO_TRIP_LOGGED", handleEcoTripLogged);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- completeChallenge
+    // closes over challenge/completed/points, which are already in this array.
+  }, [challenge, completed, points]);
 
   // Progress update for weekly tasks
   const triggerWeeklyProgress = useCallback((eventKey, count = 1) => {

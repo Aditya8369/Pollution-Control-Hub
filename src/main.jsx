@@ -5,6 +5,8 @@ import "./i18n";
 import App from "./App";
 import "./styles.css";
 import "leaflet/dist/leaflet.css";
+import "leaflet/dist/leaflet.css";
+import { scheduleDataPurge } from "./utils/dataPurge";
 
 // The returned update function is not used: onNeedRefresh only logs, and nothing
 // offers the visitor a "reload to update" control yet.
@@ -24,6 +26,8 @@ registerSW({
     console.error("[PWA] Service Worker registration failed:", error);
   },
 });
+
+scheduleDataPurge();
 
 if (import.meta.env.DEV) {
   const axe = await import("@axe-core/react");

@@ -46,6 +46,13 @@ jobs:
       - name: Run ESLint
         run: npm run lint
 
+      # Two source files answering to the same extensionless import resolve
+      # differently under Vite and tsc, so the bundler and the type-checker end
+      # up looking at different code. Cheap to check, and invisible until it
+      # bites — see #990.
+      - name: Check for shadowed modules
+        run: npm run check:shadowing
+
   # ── Type checking (advisory) ────────────────────────────────────────────────
   # `npm run type-check` currently reports 157 errors on main. Almost all are
   # inline style objects widened to `string`, JSX prop shapes that drifted from

@@ -4,7 +4,11 @@ import { useAuth } from "../context/AuthContext";
 import {
   readContributionStats,
   recordQuizAnswers,
+  earnedBadges,
+  trustLevelForPoints,
+  nextTrustLevel,
   POINT_VALUES,
+  TRUST_LEVELS,
   STATS_CHANGED_EVENT,
 } from "../utils/contributionStats";
 
@@ -15,12 +19,20 @@ const POINT_SYSTEM = [
 ];
 
 const SAMPLE_CONTRIBUTORS = [
-  { id: "sample-1", name: "Aarav Sharma", points: 420, reports: 6, verified: 5, quizzes: 70, avatar: "👨‍💻", isSample: true },
-  { id: "sample-2", name: "Ananya Patel", points: 365, reports: 8, verified: 4, quizzes: 65, avatar: "👩‍🔬", isSample: true },
-  { id: "sample-3", name: "Rohan Gupta", points: 290, reports: 5, verified: 3, quizzes: 40, avatar: "🌱", isSample: true },
-  { id: "sample-4", name: "Priya Singh", points: 215, reports: 4, verified: 2, quizzes: 15, avatar: "🛰️", isSample: true },
-  { id: "sample-5", name: "Vikram Verma", points: 180, reports: 3, verified: 2, quizzes: 30, avatar: "🚴", isSample: true },
-];
+  { id: "sample-1", name: "Aarav Sharma", points: 420, reports: 6, verified: 5, quizzes: 70, challengePoints: 0, avatar: "👨‍💻", isSample: true },
+  { id: "sample-2", name: "Ananya Patel", points: 365, reports: 8, verified: 4, quizzes: 65, challengePoints: 0, avatar: "👩‍🔬", isSample: true },
+  { id: "sample-3", name: "Rohan Gupta", points: 290, reports: 5, verified: 3, quizzes: 40, challengePoints: 0, avatar: "🌱", isSample: true },
+  { id: "sample-4", name: "Priya Singh", points: 215, reports: 4, verified: 2, quizzes: 15, challengePoints: 0, avatar: "🛰️", isSample: true },
+  { id: "sample-5", name: "Vikram Verma", points: 180, reports: 3, verified: 2, quizzes: 30, challengePoints: 0, avatar: "🚴", isSample: true },
+].map((contributor) => /** @type {LeaderboardRow} */ ({
+  // Trust level and badges are computed from each row's figures by the same
+  // functions that compute the visitor's own, rather than typed in beside them.
+  // A sample row whose badges disagreed with its counts would be teaching the
+  // reader the wrong thing about what the badges mean.
+  ...contributor,
+  trustLevel: trustLevelForPoints(contributor.points),
+  badges: earnedBadges(contributor),
+}));
 
 const AVATAR_OPTIONS = ["🌟", "👨‍💻", "👩‍🔬", "🌱", "🚴", "🛰️", "🐱", "🐼", "🦊", "🚀"];
 const LEADERBOARD_DB_KEY = "pollution_hub_leaderboard_db";
@@ -204,6 +216,25 @@ export default function Leaderboard() {
             <p data-testid="leaderboard-user-summary" style={{ margin: "0.25rem 0 0 0", color: "var(--muted)", fontSize: "0.9rem" }}>
               {stats.verified} Verified Reports • {stats.reports} Submissions • {stats.quizzes} Quizzes Answered
             </p>
+            <p data-testid="leaderboard-user-trust" style={{ margin: "0.35rem 0 0 0", fontSize: "0.85rem", color: "var(--ink, #f8fafc)" }}>
+              <span style={{ fontWeight: "bold", color: "var(--brand, #0d9488)" }}>{stats.trustLevel}</span>
+              {nextLevel
+                ? <span style={{ color: "var(--muted, #94a3b8)" }}> — {nextLevel.pointsAway} pts to {nextLevel.name}</span>
+                : <span style={{ color: "var(--muted, #94a3b8)" }}> — top level reached</span>}
+            </p>
+            {stats.badges.length > 0 && (
+              <ul data-testid="leaderboard-user-badges" style={{ display: "flex", gap: "0.35rem", flexWrap: "wrap", listStyle: "none", padding: 0, margin: "0.5rem 0 0 0" }}>
+                {stats.badges.map((badge) => (
+                  <li
+                    key={badge.id}
+                    title={badge.label}
+                    style={{ fontSize: "0.7rem", border: "1px solid var(--line)", borderRadius: "999px", padding: "0.15rem 0.5rem", color: "var(--muted, #94a3b8)" }}
+                  >
+                    <span aria-hidden="true">{badge.icon}</span> {badge.label}
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         </div>
 
@@ -242,6 +273,9 @@ export default function Leaderboard() {
       {/* Point Scoring Rules Breakdown */}
       <div style={{ marginBottom: "2rem", background: "var(--card)", padding: "1rem 1.25rem", borderRadius: "0.5rem", border: "1px solid var(--line)" }}>
         <h4 style={{ margin: "0 0 0.75rem 0", fontSize: "0.95rem", color: "var(--muted)" }}>⚡ How to Earn Points</h4>
+        <p style={{ margin: "0 0 0.75rem 0", fontSize: "0.8rem", color: "var(--muted)" }}>
+          Trust levels: {TRUST_LEVELS.map((level) => `${level.name} (${level.minPoints})`).join(" → ")}
+        </p>
         <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
           {POINT_SYSTEM.map((rule) => (
             <div key={rule.action} style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.85rem" }}>
@@ -259,6 +293,7 @@ export default function Leaderboard() {
             <tr style={{ borderBottom: "2px solid var(--line)", color: "var(--muted)", fontSize: "0.85rem" }}>
               <th style={{ padding: "0.75rem 0.5rem" }}>Rank</th>
               <th style={{ padding: "0.75rem 0.5rem" }}>Contributor</th>
+              <th style={{ padding: "0.75rem 0.5rem" }}>Trust Level</th>
               <th style={{ padding: "0.75rem 0.5rem" }}>Verified Reports (+50)</th>
               <th style={{ padding: "0.75rem 0.5rem" }}>Submissions (+10)</th>
               <th style={{ padding: "0.75rem 0.5rem" }}>Quizzes (+1)</th>

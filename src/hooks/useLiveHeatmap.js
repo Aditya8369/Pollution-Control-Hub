@@ -80,6 +80,10 @@ export function useLiveHeatmap(lat, lon) {
 
         return () => {
             socketRef.current = null;
+            socket.onopen = null;
+            socket.onmessage = null;
+            socket.onerror = null;
+            socket.onclose = null;
             socket.close();
             clearInterval(pollTimerRef.current);
         };

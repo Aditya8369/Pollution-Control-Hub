@@ -1,4 +1,4 @@
-import { useState, useEffect, memo } from 'react';
+import { useState, useEffect, memo, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import GlossaryLinkedText from './GlossaryLinkedText';
 
@@ -47,58 +47,58 @@ const ImmuneIcon = memo(() => (
 ));
 
 const MaskIcon = memo(() => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true" focusable="false">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true" focusable="false" style={{ width: '20px', height: '20px' }}>
     <rect x="3" y="11" width="18" height="10" rx="2" />
     <path d="M12 2a5 5 0 0 0-5 5v4h10V7a5 5 0 0 0-5-5z" />
   </svg>
 ));
 
 const VentilationIcon = memo(() => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true" focusable="false">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true" focusable="false" style={{ width: '20px', height: '20px' }}>
     <path d="M3 12h18M12 3v18M4.93 4.93l14.14 14.14M4.93 19.07L19.07 4.93" />
   </svg>
 ));
 
 const ExerciseIcon = memo(() => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true" focusable="false">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true" focusable="false" style={{ width: '20px', height: '20px' }}>
     <path d="M18 8h1a4 4 0 0 1 0 8h-1M2 8h16v8H2Z" />
     <path d="M6 2v6M14 2v6" />
   </svg>
 ));
 
 const InhalerIcon = memo(() => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true" focusable="false">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true" focusable="false" style={{ width: '20px', height: '20px' }}>
     <path d="M4 9h16v11H4zM4 5h6v4H4zM14 5h6v4h-6z" />
   </svg>
 ));
 
 const PurifierIcon = memo(() => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true" focusable="false">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true" focusable="false" style={{ width: '20px', height: '20px' }}>
     <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H7" />
   </svg>
 ));
 
 const LimitIcon = memo(() => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true" focusable="false">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true" focusable="false" style={{ width: '20px', height: '20px' }}>
     <circle cx="12" cy="12" r="10" />
     <path d="M12 8v4l3 3" />
   </svg>
 ));
 
 const WalksIcon = memo(() => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true" focusable="false">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true" focusable="false" style={{ width: '20px', height: '20px' }}>
     <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
   </svg>
 ));
 
 const DietIcon = memo(() => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true" focusable="false">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true" focusable="false" style={{ width: '20px', height: '20px' }}>
     <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2Zm0 16a6 6 0 1 1 6-6 6 6 0 0 1-6 6Z" />
   </svg>
 ));
 
 const PlayIcon = memo(() => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true" focusable="false">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true" focusable="false" style={{ width: '20px', height: '20px' }}>
     <path d="M12 2L2 22h20L12 2Z" />
   </svg>
 ));
@@ -138,10 +138,65 @@ function loadHealthProfile() {
   return [];
 }
 
+const getTipRelevance = (tipId, currentAqi, healthConditions) => {
+  let score = 0;
+  const aqi = currentAqi ?? 25; // default to good if undefined
+  
+  if (tipId === "mask") {
+    score += aqi >= 150 ? 12 : aqi >= 101 ? 6 : 2;
+  }
+  if (tipId === "ventilation") {
+    score += aqi < 101 ? 8 : 1; // ventilation is high priority when air is clean
+  }
+  if (tipId === "exercise") {
+    score += aqi < 101 ? 10 : 1; // exercise is good when clean
+  }
+  if (tipId === "inhaler") {
+    score += healthConditions.includes("asthma") || healthConditions.includes("copd") ? 15 : 2;
+    score += aqi >= 101 ? 5 : 0;
+  }
+  if (tipId === "purifier") {
+    score += healthConditions.includes("allergies") || healthConditions.includes("copd") || healthConditions.includes("asthma") ? 12 : 2;
+    score += aqi >= 101 ? 6 : 0;
+  }
+  if (tipId === "limit") {
+    score += healthConditions.includes("heartDisease") || healthConditions.includes("copd") || healthConditions.includes("pregnancy") ? 14 : 2;
+    score += aqi >= 101 ? 8 : 0;
+  }
+  if (tipId === "walks") {
+    score += healthConditions.includes("pregnancy") ? 10 : 2;
+    score += aqi >= 101 ? 2 : 8;
+  }
+  if (tipId === "diet") {
+    score += 3;
+  }
+  if (tipId === "play") {
+    score += aqi < 101 ? 10 : 1;
+  }
+
+  return score;
+};
+
+const getPersonalizedWarning = (id, aqi) => {
+  const baseMsg = CONDITION_ADVISORY_MESSAGES[id] || "";
+  if (aqi == null) return baseMsg;
+
+  if (aqi >= 300) {
+    return `🔴 CRITICAL HAZARD: ${baseMsg} Avoid all outdoor activities. Seek clean indoor air immediately.`;
+  }
+  if (aqi >= 150) {
+    return `🟠 URGENT WARNING: ${baseMsg} Strictly limit outdoor exposure and avoid physical exertion outside.`;
+  }
+  if (aqi >= 101) {
+    return `🟡 CAUTION: ${baseMsg} Reduce heavy or prolonged outdoor exertion.`;
+  }
+  return `🟢 INFO: ${baseMsg} Air quality is acceptable today.`;
+};
+
 // -----------------------------------------------------------------------------
 // 2. MAIN COMPONENT
 // -----------------------------------------------------------------------------
-export default function HealthAdvisory() {
+export default function HealthAdvisory({ currentAqi }) {
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState('general');
   const [healthConditions, setHealthConditions] = useState(loadHealthProfile);
@@ -185,35 +240,48 @@ export default function HealthAdvisory() {
       label: t('healthAdvisory.audiences.general.label'),
       desc: t('healthAdvisory.audiences.desc_general', { defaultValue: 'Advisories and tips for healthy adults with no pre-existing conditions.' }),
       tips: [
-        { title: t('healthAdvisory.tips.general.mask.title'), detail: t('healthAdvisory.tips.general.mask.detail'), priority: t('healthAdvisory.priorities.medium', { defaultValue: 'Medium' }), badgeClass: 'badge-warning', icon: <MaskIcon /> },
-        { title: t('healthAdvisory.tips.general.ventilation.title'), detail: t('healthAdvisory.tips.general.ventilation.detail'), priority: t('healthAdvisory.priorities.high', { defaultValue: 'High' }), badgeClass: 'badge-danger', icon: <VentilationIcon /> },
-        { title: t('healthAdvisory.tips.general.exercise.title'), detail: t('healthAdvisory.tips.general.exercise.detail'), priority: t('healthAdvisory.priorities.low', { defaultValue: 'Low' }), badgeClass: 'badge-info', icon: <ExerciseIcon /> }
+        { id: "mask", title: t('healthAdvisory.tips.general.mask.title'), detail: t('healthAdvisory.tips.general.mask.detail'), priority: t('healthAdvisory.priorities.medium', { defaultValue: 'Medium' }), badgeClass: 'badge-warning', icon: <MaskIcon /> },
+        { id: "ventilation", title: t('healthAdvisory.tips.general.ventilation.title'), detail: t('healthAdvisory.tips.general.ventilation.detail'), priority: t('healthAdvisory.priorities.high', { defaultValue: 'High' }), badgeClass: 'badge-danger', icon: <VentilationIcon /> },
+        { id: "exercise", title: t('healthAdvisory.tips.general.exercise.title'), detail: t('healthAdvisory.tips.general.exercise.detail'), priority: t('healthAdvisory.priorities.low', { defaultValue: 'Low' }), badgeClass: 'badge-info', icon: <ExerciseIcon /> }
       ]
     },
     sensitive: {
       label: t('healthAdvisory.audiences.sensitive.label'),
       desc: t('healthAdvisory.audiences.desc_sensitive', { defaultValue: 'Essential guidance for individuals with asthma, heart conditions, or allergies.' }),
       tips: [
-        { title: t('healthAdvisory.tips.sensitive.inhaler.title'), detail: t('healthAdvisory.tips.sensitive.inhaler.detail'), priority: t('healthAdvisory.priorities.high', { defaultValue: 'High' }), badgeClass: 'badge-danger', icon: <InhalerIcon /> },
-        { title: t('healthAdvisory.tips.sensitive.purifier.title'), detail: t('healthAdvisory.tips.sensitive.purifier.detail'), priority: t('healthAdvisory.priorities.high', { defaultValue: 'High' }), badgeClass: 'badge-danger', icon: <PurifierIcon /> },
-        { title: t('healthAdvisory.tips.sensitive.limit.title'), detail: t('healthAdvisory.tips.sensitive.limit.detail'), priority: t('healthAdvisory.priorities.medium', { defaultValue: 'Medium' }), badgeClass: 'badge-warning', icon: <LimitIcon /> }
+        { id: "inhaler", title: t('healthAdvisory.tips.sensitive.inhaler.title'), detail: t('healthAdvisory.tips.sensitive.inhaler.detail'), priority: t('healthAdvisory.priorities.high', { defaultValue: 'High' }), badgeClass: 'badge-danger', icon: <InhalerIcon /> },
+        { id: "purifier", title: t('healthAdvisory.tips.sensitive.purifier.title'), detail: t('healthAdvisory.tips.sensitive.purifier.detail'), priority: t('healthAdvisory.priorities.high', { defaultValue: 'High' }), badgeClass: 'badge-danger', icon: <PurifierIcon /> },
+        { id: "limit", title: t('healthAdvisory.tips.sensitive.limit.title'), detail: t('healthAdvisory.tips.sensitive.limit.detail'), priority: t('healthAdvisory.priorities.medium', { defaultValue: 'Medium' }), badgeClass: 'badge-warning', icon: <LimitIcon /> }
       ]
     },
     vulnerable: {
       label: t('healthAdvisory.audiences.vulnerable.label'),
       desc: t('healthAdvisory.audiences.desc_vulnerable', { defaultValue: 'Protective actions tailored for developing lungs and older age groups.' }),
       tips: [
-        { title: t('healthAdvisory.tips.vulnerable.walks.title'), detail: t('healthAdvisory.tips.vulnerable.walks.detail'), priority: t('healthAdvisory.priorities.high', { defaultValue: 'High' }), badgeClass: 'badge-danger', icon: <WalksIcon /> },
-        { title: t('healthAdvisory.tips.vulnerable.diet.title'), detail: t('healthAdvisory.tips.vulnerable.diet.detail'), priority: t('healthAdvisory.priorities.medium', { defaultValue: 'Medium' }), badgeClass: 'badge-warning', icon: <DietIcon /> },
-        { title: t('healthAdvisory.tips.vulnerable.play.title'), detail: t('healthAdvisory.tips.vulnerable.play.detail'), priority: t('healthAdvisory.priorities.high', { defaultValue: 'High' }), badgeClass: 'badge-danger', icon: <PlayIcon /> }
+        { id: "walks", title: t('healthAdvisory.tips.vulnerable.walks.title'), detail: t('healthAdvisory.tips.vulnerable.walks.detail'), priority: t('healthAdvisory.priorities.high', { defaultValue: 'High' }), badgeClass: 'badge-danger', icon: <WalksIcon /> },
+        { id: "diet", title: t('healthAdvisory.tips.vulnerable.diet.title'), detail: t('healthAdvisory.tips.vulnerable.diet.detail'), priority: t('healthAdvisory.priorities.medium', { defaultValue: 'Medium' }), badgeClass: 'badge-warning', icon: <DietIcon /> },
+        { id: "play", title: t('healthAdvisory.tips.vulnerable.play.title'), detail: t('healthAdvisory.tips.vulnerable.play.detail'), priority: t('healthAdvisory.priorities.high', { defaultValue: 'High' }), badgeClass: 'badge-danger', icon: <PlayIcon /> }
       ]
     }
   };
+
+  const sortedTips = useMemo(() => {
+    const activeTips = audiences[activeTab]?.tips || [];
+    return [...activeTips].map(tip => {
+      const relevance = getTipRelevance(tip.id, currentAqi, healthConditions);
+      return { ...tip, relevance };
+    }).sort((a, b) => b.relevance - a.relevance);
+  }, [activeTab, currentAqi, healthConditions]);
 
   return (
     <section data-testid="health-advisory" className="panel health-advisory-panel" aria-labelledby="health-advisory-title">
       <div className="panel-head">
         <h2 id="health-advisory-title">{t('healthAdvisory.title', { defaultValue: 'Health Advisory' })}</h2>
+        {currentAqi != null && (
+          <span data-testid="advisory-aqi" style={{ fontSize: '0.9rem', fontWeight: 'bold', background: 'rgba(13, 148, 136, 0.15)', color: 'var(--brand)', padding: '0.2rem 0.6rem', borderRadius: '999px' }}>
+            Current AQI: {currentAqi}
+          </span>
+        )}
       </div>
 
       {/* Voluntary Health Profile */}
@@ -332,14 +400,14 @@ export default function HealthAdvisory() {
               </h3>
               <ul>
                 {healthConditions.map((id) => (
-                  <li key={id}>
+                  <li key={id} data-testid="personalized-condition-item">
                     <strong>
                       {t(`healthAdvisory.profile.conditions.${id}`, {
                         defaultValue: HEALTH_CONDITIONS.find((c) => c.id === id)?.label || id
                       })}
                       :
                     </strong>{' '}
-                    {t(`healthAdvisory.profile.messages.${id}`, { defaultValue: CONDITION_ADVISORY_MESSAGES[id] })}
+                    {getPersonalizedWarning(id, currentAqi)}
                   </li>
                 ))}
               </ul>
@@ -348,20 +416,49 @@ export default function HealthAdvisory() {
 
           {/* Actionable Tips Grid */}
           <ul className="tips-grid" aria-label={`Tips for ${audiences[activeTab].label}`}>
-            {audiences[activeTab].tips.map((tip) => (
-              <li key={tip.title} className="tip-action-card">
-                <div className="tip-header">
-                  <div className="tip-icon-wrapper" aria-hidden="true">
-                    {tip.icon}
+            {sortedTips.map((tip) => {
+              const isHighlyRelevant = tip.relevance >= 10;
+              return (
+                <li
+                  key={tip.title}
+                  className="tip-action-card"
+                  data-testid="tip-action-card"
+                  style={{
+                    border: isHighlyRelevant ? "2px solid #ef4444" : "1px solid var(--line)",
+                    boxShadow: isHighlyRelevant ? "0 4px 12px rgba(239, 68, 68, 0.15)" : "none",
+                    position: "relative"
+                  }}
+                >
+                  <div className="tip-header">
+                    <div className="tip-icon-wrapper" aria-hidden="true">
+                      {tip.icon}
+                    </div>
+                    <div style={{ display: "flex", gap: "0.25rem", alignItems: "center" }}>
+                      {isHighlyRelevant && (
+                        <span
+                          data-testid="relevance-badge"
+                          style={{
+                            backgroundColor: "#fee2e2",
+                            color: "#ef4444",
+                            padding: "0.15rem 0.4rem",
+                            borderRadius: "4px",
+                            fontSize: "0.7rem",
+                            fontWeight: "bold"
+                          }}
+                        >
+                          🚨 Critical
+                        </span>
+                      )}
+                      <span className={`priority-badge ${tip.badgeClass}`} aria-label={`Priority: ${tip.priority}`}>
+                        {tip.priority}
+                      </span>
+                    </div>
                   </div>
-                  <span className={`priority-badge ${tip.badgeClass}`} aria-label={`Priority: ${tip.priority}`}>
-                    {tip.priority}
-                  </span>
-                </div>
-                <h3 className="tip-title">{tip.title}</h3>
-                <p className="tip-detail"><GlossaryLinkedText text={tip.detail} /></p>
-              </li>
-            ))}
+                  <h3 className="tip-title">{tip.title}</h3>
+                  <p className="tip-detail"><GlossaryLinkedText text={tip.detail} /></p>
+                </li>
+              );
+            })}
           </ul>
         </div>
       </div>
