@@ -28,6 +28,9 @@ describe('readContributionStats', () => {
       quizzes: 0,
       challengePoints: 0,
       points: 0,
+      // Added with the trust ladder in #926, derived from the counts above.
+      trustLevel: 'Newcomer',
+      badges: [],
     });
   });
 

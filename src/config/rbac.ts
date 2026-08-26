@@ -1,11 +1,12 @@
 export type Role = 'admin' | 'editor' | 'viewer'
 
-export type Permission = 
+export type Permission =
   | 'view:dashboard'
   | 'view:reports'
   | 'create:report'
   | 'edit:report'
   | 'delete:report'
+  | 'moderate:report'
   | 'manage:users'
 
 export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
@@ -18,6 +19,7 @@ export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
     'view:reports',
     'create:report',
     'edit:report',
+    'moderate:report',
   ],
   admin: [
     'view:dashboard',
@@ -25,6 +27,7 @@ export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
     'create:report',
     'edit:report',
     'delete:report',
+    'moderate:report',
     'manage:users',
   ],
 }
