@@ -69,6 +69,7 @@ import Achievements from "./components/Achievements";
 import EcoImpactDashboard from "./components/EcoImpactDashboard";
 import SmartAlertsDashboard from "./components/SmartAlertsDashboard";
 import CityPollutionLeaderboard from "./components/CityPollutionLeaderboard";
+import HealthImpactDashboard from "./components/HealthImpactDashboard";
 
 const AqiMissionGame = lazy(() => import("./components/AqiMissionGame"));
 const HotspotScoutGame = lazy(() => import("./components/HotspotScoutGame"));
@@ -361,6 +362,7 @@ export function SectionNav({ activeSection, onSectionChange }) {
     { id: "city-leaderboard", label: "City Leaderboard" },
     { id: "marine", label: "Marine Water Quality" },
     { id: "smart-alerts", label: "Smart Alerts" },
+    { id: "health-impact", label: "Health Impact" },
   ];
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef(null);
@@ -1278,6 +1280,7 @@ function AppContent() {
               </Suspense>
             )}
             {activeSection === "smart-alerts" && <SmartAlertsDashboard position={position} />}
+            {activeSection === "health-impact" && <HealthImpactDashboard />}
             {activeSection === "CarbonCalculator" && (
               <div
                 className="content-grid carbon-calculator-layout"
