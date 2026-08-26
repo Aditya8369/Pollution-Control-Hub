@@ -1,5 +1,6 @@
 import { getTenantScopedDbName, getTenantScopedStoreName } from './tenantService';
 import { logger } from '../utils/logger';
+import { formatRow, formatTable } from '../utils/csv';
 
 const log = logger.child({ module: 'historicalDataService' });
 
@@ -221,6 +222,9 @@ export async function fetchHistoricalData(lat, lon, years = 1) {
   return data;
 }
 
+/** The daily export's columns, in order. */
+const CSV_HEADERS = ['Date', 'AQI', 'PM2.5', 'PM10', 'NO2', 'Ozone', 'CO'];
+
 /**
  * Determines the CSV delimiter based on a given locale or the detected user locale.
  * If the locale formats numbers with a comma decimal separator (e.g., French, German),
@@ -238,7 +242,9 @@ export function getDelimiterForLocale(locale) {
     const parts = new Intl.NumberFormat(targetLocale).formatToParts(1.1);
     const decimalPart = parts.find((part) => part.type === 'decimal');
     return decimalPart && decimalPart.value === ',' ? ';' : ',';
-  } catch (e) {
+  } catch {
+    // An unrecognised locale tag. The comma is the safe default and the caller
+    // can always pass a delimiter explicitly.
     return ',';
   }
 }
@@ -255,7 +261,7 @@ export function formatHistoricalCSV(dailyData, startDate, endDate, delimiter) {
   const actualDelimiter = delimiter !== undefined ? delimiter : getDelimiterForLocale();
 
   if (!Array.isArray(dailyData) || dailyData.length === 0) {
-    return ['Date', 'AQI', 'PM2.5', 'PM10', 'NO2', 'Ozone', 'CO'].join(actualDelimiter);
+    return formatRow(CSV_HEADERS, actualDelimiter);
   }
 
   const filtered = dailyData
@@ -267,7 +273,6 @@ export function formatHistoricalCSV(dailyData, startDate, endDate, delimiter) {
     })
     .sort((a, b) => a.date.localeCompare(b.date));
 
-  const headers = ['Date', 'AQI', 'PM2.5', 'PM10', 'NO2', 'Ozone', 'CO'];
   const rows = filtered.map((day) => [
     day.date,
     day.maxAqi != null ? day.maxAqi : (day.aqi != null ? day.aqi : ''),
@@ -278,5 +283,8 @@ export function formatHistoricalCSV(dailyData, startDate, endDate, delimiter) {
     day.co != null ? day.co : ''
   ]);
 
-  return [headers.join(actualDelimiter), ...rows.map((r) => r.join(actualDelimiter))].join('\n');
+  // Through the shared writer rather than `join(delimiter)`. Choosing `;` for a
+  // comma-decimal locale (#736) fixes one value that can contain the delimiter;
+  // it does nothing for a `;` inside a value, or for a quote, or a newline.
+  return formatTable(CSV_HEADERS, rows, actualDelimiter);
 }
