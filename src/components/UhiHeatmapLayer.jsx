@@ -1,34 +1,61 @@
-import React, { useState, useEffect } from 'react';
-import { MapContainer, TileLayer, Circle, Popup, useMap } from 'react-leaflet';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+// `useMap` was imported here and never called — `npm run lint` reported it, and
+// the lint job in ci.yml is a blocking step (#1074).
+import { MapContainer, TileLayer, Circle, Popup } from 'react-leaflet';
+import PropTypes from 'prop-types';
 import { fetchMicroclimateData } from '../services/microclimateService';
 
 /**
  * @component UhiHeatmapLayer
  * @description Custom React Leaflet layer component for rendering UHI temperature gradient overlays.
  */
-const UhiHeatmapLayer = () => {
+/** Central Delhi, until this becomes a prop. */
+const DEFAULT_BOUNDS = { north: 28.7, south: 28.5, east: 77.3, west: 77.1 };
+
+/** The centre of a bounding box, for the map's initial view. */
+function centreOf({ north, south, east, west }) {
+    return [(north + south) / 2, (east + west) / 2];
+}
+
+const UhiHeatmapLayer = ({ bounds = DEFAULT_BOUNDS }) => {
     const [gridData, setGridData] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [selectedPoint, setSelectedPoint] = useState(null);
 
-    // Default bounding box (e.g., central Delhi area)
-    const bounds = { north: 28.7, south: 28.5, east: 77.3, west: 77.1 };
+    const { north, south, east, west } = bounds;
+    // The map used to be centred on a hard-coded [28.6, 77.2] while the grid was
+    // fetched for `bounds`, so the two would disagree the moment `bounds` moved.
+    const centre = useMemo(() => centreOf({ north, south, east, west }), [north, south, east, west]);
+
+    const loadSequence = useRef(0);
+
+    const loadData = useCallback(async () => {
+        const sequence = ++loadSequence.current;
+        setLoading(true);
+        try {
+            const data = await fetchMicroclimateData(north, south, east, west);
+            if (sequence !== loadSequence.current) return;
+            // `setGridData(data.gridData)` stored `undefined` when the key was
+            // absent, and `gridData.map` below then threw.
+            setGridData(Array.isArray(data?.gridData) ? data.gridData : []);
+            setError(null);
+        } catch (err) {
+            if (sequence !== loadSequence.current) return;
+            setError(err?.message || 'Failed to fetch microclimate grid data.');
+        } finally {
+            if (sequence === loadSequence.current) setLoading(false);
+        }
+        // The primitive bounds rather than the object: a caller passing an object
+        // literal would otherwise rebuild it every render and refetch on each one.
+    }, [north, south, east, west]);
 
     useEffect(() => {
-        const loadData = async () => {
-            setLoading(true);
-            try {
-                const data = await fetchMicroclimateData(bounds.north, bounds.south, bounds.east, bounds.west);
-                setGridData(data.gridData);
-            } catch (err) {
-                setError(err.message);
-            } finally {
-                setLoading(false);
-            }
-        };
         loadData();
-    }, []);
+        return () => {
+            loadSequence.current += 1;
+        };
+    }, [loadData]);
 
     const getSeverityColor = (severity) => {
         switch (severity) {
@@ -49,7 +76,7 @@ const UhiHeatmapLayer = () => {
 
     if (loading) {
         return (
-            <div className="flex items-center justify-center h-96 bg-gray-100 dark:bg-gray-800 rounded-lg">
+            <div className="flex items-center justify-center h-96 bg-gray-100 dark:bg-gray-800 rounded-lg" role="status" aria-live="polite">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
                 <span className="ml-3 text-gray-600 dark:text-gray-400">Loading microclimate grid...</span>
             </div>
@@ -58,8 +85,23 @@ const UhiHeatmapLayer = () => {
 
     if (error) {
         return (
-            <div className="p-6 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-700 dark:text-red-300">
-                {error}
+            <div
+                role="alert"
+                className="p-6 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-700 dark:text-red-300 flex flex-wrap items-center justify-between gap-3"
+            >
+                <span>{error}</span>
+                {/*
+                  `error` was set once and never cleared, and `loadData` ran only
+                  on mount — so a failed load had no path back short of a page
+                  reload.
+                */}
+                <button
+                    type="button"
+                    onClick={loadData}
+                    className="px-3 py-1.5 border border-red-300 dark:border-red-700 rounded-md font-medium hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors"
+                >
+                    Retry
+                </button>
             </div>
         );
     }
@@ -85,9 +127,15 @@ const UhiHeatmapLayer = () => {
                     ))}
                 </div>
 
+                {gridData.length === 0 && (
+                    <p className="mb-4 text-sm text-gray-500 dark:text-gray-400">
+                        No grid readings were published for this area.
+                    </p>
+                )}
+
                 {/* Map Container */}
                 <div className="h-[500px] w-full rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 z-0">
-                    <MapContainer center={[28.6, 77.2]} zoom={12} className="h-full w-full">
+                    <MapContainer center={centre} zoom={12} className="h-full w-full">
                         <TileLayer
                             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -154,6 +202,15 @@ const UhiHeatmapLayer = () => {
             )}
         </div>
     );
+};
+
+UhiHeatmapLayer.propTypes = {
+    bounds: PropTypes.shape({
+        north: PropTypes.number.isRequired,
+        south: PropTypes.number.isRequired,
+        east: PropTypes.number.isRequired,
+        west: PropTypes.number.isRequired,
+    }),
 };
 
 export default UhiHeatmapLayer;
