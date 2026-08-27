@@ -26,8 +26,13 @@ describe('MaritimeOilSpillService', () => {
   it('should assess coastal vulnerability index correctly', () => {
     const vulnerability = assessCoastalVulnerabilityIndex(sampleSpill);
     expect(vulnerability).toBeDefined();
+    // 25 base + 35 (>10k barrels) + 25 (heavy crude) + 15 (12 km, under 15) = 100.
     expect(vulnerability.cviScore).toBeGreaterThan(70);
-    expect(vulnerability.riskCategory).toBe('HIGH_COASTAL_RISK');
+    // The two assertions below used to disagree with each other: EXTREME is only
+    // produced by the cviScore >= 80 branch, which is also the branch that sets
+    // CRITICAL_SHORELINE_THREAT. HIGH_COASTAL_RISK (65-79) always pairs with
+    // SIGNIFICANT, so no input could have satisfied both.
+    expect(vulnerability.riskCategory).toBe('CRITICAL_SHORELINE_THREAT');
     expect(vulnerability.ecologicalImpactRating).toBe('EXTREME');
   });
 
