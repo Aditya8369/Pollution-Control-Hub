@@ -204,7 +204,7 @@ const DIRECTION_LABELS = {
  * @param {number} lon - Longitude in degrees (-180 to 180).
  * @returns {boolean} True if coordinates are valid numbers within geographical limits.
  */
-function isValidCoord(lat: number, lon: number): boolean {
+export function isValidCoord(lat: number, lon: number): boolean {
   return (
     typeof lat === 'number' && typeof lon === 'number' &&
     lat >= -90 && lat <= 90 &&
@@ -1322,11 +1322,20 @@ export async function get7DayForecast(lat: number, lon: number, signal?: AbortSi
 
 export const fetch7DayForecast = get7DayForecast;
 
-interface PollenData {
-  tree: number;
-  grass: number;
-  weed: number;
-  mold: null;
+/**
+ * A current-hour pollen snapshot.
+ *
+ * Every count is `number | null`, and `null` means "the endpoint had nothing for
+ * this", not zero. `mold` is always null today: the Open-Meteo air-quality API has
+ * no fungal spore series, so there is nothing to read. It stays on the shape
+ * because the UI has a card for it, and a card for a field that does not exist has
+ * to be able to say so.
+ */
+export interface PollenData {
+  tree: number | null;
+  grass: number | null;
+  weed: number | null;
+  mold: number | null;
   isFallback: boolean;
 }
 
@@ -1422,5 +1431,10 @@ export function getPollenSeverity(
     if (value < 50) return { label: 'Moderate', color: '#f59e0b' };
     return { label: 'High', color: '#ef4444' };
   }
-  return { label: 'Low', color: '#1f9d55' };
+
+  // An allergen type with no thresholds defined is an *unknown* severity, not a
+  // low one. The old fallback returned a confident green "Low" for any value of
+  // any unrecognised type - including 'mold', which the card was already calling
+  // it with.
+  return { label: 'Unknown', color: 'var(--muted)' };
 }
