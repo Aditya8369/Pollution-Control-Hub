@@ -3,6 +3,7 @@ import { fetchHistoricalData } from "../services/historicalDataService";
 import { fetchHourlyWeather } from "../services/weatherService";
 import { useCommunityReports } from "../hooks/useCommunityReports";
 import { buildHourlyBaseline, detectAnomalies } from "../utils/anomalyDetection";
+import { localDayKey } from "../utils/localDay";
 
 const ANOMALY_HISTORY_KEY = "anomaly-history";
 const MAX_ANOMALY_HISTORY = 100;
@@ -82,8 +83,13 @@ export default function AnomalyAlert({ lat, lon, current, cityName }) {
     useEffect(() => {
         if (anomalies.length === 0) return;
 
-        const hour = new Date().getHours();
-        const today = new Date().toISOString().slice(0, 10);
+        // Local hour and local date. These used to disagree: `getHours()` is local
+        // and `toISOString()` is UTC, so for anyone not on UTC the de-duplication
+        // key changed at the UTC rollover partway through a local day - and the
+        // same ongoing spike re-notified and re-logged the moment it did.
+        const now = new Date();
+        const hour = now.getHours();
+        const today = localDayKey(now);
         const newEntries = [];
 
         anomalies.forEach((a) => {

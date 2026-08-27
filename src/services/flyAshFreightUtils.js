@@ -2,20 +2,22 @@
  * Fly Ash Supply Chain Transportation Network Utilities
  */
 
-export interface FreightCostResult {
-  totalFreightINR: number;
-  subsidyEligibleINR: number;
-  netCostToPlantINR: number;
-}
+/**
+ * @typedef {Object} FreightCostResult
+ * @property {number} totalFreightINR
+ * @property {number} subsidyEligibleINR
+ * @property {number} netCostToPlantINR
+ */
 
 /**
  * Calculates rail rake vs road bulk tanker freight cost for fly ash transport.
+ *
+ * @param {number} tonsToTransport
+ * @param {number} distanceKm
+ * @param {'RAIL_RAKE' | 'ROAD_TANKER'} mode
+ * @returns {FreightCostResult}
  */
-export function calculateFlyAshFreightCost(
-  tonsToTransport: number,
-  distanceKm: number,
-  mode: 'RAIL_RAKE' | 'ROAD_TANKER'
-): FreightCostResult {
+export function calculateFlyAshFreightCost(tonsToTransport, distanceKm, mode) {
   const ratePerTonKm = mode === 'RAIL_RAKE' ? 1.4 : 2.8;
   const totalFreight = tonsToTransport * distanceKm * ratePerTonKm;
 

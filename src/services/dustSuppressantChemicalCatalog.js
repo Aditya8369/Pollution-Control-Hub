@@ -25,7 +25,10 @@ export const DUST_SUPPRESSANT_CHEMICAL_CATALOG = [
 
 /**
  * Calculates chemical dust suppressant quantity required for site area (liters).
+ *
+ * @param {number} siteAreaSqMeters
+ * @returns {number}
  */
-export function calculateChemicalSuppressantQuantityLiters(siteAreaSqMeters: number): number {
+export function calculateChemicalSuppressantQuantityLiters(siteAreaSqMeters) {
   return Math.round(siteAreaSqMeters * 0.5); // 0.5 Liters per sq meter
 }

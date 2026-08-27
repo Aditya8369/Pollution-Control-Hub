@@ -40,8 +40,11 @@ describe('ConstructionDustService', () => {
     );
 
     expect(efficiency).toBeDefined();
-    expect(efficiency.requiredAntiSmogGunsCount).toBeGreaterThan(2);
-    expect(efficiency.suppressionEfficiencyPercent).toBeGreaterThan(30.0);
+    // 45,000 sq m at the CPCB ratio of one gun per 5,000 needs 9; the site has 2.
+    expect(efficiency.requiredAntiSmogGunsCount).toBe(9);
+    // (2/9) * 65 * (1 - 16/40) = 8.7. A site running at 22% of its mandated gun
+    // count suppressing over 30% would contradict the model, not confirm it.
+    expect(efficiency.suppressionEfficiencyPercent).toBeCloseTo(8.7, 1);
     expect(efficiency.waterConsumptionLitersPerHour).toBeGreaterThan(1000);
   });
 

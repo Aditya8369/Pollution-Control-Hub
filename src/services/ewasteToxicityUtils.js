@@ -2,17 +2,21 @@
  * E-Waste Hazardous Component Toxicity Assessment & PCB Characterization
  */
 
-export interface ComponentToxicityReport {
-  leadContentGramsPerUnit: number;
-  cadmiumContentGramsPerUnit: number;
-  flameRetardantPbdePpm: number;
-  requiresHazardousWasteManifest: boolean;
-}
+/**
+ * @typedef {Object} ComponentToxicityReport
+ * @property {number} leadContentGramsPerUnit
+ * @property {number} cadmiumContentGramsPerUnit
+ * @property {number} flameRetardantPbdePpm
+ * @property {boolean} requiresHazardousWasteManifest
+ */
 
 /**
  * Calculates hazardous toxic substance content per electronic unit.
+ *
+ * @param {string} category
+ * @returns {ComponentToxicityReport}
  */
-export function assessEwasteComponentToxicity(category: string): ComponentToxicityReport {
+export function assessEwasteComponentToxicity(category) {
   let leadGrams = 1.5;
   let cadmiumGrams = 0.2;
   let pbdePpm = 850.0;
