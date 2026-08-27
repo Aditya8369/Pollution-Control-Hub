@@ -4,6 +4,7 @@ import { useMemo, useRef, useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { exportToSVG, exportToPNG } from '../utils/chartExport';
 import { generateAIInsights } from '../services/aiInsightsService';
+import { renderBoldMarkup } from '../utils/boldMarkup';
 
 /** Fallback when `timeRange` arrives missing or nonsensical. Matches the dashboard default. */
 const DEFAULT_TIME_RANGE = 24;
@@ -81,24 +82,42 @@ export default function AnalyticsInsights({ analytics = {}, trend = [], timeRang
   const [insightsError, setInsightsError] = useState(null);
 
   useEffect(() => {
-    if (lat != null && lon != null) {
-      setLoadingInsights(true);
-      setInsightsError(null);
-      generateAIInsights(lat, lon, cityName)
-        .then(result => {
-          if (result.error) {
-            setInsightsError(result.error);
-          } else {
-            setInsights(result.insights);
-          }
-        })
-        .catch(err => {
-          setInsightsError(err.message || 'Error fetching insights');
-        })
-        .finally(() => {
-          setLoadingInsights(false);
-        });
-    }
+    if (lat == null || lon == null) return undefined;
+
+    // `generateAIInsights` goes through `fetchHistoricalData` — a year of hourly
+    // archive data, slow on a cold cache. Without this flag, searching Delhi and
+    // then Mumbai leaves two requests in flight and whichever resolves last
+    // wins: Delhi's insights can end up under Mumbai's heading with
+    // `loadingInsights` already false, so nothing signals it. It also stops the
+    // three setState calls below firing after unmount.
+    let current = true;
+
+    setLoadingInsights(true);
+    setInsightsError(null);
+    // The previous city's insights are not an answer about this one, so they go
+    // now rather than lingering behind the spinner.
+    setInsights([]);
+
+    generateAIInsights(lat, lon, cityName)
+      .then(result => {
+        if (!current) return;
+        if (result?.error) {
+          setInsightsError(result.error);
+        } else {
+          setInsights(Array.isArray(result?.insights) ? result.insights : []);
+        }
+      })
+      .catch(err => {
+        if (!current) return;
+        setInsightsError(err?.message || 'Error fetching insights');
+      })
+      .finally(() => {
+        if (current) setLoadingInsights(false);
+      });
+
+    return () => {
+      current = false;
+    };
   }, [lat, lon, cityName]);
 
   const range = Number.isFinite(timeRange) && timeRange > 0 ? timeRange : DEFAULT_TIME_RANGE;
@@ -197,10 +216,13 @@ export default function AnalyticsInsights({ analytics = {}, trend = [], timeRang
                     </span>
                   </div>
                 </div>
-                <p 
+                <p
                   style={{ margin: '0 0 0.75rem 0', fontSize: '0.9rem', color: 'var(--text-secondary, #475569)', lineHeight: 1.5 }}
-                  dangerouslySetInnerHTML={{ __html: insight.description.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') }} 
-                />
+                >
+                  {/* Nodes, not innerHTML. `description` interpolates the
+                      location name, which comes from the geocoder — see #1053. */}
+                  {renderBoldMarkup(insight.description)}
+                </p>
                 <div style={{ fontSize: '0.75rem', color: 'var(--muted, #94a3b8)', borderTop: '1px solid var(--line, #f1f5f9)', paddingTop: '0.5rem' }}>
                   Source: {insight.source}
                 </div>

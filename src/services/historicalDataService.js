@@ -1,5 +1,6 @@
 import { getTenantScopedDbName, getTenantScopedStoreName } from './tenantService';
 import { logger } from '../utils/logger';
+import { localDayKey } from '../utils/localDay';
 
 const log = logger.child({ module: 'historicalDataService' });
 
@@ -183,13 +184,21 @@ export async function pruneCache(keepPrefix, keepId) {
  * @param {any} years
  */
 export async function fetchHistoricalData(lat, lon, years = 1) {
-  // Using 1 year by default for heatmap, but we can do up to 3 years
+  // Using 1 year by default for heatmap, but we can do up to 3 years.
+  //
+  // The window has to be expressed in the *location's* calendar, because the
+  // request below carries `timezone=auto` and Open-Meteo reads start_date and
+  // end_date in that timezone. These dates used to come off `toISOString()`, which
+  // converts to UTC first: for a location ahead of UTC the request asked for a
+  // window ending yesterday for the first several hours of every local day, so the
+  // export and the heatmap quietly lost their most recent day. For a location
+  // behind UTC it asked for a window ending tomorrow.
   const today = new Date();
-  const endDate = today.toISOString().split('T')[0];
+  const endDate = localDayKey(today);
 
-  const startDateObj = new Date();
+  const startDateObj = new Date(today);
   startDateObj.setFullYear(today.getFullYear() - years);
-  const startDate = startDateObj.toISOString().split('T')[0];
+  const startDate = localDayKey(startDateObj);
 
   // Keyed on location and window length only. The old key carried startDate/endDate,
   // both of which move daily, so every entry was orphaned the moment the clock rolled

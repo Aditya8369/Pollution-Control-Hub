@@ -11,48 +11,55 @@ export const FLY_ASH_GRADES = {
   POND_ASH: 'Weathered Pond Ash',
 };
 
-export interface ThermalPowerPlantAshData {
-  plantId: string;
-  plantName: string;
-  dailyAshGenerationTons: number;
-  currentUtilizationPercent: number;
-  ashPondCapacityTons: number;
-  currentPondStorageTons: number;
-  primaryAshGrade: string;
-  distanceToCementPlantKm: number;
-  reportedAt: string;
-}
+/**
+ * @typedef {Object} ThermalPowerPlantAshData
+ * @property {string} plantId
+ * @property {string} plantName
+ * @property {number} dailyAshGenerationTons
+ * @property {number} currentUtilizationPercent
+ * @property {number} ashPondCapacityTons
+ * @property {number} currentPondStorageTons
+ * @property {string} primaryAshGrade
+ * @property {number} distanceToCementPlantKm
+ * @property {string} reportedAt
+ */
 
-export interface FlyAshComplianceAssessment {
-  complianceStatus: 'FULLY_COMPLIANT' | 'NEAR_COMPLIANT' | 'NON_COMPLIANT_DEFICIT' | 'CRITICAL_LEGAL_PENALTY';
-  isFullyCompliant: boolean;
-  mandateDeficitPercent: number;
-  dailyDeficitTons: number;
-  environmentalPenaltyPerDayINR: number;
-}
+/**
+ * @typedef {Object} FlyAshComplianceAssessment
+ * @property {'FULLY_COMPLIANT' | 'NEAR_COMPLIANT' | 'NON_COMPLIANT_DEFICIT' | 'CRITICAL_LEGAL_PENALTY'} complianceStatus
+ * @property {boolean} isFullyCompliant
+ * @property {number} mandateDeficitPercent
+ * @property {number} dailyDeficitTons
+ * @property {number} environmentalPenaltyPerDayINR
+ */
 
-export interface PondLeachateRiskAssessment {
-  capacityUtilizationPercent: number;
-  overflowRiskCategory: 'CRITICAL_BREACH_IMMINENT' | 'HIGH_OVERFLOW_RISK' | 'MODERATE_STORAGE' | 'SAFE_OPERATIONAL';
-  groundwaterLeachateAlert: boolean;
-  remainingPondLifeMonths: number;
-}
+/**
+ * @typedef {Object} PondLeachateRiskAssessment
+ * @property {number} capacityUtilizationPercent
+ * @property {'CRITICAL_BREACH_IMMINENT' | 'HIGH_OVERFLOW_RISK' | 'MODERATE_STORAGE' | 'SAFE_OPERATIONAL'} overflowRiskCategory
+ * @property {boolean} groundwaterLeachateAlert
+ * @property {number} remainingPondLifeMonths
+ */
 
-export interface FlyAshDispatchPlan {
-  plantId: string;
-  plantName: string;
-  dailyOffTakeTargetTons: number;
-  cementIndustryOffTakeTons: number;
-  brickManufacturingOffTakeTons: number;
-  highwayEmbankmentOffTakeTons: number;
-  pneumaticBulkTankersDispatched: number;
-  recommendedActions: string[];
-}
+/**
+ * @typedef {Object} FlyAshDispatchPlan
+ * @property {string} plantId
+ * @property {string} plantName
+ * @property {number} dailyOffTakeTargetTons
+ * @property {number} cementIndustryOffTakeTons
+ * @property {number} brickManufacturingOffTakeTons
+ * @property {number} highwayEmbankmentOffTakeTons
+ * @property {number} pneumaticBulkTankersDispatched
+ * @property {string[]} recommendedActions
+ */
 
 /**
  * Evaluates 100% Fly Ash utilization regulatory compliance against MoEFCC guidelines.
+ *
+ * @param {ThermalPowerPlantAshData} plant
+ * @returns {FlyAshComplianceAssessment}
  */
-export function evaluateFlyAshUtilizationCompliance(plant: ThermalPowerPlantAshData): FlyAshComplianceAssessment {
+export function evaluateFlyAshUtilizationCompliance(plant) {
   const targetPercent = 100.0;
   const deficitPercent = Math.max(0, targetPercent - plant.currentUtilizationPercent);
   const dailyDeficitTons = Math.round(plant.dailyAshGenerationTons * (deficitPercent / 100.0));
@@ -61,7 +68,8 @@ export function evaluateFlyAshUtilizationCompliance(plant: ThermalPowerPlantAshD
   const penaltyPerDay = dailyDeficitTons * 1500;
 
   const isFullyCompliant = deficitPercent <= 0.0;
-  let status: FlyAshComplianceAssessment['complianceStatus'] = 'FULLY_COMPLIANT';
+  /** @type {FlyAshComplianceAssessment['complianceStatus']} */
+  let status = 'FULLY_COMPLIANT';
 
   if (deficitPercent > 30.0) {
     status = 'CRITICAL_LEGAL_PENALTY';
@@ -82,15 +90,17 @@ export function evaluateFlyAshUtilizationCompliance(plant: ThermalPowerPlantAshD
 
 /**
  * Evaluates ash pond storage utilization, dyke breach probability, and groundwater heavy metal leachate risk.
+ *
+ * @param {number} currentPondStorageTons
+ * @param {number} ashPondCapacityTons
+ * @returns {PondLeachateRiskAssessment}
  */
-export function calculatePondLeachateContaminationRisk(
-  currentPondStorageTons: number,
-  ashPondCapacityTons: number
-): PondLeachateRiskAssessment {
+export function calculatePondLeachateContaminationRisk(currentPondStorageTons, ashPondCapacityTons) {
   const utilPercent = ashPondCapacityTons > 0 ? (currentPondStorageTons / ashPondCapacityTons) * 100.0 : 0;
   const roundedUtil = Math.round(utilPercent * 10) / 10;
 
-  let riskCategory: PondLeachateRiskAssessment['overflowRiskCategory'] = 'SAFE_OPERATIONAL';
+  /** @type {PondLeachateRiskAssessment['overflowRiskCategory']} */
+  let riskCategory = 'SAFE_OPERATIONAL';
   let leachateAlert = false;
 
   if (roundedUtil >= 90.0) {
@@ -117,8 +127,11 @@ export function calculatePondLeachateContaminationRisk(
 
 /**
  * Generates automated fly ash dispatch and multi-sector off-take allocation plan.
+ *
+ * @param {ThermalPowerPlantAshData} plant
+ * @returns {FlyAshDispatchPlan}
  */
-export function generateFlyAshDisposalDispatchPlan(plant: ThermalPowerPlantAshData): FlyAshDispatchPlan {
+export function generateFlyAshDisposalDispatchPlan(plant) {
   const compliance = evaluateFlyAshUtilizationCompliance(plant);
   const totalGeneration = plant.dailyAshGenerationTons;
 
@@ -130,7 +143,8 @@ export function generateFlyAshDisposalDispatchPlan(plant: ThermalPowerPlantAshDa
   // Each pneumatic tanker carries ~30 tons of dry fly ash
   const tankersNeeded = Math.ceil(totalGeneration / 30.0);
 
-  const actions: string[] = ['Maintain free dry fly ash loading silos for cement manufacturers.'];
+  /** @type {string[]} */
+  const actions = ['Maintain free dry fly ash loading silos for cement manufacturers.'];
 
   if (!compliance.isFullyCompliant) {
     actions.push(`Mandate free transportation of fly ash within 300 km radius for NHAI road projects.`);

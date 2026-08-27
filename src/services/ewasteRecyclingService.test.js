@@ -25,9 +25,13 @@ describe('EwasteRecyclingService', () => {
   it('should evaluate Extended Producer Responsibility (EPR) compliance', () => {
     const compliance = evaluateEprRecyclingCompliance(sampleProducer);
     expect(compliance).toBeDefined();
-    expect(compliance.achievedRecyclingRatePercent).toBeGreaterThan(60.0);
-    expect(compliance.eprStatus).toBe('EPR_TARGET_ACHIEVED');
-    expect(compliance.recyclingTargetDeficitTons).toBe(0);
+    // The EPR obligation is measured against estimated generation, not against
+    // what the producer happened to collect: 150,000 units x 1.5 kg = 225 t, of
+    // which 105 t were recycled = 46.7%. The 80% target is 180 t, so 75 t short.
+    expect(compliance.achievedRecyclingRatePercent).toBeCloseTo(46.7, 1);
+    expect(compliance.eprStatus).toBe('CRITICAL_EPR_DEFICIT');
+    expect(compliance.isCompliant).toBe(false);
+    expect(compliance.recyclingTargetDeficitTons).toBeCloseTo(75.0, 1);
   });
 
   it('should calculate urban mining precious metal recovery yield (Gold, Silver, Copper, Lithium)', () => {

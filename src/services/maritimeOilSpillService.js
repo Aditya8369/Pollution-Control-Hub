@@ -11,39 +11,45 @@ export const OIL_SPILL_TYPES = {
   BUNKER_C: 'Heavy Fuel Oil / Bunker C',
 };
 
-export interface MaritimeOilSpillIncident {
-  spillId: string;
-  vesselName: string;
-  oilType: string;
-  volumeBarrels: number;
-  currentSpeedKnots: number;
-  windSpeedKnots: number;
-  windDirectionDegrees: number;
-  distanceToShoreKm: number;
-  coastalEcosystemType: string;
-}
+/**
+ * @typedef {Object} MaritimeOilSpillIncident
+ * @property {string} spillId
+ * @property {string} vesselName
+ * @property {string} oilType
+ * @property {number} volumeBarrels
+ * @property {number} currentSpeedKnots
+ * @property {number} windSpeedKnots
+ * @property {number} windDirectionDegrees
+ * @property {number} distanceToShoreKm
+ * @property {string} coastalEcosystemType
+ */
 
-export interface VulnerabilityAssessment {
-  cviScore: number; // 0 to 100
-  riskCategory: 'CRITICAL_SHORELINE_THREAT' | 'HIGH_COASTAL_RISK' | 'MODERATE_RISK' | 'LOW_IMPACT';
-  ecologicalImpactRating: 'EXTREME' | 'HIGH' | 'MEDIUM' | 'LOW';
-  estimatedLandfallHours: number;
-}
+/**
+ * @typedef {Object} VulnerabilityAssessment
+ * @property {number} cviScore 0 to 100
+ * @property {'CRITICAL_SHORELINE_THREAT' | 'HIGH_COASTAL_RISK' | 'MODERATE_RISK' | 'LOW_IMPACT'} riskCategory
+ * @property {'EXTREME' | 'HIGH' | 'MEDIUM' | 'LOW'} ecologicalImpactRating
+ * @property {number} estimatedLandfallHours
+ */
 
-export interface MaritimeResponsePlan {
-  spillId: string;
-  vesselName: string;
-  containmentBoomsRequiredMeters: number;
-  skimmerVesselsDispatched: number;
-  dispersantVolumeLiters: number;
-  shorelineProtectionTeams: string[];
-  responseStrategy: string[];
-}
+/**
+ * @typedef {Object} MaritimeResponsePlan
+ * @property {string} spillId
+ * @property {string} vesselName
+ * @property {number} containmentBoomsRequiredMeters
+ * @property {number} skimmerVesselsDispatched
+ * @property {number} dispersantVolumeLiters
+ * @property {string[]} shorelineProtectionTeams
+ * @property {string[]} responseStrategy
+ */
 
 /**
  * Calculates Coastal Vulnerability Index (CVI) score.
+ *
+ * @param {MaritimeOilSpillIncident} incident
+ * @returns {VulnerabilityAssessment}
  */
-export function assessCoastalVulnerabilityIndex(incident: MaritimeOilSpillIncident): VulnerabilityAssessment {
+export function assessCoastalVulnerabilityIndex(incident) {
   let score = 25.0;
 
   // Volume impact
@@ -76,8 +82,10 @@ export function assessCoastalVulnerabilityIndex(incident: MaritimeOilSpillIncide
   const driftSpeedKph = driftSpeedKnots * 1.852;
   const estimatedLandfallHours = driftSpeedKph > 0 ? Math.round((incident.distanceToShoreKm / driftSpeedKph) * 10) / 10 : 999;
 
-  let riskCategory: VulnerabilityAssessment['riskCategory'] = 'LOW_IMPACT';
-  let ecologicalImpactRating: VulnerabilityAssessment['ecologicalImpactRating'] = 'LOW';
+  /** @type {VulnerabilityAssessment['riskCategory']} */
+  let riskCategory = 'LOW_IMPACT';
+  /** @type {VulnerabilityAssessment['ecologicalImpactRating']} */
+  let ecologicalImpactRating = 'LOW';
 
   if (cviScore >= 80) {
     riskCategory = 'CRITICAL_SHORELINE_THREAT';
@@ -100,13 +108,13 @@ export function assessCoastalVulnerabilityIndex(incident: MaritimeOilSpillIncide
 
 /**
  * Models oil slick trajectory displacement over a given duration (hours).
+ *
+ * @param {number} currentSpeedKnots
+ * @param {number} windSpeedKnots
+ * @param {number} windDirectionDegrees
+ * @param {number} [durationHours=24]
  */
-export function calculateOilSlickDriftTrajectory(
-  currentSpeedKnots: number,
-  windSpeedKnots: number,
-  windDirectionDegrees: number,
-  durationHours = 24
-) {
+export function calculateOilSlickDriftTrajectory(currentSpeedKnots, windSpeedKnots, windDirectionDegrees, durationHours = 24) {
   const driftSpeedKnots = currentSpeedKnots + windSpeedKnots * 0.035;
   const distanceTraveledNauticalMiles = Math.round(driftSpeedKnots * durationHours * 10) / 10;
   const estimatedLandfallHours = Math.round((12.0 / (driftSpeedKnots * 1.852)) * 10) / 10;
@@ -121,8 +129,11 @@ export function calculateOilSlickDriftTrajectory(
 
 /**
  * Generates automated maritime oil spill response and containment plan.
+ *
+ * @param {MaritimeOilSpillIncident} incident
+ * @returns {MaritimeResponsePlan}
  */
-export function generateMaritimeResponsePlan(incident: MaritimeOilSpillIncident): MaritimeResponsePlan {
+export function generateMaritimeResponsePlan(incident) {
   const vulnerability = assessCoastalVulnerabilityIndex(incident);
 
   const boomsMeters = Math.min(10000, Math.max(500, Math.round(incident.volumeBarrels * 0.2)));
