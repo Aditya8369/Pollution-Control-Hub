@@ -2,16 +2,21 @@
  * Offshore Oil Slick Bioremediation & Weathering Utilities
  */
 
-export interface WeatheringRate {
-  evaporationPercent24h: number;
-  naturalEmulsificationPercent: number;
-  biodegradationHalfLifeDays: number;
-}
+/**
+ * @typedef {Object} WeatheringRate
+ * @property {number} evaporationPercent24h
+ * @property {number} naturalEmulsificationPercent
+ * @property {number} biodegradationHalfLifeDays
+ */
 
 /**
  * Calculates oil slick physical weathering rate based on API gravity and temperature.
+ *
+ * @param {string} oilType
+ * @param {number} [waterTempC=26.0]
+ * @returns {WeatheringRate}
  */
-export function calculateOilWeatheringRate(oilType: string, waterTempC = 26.0): WeatheringRate {
+export function calculateOilWeatheringRate(oilType, waterTempC = 26.0) {
   let evap = 25.0;
   let emul = 40.0;
   let halfLife = 14.0;
@@ -38,8 +43,12 @@ export function calculateOilWeatheringRate(oilType: string, waterTempC = 26.0): 
 
 /**
  * Recommends microbial bioremediation strain dosing for oiled shoreline sediments.
+ *
+ * @param {number} beachLengthMeters
+ * @param {number} oilThicknessMm
+ * @returns {number}
  */
-export function calculateBioremediationDosingKg(beachLengthMeters: number, oilThicknessMm: number): number {
+export function calculateBioremediationDosingKg(beachLengthMeters, oilThicknessMm) {
   const areaSqMeters = beachLengthMeters * 10.0;
   const volumeLiters = areaSqMeters * (oilThicknessMm / 1000.0) * 1000.0;
   const requiredMicrobialAgentKg = volumeLiters * 0.05; // 50g per liter of oil
