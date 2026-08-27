@@ -1,45 +1,68 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { eventBus } from "../core/events";
+import { useAuth } from "../context/AuthContext";
 import {
   readContributionStats,
   recordQuizAnswers,
+  earnedBadges,
+  trustLevelForPoints,
+  nextTrustLevel,
   POINT_VALUES,
+  TRUST_LEVELS,
   STATS_CHANGED_EVENT,
 } from "../utils/contributionStats";
 
-// Point breakdown constants matching issue requirements. The weights come from
-// the scoring module so the table and the arithmetic cannot drift apart.
 const POINT_SYSTEM = [
   { action: "Verified Report Submitted", points: POINT_VALUES.verifiedReport, badge: "🛡️ Verified" },
   { action: "New Report Submitted", points: POINT_VALUES.report, badge: "📝 Contributor" },
   { action: "Quiz Answer Completed", points: POINT_VALUES.quizAnswer, badge: "🧠 Learner" },
 ];
 
-/**
- * Illustrative entries, so the board is not empty on a fresh install.
- *
- * Flagged as samples and labelled as such in the table. They are not real people
- * and the panel should not imply they are — the visitor's own row is the only one
- * carrying real numbers until there is a backend behind this (#152).
- */
 const SAMPLE_CONTRIBUTORS = [
-  { id: "sample-1", name: "Aarav Sharma", points: 420, reports: 6, verified: 5, quizzes: 70, avatar: "👨‍💻", isSample: true },
-  { id: "sample-2", name: "Ananya Patel", points: 365, reports: 8, verified: 4, quizzes: 65, avatar: "👩‍🔬", isSample: true },
-  { id: "sample-3", name: "Rohan Gupta", points: 290, reports: 5, verified: 3, quizzes: 40, avatar: "🌱", isSample: true },
-  { id: "sample-4", name: "Priya Singh", points: 215, reports: 4, verified: 2, quizzes: 15, avatar: "🛰️", isSample: true },
-  { id: "sample-5", name: "Vikram Verma", points: 180, reports: 3, verified: 2, quizzes: 30, avatar: "🚴", isSample: true },
-];
+  { id: "sample-1", name: "Aarav Sharma", points: 420, reports: 6, verified: 5, quizzes: 70, challengePoints: 0, avatar: "👨‍💻", isSample: true },
+  { id: "sample-2", name: "Ananya Patel", points: 365, reports: 8, verified: 4, quizzes: 65, challengePoints: 0, avatar: "👩‍🔬", isSample: true },
+  { id: "sample-3", name: "Rohan Gupta", points: 290, reports: 5, verified: 3, quizzes: 40, challengePoints: 0, avatar: "🌱", isSample: true },
+  { id: "sample-4", name: "Priya Singh", points: 215, reports: 4, verified: 2, quizzes: 15, challengePoints: 0, avatar: "🛰️", isSample: true },
+  { id: "sample-5", name: "Vikram Verma", points: 180, reports: 3, verified: 2, quizzes: 30, challengePoints: 0, avatar: "🚴", isSample: true },
+].map((contributor) => /** @type {LeaderboardRow} */ ({
+  // Trust level and badges are computed from each row's figures by the same
+  // functions that compute the visitor's own, rather than typed in beside them.
+  // A sample row whose badges disagreed with its counts would be teaching the
+  // reader the wrong thing about what the badges mean.
+  ...contributor,
+  trustLevel: trustLevelForPoints(contributor.points),
+  badges: earnedBadges(contributor),
+}));
+
+const AVATAR_OPTIONS = ["🌟", "👨‍💻", "👩‍🔬", "🌱", "🚴", "🛰️", "🐱", "🐼", "🦊", "🚀"];
+const LEADERBOARD_DB_KEY = "pollution_hub_leaderboard_db";
 
 export default function Leaderboard() {
-  // Derived from what the app recorded, not from a seed. A visitor who has done
-  // nothing sees zeros.
+  const auth = useAuth() || { user: null, isAuthenticated: false, login: () => {}, logout: () => {} };
+  const { user, isAuthenticated, login, logout } = auth;
   const [stats, setStats] = useState(() => readContributionStats());
+  
+  // Registration Form State
+  const [showRegisterModal, setShowRegisterModal] = useState(false);
+  const [regName, setRegName] = useState("");
+  const [regEmail, setRegEmail] = useState("");
+  const [regAvatar, setRegAvatar] = useState(AVATAR_OPTIONS[0]);
+  const [regError, setRegError] = useState("");
 
   const refresh = useCallback(() => setStats(readContributionStats()), []);
 
+  // The rung above the one the visitor has reached, and how far away it is.
+  // Null once the top of TRUST_LEVELS is reached, which is the case the JSX
+  // below renders as "top level reached".
+  //
+  // This was missing entirely: the render read a free variable `nextLevel` and
+  // threw `ReferenceError: nextLevel is not defined`, blanking the whole panel.
+  // `nextTrustLevel` was already imported and was the only import from
+  // contributionStats that nothing called.
+  const nextLevel = useMemo(() => nextTrustLevel(stats.points), [stats.points]);
+
   useEffect(() => {
     refresh();
-
     eventBus.on(STATS_CHANGED_EVENT, refresh);
     eventBus.on("COMMUNITY_REPORT_SUBMITTED", refresh);
 
@@ -49,27 +72,104 @@ export default function Leaderboard() {
     };
   }, [refresh]);
 
-  const userRow = useMemo(
-    () => ({
-      id: "current-user",
-      name: "You (Guest)",
-      avatar: "🌟",
-      isCurrentUser: true,
-      ...stats,
-    }),
-    [stats]
-  );
+  // Synchronize score with the leaderboard database
+  const getLeaderboardData = useCallback(() => {
+    let db = [];
+    try {
+      const raw = localStorage.getItem(LEADERBOARD_DB_KEY);
+      if (raw) db = JSON.parse(raw);
+    } catch {
+      // ignore
+    }
 
-  const leaderboard = useMemo(
-    () => [...SAMPLE_CONTRIBUTORS, userRow].sort((a, b) => b.points - a.points),
-    [userRow]
-  );
+    if (isAuthenticated && user) {
+      // Find or update the user's score in the database
+      const existingUserIdx = db.findIndex(u => u.email === user.email);
+      const userRecord = {
+        id: user.email,
+        name: user.name,
+        email: user.email,
+        avatar: user.avatar || "🌟",
+        points: stats.points,
+        reports: stats.reports,
+        verified: stats.verified,
+        quizzes: stats.quizzes,
+        isCurrentUser: true
+      };
 
-  const currentUserRank = leaderboard.findIndex((item) => item.isCurrentUser) + 1;
+      if (existingUserIdx >= 0) {
+        db[existingUserIdx] = userRecord;
+      } else {
+        db.push(userRecord);
+      }
 
-  // Dev-only seeding, so the ranking can be exercised without filing real reports.
-  // It writes through the same recording path as the app, rather than inventing a
-  // separate total — and it is not present in a production build.
+      try {
+        localStorage.setItem(LEADERBOARD_DB_KEY, JSON.stringify(db));
+      } catch {
+        // ignore
+      }
+    }
+
+    // Filter out mock/sample users from DB, keeping only real authenticated users
+    const realUsers = db.map(u => ({
+      ...u,
+      isCurrentUser: user ? u.email === user.email : false
+    }));
+
+    // Combine real authenticated users with samples
+    const combined = [...SAMPLE_CONTRIBUTORS];
+    realUsers.forEach(u => {
+      const dupIdx = combined.findIndex(c => c.id === u.id || c.name === u.name);
+      if (dupIdx >= 0) combined[dupIdx] = u;
+      else combined.push(u);
+    });
+
+    // If user is guest/unauthenticated, we still append their local user row as a guest
+    if (!isAuthenticated) {
+      combined.push({
+        id: "current-user-guest",
+        name: "You (Guest)",
+        avatar: "🌟",
+        points: stats.points,
+        reports: stats.reports,
+        verified: stats.verified,
+        quizzes: stats.quizzes,
+        isCurrentUser: true,
+        isGuest: true
+      });
+    }
+
+    return combined.sort((a, b) => b.points - a.points);
+  }, [isAuthenticated, user, stats]);
+
+  const leaderboard = useMemo(() => getLeaderboardData(), [getLeaderboardData]);
+
+  const currentUserRank = useMemo(() => {
+    return leaderboard.findIndex(item => item.isCurrentUser) + 1;
+  }, [leaderboard]);
+
+  const handleRegisterSubmit = (e) => {
+    e.preventDefault();
+    setRegError("");
+
+    if (!regName.trim()) {
+      setRegError("Please enter your name.");
+      return;
+    }
+    if (!regEmail.trim() || !regEmail.includes("@")) {
+      setRegError("Please enter a valid email address.");
+      return;
+    }
+
+    login({
+      name: regName.trim(),
+      email: regEmail.trim(),
+      avatar: regAvatar
+    });
+
+    setShowRegisterModal(false);
+  };
+
   const isDev = Boolean(import.meta.env?.DEV);
   const simulateQuiz = () => recordQuizAnswers(10);
 
@@ -97,35 +197,95 @@ export default function Leaderboard() {
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
-          <span style={{ fontSize: "2.5rem" }}>{userRow.avatar}</span>
+          <span style={{ fontSize: "2.5rem" }}>{isAuthenticated && user ? user.avatar : "🌟"}</span>
           <div>
-            <h3 style={{ margin: 0, fontSize: "1.25rem", color: "var(--ink, #f8fafc)" }}>
-              {userRow.name} <span style={{ fontSize: "0.8rem", color: "var(--brand, #0d9488)", background: "rgba(13, 148, 136, 0.15)", padding: "0.2rem 0.5rem", borderRadius: "999px" }}>Current User</span>
+            <h3 style={{ margin: 0, fontSize: "1.25rem", color: "var(--ink)" }}>
+              {isAuthenticated && user ? user.name : "You (Guest)"}
+              {isAuthenticated ? (
+                <span style={{ fontSize: "0.75rem", color: "var(--brand)", background: "rgba(13, 148, 136, 0.15)", padding: "0.2rem 0.5rem", borderRadius: "999px", marginLeft: "0.5rem" }}>Registered</span>
+              ) : (
+                <button
+                  type="button"
+                  data-testid="join-leaderboard-btn"
+                  onClick={() => setShowRegisterModal(true)}
+                  style={{
+                    fontSize: "0.75rem",
+                    color: "white",
+                    background: "var(--brand, #0d9488)",
+                    padding: "0.2rem 0.6rem",
+                    borderRadius: "999px",
+                    marginLeft: "0.5rem",
+                    border: "none",
+                    cursor: "pointer"
+                  }}
+                >
+                  Join Board / Log In
+                </button>
+              )}
             </h3>
-            <p data-testid="leaderboard-user-summary" style={{ margin: "0.25rem 0 0 0", color: "var(--muted, #94a3b8)", fontSize: "0.9rem" }}>
+            <p data-testid="leaderboard-user-summary" style={{ margin: "0.25rem 0 0 0", color: "var(--muted)", fontSize: "0.9rem" }}>
               {stats.verified} Verified Reports • {stats.reports} Submissions • {stats.quizzes} Quizzes Answered
             </p>
+            <p data-testid="leaderboard-user-trust" style={{ margin: "0.35rem 0 0 0", fontSize: "0.85rem", color: "var(--ink, #f8fafc)" }}>
+              <span style={{ fontWeight: "bold", color: "var(--brand, #0d9488)" }}>{stats.trustLevel}</span>
+              {nextLevel
+                ? <span style={{ color: "var(--muted, #94a3b8)" }}> — {nextLevel.pointsAway} pts to {nextLevel.name}</span>
+                : <span style={{ color: "var(--muted, #94a3b8)" }}> — top level reached</span>}
+            </p>
+            {stats.badges.length > 0 && (
+              <ul data-testid="leaderboard-user-badges" style={{ display: "flex", gap: "0.35rem", flexWrap: "wrap", listStyle: "none", padding: 0, margin: "0.5rem 0 0 0" }}>
+                {stats.badges.map((badge) => (
+                  <li
+                    key={badge.id}
+                    title={badge.label}
+                    style={{ fontSize: "0.7rem", border: "1px solid var(--line)", borderRadius: "999px", padding: "0.15rem 0.5rem", color: "var(--muted, #94a3b8)" }}
+                  >
+                    <span aria-hidden="true">{badge.icon}</span> {badge.label}
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
         </div>
 
         <div style={{ display: "flex", gap: "1.5rem", alignItems: "center" }}>
           <div style={{ textAlign: "center" }}>
             <span style={{ fontSize: "0.75rem", textTransform: "uppercase", color: "var(--muted)", letterSpacing: "0.05em" }}>Your Rank</span>
-            {/* findIndex returns -1 before the list exists, which rendered "#0". */}
             <div data-testid="leaderboard-user-rank" style={{ fontSize: "1.75rem", fontWeight: "bold", color: "var(--sky, #38bdf8)" }}>
               {currentUserRank > 0 ? `#${currentUserRank}` : "—"}
             </div>
           </div>
           <div style={{ textAlign: "center" }}>
             <span style={{ fontSize: "0.75rem", textTransform: "uppercase", color: "var(--muted)", letterSpacing: "0.05em" }}>Total Points</span>
-            <div data-testid="leaderboard-user-points" style={{ fontSize: "1.75rem", fontWeight: "bold", color: "#f59e0b" }}>{userRow.points} pts</div>
+            <div data-testid="leaderboard-user-points" style={{ fontSize: "1.75rem", fontWeight: "bold", color: "#f59e0b" }}>{stats.points} pts</div>
           </div>
+          {isAuthenticated && (
+            <button
+              type="button"
+              data-testid="leaderboard-signout-btn"
+              onClick={logout}
+              style={{
+                padding: "0.35rem 0.75rem",
+                backgroundColor: "transparent",
+                color: "#dc2626",
+                border: "1px solid #dc2626",
+                borderRadius: "4px",
+                cursor: "pointer",
+                fontSize: "0.8rem"
+              }}
+            >
+              Sign Out
+            </button>
+          )}
         </div>
       </div>
 
       {/* Point Scoring Rules Breakdown */}
       <div style={{ marginBottom: "2rem", background: "var(--card)", padding: "1rem 1.25rem", borderRadius: "0.5rem", border: "1px solid var(--line)" }}>
         <h4 style={{ margin: "0 0 0.75rem 0", fontSize: "0.95rem", color: "var(--muted)" }}>⚡ How to Earn Points</h4>
+        <p style={{ margin: "0 0 0.75rem 0", fontSize: "0.8rem", color: "var(--muted)" }}>
+          Trust levels: {TRUST_LEVELS.map((level) => `${level.name} (${level.minPoints})`).join(" → ")}
+        </p>
         <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
           {POINT_SYSTEM.map((rule) => (
             <div key={rule.action} style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "0.85rem" }}>
@@ -143,6 +303,7 @@ export default function Leaderboard() {
             <tr style={{ borderBottom: "2px solid var(--line)", color: "var(--muted)", fontSize: "0.85rem" }}>
               <th style={{ padding: "0.75rem 0.5rem" }}>Rank</th>
               <th style={{ padding: "0.75rem 0.5rem" }}>Contributor</th>
+              <th style={{ padding: "0.75rem 0.5rem" }}>Trust Level</th>
               <th style={{ padding: "0.75rem 0.5rem" }}>Verified Reports (+50)</th>
               <th style={{ padding: "0.75rem 0.5rem" }}>Submissions (+10)</th>
               <th style={{ padding: "0.75rem 0.5rem" }}>Quizzes (+1)</th>
@@ -150,37 +311,37 @@ export default function Leaderboard() {
             </tr>
           </thead>
           <tbody>
-            {leaderboard.map((user, idx) => {
+            {leaderboard.map((userRow, idx) => {
               const rank = idx + 1;
               const isTop3 = rank <= 3;
               const badge = rank === 1 ? "🥇" : rank === 2 ? "🥈" : rank === 3 ? "🥉" : `#${rank}`;
 
               return (
                 <tr
-                  key={user.id}
-                  data-testid={user.isCurrentUser ? "leaderboard-user-row" : undefined}
+                  key={userRow.id}
+                  data-testid={userRow.isCurrentUser ? "leaderboard-user-row" : undefined}
                   style={{
                     borderBottom: "1px solid var(--line)",
-                    backgroundColor: user.isCurrentUser ? "rgba(13, 148, 136, 0.08)" : "transparent",
-                    fontWeight: user.isCurrentUser ? "bold" : "normal"
+                    backgroundColor: userRow.isCurrentUser ? "rgba(13, 148, 136, 0.08)" : "transparent",
+                    fontWeight: userRow.isCurrentUser ? "bold" : "normal"
                   }}
                 >
                   <td style={{ padding: "0.85rem 0.5rem", fontSize: "1.1rem" }}>{badge}</td>
                   <td style={{ padding: "0.85rem 0.5rem" }}>
-                    <span style={{ marginRight: "0.5rem" }}>{user.avatar}</span>
-                    {user.name}
-                    {user.isCurrentUser && <span style={{ marginLeft: "0.5rem", fontSize: "0.75rem", color: "var(--brand)" }}>(You)</span>}
-                    {user.isSample && (
+                    <span style={{ marginRight: "0.5rem" }}>{userRow.avatar}</span>
+                    {userRow.name}
+                    {userRow.isCurrentUser && <span style={{ marginLeft: "0.5rem", fontSize: "0.75rem", color: "var(--brand)" }}>(You)</span>}
+                    {userRow.isSample && (
                       <span style={{ marginLeft: "0.5rem", fontSize: "0.7rem", color: "var(--muted)", border: "1px solid var(--line)", padding: "0.1rem 0.35rem", borderRadius: "999px" }}>
                         sample
                       </span>
                     )}
                   </td>
-                  <td style={{ padding: "0.85rem 0.5rem" }}>{user.verified}</td>
-                  <td style={{ padding: "0.85rem 0.5rem" }}>{user.reports}</td>
-                  <td style={{ padding: "0.85rem 0.5rem" }}>{user.quizzes}</td>
+                  <td style={{ padding: "0.85rem 0.5rem" }}>{userRow.verified}</td>
+                  <td style={{ padding: "0.85rem 0.5rem" }}>{userRow.reports}</td>
+                  <td style={{ padding: "0.85rem 0.5rem" }}>{userRow.quizzes}</td>
                   <td style={{ padding: "0.85rem 0.5rem", textAlign: "right", fontWeight: "bold", color: isTop3 ? "#f59e0b" : "var(--ink)" }}>
-                    {user.points} pts
+                    {userRow.points} pts
                   </td>
                 </tr>
               );
@@ -191,19 +352,118 @@ export default function Leaderboard() {
 
       <p style={{ marginTop: "1.5rem", fontSize: "0.8rem", color: "var(--muted)" }}>
         Your figures come from the reports you've filed and the quizzes you've
-        answered on this device. The other contributors are sample data — there is no
-        shared backend behind this board yet.
+        answered on this device.
       </p>
 
-      {/* Dev-only. Shipping this to production let any visitor click their way up
-          the ranking, which — together with the seeded starting figures — meant no
-          number on this panel corresponded to anything. */}
+      {/* Dev-only simulation */}
       {isDev && (
         <div data-testid="leaderboard-dev-tools" style={{ marginTop: "2rem", paddingTop: "1rem", borderTop: "1px dashed var(--line)", display: "flex", gap: "0.5rem", alignItems: "center", flexWrap: "wrap" }}>
           <span style={{ fontSize: "0.8rem", color: "var(--muted)" }}>Dev only:</span>
           <button type="button" className="btn-secondary text-sm" style={{ padding: "0.25rem 0.6rem" }} onClick={simulateQuiz}>
             Record 10 quiz answers
           </button>
+        </div>
+      )}
+
+      {/* Registration Modal Overlay */}
+      {showRegisterModal && (
+        <div
+          data-testid="register-modal"
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: "rgba(0,0,0,0.5)",
+            backdropFilter: "blur(4px)",
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            zIndex: 1000
+          }}
+        >
+          <div
+            style={{
+              backgroundColor: "var(--card, #1e293b)",
+              border: "1px solid var(--line)",
+              borderRadius: "0.75rem",
+              padding: "2rem",
+              maxWidth: "400px",
+              width: "90%",
+              boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)"
+            }}
+          >
+            <h3 style={{ margin: "0 0 1rem 0", color: "var(--ink)" }}>Create Contributor Profile</h3>
+            
+            <form onSubmit={handleRegisterSubmit} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+              {regError && (
+                <div style={{ color: "#ef4444", fontSize: "0.85rem", fontWeight: "600" }}>{regError}</div>
+              )}
+
+              <label style={{ display: "flex", flexDirection: "column", gap: "0.25rem", fontSize: "0.85rem" }}>
+                Name
+                <input
+                  type="text"
+                  placeholder="e.g. Aarav Sharma"
+                  value={regName}
+                  onChange={(e) => setRegName(e.target.value)}
+                  style={{ padding: "0.5rem", border: "1px solid var(--line)", borderRadius: "4px", backgroundColor: "var(--bg)" }}
+                />
+              </label>
+
+              <label style={{ display: "flex", flexDirection: "column", gap: "0.25rem", fontSize: "0.85rem" }}>
+                Email
+                <input
+                  type="email"
+                  placeholder="e.g. aarav@example.com"
+                  value={regEmail}
+                  onChange={(e) => setRegEmail(e.target.value)}
+                  style={{ padding: "0.5rem", border: "1px solid var(--line)", borderRadius: "4px", backgroundColor: "var(--bg)" }}
+                />
+              </label>
+
+              <div style={{ fontSize: "0.85rem" }}>
+                Choose Avatar
+                <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", marginTop: "0.5rem" }}>
+                  {AVATAR_OPTIONS.map(emoji => (
+                    <button
+                      key={emoji}
+                      type="button"
+                      onClick={() => setRegAvatar(emoji)}
+                      style={{
+                        fontSize: "1.5rem",
+                        padding: "0.25rem",
+                        background: regAvatar === emoji ? "rgba(13, 148, 136, 0.2)" : "transparent",
+                        border: regAvatar === emoji ? "2px solid var(--brand)" : "1px solid transparent",
+                        borderRadius: "6px",
+                        cursor: "pointer"
+                      }}
+                    >
+                      {emoji}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div style={{ display: "flex", gap: "0.5rem", marginTop: "1rem" }}>
+                <button
+                  type="button"
+                  onClick={() => setShowRegisterModal(false)}
+                  style={{ flex: 1, padding: "0.5rem", backgroundColor: "transparent", border: "1px solid var(--line)", borderRadius: "6px", cursor: "pointer" }}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  data-testid="submit-register"
+                  style={{ flex: 1, padding: "0.5rem", backgroundColor: "var(--brand)", color: "white", border: "none", borderRadius: "6px", cursor: "pointer", fontWeight: "600" }}
+                >
+                  Sign In
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
     </section>

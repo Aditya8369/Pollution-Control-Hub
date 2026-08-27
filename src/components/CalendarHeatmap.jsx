@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useCallback, memo } from 'react';
 import { usePopper } from 'react-popper';
 import { UNKNOWN_AQI_BAND } from '../services/airQualityService';
 import { getPollutantBand, POLLUTANTS } from '../utils/dataAggregation';
@@ -31,6 +31,56 @@ function hasCellReading(cell, pollutantKey) {
   const val = getCellPollutantValue(cell, pollutantKey);
   return typeof val === 'number' && Number.isFinite(val);
 }
+
+/**
+ * A single calendar day cell, memoized.
+ *
+ * A 3-year heatmap renders ~1,100 of these. Without memoization every mouse
+ * move over the grid (each triggering setActiveTooltip in the parent) forces
+ * all ~1,100 cells to recompute their pollutant band and re-render, even
+ * though only the hovered cell and the floating tooltip actually changed.
+ * Memoizing means a hover only re-renders the one cell whose props changed.
+ *
+ * `onCellEnter`/`onCellLeave` must be stable (wrapped in useCallback in the
+ * parent) or this memoization has no effect, since a new function reference
+ * every render would still fail the props-equality check.
+ */
+const CalendarDayCell = memo(function CalendarDayCell({ cell, pollutant, pollutantConfig, onCellEnter, onCellLeave }) {
+  if (cell.kind === 'pad') {
+    return <div className="calendar-day empty" />;
+  }
+
+  const val = getCellPollutantValue(cell, pollutant);
+  const isMeasured = hasCellReading(cell, pollutant);
+
+  if (!isMeasured) {
+    return (
+      <div
+        className="calendar-day calendar-day-nodata"
+        style={{ backgroundColor: UNKNOWN_AQI_BAND.color }}
+        title={`${cell.date}: no reading`}
+        onMouseEnter={(e) => onCellEnter(e, cell, UNKNOWN_AQI_BAND, null)}
+        onMouseLeave={onCellLeave}
+        role="img"
+        aria-label={`${cell.date}: no reading available`}
+      />
+    );
+  }
+
+  const band = getPollutantBand(val, pollutant);
+
+  return (
+    <div
+      className="calendar-day"
+      style={{ backgroundColor: band.color }}
+      title={`${cell.date}: ${pollutantConfig.name} ${val ?? '—'} ${pollutantConfig.unit} — ${band.label}`}
+      onMouseEnter={(e) => onCellEnter(e, cell, band, val)}
+      onMouseLeave={onCellLeave}
+      role="img"
+      aria-label={`${cell.date}: ${pollutantConfig.name} ${val ?? '—'}, ${band.label}`}
+    />
+  );
+});
 
 /**
  * Displays a calendar heatmap of historical pollutant values.
@@ -72,7 +122,7 @@ export default function CalendarHeatmap({ data, pollutant = 'us_aqi' }) {
     [markers]
   );
 
-  const handleCellMouseEnter = (e, cell, band, value) => {
+  const handleCellMouseEnter = useCallback((e, cell, band, value) => {
     setReferenceElement(e.currentTarget);
     setActiveTooltip({
       date: cell.date,
@@ -81,12 +131,12 @@ export default function CalendarHeatmap({ data, pollutant = 'us_aqi' }) {
       label: band.label,
       color: band.color,
     });
-  };
+  }, []);
 
-  const handleCellMouseLeave = () => {
+  const handleCellMouseLeave = useCallback(() => {
     setActiveTooltip(null);
     setReferenceElement(null);
-  };
+  }, []);
 
   const pollutantConfig = POLLUTANTS[pollutant] || POLLUTANTS.us_aqi;
 
@@ -140,52 +190,16 @@ export default function CalendarHeatmap({ data, pollutant = 'us_aqi' }) {
                     : 'calendar-heatmap-week'
                 }
               >
-                {week.map((cell, dIndex) => {
-                  // Outside the data range entirely -- structural padding so the
-                  // column starts on Sunday and ends on Saturday.
-                  if (cell.kind === 'pad') {
-                    return (
-                      <div
-                        key={`empty-${wIdx}-${dIndex}`}
-                        className="calendar-day empty"
-                      />
-                    );
-                  }
-
-                  const val = getCellPollutantValue(cell, pollutant);
-                  const isMeasured = hasCellReading(cell, pollutant);
-
-                  if (!isMeasured) {
-                    return (
-                      <div
-                        key={cell.date}
-                        className="calendar-day calendar-day-nodata"
-                        style={{ backgroundColor: UNKNOWN_AQI_BAND.color }}
-                        title={`${cell.date}: no reading`}
-                        onMouseEnter={(e) => handleCellMouseEnter(e, cell, UNKNOWN_AQI_BAND, null)}
-                        onMouseLeave={handleCellMouseLeave}
-                        role="img"
-                        aria-label={`${cell.date}: no reading available`}
-                      />
-                    );
-                  }
-
-                  const band = getPollutantBand(val, pollutant);
-
-                  return (
-                    <div
-                      key={cell.date}
-                      className="calendar-day"
-                      style={{ backgroundColor: band.color }}
-                      // Native tooltip as accessible fallback
-                      title={`${cell.date}: ${pollutantConfig.name} ${val ?? '—'} ${pollutantConfig.unit} — ${band.label}`}
-                      onMouseEnter={(e) => handleCellMouseEnter(e, cell, band, val)}
-                      onMouseLeave={handleCellMouseLeave}
-                      role="img"
-                      aria-label={`${cell.date}: ${pollutantConfig.name} ${val ?? '—'}, ${band.label}`}
-                    />
-                  );
-                })}
+                {week.map((cell, dIndex) => (
+                  <CalendarDayCell
+                    key={cell.date || `empty-${wIdx}-${dIndex}`}
+                    cell={cell}
+                    pollutant={pollutant}
+                    pollutantConfig={pollutantConfig}
+                    onCellEnter={handleCellMouseEnter}
+                    onCellLeave={handleCellMouseLeave}
+                  />
+                ))}
               </div>
             );
           })}

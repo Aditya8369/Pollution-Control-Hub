@@ -429,7 +429,9 @@
         "description": "Transition half of the regional electricity grid to clean renewable energy sources.",
         "details": "Phases out coal and gas thermal generation, drastically cleaning regional air sheds."
       }
-    }
+    },
+    "missingReadings": "No current reading for {{pollutants}}{{location}}, so it is left off the chart rather than estimated.",
+    "noReadings": "Live PM2.5 and NO₂ readings aren't available right now, so there is nothing to simulate against. The scenario percentages above still apply once a reading comes in."
   },
   "carbonCalculator": {
     "badge": "Environmental Awareness",

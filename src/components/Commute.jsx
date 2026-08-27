@@ -200,6 +200,8 @@ const Commute = () => {
         mapCenter={mapCenter}
         searchId={searchId}
         legendItems={LEGEND_ITEMS}
+        origin={origin}
+        destination={destination}
       />
     </main>
   );

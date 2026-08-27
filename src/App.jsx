@@ -45,6 +45,7 @@ import {
   estimateExposureTime,
   fetchWindData,
 } from "./services/airQualityService";
+import { getPrecomputedAverages } from "./services/aqiPrecomputationService";
 import { eventBus } from "./core/events";
 // Imported for its side effect: it subscribes to QUIZ_COMPLETED so the count is
 // recorded whether or not the leaderboard has ever been mounted.
@@ -55,7 +56,11 @@ import { ThemeProvider, useTheme } from "./context/ThemeContext";
 import ThemeSwitcher from "./components/ThemeSwitcher";
 import LanguageSwitcher from "./components/LanguageSwitcher";
 import CarbonFootprintCalculator from "./components/CarbonFootprintCalculator";
-// 1. FIXED: Changed to named import
+// Default import, matching Leaderboard.jsx's `export default`. The comment that
+// used to sit here claimed this was a named import, which is the confusion that
+// produced the shadow Leaderboard.tsx (#990) - that file exported a named
+// `Leaderboard` and nothing else, so tsc reported "no default export" against a
+// module the bundler never resolved.
 import Leaderboard from "./components/Leaderboard";
 import EmbeddableWidgetGenerator from "./components/EmbeddableWidgetGenerator";
 import Glossary from "./components/Glossary";
@@ -64,6 +69,8 @@ import Achievements from "./components/Achievements";
 import EcoImpactDashboard from "./components/EcoImpactDashboard";
 import SmartAlertsDashboard from "./components/SmartAlertsDashboard";
 import CityPollutionLeaderboard from "./components/CityPollutionLeaderboard";
+import OceanAcidificationMonitor from "./components/OceanAcidificationMonitor";
+import HealthImpactDashboard from "./components/HealthImpactDashboard";
 
 const AqiMissionGame = lazy(() => import("./components/AqiMissionGame"));
 const HotspotScoutGame = lazy(() => import("./components/HotspotScoutGame"));
@@ -356,6 +363,8 @@ export function SectionNav({ activeSection, onSectionChange }) {
     { id: "city-leaderboard", label: "City Leaderboard" },
     { id: "marine", label: "Marine Water Quality" },
     { id: "smart-alerts", label: "Smart Alerts" },
+    { id: "ocean-acid", label: "Ocean Acidification" },
+    { id: "health-impact", label: "Health Impact" },
   ];
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef(null);
@@ -594,6 +603,15 @@ function AppContent() {
     mutate: mutateWind,
     // @ts-ignore
   } = useSWR(windKey, () => fetchWindData(position.lat, position.lon));
+
+  const precomputedKey =
+    position.lat && position.lon
+      ? `precomputed_${position.lat.toFixed(4)}_${position.lon.toFixed(4)}`
+      : null;
+  const {
+    data: precomputedData,
+    mutate: mutatePrecomputed,
+  } = useSWR(precomputedKey, () => getPrecomputedAverages(position.lat, position.lon));
 
   const current = aqiData?.current;
   const trend = aqiData?.trend || [];
@@ -859,11 +877,13 @@ function AppContent() {
   const mutateAqiRef = useRef(mutateAqi);
   const mutateCitiesRef = useRef(mutateCities);
   const mutateWindRef = useRef(mutateWind);
+  const mutatePrecomputedRef = useRef(mutatePrecomputed);
 
   useEffect(() => {
     mutateAqiRef.current = mutateAqi;
     mutateCitiesRef.current = mutateCities;
     mutateWindRef.current = mutateWind;
+    mutatePrecomputedRef.current = mutatePrecomputed;
   });
 
   useEffect(() => {
@@ -888,6 +908,7 @@ function AppContent() {
         mutateAqiRef.current();
         mutateCitiesRef.current();
         mutateWindRef.current();
+        mutatePrecomputedRef.current();
         setRefreshCountdown(autoRefreshSeconds);
       }
     }, autoRefreshSeconds * 1000);
@@ -904,10 +925,12 @@ function AppContent() {
     };
   }, [autoRefreshSeconds]);
 
-  const analytics = useMemo(
-    () => estimateWeeklyMonthlyAverages(trend),
-    [trend],
-  );
+  const analytics = useMemo(() => {
+    if (precomputedData) {
+      return precomputedData;
+    }
+    return estimateWeeklyMonthlyAverages(trend);
+  }, [precomputedData, trend]);
   const exposureEstimate = useMemo(
     () => estimateExposureTime(trend, current?.us_aqi),
     [trend, current],
@@ -940,10 +963,11 @@ function AppContent() {
     mutateAqi();
     mutateCities();
     mutateWind();
+    mutatePrecomputed();
     if (autoRefreshSeconds > 0) {
       setRefreshCountdown(autoRefreshSeconds);
     }
-  }, [isRefreshing, mutateAqi, mutateCities, mutateWind, autoRefreshSeconds]);
+  }, [isRefreshing, mutateAqi, mutateCities, mutateWind, mutatePrecomputed, autoRefreshSeconds]);
 
   useEffect(() => {
     const handleOnline = () => {
@@ -1258,6 +1282,8 @@ function AppContent() {
               </Suspense>
             )}
             {activeSection === "smart-alerts" && <SmartAlertsDashboard position={position} />}
+            {activeSection === "ocean-acid" && <OceanAcidificationMonitor />}
+            {activeSection === "health-impact" && <HealthImpactDashboard />}
             {activeSection === "CarbonCalculator" && (
               <div
                 className="content-grid carbon-calculator-layout"

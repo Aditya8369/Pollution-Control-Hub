@@ -388,6 +388,7 @@ export default function CityCompare() {
                             type="button"
                             className="btn-change-city"
                             onClick={() => setEditingIndex(index)}
+                            aria-label={`Swap ${city.name} with another city`}
                           >
                             Swap
                           </button>
@@ -396,6 +397,7 @@ export default function CityCompare() {
                               type="button"
                               className="btn-remove"
                               onClick={() => handleRemoveCity(index)}
+                              aria-label={`Remove ${city.name} from comparison`}
                             >
                               ×
                             </button>
@@ -542,6 +544,8 @@ export default function CityCompare() {
                       scaleMode === "absolute" ? "active" : ""
                     }`}
                     onClick={() => setScaleMode("absolute")}
+                    aria-label="Absolute Values"
+                    aria-pressed={scaleMode === "absolute"}
                   >
                     Absolute Values
                   </button>
@@ -551,6 +555,8 @@ export default function CityCompare() {
                       scaleMode === "normalized" ? "active" : ""
                     }`}
                     onClick={() => setScaleMode("normalized")}
+                    aria-label="Normalized (%)"
+                    aria-pressed={scaleMode === "normalized"}
                   >
                     Normalized (%)
                   </button>
@@ -569,6 +575,8 @@ export default function CityCompare() {
                       chartType === "radar" ? "active" : ""
                     }`}
                     onClick={() => setChartType("radar")}
+                    aria-label="Radar Chart"
+                    aria-pressed={chartType === "radar"}
                   >
                     Radar Chart
                   </button>
@@ -578,6 +586,8 @@ export default function CityCompare() {
                       chartType === "bar" ? "active" : ""
                     }`}
                     onClick={() => setChartType("bar")}
+                    aria-label="Grouped Bar Chart"
+                    aria-pressed={chartType === "bar"}
                   >
                     Grouped Bar Chart
                   </button>

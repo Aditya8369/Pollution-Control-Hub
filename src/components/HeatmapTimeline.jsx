@@ -1,10 +1,19 @@
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef, useMemo, useId } from "react";
 import { MapContainer, TileLayer, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { fetchLocalGridTimeline } from "../services/airQualityService";
 import { getMapTileUrlTemplate, supportsWebP } from "../utils/mapTiles";
 import { loadHeatLayer } from "../utils/heatLayer";
+import {
+    HOURS_IN_DAY,
+    clampHourIndex,
+    formatHourLabel,
+    getHourCount,
+    getHourTime,
+    getMaxHourIndex,
+    initialHourIndex,
+} from "../utils/timelineHours";
 
 const POLLUTANTS = [
     { key: "us_aqi", label: "AQI", limit: null, maxRef: 300 },
@@ -33,11 +42,6 @@ function classify(value, pollutant) {
     if (ratio <= 2) return { label: "Moderate", color: "#f59e0b" };
     if (ratio <= 4) return { label: "High", color: "#f97316" };
     return { label: "Very High", color: "#ef4444" };
-}
-
-function formatHourLabel(isoTime) {
-    if (!isoTime) return "";
-    return new Date(isoTime).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
 
 /**
@@ -72,14 +76,42 @@ function TimelineHeatLayer({ points }) {
     return null;
 }
 
+/**
+ * Keeps the viewport on the city the rest of the panel is describing.
+ *
+ * `<MapContainer center>` is read once, on mount, and react-leaflet documents it
+ * as immutable. `App.jsx` keeps this component mounted across a city search and
+ * just swaps the props, so the heading, the hotspot line and the heat points all
+ * moved to the new city while the map stayed parked over the old one — an empty
+ * map under a heading naming somewhere else. Moving the view is an imperative
+ * call on the map instance, which is what this child is for.
+ *
+ * @param {{ center: [number, number] }} params
+ */
+function RecenterOnCityChange({ center }) {
+    const map = useMap();
+    const [lat, lon] = center;
+
+    useEffect(() => {
+        if (typeof lat !== "number" || typeof lon !== "number") return;
+        if (typeof map?.setView !== "function") return;
+        // Zoom is the user's; only the centre follows the city.
+        const zoom = typeof map.getZoom === "function" ? map.getZoom() : undefined;
+        map.setView([lat, lon], zoom);
+    }, [map, lat, lon]);
+
+    return null;
+}
+
 /** @param {{ lat?: number, lon?: number, cityName?: string }} params */
 export default function HeatmapTimeline({ lat, lon, cityName }) {
     const [gridData, setGridData] = useState([]);
     const [status, setStatus] = useState("loading"); // loading | ready | error
     const [pollutantKey, setPollutantKey] = useState("us_aqi");
-    const [hourIndex, setHourIndex] = useState(new Date().getHours());
+    const [hourIndex, setHourIndex] = useState(() => initialHourIndex(HOURS_IN_DAY));
     const [isPlaying, setIsPlaying] = useState(false);
     const playTimerRef = useRef(null);
+    const sliderId = useId();
 
     const activePollutant = POLLUTANTS.find((p) => p.key === pollutantKey) || POLLUTANTS[0];
 
@@ -107,19 +139,29 @@ export default function HeatmapTimeline({ lat, lon, cityName }) {
         };
     }, [lat, lon]);
 
+    const hourCount = getHourCount(gridData);
+    const maxIndex = getMaxHourIndex(hourCount);
+
+    // A grid shorter than 24 hours would otherwise leave `hourIndex` — seeded from
+    // the local clock before any fetch resolved — past the end of the series, which
+    // renders as an empty map with no error.
+    useEffect(() => {
+        if (hourCount === 0) return;
+        setHourIndex((prev) => clampHourIndex(prev, hourCount));
+    }, [hourCount]);
+
     // Play mode: auto-advance the hour on an interval, looping back to 0.
     useEffect(() => {
-        if (!isPlaying || gridData.length === 0) return undefined;
-        const maxIndex = (gridData[0]?.times.length || 24) - 1;
+        if (!isPlaying || hourCount === 0) return undefined;
 
         playTimerRef.current = setInterval(() => {
             setHourIndex((prev) => (prev >= maxIndex ? 0 : prev + 1));
         }, PLAY_INTERVAL_MS);
 
         return () => clearInterval(playTimerRef.current);
-    }, [isPlaying, gridData]);
+    }, [isPlaying, hourCount, maxIndex]);
 
-    const currentTime = gridData[0]?.times?.[hourIndex] ?? null;
+    const currentTime = getHourTime(gridData, hourIndex);
 
     const heatPoints = useMemo(() => {
         return gridData
@@ -146,13 +188,17 @@ export default function HeatmapTimeline({ lat, lon, cityName }) {
     }, [gridData, pollutantKey, hourIndex]);
 
     const currentBand = classify(hotspot?.value ?? null, activePollutant);
-    const maxIndex = (gridData[0]?.times.length || 24) - 1;
     /** @type {[number, number]} */
     const mapCenter =
         typeof lat === "number" && typeof lon === "number"
             ? [lat, lon]
             : [20.5937, 78.9629];
-    const tileUrlTemplate = getMapTileUrlTemplate("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", supportsWebP());
+    // `supportsWebP()` creates a canvas and reads a data URL out of it. That answer
+    // cannot change for the life of the tab, and this ran on every slider tick.
+    const tileUrlTemplate = useMemo(
+        () => getMapTileUrlTemplate("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", supportsWebP()),
+        []
+    );
 
     return (
         <section data-testid="heatmap-timeline" className="panel">
@@ -187,6 +233,7 @@ export default function HeatmapTimeline({ lat, lon, cityName }) {
                         <button
                             type="button"
                             data-testid="timeline-play-toggle"
+                            aria-pressed={isPlaying}
                             onClick={() => setIsPlaying((prev) => !prev)}
                             style={{
                                 padding: "0.45rem 1rem",
@@ -216,15 +263,22 @@ export default function HeatmapTimeline({ lat, lon, cityName }) {
                         </span>
                     </div>
 
+                    <label htmlFor={sliderId} className="sr-only" style={{ position: "absolute", width: 1, height: 1, overflow: "hidden", clip: "rect(0 0 0 0)", whiteSpace: "nowrap" }}>
+                        Hour of day
+                    </label>
                     <input
+                        id={sliderId}
                         type="range"
                         min="0"
                         max={maxIndex}
                         value={hourIndex}
                         data-testid="timeline-hour-slider"
+                        // Without this a screen reader announces the array index -
+                        // "14 of 23" - rather than the hour the map is showing.
+                        aria-valuetext={formatHourLabel(currentTime) || `Hour ${hourIndex + 1} of ${hourCount}`}
                         onChange={(e) => {
                             setIsPlaying(false);
-                            setHourIndex(Number(e.target.value));
+                            setHourIndex(clampHourIndex(Number(e.target.value), hourCount));
                         }}
                         style={{ width: "100%", marginBottom: "1rem" }}
                     />
@@ -240,6 +294,7 @@ export default function HeatmapTimeline({ lat, lon, cityName }) {
                     <div className="commute-map-container" style={{ height: "420px" }}>
                         <MapContainer center={mapCenter} zoom={11} style={{ height: "100%", width: "100%" }}>
                             <TileLayer url={tileUrlTemplate} attribution='&copy; OpenStreetMap contributors' />
+                            <RecenterOnCityChange center={mapCenter} />
                             <TimelineHeatLayer points={heatPoints} />
                         </MapContainer>
                     </div>
