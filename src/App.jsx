@@ -40,7 +40,6 @@ import {
 } from "./services/airQualityService";
 import { cacheStore } from "./utils/cacheStore";
 import { getPrecomputedAverages } from "./services/aqiPrecomputationService";
-import { eventBus } from "./core/events";
 // Imported for its side effect: it subscribes to QUIZ_COMPLETED so the count is
 // recorded whether or not the leaderboard has ever been mounted.
 import { useTranslation } from "react-i18next";
@@ -63,7 +62,6 @@ import EmbeddableWidgetGenerator from "./components/EmbeddableWidgetGenerator";
 import Glossary from "./components/Glossary";
 import Leaderboard from "./components/Leaderboard";
 import SmartAlertsDashboard from "./components/SmartAlertsDashboard";
-import CityPollutionLeaderboard from "./components/CityPollutionLeaderboard";
 import HealthImpactDashboard from "./components/HealthImpactDashboard";
 
 const AqiMissionGame = lazy(() => import("./components/AqiMissionGame"));
