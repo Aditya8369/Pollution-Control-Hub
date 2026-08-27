@@ -3,8 +3,8 @@
  * member management, and tenant-scoped local data.
  */
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
-const TENANT_STORAGE_KEY = 'pch_tenant_id';
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "/api";
+const TENANT_STORAGE_KEY = "pch_tenant_id";
 
 /**
  * Returns the current tenant ID from localStorage, or "default".
@@ -12,11 +12,11 @@ const TENANT_STORAGE_KEY = 'pch_tenant_id';
  * @returns {string} Current tenant ID.
  */
 export const getCurrentTenantId = () => {
-    try {
-        return localStorage.getItem(TENANT_STORAGE_KEY) || 'default';
-    } catch {
-        return 'default';
-    }
+  try {
+    return localStorage.getItem(TENANT_STORAGE_KEY) || "default";
+  } catch {
+    return "default";
+  }
 };
 
 /**
@@ -26,8 +26,8 @@ export const getCurrentTenantId = () => {
  * @returns {string} Tenant-scoped database name.
  */
 export const getTenantScopedDbName = (baseName) => {
-    const tenantId = getCurrentTenantId();
-    return `${baseName}__${tenantId}`;
+  const tenantId = getCurrentTenantId();
+  return `${baseName}__${tenantId}`;
 };
 
 /**
@@ -37,8 +37,8 @@ export const getTenantScopedDbName = (baseName) => {
  * @returns {string} Tenant-scoped object store name.
  */
 export const getTenantScopedStoreName = (baseName) => {
-    const tenantId = getCurrentTenantId();
-    return `${baseName}__${tenantId}`;
+  const tenantId = getCurrentTenantId();
+  return `${baseName}__${tenantId}`;
 };
 
 /**
@@ -48,8 +48,8 @@ export const getTenantScopedStoreName = (baseName) => {
  * @returns {string} Tenant-scoped cache key.
  */
 export const getTenantScopedKey = (key) => {
-    const tenantId = getCurrentTenantId();
-    return `${tenantId}:${key}`;
+  const tenantId = getCurrentTenantId();
+  return `${tenantId}:${key}`;
 };
 
 /**
@@ -59,9 +59,10 @@ export const getTenantScopedKey = (key) => {
  * @returns {string} Tenant-scoped API URL.
  */
 export const scopeApiUrl = (url) => {
-    const tenantId = getCurrentTenantId();
-    const separator = url.includes('?') ? '&' : '?';
-    return `${url}${separator}tenant_id=${encodeURIComponent(tenantId)}`;
+  const tenantId = getCurrentTenantId();
+  const separator = url.includes("?") ? "&" : "?";
+
+  return `${url}${separator}tenant_id=${encodeURIComponent(tenantId)}`;
 };
 
 /**
@@ -70,19 +71,19 @@ export const scopeApiUrl = (url) => {
  * @returns {Promise<Array>} List of tenant objects.
  */
 export const fetchUserTenants = async () => {
-    const response = await fetch(`${API_BASE}/tenants`, {
-        method: 'GET',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        },
-    });
+  const response = await fetch(`${API_BASE}/tenants`, {
+    method: "GET",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${localStorage.getItem("token")}`,
+    },
+  });
 
-    if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-    }
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`);
+  }
 
-    return response.json();
+  return response.json();
 };
 
 /**
@@ -93,20 +94,23 @@ export const fetchUserTenants = async () => {
  * @returns {Promise<Object>} The updated tenant object.
  */
 export const updateTenantSettings = async (tenantId, settings) => {
-    const response = await fetch(`${API_BASE}/tenants/${tenantId}/settings`, {
-        method: 'PATCH',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        },
-        body: JSON.stringify({ settings }),
-    });
+  const response = await fetch(
+    `${API_BASE}/tenants/${tenantId}/settings`,
+    {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
+      body: JSON.stringify({ settings }),
+    },
+  );
 
-    if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-    }
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`);
+  }
 
-    return response.json();
+  return response.json();
 };
 
 /**
@@ -118,23 +122,32 @@ export const updateTenantSettings = async (tenantId, settings) => {
  * @returns {Promise<Object>} The created tenant member record.
  */
 export const inviteTenantMember = async (tenantId, email, role) => {
-    const response = await fetch(`${API_BASE}/tenants/${tenantId}/members`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        },
-        body: JSON.stringify({ email, role }),
-    });
+  const response = await fetch(
+    `${API_BASE}/tenants/${tenantId}/members`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
+      body: JSON.stringify({ email, role }),
+    },
+  );
 
-    if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(
-            errorData.message || `HTTP error! status: ${response.status}`
-        );
+  if (!response.ok) {
+    let errorMessage = `HTTP error! status: ${response.status}`;
+
+    try {
+      const errorData = await response.json();
+      errorMessage = errorData.message || errorMessage;
+    } catch {
+      // Keep the default HTTP error when the response is not valid JSON.
     }
 
-    return response.json();
+    throw new Error(errorMessage);
+  }
+
+  return response.json();
 };
 
 /**
@@ -145,67 +158,17 @@ export const inviteTenantMember = async (tenantId, email, role) => {
  * @returns {Promise<void>}
  */
 export const removeTenantMember = async (tenantId, memberId) => {
-    const response = await fetch(
-        `${API_BASE}/tenants/${tenantId}/members/${memberId}`,
-        {
-            method: 'DELETE',
-            headers: {
-                'Authorization': `Bearer ${localStorage.getItem('token')}`,
-            },
-        }
-    );
+  const response = await fetch(
+    `${API_BASE}/tenants/${tenantId}/members/${memberId}`,
+    {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
+    },
+  );
 
-    if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-    }
-};
-
-
-const TENANT_STORAGE_KEY = "pch_tenant_id";
-
-/**
- * Returns the current tenant ID from localStorage, or "default".
- */
-export function getCurrentTenantId() {
-  try {
-    return localStorage.getItem(TENANT_STORAGE_KEY) || "default";
-  } catch {
-    return "default";
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`);
   }
-}
-
-/**
- * Returns a scoped IndexedDB database name for the current tenant.
- * Each tenant gets its own isolated IndexedDB database.
- */
-export function getTenantScopedDbName(baseName) {
-  const tenantId = getCurrentTenantId();
-  return `${baseName}__${tenantId}`;
-}
-
-/**
- * Returns a scoped object store name for the current tenant.
- */
-export function getTenantScopedStoreName(baseName) {
-  const tenantId = getCurrentTenantId();
-  return `${baseName}__${tenantId}`;
-}
-
-/**
- * Returns a scoped cache key for the current tenant.
- * Use this to prefix localStorage / sessionStorage keys.
- */
-export function getTenantScopedKey(key) {
-  const tenantId = getCurrentTenantId();
-  return `${tenantId}:${key}`;
-}
-
-/**
- * Appends `tenant_id` as a query parameter to an API URL.
- */
-export function scopeApiUrl(url) {
-  const tenantId = getCurrentTenantId();
-  const separator = url.includes("?") ? "&" : "?";
-  return `${url}${separator}tenant_id=${encodeURIComponent(tenantId)}`;
-}
-
+};
