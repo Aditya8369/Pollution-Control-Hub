@@ -12,8 +12,11 @@ export const CPCB_DUST_AUDIT_CHECKLIST = [
 
 /**
  * Calculates site audit score.
+ *
+ * @param {boolean[]} checklistResponses
+ * @returns {number}
  */
-export function calculateSiteAuditScore(checklistResponses: boolean[]): number {
+export function calculateSiteAuditScore(checklistResponses) {
   const passed = checklistResponses.filter(Boolean).length;
   return Math.round((passed / checklistResponses.length) * 100.0);
 }

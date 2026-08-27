@@ -15,14 +15,26 @@ import {
     TRANSPORT_MODES,
     calculateMultiLocationExposure,
 } from "../utils/exposureModel";
+import { localDayKey } from "../utils/localDay";
 
 const TODAY_ENTRIES_KEY = "exposure-tracker-today";
 const HISTORY_KEY = "exposure-tracker-history";
 const MAX_HISTORY_DAYS = 90;
 const LOCATION_SEARCH_DEBOUNCE_MS = 400;
 
+/**
+ * Today, in the user's own calendar.
+ *
+ * `toISOString()` converts to UTC first, so the day it names rolls over at
+ * midnight UTC rather than at the user's midnight. Since `readTodayEntries()`
+ * discards the stored log the moment `parsed.date !== todayStr()`, that rollover
+ * wiped the day's activities mid-evening in the Americas (19:00 or 20:00 in New
+ * York) and filed the first five and a half hours of an Indian day under
+ * yesterday. `handleSaveDay` used the same key, so the history chart's x-axis was
+ * a day out for anyone west of UTC.
+ */
 function todayStr() {
-    return new Date().toISOString().slice(0, 10);
+    return localDayKey();
 }
 
 function readTodayEntries() {

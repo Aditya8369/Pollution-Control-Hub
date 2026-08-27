@@ -51,6 +51,16 @@ export default function Leaderboard() {
 
   const refresh = useCallback(() => setStats(readContributionStats()), []);
 
+  // The rung above the one the visitor has reached, and how far away it is.
+  // Null once the top of TRUST_LEVELS is reached, which is the case the JSX
+  // below renders as "top level reached".
+  //
+  // This was missing entirely: the render read a free variable `nextLevel` and
+  // threw `ReferenceError: nextLevel is not defined`, blanking the whole panel.
+  // `nextTrustLevel` was already imported and was the only import from
+  // contributionStats that nothing called.
+  const nextLevel = useMemo(() => nextTrustLevel(stats.points), [stats.points]);
+
   useEffect(() => {
     refresh();
     eventBus.on(STATS_CHANGED_EVENT, refresh);

@@ -12,41 +12,47 @@ export const SPILL_HAZARD_CLASSES = {
   ECOTOXIC_HEAVY_METAL: 'Ecotoxic Heavy Metal Solution (Class 9)',
 };
 
-export interface ChemicalSpillIncident {
-  incidentId: string;
-  facilityName: string;
-  chemicalName: string;
-  hazardClass: string;
-  quantityGallons: number;
-  windSpeedKph: number;
-  airTemperatureC: number;
-  proximityToWaterBodyKm: number;
-  reportedAt: string;
-}
+/**
+ * @typedef {Object} ChemicalSpillIncident
+ * @property {string} incidentId
+ * @property {string} facilityName
+ * @property {string} chemicalName
+ * @property {string} hazardClass
+ * @property {number} quantityGallons
+ * @property {number} windSpeedKph
+ * @property {number} airTemperatureC
+ * @property {number} proximityToWaterBodyKm
+ * @property {string} reportedAt
+ */
 
-export interface SeverityAssessment {
-  level: 'CRITICAL_EMERGENCY' | 'HIGH_HAZARD' | 'MODERATE_SPILL' | 'MINOR_CONTAINED';
-  severityScore: number; // 0 to 100
-  requiresImmediateEvacuation: boolean;
-  waterContaminationRisk: boolean;
-  airborneDispersalRisk: boolean;
-}
+/**
+ * @typedef {Object} SeverityAssessment
+ * @property {'CRITICAL_EMERGENCY' | 'HIGH_HAZARD' | 'MODERATE_SPILL' | 'MINOR_CONTAINED'} level
+ * @property {number} severityScore 0 to 100
+ * @property {boolean} requiresImmediateEvacuation
+ * @property {boolean} waterContaminationRisk
+ * @property {boolean} airborneDispersalRisk
+ */
 
-export interface EmergencyDispatchPlan {
-  incidentId: string;
-  facilityName: string;
-  evacuationRadiusKm: number;
-  severityLevel: string;
-  dispatchUnits: string[];
-  containmentSteps: string[];
-  protectiveEquipmentRequired: string[];
-  regulatoryNotificationRequired: string[];
-}
+/**
+ * @typedef {Object} EmergencyDispatchPlan
+ * @property {string} incidentId
+ * @property {string} facilityName
+ * @property {number} evacuationRadiusKm
+ * @property {string} severityLevel
+ * @property {string[]} dispatchUnits
+ * @property {string[]} containmentSteps
+ * @property {string[]} protectiveEquipmentRequired
+ * @property {string[]} regulatoryNotificationRequired
+ */
 
 /**
  * Evaluates chemical spill severity score based on volume, hazard class, and environmental factors.
+ *
+ * @param {ChemicalSpillIncident} incident
+ * @returns {SeverityAssessment}
  */
-export function evaluateSpillSeverity(incident: ChemicalSpillIncident): SeverityAssessment {
+export function evaluateSpillSeverity(incident) {
   let baseScore = 30.0;
 
   // Hazard class multiplier
@@ -90,7 +96,8 @@ export function evaluateSpillSeverity(incident: ChemicalSpillIncident): Severity
   const severityScore = Math.min(100.0, Math.round(baseScore));
   const requiresEvacuation = severityScore >= 65.0;
 
-  let level: SeverityAssessment['level'] = 'MINOR_CONTAINED';
+  /** @type {SeverityAssessment['level']} */
+  let level = 'MINOR_CONTAINED';
   if (severityScore >= 80.0) {
     level = 'CRITICAL_EMERGENCY';
   } else if (severityScore >= 65.0) {
@@ -110,12 +117,13 @@ export function evaluateSpillSeverity(incident: ChemicalSpillIncident): Severity
 
 /**
  * Models plume evacuation radius (in kilometers) using modified Gaussian dispersion parameters.
+ *
+ * @param {string} hazardClass
+ * @param {number} quantityGallons
+ * @param {number} windSpeedKph
+ * @returns {number}
  */
-export function calculateEvacuationRadiusKm(
-  hazardClass: string,
-  quantityGallons: number,
-  windSpeedKph: number
-): number {
+export function calculateEvacuationRadiusKm(hazardClass, quantityGallons, windSpeedKph) {
   let baseRadius = 0.5;
 
   if (hazardClass === SPILL_HAZARD_CLASSES.TOXIC_GAS) {
@@ -135,8 +143,11 @@ export function calculateEvacuationRadiusKm(
 
 /**
  * Generates automated multi-agency emergency dispatch and containment plan.
+ *
+ * @param {ChemicalSpillIncident} incident
+ * @returns {EmergencyDispatchPlan}
  */
-export function generateEmergencyDispatchPlan(incident: ChemicalSpillIncident): EmergencyDispatchPlan {
+export function generateEmergencyDispatchPlan(incident) {
   const severity = evaluateSpillSeverity(incident);
   const evacuationRadiusKm = calculateEvacuationRadiusKm(
     incident.hazardClass,
@@ -144,10 +155,14 @@ export function generateEmergencyDispatchPlan(incident: ChemicalSpillIncident): 
     incident.windSpeedKph
   );
 
-  const dispatchUnits: string[] = ['Local Fire & Emergency Services'];
-  const containmentSteps: string[] = ['Isolate spill origin and cut off fuel/feed valves.'];
-  const ppe: string[] = ['Standard HazMat Gloves & Respirator'];
-  const regNotify: string[] = ['State Pollution Control Board (SPCB)'];
+  /** @type {string[]} */
+  const dispatchUnits = ['Local Fire & Emergency Services'];
+  /** @type {string[]} */
+  const containmentSteps = ['Isolate spill origin and cut off fuel/feed valves.'];
+  /** @type {string[]} */
+  const ppe = ['Standard HazMat Gloves & Respirator'];
+  /** @type {string[]} */
+  const regNotify = ['State Pollution Control Board (SPCB)'];
 
   if (severity.level === 'CRITICAL_EMERGENCY' || severity.level === 'HIGH_HAZARD') {
     dispatchUnits.push('HazMat Emergency Response Team Alpha');

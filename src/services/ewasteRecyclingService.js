@@ -12,45 +12,52 @@ export const EWASTE_CATEGORIES = {
   SOLAR_PV_PANELS: 'SOLAR1 - End-of-Life Photovoltaic Panels',
 };
 
-export interface EwasteProducerData {
-  producerId: string;
-  companyName: string;
-  annualSalesVolumeUnits: number;
-  category: string;
-  collectedEwasteTons: number;
-  recycledEwasteTons: number;
-  targetEprRecyclingRatePercent: number;
-  reportedAt: string;
-}
+/**
+ * @typedef {Object} EwasteProducerData
+ * @property {string} producerId
+ * @property {string} companyName
+ * @property {number} annualSalesVolumeUnits
+ * @property {string} category
+ * @property {number} collectedEwasteTons
+ * @property {number} recycledEwasteTons
+ * @property {number} targetEprRecyclingRatePercent
+ * @property {string} reportedAt
+ */
 
-export interface EprComplianceAssessment {
-  achievedRecyclingRatePercent: number;
-  eprStatus: 'EPR_TARGET_ACHIEVED' | 'MODERATE_PROGRESS' | 'CRITICAL_EPR_DEFICIT';
-  isCompliant: boolean;
-  recyclingTargetDeficitTons: number;
-  eprPenaltyINR: number;
-}
+/**
+ * @typedef {Object} EprComplianceAssessment
+ * @property {number} achievedRecyclingRatePercent
+ * @property {'EPR_TARGET_ACHIEVED' | 'MODERATE_PROGRESS' | 'CRITICAL_EPR_DEFICIT'} eprStatus
+ * @property {boolean} isCompliant
+ * @property {number} recyclingTargetDeficitTons
+ * @property {number} eprPenaltyINR
+ */
 
-export interface PreciousMetalYield {
-  goldRecoveryGrams: number;
-  silverRecoveryGrams: number;
-  copperRecoveryKg: number;
-  lithiumRecoveryKg: number;
-  estimatedMetalValueINR: number;
-}
+/**
+ * @typedef {Object} PreciousMetalYield
+ * @property {number} goldRecoveryGrams
+ * @property {number} silverRecoveryGrams
+ * @property {number} copperRecoveryKg
+ * @property {number} lithiumRecoveryKg
+ * @property {number} estimatedMetalValueINR
+ */
 
-export interface EwasteDispatchPlan {
-  producerId: string;
-  companyName: string;
-  logisticsVehiclesDispatched: number;
-  authorizedRecyclers: string[];
-  safeDismantlingDirectives: string[];
-}
+/**
+ * @typedef {Object} EwasteDispatchPlan
+ * @property {string} producerId
+ * @property {string} companyName
+ * @property {number} logisticsVehiclesDispatched
+ * @property {string[]} authorizedRecyclers
+ * @property {string[]} safeDismantlingDirectives
+ */
 
 /**
  * Evaluates Extended Producer Responsibility (EPR) recycling compliance under CPCB E-Waste Rules.
+ *
+ * @param {EwasteProducerData} producer
+ * @returns {EprComplianceAssessment}
  */
-export function evaluateEprRecyclingCompliance(producer: EwasteProducerData): EprComplianceAssessment {
+export function evaluateEprRecyclingCompliance(producer) {
   const totalEwasteGeneratedEstimateTons = Math.max(1.0, (producer.annualSalesVolumeUnits * 1.5) / 1000.0);
   const targetTons = totalEwasteGeneratedEstimateTons * (producer.targetEprRecyclingRatePercent / 100.0);
   const achievedRate = (producer.recycledEwasteTons / totalEwasteGeneratedEstimateTons) * 100.0;
@@ -59,7 +66,8 @@ export function evaluateEprRecyclingCompliance(producer: EwasteProducerData): Ep
   const eprPenalty = Math.round(deficitTons * 25000); // INR 25,000 / ton penalty under EPR non-compliance
 
   const isCompliant = deficitTons <= 0;
-  let status: EprComplianceAssessment['eprStatus'] = 'CRITICAL_EPR_DEFICIT';
+  /** @type {EprComplianceAssessment['eprStatus']} */
+  let status = 'CRITICAL_EPR_DEFICIT';
 
   if (achievedRate >= producer.targetEprRecyclingRatePercent) {
     status = 'EPR_TARGET_ACHIEVED';
@@ -78,11 +86,12 @@ export function evaluateEprRecyclingCompliance(producer: EwasteProducerData): Ep
 
 /**
  * Calculates urban mining precious metal recovery yield (Gold, Silver, Copper, Lithium) from recycled e-waste.
+ *
+ * @param {string} category
+ * @param {number} recycledTons
+ * @returns {PreciousMetalYield}
  */
-export function calculatePreciousMetalRecoveryYieldGram(
-  category: string,
-  recycledTons: number
-): PreciousMetalYield {
+export function calculatePreciousMetalRecoveryYieldGram(category, recycledTons) {
   let goldPerTon = 15.0; // 15g gold per ton of e-waste PCB
   let silverPerTon = 80.0; // 80g silver per ton
   let copperPerTon = 120.0; // 120kg copper per ton
@@ -124,8 +133,11 @@ export function calculatePreciousMetalRecoveryYieldGram(
 
 /**
  * Generates automated e-waste collection center dispatch and dismantler logistics plan.
+ *
+ * @param {EwasteProducerData} producer
+ * @returns {EwasteDispatchPlan}
  */
-export function generateEwasteCollectionDispatchPlan(producer: EwasteProducerData): EwasteDispatchPlan {
+export function generateEwasteCollectionDispatchPlan(producer) {
   const compliance = evaluateEprRecyclingCompliance(producer);
   const vehiclesNeeded = Math.max(1, Math.ceil(producer.recycledEwasteTons / 5.0));
 
