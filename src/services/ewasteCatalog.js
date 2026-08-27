@@ -25,7 +25,10 @@ export const EWASTE_HYDROMETALLURGY_CATALOG = [
 
 /**
  * Calculates hydrometallurgical recovery efficiency.
+ *
+ * @param {number} inputBlackMassTons
+ * @returns {number}
  */
-export function calculateHydrometallurgicalYieldKg(inputBlackMassTons: number): number {
+export function calculateHydrometallurgicalYieldKg(inputBlackMassTons) {
   return Math.round(inputBlackMassTons * 1000.0 * 0.15 * 0.95);
 }

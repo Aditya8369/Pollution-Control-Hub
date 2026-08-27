@@ -153,23 +153,34 @@ export default function ChallengesWidget() {
   // the user separately click "Mark Complete" for something they already did.
   useEffect(() => {
     function handleEcoTripLogged(trip) {
-      if (!challenge || completed || !trip) return;
-      const text = challenge.toLowerCase();
-      const isPublicTransportMatch = trip.type === "publicTransport" && text.includes("public transport");
-      const isWalkOrCycleMatch =
-        (trip.type === "cycling" || trip.type === "carAvoided") &&
-        (text.includes("cycle") || text.includes("walk"));
+      if (!trip) return;
+      
+      // Look for public transport challenge
+      const ptChallenge = dailies.find(c => c.id === "public-transport" && !c.completed);
+      if (ptChallenge) {
+        const text = ptChallenge.text.toLowerCase();
+        if (trip.type === "publicTransport" && text.includes("public transport")) {
+          handleMarkComplete("public-transport");
+        }
+      }
 
-      if (isPublicTransportMatch || isWalkOrCycleMatch) {
-        completeChallenge();
+      // Look for walk/cycle challenge
+      const wcChallenge = dailies.find(c => !c.completed && (c.text.toLowerCase().includes("walk") || c.text.toLowerCase().includes("cycle")));
+      if (wcChallenge) {
+        const text = wcChallenge.text.toLowerCase();
+        const isWalkOrCycleMatch =
+          (trip.type === "cycling" || trip.type === "carAvoided") &&
+          (text.includes("cycle") || text.includes("walk"));
+        if (isWalkOrCycleMatch) {
+          handleMarkComplete(wcChallenge.id);
+        }
       }
     }
 
     eventBus.on("ECO_TRIP_LOGGED", handleEcoTripLogged);
     return () => eventBus.off("ECO_TRIP_LOGGED", handleEcoTripLogged);
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- completeChallenge
-    // closes over challenge/completed/points, which are already in this array.
-  }, [challenge, completed, points]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dailies]);
 
   // Progress update for weekly tasks
   const triggerWeeklyProgress = useCallback((eventKey, count = 1) => {

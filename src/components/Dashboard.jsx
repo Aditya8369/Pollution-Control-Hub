@@ -24,6 +24,7 @@ import { useSWR } from "../hooks/useSWR";
 import { getAQIBand, getPollutantColor, get7DayForecast, getWeatherDetails } from "../services/airQualityService";
 import { fetchHourlyWeather } from "../services/weatherService";
 import { eventBus } from "../core/events";
+import { localDayKey } from "../utils/localDay";
 import SymptomReportButton from "./SymptomReportButton";
 
 // Lazy-load heavy widgets and sub-components
@@ -356,7 +357,7 @@ export default function Dashboard({
         logging: false,
       });
       const safeCityName = cityName.replace(/[^a-z0-9]/gi, "-").toLowerCase();
-      const fileName = `${safeCityName}-aqi-${new Date().toISOString().slice(0, 10)}.png`;
+      const fileName = `${safeCityName}-aqi-${localDayKey()}.png`;
 
       if (navigator.share && navigator.canShare) {
         canvas.toBlob(async (blob) => {
@@ -1167,6 +1168,8 @@ export default function Dashboard({
                       backgroundColor: trendGranularity === g.id ? 'var(--brand)' : undefined,
                       color: trendGranularity === g.id ? '#fff' : undefined,
                     }}
+                    aria-label={g.label}
+                    aria-pressed={trendGranularity === g.id}
                     onClick={() => setTrendGranularity(g.id)}
                   >
                     {g.label}

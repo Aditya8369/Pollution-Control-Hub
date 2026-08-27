@@ -70,6 +70,7 @@ import EcoImpactDashboard from "./components/EcoImpactDashboard";
 import SmartAlertsDashboard from "./components/SmartAlertsDashboard";
 import CityPollutionLeaderboard from "./components/CityPollutionLeaderboard";
 import AIPollutionForecast from "./components/AIPollutionForecast";
+import OceanAcidificationMonitor from "./components/OceanAcidificationMonitor";
 import HealthImpactDashboard from "./components/HealthImpactDashboard";
 
 const AqiMissionGame = lazy(() => import("./components/AqiMissionGame"));
@@ -364,6 +365,7 @@ export function SectionNav({ activeSection, onSectionChange }) {
     { id: "marine", label: "Marine Water Quality" },
     { id: "smart-alerts", label: "Smart Alerts" },
     { id: "ai-forecast", label: "AI Forecast" },
+    { id: "ocean-acid", label: "Ocean Acidification" },
     { id: "health-impact", label: "Health Impact" },
   ];
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -1283,6 +1285,7 @@ function AppContent() {
             )}
             {activeSection === "smart-alerts" && <SmartAlertsDashboard position={position} />}
             {activeSection === "ai-forecast" && <AIPollutionForecast />}
+            {activeSection === "ocean-acid" && <OceanAcidificationMonitor />}
             {activeSection === "health-impact" && <HealthImpactDashboard />}
             {activeSection === "CarbonCalculator" && (
               <div
