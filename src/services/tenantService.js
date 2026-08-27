@@ -131,3 +131,4 @@ export function scopeApiUrl(url) {
   const separator = url.includes("?") ? "&" : "?";
   return `${url}${separator}tenant_id=${encodeURIComponent(tenantId)}`;
 }
+
