@@ -31,7 +31,10 @@ export const MARITIME_SPILL_RESPONSE_CATALOG = [
 
 /**
  * Calculates total oil volume recovery capacity per hour for a fleet of skimmer assets.
+ *
+ * @param {number} skimmerCount
+ * @returns {number}
  */
-export function calculateFleetRecoveryCapacity(skimmerCount: number): number {
+export function calculateFleetRecoveryCapacity(skimmerCount) {
   return skimmerCount * 500;
 }

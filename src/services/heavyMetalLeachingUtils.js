@@ -2,18 +2,23 @@
  * Fly Ash Heavy Metal Leaching (Arsenic, Lead, Mercury) Assessment Utilities
  */
 
-export interface HeavyMetalLeachateAssessment {
-  arsenicPpm: number;
-  leadPpm: number;
-  mercuryPpm: number;
-  exceedsCPCBSafeLimits: boolean;
-  groundwaterToxicityAlert: string;
-}
+/**
+ * @typedef {Object} HeavyMetalLeachateAssessment
+ * @property {number} arsenicPpm
+ * @property {number} leadPpm
+ * @property {number} mercuryPpm
+ * @property {boolean} exceedsCPCBSafeLimits
+ * @property {string} groundwaterToxicityAlert
+ */
 
 /**
  * Evaluates toxic heavy metal leaching from fly ash pond slurry.
+ *
+ * @param {string} flyAshGrade
+ * @param {number} [pHLevel=7.5]
+ * @returns {HeavyMetalLeachateAssessment}
  */
-export function evaluateHeavyMetalLeaching(flyAshGrade: string, pHLevel = 7.5): HeavyMetalLeachateAssessment {
+export function evaluateHeavyMetalLeaching(flyAshGrade, pHLevel = 7.5) {
   const isClassF = flyAshGrade.includes('Class F');
   const arsenic = isClassF ? 0.45 : 0.20;
   const lead = isClassF ? 0.85 : 0.40;

@@ -2,13 +2,14 @@
  * Additional Hazardous Chemical Spill Mitigation Data Models & Evacuation Radii Utilities
  */
 
-export interface SpillMitigationStep {
-  stepNumber: number;
-  actionTitle: string;
-  description: string;
-  responsibleAgency: string;
-  estimatedTimeMinutes: number;
-}
+/**
+ * @typedef {Object} SpillMitigationStep
+ * @property {number} stepNumber
+ * @property {string} actionTitle
+ * @property {string} description
+ * @property {string} responsibleAgency
+ * @property {number} estimatedTimeMinutes
+ */
 
 export const HAZARDOUS_CHEMICAL_CATALOG = [
   { name: 'Chlorine Gas', hazardClass: 'Toxic / Corrosive Gas (Class 2.3)', casNumber: '7782-50-5', baseEvacuationKm: 3.5 },
@@ -20,15 +21,27 @@ export const HAZARDOUS_CHEMICAL_CATALOG = [
 
 /**
  * Calculates chemical spill dispersion cloud area (sq km).
+ *
+ * @param {number} radiusKm
+ * @returns {number}
  */
-export function calculateDispersionCloudAreaSqKm(radiusKm: number): number {
+export function calculateDispersionCloudAreaSqKm(radiusKm) {
   return Math.round(Math.PI * Math.pow(radiusKm, 2) * 100) / 100;
 }
 
 /**
  * Generates detailed multi-step containment procedures.
+ *
+ * The hazard class is accepted but not yet branched on -- the four steps below
+ * are the common HazMat sequence and apply to every class in
+ * `HAZARDOUS_CHEMICAL_CATALOG`. Kept in the signature because callers already
+ * pass it and class-specific procedures are the obvious next step; underscored
+ * so the unused-argument rule records that as deliberate rather than a slip.
+ *
+ * @param {string} _hazardClass
+ * @returns {SpillMitigationStep[]}
  */
-export function generateMitigationProcedures(hazardClass: string): SpillMitigationStep[] {
+export function generateMitigationProcedures(_hazardClass) {
   return [
     {
       stepNumber: 1,

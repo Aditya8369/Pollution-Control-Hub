@@ -12,53 +12,61 @@ export const CONSTRUCTION_SITE_TYPES = {
   RESIDENTIAL_COLONY: 'Residential Housing Township',
 };
 
-export interface ConstructionSiteDustData {
-  siteId: string;
-  siteName: string;
-  siteType: string;
-  plotAreaSqMeters: number;
-  pm25ConcentrationUgM3: number;
-  pm10ConcentrationUgM3: number;
-  activeAntiSmogGuns: number;
-  windSpeedKph: number;
-  reportedAt: string;
-}
+/**
+ * @typedef {Object} ConstructionSiteDustData
+ * @property {string} siteId
+ * @property {string} siteName
+ * @property {string} siteType
+ * @property {number} plotAreaSqMeters
+ * @property {number} pm25ConcentrationUgM3
+ * @property {number} pm10ConcentrationUgM3
+ * @property {number} activeAntiSmogGuns
+ * @property {number} windSpeedKph
+ * @property {string} reportedAt
+ */
 
-export interface DustComplianceAssessment {
-  status: 'FULL_COMPLIANCE' | 'MODERATE_EXCEEDANCE' | 'HIGH_POLLUTION_ALERT' | 'CRITICAL_VIOLATION_STOP_WORK';
-  isCompliant: boolean;
-  pm10ExceedanceRatio: number;
-  stopWorkNoticeIssued: boolean;
-  dailyPenaltyINR: number;
-}
+/**
+ * @typedef {Object} DustComplianceAssessment
+ * @property {'FULL_COMPLIANCE' | 'MODERATE_EXCEEDANCE' | 'HIGH_POLLUTION_ALERT' | 'CRITICAL_VIOLATION_STOP_WORK'} status
+ * @property {boolean} isCompliant
+ * @property {number} pm10ExceedanceRatio
+ * @property {boolean} stopWorkNoticeIssued
+ * @property {number} dailyPenaltyINR
+ */
 
-export interface AntiSmogGunEfficiency {
-  requiredAntiSmogGunsCount: number;
-  suppressionEfficiencyPercent: number;
-  waterConsumptionLitersPerHour: number;
-  dropletMicronSize: number;
-}
+/**
+ * @typedef {Object} AntiSmogGunEfficiency
+ * @property {number} requiredAntiSmogGunsCount
+ * @property {number} suppressionEfficiencyPercent
+ * @property {number} waterConsumptionLitersPerHour
+ * @property {number} dropletMicronSize
+ */
 
-export interface ConstructionDustDispatchPlan {
-  siteId: string;
-  siteName: string;
-  additionalAntiSmogGunsRequired: number;
-  greenNettingRequiredSqMeters: number;
-  waterSprinklingTankersDispatched: number;
-  mitigationDirectives: string[];
-}
+/**
+ * @typedef {Object} ConstructionDustDispatchPlan
+ * @property {string} siteId
+ * @property {string} siteName
+ * @property {number} additionalAntiSmogGunsRequired
+ * @property {number} greenNettingRequiredSqMeters
+ * @property {number} waterSprinklingTankersDispatched
+ * @property {string[]} mitigationDirectives
+ */
 
 /**
  * Evaluates construction site PM2.5 / PM10 dust emissions against CPCB / CAAQMS 24-hour ambient air quality standards.
+ *
+ * @param {ConstructionSiteDustData} site
+ * @returns {DustComplianceAssessment}
  */
-export function evaluateConstructionSiteDustCompliance(site: ConstructionSiteDustData): DustComplianceAssessment {
+export function evaluateConstructionSiteDustCompliance(site) {
   const pm10Limit = 100.0; // 100 ug/m3 24h limit
   const pm25Limit = 60.0;  // 60 ug/m3 24h limit
 
   const pm10Ratio = site.pm10ConcentrationUgM3 / pm10Limit;
   const isCompliant = site.pm10ConcentrationUgM3 <= pm10Limit && site.pm25ConcentrationUgM3 <= pm25Limit;
 
-  let status: DustComplianceAssessment['status'] = 'FULL_COMPLIANCE';
+  /** @type {DustComplianceAssessment['status']} */
+  let status = 'FULL_COMPLIANCE';
   let stopWork = false;
   let penalty = 0;
 
@@ -85,12 +93,13 @@ export function evaluateConstructionSiteDustCompliance(site: ConstructionSiteDus
 
 /**
  * Calculates anti-smog gun mist atomization efficiency and water consumption.
+ *
+ * @param {number} activeGuns
+ * @param {number} plotAreaSqMeters
+ * @param {number} windSpeedKph
+ * @returns {AntiSmogGunEfficiency}
  */
-export function calculateAntiSmogGunEfficiency(
-  activeGuns: number,
-  plotAreaSqMeters: number,
-  windSpeedKph: number
-): AntiSmogGunEfficiency {
+export function calculateAntiSmogGunEfficiency(activeGuns, plotAreaSqMeters, windSpeedKph) {
   // CPCB mandate: 1 anti-smog gun per 5,000 sq meters of active construction area
   const requiredGuns = Math.max(1, Math.ceil(plotAreaSqMeters / 5000.0));
   const gunDeficitRatio = Math.min(1.0, activeGuns / requiredGuns);
@@ -111,8 +120,11 @@ export function calculateAntiSmogGunEfficiency(
 
 /**
  * Generates automated construction dust suppression and anti-smog gun dispatch plan.
+ *
+ * @param {ConstructionSiteDustData} site
+ * @returns {ConstructionDustDispatchPlan}
  */
-export function generateConstructionDustDispatchPlan(site: ConstructionSiteDustData): ConstructionDustDispatchPlan {
+export function generateConstructionDustDispatchPlan(site) {
   const compliance = evaluateConstructionSiteDustCompliance(site);
   const gunMetrics = calculateAntiSmogGunEfficiency(site.activeAntiSmogGuns, site.plotAreaSqMeters, site.windSpeedKph);
 
@@ -120,7 +132,8 @@ export function generateConstructionDustDispatchPlan(site: ConstructionSiteDustD
   const greenNettingSqM = Math.round(site.plotAreaSqMeters * 0.4);
   const tankersCount = Math.max(1, Math.ceil(site.plotAreaSqMeters / 10000.0));
 
-  const directives: string[] = [
+  /** @type {string[]} */
+  const directives = [
     'Enforce 100% green agro-mesh scaffolding enclosure around building perimeter.',
     'Deploy automated tire-washing bays at all site entry and exit gates.',
     'Conduct wet-suppression mist spraying over unpaved haul roads twice daily.',

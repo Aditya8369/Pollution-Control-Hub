@@ -2,21 +2,24 @@
  * Marine Mammal & Turtle Habitat Impact Assessment Utilities
  */
 
-export interface HabitatImpactReport {
-  speciesAtRiskCount: number;
-  criticalHabitatsBreached: string[];
-  recommendedRescueBoatsCount: number;
-}
+/**
+ * @typedef {Object} HabitatImpactReport
+ * @property {number} speciesAtRiskCount
+ * @property {string[]} criticalHabitatsBreached
+ * @property {number} recommendedRescueBoatsCount
+ */
 
 /**
  * Assesses biological impact on marine fauna in oil spill drift path.
+ *
+ * @param {string} ecosystemType
+ * @param {number} oilVolumeBarrels
+ * @param {number} slickAreaSqKm
+ * @returns {HabitatImpactReport}
  */
-export function assessMarineFaunaImpact(
-  ecosystemType: string,
-  oilVolumeBarrels: number,
-  slickAreaSqKm: number
-): HabitatImpactReport {
-  const breached: string[] = [];
+export function assessMarineFaunaImpact(ecosystemType, oilVolumeBarrels, slickAreaSqKm) {
+  /** @type {string[]} */
+  const breached = [];
   let speciesCount = 5;
 
   if (ecosystemType.includes('Mangrove') || ecosystemType.includes('Estuary')) {
