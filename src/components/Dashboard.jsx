@@ -1168,6 +1168,8 @@ export default function Dashboard({
                       backgroundColor: trendGranularity === g.id ? 'var(--brand)' : undefined,
                       color: trendGranularity === g.id ? '#fff' : undefined,
                     }}
+                    aria-label={g.label}
+                    aria-pressed={trendGranularity === g.id}
                     onClick={() => setTrendGranularity(g.id)}
                   >
                     {g.label}
