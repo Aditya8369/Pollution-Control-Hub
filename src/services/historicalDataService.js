@@ -1,5 +1,6 @@
 import { getTenantScopedDbName, getTenantScopedStoreName } from './tenantService';
 import { logger } from '../utils/logger';
+import { localDayKey } from '../utils/localDay';
 
 const log = logger.child({ module: 'historicalDataService' });
 
@@ -185,11 +186,15 @@ export async function pruneCache(keepPrefix, keepId) {
 export async function fetchHistoricalData(lat, lon, years = 1) {
   // Using 1 year by default for heatmap, but we can do up to 3 years
   const today = new Date();
-  const endDate = today.toISOString().split('T')[0];
+  // Use local wall-clock date rather than toISOString() (always UTC). East of
+  // UTC the local date is ahead of UTC during the night, so UTC-derived dates
+  // produce a window that excludes the user's current local day — the same
+  // class of bug fixed in airQualityService.ts for issue #545.
+  const endDate = localDayKey(today);
 
   const startDateObj = new Date();
   startDateObj.setFullYear(today.getFullYear() - years);
-  const startDate = startDateObj.toISOString().split('T')[0];
+  const startDate = localDayKey(startDateObj);
 
   // Keyed on location and window length only. The old key carried startDate/endDate,
   // both of which move daily, so every entry was orphaned the moment the clock rolled

@@ -1,29 +1,30 @@
-import {
-  LineChart,
-  Line,
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
-  BarChart,
-  Bar,
-  PieChart,
-  Pie,
-  Cell
-} from "recharts";
-import { lazy, Suspense, useRef, useState, useEffect, useMemo } from "react";
-import { POLLUTANTS, aggregateData } from "../utils/dataAggregation";
-import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
-import styles from "./Dashboard.module.css";
-import { useSWR } from "../hooks/useSWR";
-import { getAQIBand, getPollutantColor, get7DayForecast, getWeatherDetails } from "../services/airQualityService";
-import { fetchHourlyWeather } from "../services/weatherService";
+import jsPDF from "jspdf";
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from "react";
+import {
+  Area,
+  AreaChart,
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  Legend,
+  Line,
+  LineChart,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis
+} from "recharts";
 import { eventBus } from "../core/events";
+import { useSWR } from "../hooks/useSWR";
+import { get7DayForecast, getAQIBand, getPollutantColor, getWeatherDetails } from "../services/airQualityService";
+import { fetchHourlyWeather } from "../services/weatherService";
+import { aggregateData, POLLUTANTS } from "../utils/dataAggregation";
+import { formatReportTimestamp } from "../utils/localDay";
+import styles from "./Dashboard.module.css";
 import SymptomReportButton from "./SymptomReportButton";
 
 // Lazy-load heavy widgets and sub-components
@@ -252,7 +253,7 @@ export default function Dashboard({
     const draggedItem = updatedLayout[draggedIndex];
     updatedLayout.splice(draggedIndex, 1);
     updatedLayout.splice(index, 0, draggedItem);
-    
+
     setLayout(updatedLayout);
   };
 
@@ -605,6 +606,11 @@ export default function Dashboard({
               {isRefreshing
                 ? 'Updating data...'
                 : `Last updated: ${relativeTimeLabel(lastUpdated)}`}
+              {lastUpdated && (
+                <span data-testid="reading-time" style={{ marginLeft: '0.5rem', opacity: 0.75 }}>
+                  ({formatReportTimestamp(lastUpdated)})
+                </span>
+              )}
             </p>
           </div>
         </div>
@@ -617,7 +623,7 @@ export default function Dashboard({
             </div>
             <p data-testid="aqi-band-label" aria-live="polite">{aqiBand.label}</p>
             {aqiTrend && (
-              <div 
+              <div
                 style={{ fontSize: "0.95rem", fontWeight: "600", color: aqiTrend.color, marginTop: "0.5rem", marginBottom: "0.5rem" }}
                 aria-label={`Trend: ${aqiTrend.label.replace(/[^a-zA-Z ]/g, '')}`}
               >
@@ -704,7 +710,7 @@ export default function Dashboard({
                   <span className={styles.pollutantPercent} style={{ color: p.color }}>{pct}%</span>
                 </div>
 
-                <div 
+                <div
                   className={styles.pollutantProgressTrack}
                   role="progressbar"
                   aria-label={`${p.name} percentage of WHO limit`}
@@ -770,13 +776,13 @@ export default function Dashboard({
                     }}
                   >
                     <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-                      <span 
+                      <span
                         style={{ cursor: "grab", color: "var(--text-secondary, #64748b)", fontSize: "1.2rem", userSelect: "none" }}
                         aria-hidden="true"
                       >
                         ☰
                       </span>
-                      
+
                       <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", cursor: "pointer", fontWeight: "600" }}>
                         <input
                           type="checkbox"
@@ -1078,12 +1084,12 @@ export default function Dashboard({
 
         <div className={styles.chartGrid}>
           <article className="chart-card">
-          <h3>Hourly Weather Forecast</h3>
-          {hourlyWeatherError && (
-            <p style={{ color: 'var(--danger)', padding: '1rem' }} role="alert">
-              Failed to load hourly weather data.
-            </p>
-          )}
+            <h3>Hourly Weather Forecast</h3>
+            {hourlyWeatherError && (
+              <p style={{ color: 'var(--danger)', padding: '1rem' }} role="alert">
+                Failed to load hourly weather data.
+              </p>
+            )}
             {!hourlyWeather && !hourlyWeatherError && (
               <p style={{ padding: '1rem', color: 'var(--muted)' }} aria-live="polite">Loading hourly weather…</p>
             )}
