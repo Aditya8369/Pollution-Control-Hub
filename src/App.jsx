@@ -66,6 +66,7 @@ import OceanAcidificationMonitor from "./components/OceanAcidificationMonitor";
 
 import HealthImpactDashboard from "./components/HealthImpactDashboard";
 import DataExportDashboard from "./components/DataExportDashboard";
+import CityComparisonReport from "./components/CityComparisonReport";
 
 const AqiMissionGame = lazy(() => import("./components/AqiMissionGame"));
 const HotspotScoutGame = lazy(() => import("./components/HotspotScoutGame"));
@@ -362,6 +363,7 @@ export function SectionNav({ activeSection, onSectionChange }) {
     { id: "ocean-acid", label: "Ocean Acidification" },
     { id: "health-impact", label: "Health Impact" },
     { id: "data-export", label: "Data Export" },
+    { id: "city-comparison-report", label: "City Compare Report" },
   ];
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef(null);
@@ -1297,6 +1299,22 @@ function AppContent() {
                   current={current}
                   cityName={position.cityName}
                   position={position}
+                />
+              </div>
+            )}
+            {activeSection === "city-comparison-report" && (
+              <div
+                className="content-grid city-comparison-report-layout"
+                style={{
+                  maxWidth: "1200px",
+                  margin: "2rem auto",
+                  width: "100%",
+                  display: "block",
+                }}
+              >
+                <CityComparisonReport
+                  savedLocations={savedLocations}
+                  cityName={position.cityName}
                 />
               </div>
             )}
