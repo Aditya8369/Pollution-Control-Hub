@@ -2,31 +2,21 @@
  * @fileoverview Frontend service for fetching routed incidents and updating their lifecycle status.
  */
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
+import { apiClient } from './apiClient';
 
 /**
  * Fetches all routed incidents, optionally filtered by status or category.
  * @param {string} [status] - Optional status filter.
+ * @param {AbortSignal} [signal] - Optional abort signal
  * @returns {Promise<Array<import('../types/incidentRouting').RoutedIncident>>}
  */
-export const fetchRoutedIncidents = async (status) => {
-    const url = status
-        ? `${API_BASE}/incidents/routed?status=${status}`
-        : `${API_BASE}/incidents/routed`;
-
-    const response = await fetch(url, {
+export const fetchRoutedIncidents = (status, signal) => {
+    return apiClient(['incidents', 'routed'], {
         method: 'GET',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        },
+        params: status ? { status } : {},
+        signal,
+        defaultError: 'Failed to fetch routed incidents.'
     });
-
-    if (!response.ok) {
-        throw new Error('Failed to fetch routed incidents.');
-    }
-
-    return response.json();
 };
 
 /**
@@ -34,22 +24,14 @@ export const fetchRoutedIncidents = async (status) => {
  * @param {string} incidentId - The ID of the incident.
  * @param {string} status - The new status.
  * @param {string} notes - Verification or resolution notes.
+ * @param {AbortSignal} [signal] - Optional abort signal
  * @returns {Promise<Object>}
  */
-export const updateIncidentStatus = async (incidentId, status, notes) => {
-    const response = await fetch(`${API_BASE}/incidents/${incidentId}/status`, {
+export const updateIncidentStatus = (incidentId, status, notes, signal) => {
+    return apiClient(['incidents', incidentId, 'status'], {
         method: 'PATCH',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        },
-        body: JSON.stringify({ status, notes }),
+        body: { status, notes },
+        signal,
+        defaultError: 'Failed to update incident status.'
     });
-
-    if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || 'Failed to update incident status.');
-    }
-
-    return response.json();
 };

@@ -2,68 +2,45 @@
  * @fileoverview Frontend service for fetching challenges, updating user progress, and claiming rewards.
  */
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
+import { apiClient } from './apiClient';
 
 /**
  * Fetches all active challenges and the current user's progress.
+ * @param {AbortSignal} [signal] - Optional abort signal
  * @returns {Promise<import('../types/challenge').ChallengeResponse>}
  */
-export const fetchActiveChallenges = async () => {
-    const response = await fetch(`${API_BASE}/challenges/active`, {
+export const fetchActiveChallenges = (signal) => {
+    return apiClient(['challenges', 'active'], {
         method: 'GET',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        },
+        signal,
+        defaultError: 'Failed to fetch active challenges.'
     });
-
-    if (!response.ok) {
-        throw new Error('Failed to fetch active challenges.');
-    }
-
-    return response.json();
 };
 
 /**
  * Joins a specific challenge for the current user.
  * @param {string} challengeId - The ID of the challenge to join.
+ * @param {AbortSignal} [signal] - Optional abort signal
  * @returns {Promise<Object>}
  */
-export const joinChallenge = async (challengeId) => {
-    const response = await fetch(`${API_BASE}/challenges/${challengeId}/join`, {
+export const joinChallenge = (challengeId, signal) => {
+    return apiClient(['challenges', challengeId, 'join'], {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        },
+        signal,
+        defaultError: 'Failed to join challenge.'
     });
-
-    if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || 'Failed to join challenge.');
-    }
-
-    return response.json();
 };
 
 /**
  * Claims the reward for a completed challenge.
  * @param {string} challengeId - The ID of the completed challenge.
+ * @param {AbortSignal} [signal] - Optional abort signal
  * @returns {Promise<Object>}
  */
-export const claimChallengeReward = async (challengeId) => {
-    const response = await fetch(`${API_BASE}/challenges/${challengeId}/claim`, {
+export const claimChallengeReward = (challengeId, signal) => {
+    return apiClient(['challenges', challengeId, 'claim'], {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        },
+        signal,
+        defaultError: 'Failed to claim reward.'
     });
-
-    if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || 'Failed to claim reward.');
-    }
-
-    return response.json();
 };

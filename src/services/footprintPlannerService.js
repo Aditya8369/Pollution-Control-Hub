@@ -2,70 +2,48 @@
  * @fileoverview Frontend service for saving activity logs, fetching historical trends, and retrieving personalized plans.
  */
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
+import { apiClient } from './apiClient';
 
 /**
  * Logs a new carbon-emitting activity.
  * @param {Object} activityData - The activity details.
+ * @param {AbortSignal} [signal] - Optional abort signal
  * @returns {Promise<Object>}
  */
-export const logActivity = async (activityData) => {
-    const response = await fetch(`${API_BASE}/footprint/activities`, {
+export const logActivity = (activityData, signal) => {
+    return apiClient(['footprint', 'activities'], {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        },
-        body: JSON.stringify(activityData),
+        body: activityData,
+        signal,
+        defaultError: 'Failed to log activity.'
     });
-
-    if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || 'Failed to log activity.');
-    }
-
-    return response.json();
 };
 
 /**
  * Fetches the user's comprehensive footprint summary and reduction plan.
+ * @param {AbortSignal} [signal] - Optional abort signal
  * @returns {Promise<import('../types/footprint').FootprintSummary>}
  */
-export const fetchFootprintSummary = async () => {
-    const response = await fetch(`${API_BASE}/footprint/summary`, {
+export const fetchFootprintSummary = (signal) => {
+    return apiClient(['footprint', 'summary'], {
         method: 'GET',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        },
+        signal,
+        defaultError: 'Failed to fetch footprint summary.'
     });
-
-    if (!response.ok) {
-        throw new Error('Failed to fetch footprint summary.');
-    }
-
-    return response.json();
 };
 
 /**
  * Toggles the completion status of a reduction step.
  * @param {string} stepId - The ID of the reduction step.
  * @param {boolean} isCompleted - The new completion status.
+ * @param {AbortSignal} [signal] - Optional abort signal
  * @returns {Promise<Object>}
  */
-export const updateReductionStep = async (stepId, isCompleted) => {
-    const response = await fetch(`${API_BASE}/footprint/steps/${stepId}`, {
+export const updateReductionStep = (stepId, isCompleted, signal) => {
+    return apiClient(['footprint', 'steps', stepId], {
         method: 'PATCH',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        },
-        body: JSON.stringify({ isCompleted }),
+        body: { isCompleted },
+        signal,
+        defaultError: 'Failed to update reduction step.'
     });
-
-    if (!response.ok) {
-        throw new Error('Failed to update reduction step.');
-    }
-
-    return response.json();
 };
