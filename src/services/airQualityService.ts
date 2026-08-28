@@ -1,13 +1,12 @@
 import { CITY_COORDINATES } from '../constants/cities';
+import type {
+  AQIBand,
+  AQIData,
+  Breakpoint,
+  GridPoint
+} from '../types/airQuality';
 import { cacheStore } from '../utils/cacheStore';
 import ApiWorker from '../workers/apiWorker?worker';
-import type {
-  AQIData,
-  PollutantMetrics,
-  GridPoint,
-  AQIBand,
-  Breakpoint,
-} from '../types/airQuality';
 
 const BASE_URL = 'https://air-quality-api.open-meteo.com/v1/air-quality';
 
@@ -686,6 +685,13 @@ export async function fetchAirQualityByCoords(
   const nearbyPoints = skipGrid ? [] : await fetchLocalGrid(lat, lon, 6, signal);
   const { confidenceScore, dataCompleteness } = computeConfidence(hourly, times);
 
+  // resolved.timestamp is naive location-local (no offset attached); converting it to a
+  // true UTC instant here is what lets any consumer safely re-render it in a different
+  // timezone (e.g. the browser user's own) via formatReportTimestamp — see #745.
+  const readingTimeUTC = resolved.timestamp
+    ? new Date(Date.parse(`${resolved.timestamp}Z`) - (data.utc_offset_seconds ?? 0) * 1000).toISOString()
+    : null;
+
   const result = {
     current,
     trend,
@@ -696,7 +702,8 @@ export async function fetchAirQualityByCoords(
     // is false the reading is the newest one available, not a live one, and the UI should
     // say so instead of stamping it "just updated".
     isCurrentHour: resolved.exact,
-    readingTime: resolved.timestamp
+    readingTime: resolved.timestamp,
+    readingTimeUTC
   };
 
   cacheStore.set(cacheKey, result);
