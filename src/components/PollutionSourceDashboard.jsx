@@ -275,26 +275,7 @@ const SourcesTab = ({ sources, search, severityFilter, typeFilter }) => {
           {/* Mini trend */}
           <div style={{ marginTop: '1rem' }}>
             <p style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text-primary, #1e293b)', marginBottom: '0.5rem' }}>24h PM Trend</p>
-            <div style={{ display: 'flex', alignItems: 'flex-end', gap: '2px', height: '50px' }}>
-              {selectedSource.historicalTrend.map((val, i) => {
-                const maxVal = Math.max(...selectedSource.historicalTrend);
-                const height = maxVal > 0 ? (val / maxVal) * 100 : 0;
-                const color = val > 100 ? '#ef4444' : val > 50 ? '#f59e0b' : '#22c55e';
-                return (
-                  <div
-                    key={i}
-                    style={{
-                      flex: 1,
-                      height: `${height}%`,
-                      background: color,
-                      borderRadius: '2px 2px 0 0',
-                      minHeight: '2px',
-                      transition: 'height 0.3s ease',
-                    }}
-                  />
-                );
-              })}
-            </div>
+            <TrendBars trend={selectedSource.historicalTrend} />
           </div>
         </motion.div>
       )}
@@ -303,9 +284,43 @@ const SourcesTab = ({ sources, search, severityFilter, typeFilter }) => {
 };
 
 /**
+ * The 24-hour PM trend, as bars scaled to the series maximum.
+ *
+ * `maxVal` used to be computed inside the map, so `Math.max` ran over the whole series
+ * once per bar. Pulling the series into its own component is the tidiest place to hoist
+ * it — there is no room for a `const` inside the JSX expression it lived in.
+ */
+const TrendBars = ({ trend }) => {
+  const values = Array.isArray(trend) ? trend : [];
+  const maxVal = values.length > 0 ? Math.max(...values) : 0;
+
+  return (
+    <div style={{ display: 'flex', alignItems: 'flex-end', gap: '2px', height: '50px' }} data-testid="trend-bars">
+      {values.map((val, i) => {
+        const height = maxVal > 0 ? (val / maxVal) * 100 : 0;
+        const color = val > 100 ? '#ef4444' : val > 50 ? '#f59e0b' : '#22c55e';
+        return (
+          <div
+            key={i}
+            style={{
+              flex: 1,
+              height: `${height}%`,
+              background: color,
+              borderRadius: '2px 2px 0 0',
+              minHeight: '2px',
+              transition: 'height 0.3s ease',
+            }}
+          />
+        );
+      })}
+    </div>
+  );
+};
+
+/**
  * Timeline tab with event feed.
  */
-const TimelineTab = ({ timeline }) => (
+const TimelineTab = ({ timeline, sources }) => (
   <div style={{ display: 'grid', gridTemplateColumns: '1fr 350px', gap: '1.5rem', alignItems: 'start' }}>
     <div style={{
       background: 'var(--bg-card, #ffffff)',
@@ -325,7 +340,11 @@ const TimelineTab = ({ timeline }) => (
     </div>
 
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', position: 'sticky', top: '1rem' }}>
-      <SeverityBar sources={generatePollutionSources(20)} />
+      {/* The dashboard's own sources, not a fresh random draw. Calling the
+          generator here gave this chart twenty sources unrelated to the ones
+          every other tab counts — and, because the call sat in the render body,
+          a different twenty on every keystroke in the search box. */}
+      <SeverityBar sources={sources} />
       <div style={{
         background: 'var(--bg-card, #ffffff)',
         border: '1px solid var(--border-color, #e2e8f0)',
@@ -381,7 +400,7 @@ const PollutionSourceDashboard = () => {
       case 'sources':
         return <SourcesTab sources={sources} search={search} severityFilter={severityFilter} typeFilter={typeFilter} />;
       case 'timeline':
-        return <TimelineTab timeline={timeline} />;
+        return <TimelineTab timeline={timeline} sources={sources} />;
       case 'analytics':
         return <AnalyticsTab sources={sources} weeklyData={weeklyData} />;
       default:
