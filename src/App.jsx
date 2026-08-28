@@ -1,76 +1,69 @@
 import {
-  useEffect,
-  useMemo,
-  useState,
-  useCallback,
-  useRef,
   lazy,
   Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
 } from "react";
-import { useSWR } from "./hooks/useSWR";
-import { cacheStore } from "./utils/cacheStore";
-import AlertsPanel from "./components/AlertsPanel";
-import CommunityHub from "./components/CommunityHub";
-import Dashboard from "./components/Dashboard";
-import Footer from "./components/Footer";
-import HealthAdvisory from "./components/HealthAdvisory";
-import PollenAllergenForecast from "./components/PollenAllergenForecast";
-import ExposureCalculator from "./components/ExposureCalculator";
-import LocationMap from "./components/LocationMap";
-import QuizSection from "./components/QuizSection";
-import SolutionsAwareness from "./components/SolutionsAwareness";
-import ScenarioSimulator from "./components/ScenarioSimulator";
-import HistoricalAnalysis from "./components/HistoricalAnalysis";
-import Factoid from "./components/Factoid";
-import HistoricalData from "./components/HistoricalData";
-import LocationSearch from "./components/LocationSearch";
-import SkeletonDashboard from "./components/SkeletonDashboard";
-import ErrorBoundary from "./components/ErrorBoundary";
-import ConnectivityStatus from "./components/ConnectivityStatus";
-import ScrollToTopButton from "./components/ScrollToTopButton";
-import Commute from "./components/Commute";
-import GettingStarted from "./components/GettingStarted";
-import CityCompare from "./components/CityCompare";
-import IndoorTracker from "./components/IndoorTracker";
-import ExposureTracker from "./components/ExposureTracker";
-import HeatmapTimeline from "./components/HeatmapTimeline";
-import AnomalyAlert from "./components/AnomalyAlert";
-import EmergencyMode from "./components/EmergencyMode";
-import SunSafetyDashboard from "./components/SunSafetyDashboard";
 import AIPollutionCopilot from "./components/AIPollutionCopilot";
-import {
+import AnomalyAlert from "./components/AnomalyAlert";
+import CityCompare from "./components/CityCompare";
+import CommunityHub from "./components/CommunityHub";
+import Commute from "./components/Commute";
+import ConnectivityStatus from "./components/ConnectivityStatus";
+import Dashboard from "./components/Dashboard";
+import EmergencyMode from "./components/EmergencyMode";
+import ErrorBoundary from "./components/ErrorBoundary";
+import ExposureCalculator from "./components/ExposureCalculator";
+import ExposureTracker from "./components/ExposureTracker";
+import Factoid from "./components/Factoid";
+import Footer from "./components/Footer";
+import GettingStarted from "./components/GettingStarted";
+import HeatmapTimeline from "./components/HeatmapTimeline";
+import HistoricalAnalysis from "./components/HistoricalAnalysis";
+import HistoricalData from "./components/HistoricalData";
+import IndoorTracker from "./components/IndoorTracker";
+import LocationSearch from "./components/LocationSearch";
+import QuizSection from "./components/QuizSection";
+import ScrollToTopButton from "./components/ScrollToTopButton";
+import SkeletonDashboard from "./components/SkeletonDashboard";
+import { eventBus } from "./core/events";
+import { useSWR } from "./hooks/useSWR";
+  estimateExposureTime,
   estimateWeeklyMonthlyAverages,
   fetchAirQualityByCoords,
   fetchCityComparisons,
-  estimateExposureTime,
   fetchWindData,
 } from "./services/airQualityService";
+import { cacheStore } from "./utils/cacheStore";
 import { getPrecomputedAverages } from "./services/aqiPrecomputationService";
-import { eventBus } from "./core/events";
 // Imported for its side effect: it subscribes to QUIZ_COMPLETED so the count is
 // recorded whether or not the leaderboard has ever been mounted.
-import "./utils/contributionStats";
 import { useTranslation } from "react-i18next";
-import i18n from "./i18n";
-import { ThemeProvider, useTheme } from "./context/ThemeContext";
-import ThemeSwitcher from "./components/ThemeSwitcher";
-import LanguageSwitcher from "./components/LanguageSwitcher";
 import CarbonFootprintCalculator from "./components/CarbonFootprintCalculator";
+import LanguageSwitcher from "./components/LanguageSwitcher";
+import ThemeSwitcher from "./components/ThemeSwitcher";
+import { ThemeProvider, useTheme } from "./context/ThemeContext";
+import i18n from "./i18n";
+import "./utils/contributionStats";
 // Default import, matching Leaderboard.jsx's `export default`. The comment that
 // used to sit here claimed this was a named import, which is the confusion that
 // produced the shadow Leaderboard.tsx (#990) - that file exported a named
 // `Leaderboard` and nothing else, so tsc reported "no default export" against a
 // module the bundler never resolved.
-import Leaderboard from "./components/Leaderboard";
+import Achievements from "./components/Achievements";
+import BadgeNotification from "./components/BadgeNotification";
+import CityPollutionLeaderboard from "./components/CityPollutionLeaderboard";
+import EcoImpactDashboard from "./components/EcoImpactDashboard";
 import EmbeddableWidgetGenerator from "./components/EmbeddableWidgetGenerator";
 import Glossary from "./components/Glossary";
-import BadgeNotification from "./components/BadgeNotification";
-import Achievements from "./components/Achievements";
-import EcoImpactDashboard from "./components/EcoImpactDashboard";
+import Leaderboard from "./components/Leaderboard";
 import SmartAlertsDashboard from "./components/SmartAlertsDashboard";
-import CityPollutionLeaderboard from "./components/CityPollutionLeaderboard";
 import NoisePollutionTracker from "./components/NoisePollutionTracker";
 import OceanAcidificationMonitor from "./components/OceanAcidificationMonitor";
+
 import HealthImpactDashboard from "./components/HealthImpactDashboard";
 
 const AqiMissionGame = lazy(() => import("./components/AqiMissionGame"));
@@ -365,6 +358,9 @@ export function SectionNav({ activeSection, onSectionChange }) {
     { id: "marine", label: "Marine Water Quality" },
     { id: "smart-alerts", label: "Smart Alerts" },
     { id: "noise-pollution", label: "Noise Pollution" },
+    { id: "ocean-acid", label: "Ocean Acidification" },
+
+    { id: "smart-alerts", label: "Smart Alerts" },
     { id: "ocean-acid", label: "Ocean Acidification" },
     { id: "health-impact", label: "Health Impact" },
   ];
@@ -703,7 +699,7 @@ function AppContent() {
 
   // Update lastUpdated when data changes
   useEffect(() => {
-    if (aqiData) setLastUpdated(new Date().toISOString());
+    if (aqiData)  setLastUpdated(aqiData?.readingTimeUTC);
   }, [aqiData]);
 
   // Persist the theme value so the next load paints without a flash. This runs on mount
@@ -1286,6 +1282,7 @@ function AppContent() {
             {activeSection === "smart-alerts" && <SmartAlertsDashboard position={position} />}
             {activeSection === "noise-pollution" && <NoisePollutionTracker />}
             {activeSection === "ocean-acid" && <OceanAcidificationMonitor />}
+
             {activeSection === "health-impact" && <HealthImpactDashboard />}
             {activeSection === "CarbonCalculator" && (
               <div

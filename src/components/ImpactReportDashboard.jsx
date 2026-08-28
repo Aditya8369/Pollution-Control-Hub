@@ -1,62 +1,55 @@
-import { useState, useMemo } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
 import {
+  AlertTriangle,
   BarChart3,
-  FileText,
-  Wind,
-  Droplets,
+  CheckCircle2,
   DollarSign,
+  Download,
+  FileText,
   Lightbulb,
   Shield,
-  Users,
-  Clock,
-  Download,
-  Search,
-  Filter,
-  ChevronDown,
-  CheckCircle2,
-  AlertTriangle,
   TrendingUp,
+  Users,
+  Wind
 } from 'lucide-react';
+import { useMemo, useState } from 'react';
 
 import {
-  StatCard,
-  ReportItemCard,
   ComplianceCard,
-  RecommendationCard,
   ExecutiveSummaryCard,
+  RecommendationCard,
+  ReportItemCard,
   SectionIndicator,
+  StatCard,
 } from './ReportCards';
 
 import {
   AirQualityTrendChart,
-  WaterQualityChart,
-  NoiseLevelChart,
   EconomicImpactPie,
   EconomicTrendChart,
   ImpactRadarChart,
+  NoiseLevelChart,
   ReportTypePie,
+  WaterQualityChart,
 } from './ReportCharts';
 
 import {
-  generateReportList,
   generateAirQualityData,
-  generateWaterQualityData,
-  generateNoiseData,
-  generateHealthImpactData,
-  generateEconomicImpactData,
   generateComplianceData,
+  generateEconomicImpactData,
+  generateHealthImpactData,
+  generateNoiseData,
   generateRecommendations,
+  generateReportList,
   generateReportSummary,
+  generateWaterQualityData,
 } from './reportData';
 
 import {
   REPORT_TYPES,
   SECTIONS,
-  COMPLIANCE_STATUSES,
-  IMPACT_SECTORS,
   formatCurrency,
-  formatNumber,
+  formatNumber
 } from './reportTypes';
 
 const TABS = [
@@ -102,7 +95,7 @@ const OverviewTab = ({ summary, airData, healthData, economicData }) => (
 /**
  * Reports tab with report list and detail panel.
  */
-const ReportsTab = ({ reports, summary }) => {
+const ReportsTab = ({ reports, summary, timeZone }) => {
   const [selectedReport, setSelectedReport] = useState(null);
   const [typeFilter, setTypeFilter] = useState('all');
 
@@ -131,12 +124,12 @@ const ReportsTab = ({ reports, summary }) => {
           ))}
         </div>
         {filtered.map((rpt, i) => (
-          <ReportItemCard key={rpt.id} report={rpt} delay={i * 0.03} isSelected={selectedReport?.id === rpt.id} onSelect={setSelectedReport} />
+          <ReportItemCard key={rpt.id} report={rpt} delay={i * 0.03} isSelected={selectedReport?.id === rpt.id} onSelect={setSelectedReport} timeZone={timeZone}/>
         ))}
       </div>
       {selectedReport && (
         <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} style={{ position: 'sticky', top: '1rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          <ExecutiveSummaryCard report={selectedReport} />
+          <ExecutiveSummaryCard report={selectedReport} timeZone={timeZone}/>
           <div style={{ background: 'var(--bg-card, #ffffff)', border: '1px solid var(--border-color, #e2e8f0)', borderRadius: '1rem', padding: '1.25rem', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
             <h3 style={{ fontSize: '0.85rem', fontWeight: 700, color: 'var(--text-primary, #1e293b)', margin: '0 0 0.75rem' }}>📋 Sections</h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.3rem' }}>
@@ -260,8 +253,9 @@ const RecommendationsTab = ({ recommendations, complianceData }) => (
  */
 const ImpactReportDashboard = () => {
   const [activeTab, setActiveTab] = useState('overview');
-
-  const reports = useMemo(() => generateReportList(12), []);
+  
+   const timeZone = useMemo(() => Intl.DateTimeFormat().resolvedOptions().timeZone,[]);
+  const reports = useMemo(() => generateReportList(12,timeZone), []);
   const summary = useMemo(() => generateReportSummary(reports), [reports]);
   const airData = useMemo(() => generateAirQualityData(), []);
   const waterData = useMemo(() => generateWaterQualityData(), []);
@@ -276,7 +270,7 @@ const ImpactReportDashboard = () => {
       case 'overview':
         return <OverviewTab summary={summary} airData={airData} healthData={healthData} economicData={economicData} />;
       case 'reports':
-        return <ReportsTab reports={reports} summary={summary} />;
+        return <ReportsTab reports={reports} summary={summary} timeZone={timeZone}/>;
       case 'air_water':
         return <AirWaterTab airData={airData} waterData={waterData} noiseData={noiseData} />;
       case 'economic':
