@@ -1,14 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { eventBus } from '../core/events';
-import InfoTooltip from './InfoTooltip';
-import { useAuth } from '../context/AuthContext';
 import { hasPermission } from '../config/rbac';
+import { useAuth } from '../context/AuthContext';
+import { eventBus } from '../core/events';
 import { fetchAirQualityByCoords } from '../services/airQualityService';
 import {
   computeVerificationScore,
   findNearbyReports,
 } from '../services/verificationService';
+import InfoTooltip from './InfoTooltip';
 // Issue #926: Import our new reputation system logic
 import { updateUserReputation } from '../services/reputationService';
 
