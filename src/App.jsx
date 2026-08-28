@@ -67,6 +67,7 @@ import OceanAcidificationMonitor from "./components/OceanAcidificationMonitor";
 import HealthImpactDashboard from "./components/HealthImpactDashboard";
 import DataExportDashboard from "./components/DataExportDashboard";
 import CityComparisonReport from "./components/CityComparisonReport";
+import ExposureTimelineTracker from "./components/ExposureTimelineTracker";
 
 const AqiMissionGame = lazy(() => import("./components/AqiMissionGame"));
 const HotspotScoutGame = lazy(() => import("./components/HotspotScoutGame"));
@@ -367,6 +368,7 @@ export function SectionNav({ activeSection, onSectionChange }) {
     { id: "health-impact", label: "Health Impact" },
     { id: "data-export", label: "Data Export" },
     { id: "city-comparison-report", label: "City Compare Report" },
+    { id: "exposure-timeline", label: "Exposure Timeline" },
   ];
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef(null);
@@ -1318,6 +1320,22 @@ function AppContent() {
               >
                 <CityComparisonReport
                   savedLocations={savedLocations}
+                  cityName={position.cityName}
+                />
+              </div>
+            )}
+            {activeSection === "exposure-timeline" && (
+              <div
+                className="content-grid exposure-timeline-layout"
+                style={{
+                  maxWidth: "1200px",
+                  margin: "2rem auto",
+                  width: "100%",
+                  display: "block",
+                }}
+              >
+                <ExposureTimelineTracker
+                  current={current}
                   cityName={position.cityName}
                 />
               </div>

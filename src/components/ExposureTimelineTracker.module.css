@@ -1,0 +1,174 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding: 1.5rem;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.header { text-align: center; }
+.headerTitle { font-size: 1.6rem; font-weight: 700; margin: 0 0 0.25rem; color: var(--text-primary, #0f172a); }
+.headerSubtitle { font-size: 0.95rem; color: var(--text-secondary, #64748b); margin: 0; }
+
+/* Health score ring */
+.healthScoreSection {
+  display: flex;
+  justify-content: center;
+  padding: 1.5rem;
+  background: var(--bg-card, #fff);
+  border: 1px solid var(--border-color, #e2e8f0);
+  border-radius: 0.75rem;
+}
+
+.scoreRing {
+  position: relative;
+  width: 160px;
+  height: 160px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.scoreRingSvg {
+  position: absolute;
+  inset: 0;
+  transform: rotate(-90deg);
+}
+
+.scoreRingBg { fill: none; stroke: var(--border-color, #e2e8f0); stroke-width: 10; }
+.scoreRingFill { fill: none; stroke-width: 10; stroke-linecap: round; transition: stroke-dashoffset 0.8s ease; }
+
+.scoreCenter {
+  text-align: center;
+  z-index: 1;
+}
+
+.scoreValue { font-size: 2.2rem; font-weight: 700; line-height: 1; }
+.scoreLabel { font-size: 0.8rem; color: var(--text-secondary, #64748b); margin-top: 0.15rem; }
+
+/* Stats row */
+.statsRow {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 0.75rem;
+}
+
+.statCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0.85rem 0.5rem;
+  background: var(--bg-card, #fff);
+  border: 1px solid var(--border-color, #e2e8f0);
+  border-radius: 0.65rem;
+  text-align: center;
+  transition: transform 0.12s, box-shadow 0.12s;
+}
+
+.statCard:hover { transform: translateY(-2px); box-shadow: 0 3px 10px rgba(0, 0, 0, 0.06); }
+.statIcon { font-size: 1.3rem; margin-bottom: 0.2rem; }
+.statValue { font-size: 1.25rem; font-weight: 700; color: var(--text-primary, #0f172a); }
+.statLabel { font-size: 0.7rem; color: var(--text-secondary, #64748b); margin-top: 0.15rem; }
+
+/* Section card */
+.section {
+  background: var(--bg-card, #fff);
+  border: 1px solid var(--border-color, #e2e8f0);
+  border-radius: 0.75rem;
+  padding: 1.25rem;
+}
+
+.sectionTitle {
+  font-size: 1.05rem;
+  font-weight: 600;
+  margin: 0 0 0.75rem;
+  color: var(--text-primary, #0f172a);
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+/* Daily table */
+.tableScroll { overflow-x: auto; border-radius: 0.5rem; border: 1px solid var(--border-color, #e2e8f0); }
+.dataTable { width: 100%; border-collapse: collapse; font-size: 0.78rem; white-space: nowrap; }
+.dataTable th, .dataTable td { padding: 0.45rem 0.65rem; border-bottom: 1px solid var(--border-color, #f1f5f9); text-align: left; }
+.dataTable th { background: var(--bg-secondary, #f8fafc); font-weight: 600; font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-secondary, #475569); position: sticky; top: 0; }
+.dataTable tbody tr:hover { background: var(--bg-secondary, #f8fafc); }
+
+.riskLow { color: #22c55e; font-weight: 600; }
+.riskModerate { color: #eab308; font-weight: 600; }
+.riskHigh { color: #f97316; font-weight: 600; }
+.riskCritical { color: #ef4444; font-weight: 600; }
+
+/* Recommendations */
+.recList { display: flex; flex-direction: column; gap: 0.6rem; list-style: none; padding: 0; margin: 0; }
+.recItem {
+  display: flex;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  border-left: 4px solid var(--border-color, #cbd5e1);
+  background: var(--bg-secondary, #f8fafc);
+}
+.recHigh { border-left-color: #ef4444; background: #fef2f2; }
+.recMedium { border-left-color: #f59e0b; background: #fffbeb; }
+.recLow { border-left-color: #22c55e; background: #f0fdf4; }
+.recInfo { border-left-color: #3b82f6; background: #eff6ff; }
+
+.recIcon { font-size: 1.3rem; flex-shrink: 0; }
+.recContent { flex: 1; }
+.recTitle { font-size: 0.9rem; font-weight: 600; margin: 0 0 0.2rem; color: var(--text-primary, #0f172a); }
+.recDesc { font-size: 0.8rem; margin: 0; color: var(--text-secondary, #475569); line-height: 1.5; }
+
+/* Actions */
+.actionsBar { display: flex; flex-wrap: wrap; gap: 0.75rem; justify-content: center; }
+
+.actionBtn {
+  padding: 0.55rem 1.25rem;
+  border: 1px solid var(--border-color, #cbd5e1);
+  border-radius: 0.5rem;
+  background: var(--bg-card, #fff);
+  color: var(--text-primary, #0f172a);
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+}
+.actionBtn:hover { background: var(--bg-secondary, #f8fafc); border-color: var(--brand, #0d9488); }
+.actionBtnDanger { border-color: #ef4444; color: #ef4444; }
+.actionBtnDanger:hover { background: #fef2f2; }
+
+/* Toast */
+.toast {
+  position: fixed; bottom: 1.5rem; left: 50%;
+  transform: translateX(-50%) translateY(120%);
+  background: #1e293b; color: #fff;
+  padding: 0.65rem 1.25rem; border-radius: 0.5rem;
+  font-size: 0.85rem; font-weight: 500; z-index: 9999;
+  opacity: 0; transition: transform 0.25s ease, opacity 0.25s ease;
+  pointer-events: none;
+}
+.toastVisible { transform: translateX(-50%) translateY(0); opacity: 1; }
+
+/* Empty state */
+.emptyState { text-align: center; padding: 3rem 1.5rem; color: var(--text-secondary, #94a3b8); }
+.emptyIcon { font-size: 2.5rem; margin-bottom: 0.75rem; }
+.emptyTitle { font-size: 1.1rem; font-weight: 600; margin: 0 0 0.3rem; color: var(--text-primary, #475569); }
+.emptyDesc { font-size: 0.85rem; margin: 0; max-width: 400px; margin-left: auto; margin-right: auto; line-height: 1.5; }
+
+/* Tabs */
+.tabBar { display: flex; gap: 0.5rem; margin-bottom: 0.75rem; }
+.tabBtn {
+  padding: 0.4rem 1rem;
+  border: 1px solid var(--border-color, #cbd5e1);
+  border-radius: 999px;
+  background: var(--bg-card, #fff);
+  color: var(--text-secondary, #475569);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.tabBtn:hover { border-color: var(--brand, #0d9488); color: var(--brand, #0d9488); }
+.tabBtnActive { background: var(--brand, #0d9488); color: #fff; border-color: var(--brand, #0d9488); }
