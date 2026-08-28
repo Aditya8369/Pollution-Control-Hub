@@ -68,6 +68,7 @@ import HealthImpactDashboard from "./components/HealthImpactDashboard";
 import DataExportDashboard from "./components/DataExportDashboard";
 import CityComparisonReport from "./components/CityComparisonReport";
 import ExposureTimelineTracker from "./components/ExposureTimelineTracker";
+import AlertRulesEngine from "./components/AlertRulesEngine";
 
 const AqiMissionGame = lazy(() => import("./components/AqiMissionGame"));
 const HotspotScoutGame = lazy(() => import("./components/HotspotScoutGame"));
@@ -366,6 +367,7 @@ export function SectionNav({ activeSection, onSectionChange }) {
     { id: "data-export", label: "Data Export" },
     { id: "city-comparison-report", label: "City Compare Report" },
     { id: "exposure-timeline", label: "Exposure Timeline" },
+    { id: "alert-rules", label: "Alert Rules" },
   ];
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef(null);
@@ -1334,6 +1336,19 @@ function AppContent() {
                   current={current}
                   cityName={position.cityName}
                 />
+              </div>
+            )}
+            {activeSection === "alert-rules" && (
+              <div
+                className="content-grid alert-rules-layout"
+                style={{
+                  maxWidth: "1200px",
+                  margin: "2rem auto",
+                  width: "100%",
+                  display: "block",
+                }}
+              >
+                <AlertRulesEngine current={current} />
               </div>
             )}
             {activeSection === "CarbonCalculator" && (
