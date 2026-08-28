@@ -1,12 +1,11 @@
+import { formatReportTimestamp } from '../utils/localDay';
 import {
-  REPORT_TYPES,
-  SECTIONS,
-  POLLUTANT_PARAMETERS,
-  WATER_PARAMETERS,
   COMPLIANCE_STATUSES,
   IMPACT_SECTORS,
+  POLLUTANT_PARAMETERS,
+  REPORT_TYPES,
+  WATER_PARAMETERS
 } from './reportTypes';
-
 const randomInt = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
 const randomFloat = (min, max, decimals = 1) => parseFloat((Math.random() * (max - min) + min).toFixed(decimals));
 const randomChoice = (arr) => arr[Math.floor(Math.random() * arr.length)];
@@ -14,7 +13,7 @@ const randomSubset = (arr, count) => [...arr].sort(() => 0.5 - Math.random()).sl
 
 const CITIES = ['Delhi', 'Mumbai', 'Beijing', 'Lagos', 'Dhaka', 'Cairo', 'Jakarta', 'LA', 'London', 'Sydney'];
 
-export const generateReportList = (count = 12) => {
+export const generateReportList = (count = 12,timeZone) => {
   const reports = [];
   const now = Date.now();
 
@@ -23,6 +22,7 @@ export const generateReportList = (count = 12) => {
     const city = randomChoice(CITIES);
     const daysAgo = randomInt(0, 365);
     const date = new Date(now - daysAgo * 86400000);
+    date.setHours(randomInt(0, 23), randomInt(0, 59), 0, 0); 
 
     reports.push({
       id: `rpt-${i}`,
@@ -30,8 +30,8 @@ export const generateReportList = (count = 12) => {
       type,
       typeConfig: REPORT_TYPES[type],
       city,
-      date: date.toISOString().split('T')[0],
-      dateLabel: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+      date: date.toISOString(),
+      dateLabel: formatReportTimestamp(date.toISOString(), timeZone), 
       status: randomChoice(['compliant', 'non_compliant', 'marginal', 'pending_review', 'improvement_plan']),
       overallScore: randomInt(45, 95),
       sectionsCompleted: randomInt(5, 9),

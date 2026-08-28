@@ -1,25 +1,16 @@
-import { useState } from 'react';
 import { motion } from 'framer-motion';
 import {
-  TrendingUp,
-  TrendingDown,
-  FileText,
   CheckCircle2,
-  XCircle,
-  AlertTriangle,
   ChevronDown,
   Clock,
-  Users,
-  DollarSign,
-  Shield,
-  Download,
-  Eye,
-  BarChart3,
-  ArrowUpRight,
-  ArrowDownRight,
+  FileText,
+  TrendingDown,
+  TrendingUp
 } from 'lucide-react';
+import { useState } from 'react';
+import { formatReportTimestamp } from '../utils/localDay';
 
-import { COMPLIANCE_STATUSES, formatCurrency, formatNumber } from './reportTypes';
+import { COMPLIANCE_STATUSES, formatCurrency } from './reportTypes';
 
 /**
  * Stat card with icon, value, label, and trend.
@@ -68,7 +59,7 @@ const StatCard = ({ icon: Icon, label, value, subValue, color = '#6366f1', trend
 /**
  * Report list item card.
  */
-const ReportItemCard = ({ report, delay = 0, isSelected, onSelect }) => {
+const ReportItemCard = ({ report, delay = 0, isSelected, onSelect, timeZone }) => {
   const statusConfig = COMPLIANCE_STATUSES[report.status] || COMPLIANCE_STATUSES.pending_review;
   const progress = Math.round((report.sectionsCompleted / report.totalSections) * 100);
 
@@ -97,7 +88,7 @@ const ReportItemCard = ({ report, delay = 0, isSelected, onSelect }) => {
           <p style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary, #1e293b)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{report.title}</p>
           <p style={{ fontSize: '0.65rem', color: 'var(--muted, #94a3b8)', margin: '0.15rem 0 0' }}>
             <Clock size={9} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 3 }} />
-            {report.dateLabel} • {report.author} • {report.pages} pages
+             {formatReportTimestamp(report.date, timeZone)} • {report.author} • {report.pages} pages
           </p>
         </div>
         <div style={{ textAlign: 'right', flexShrink: 0 }}>
@@ -217,7 +208,7 @@ const RecommendationCard = ({ rec, delay = 0 }) => {
 /**
  * Report executive summary card.
  */
-const ExecutiveSummaryCard = ({ report, delay = 0 }) => (
+const ExecutiveSummaryCard = ({ report, delay = 0, timeZone }) => (
   <motion.div
     initial={{ opacity: 0, y: 15 }}
     animate={{ opacity: 1, y: 0 }}
@@ -235,7 +226,7 @@ const ExecutiveSummaryCard = ({ report, delay = 0 }) => (
       {[
         { label: 'Air Quality Score', value: `${report.overallScore}/100`, color: report.overallScore >= 80 ? '#22c55e' : '#f59e0b' },
         { label: 'Compliance Rate', value: `${report.sectionsCompleted}/${report.totalSections}`, color: '#6366f1' },
-        { label: 'Report Date', value: report.dateLabel, color: '#8b5cf6' },
+        { label: 'Report Date', value: formatReportTimestamp(report.date, timeZone), color: '#8b5cf6' },
       ].map((item, i) => (
         <div key={i} style={{ padding: '0.6rem', background: '#f8fafc', borderRadius: '0.5rem', textAlign: 'center' }}>
           <p style={{ fontSize: '0.55rem', color: '#94a3b8', margin: 0 }}>{item.label}</p>
@@ -263,10 +254,6 @@ const SectionIndicator = ({ section, completed, delay = 0 }) => (
 );
 
 export {
-  StatCard,
-  ReportItemCard,
-  ComplianceCard,
-  RecommendationCard,
-  ExecutiveSummaryCard,
-  SectionIndicator,
+  ComplianceCard, ExecutiveSummaryCard, RecommendationCard, ReportItemCard, SectionIndicator, StatCard
 };
+

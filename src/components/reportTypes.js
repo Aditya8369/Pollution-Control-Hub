@@ -74,7 +74,12 @@ export const formatNumber = (num) => {
   return num.toString();
 };
 
-export const formatDate = (dateStr) => {
+export const formatDate = (dateStr, timeZone) => {
   const d = new Date(dateStr);
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  return new Intl.DateTimeFormat(undefined, {
+    timeZone: timeZone || Intl.DateTimeFormat().resolvedOptions().timeZone,
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  }).format(d);
 };
