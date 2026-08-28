@@ -324,8 +324,11 @@ export default function Glossary() {
   }, [filtered]);
 
   // ── Paginated slice ──
-  const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE);
-  const paginated  = filtered.slice((page - 1) * ITEMS_PER_PAGE, page * ITEMS_PER_PAGE);
+  const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
+  const currentPage = Math.min(Math.max(1, page), totalPages);
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const endIndex = Math.min(startIndex + ITEMS_PER_PAGE, filtered.length);
+  const paginated  = filtered.slice(startIndex, endIndex);
 
   // ── Grouped by first letter (for headings when sorted alpha) ──
   const groupedByLetter = useMemo(() => {
@@ -350,7 +353,14 @@ export default function Glossary() {
   };
 
   const handleJumpToLetter = (letter) => {
-    setJumpLetter(letter);
+    const targetIndex = filtered.findIndex(
+      e => e.term[0]?.toUpperCase() === letter
+    );
+    if (targetIndex !== -1) {
+      const targetPage = Math.floor(targetIndex / ITEMS_PER_PAGE) + 1;
+      setPage(targetPage);
+      setJumpLetter(letter);
+    }
   };
 
   // ─── Render ───────────────────────────────────────────────────────────────

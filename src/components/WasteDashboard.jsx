@@ -43,7 +43,7 @@ import {
   generateAlerts,
 } from './wasteData';
 
-import { WASTE_CATEGORIES, DIVERSION_TARGETS, formatTonnage, formatCurrency } from './wasteTypes';
+import { WASTE_CATEGORIES, FACILITY_TYPES, DIVERSION_TARGETS, formatTonnage, formatCurrency } from './wasteTypes';
 
 const TABS = [
   { id: 'overview', label: 'Overview', icon: BarChart3 },

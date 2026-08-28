@@ -76,3 +76,53 @@ export function daysBetweenDayKeys(fromKey, toKey) {
 
   return Math.round((to - from) / MS_PER_DAY);
 }
+
+/**
+ * Formats an ISO-8601 timestamp for display in the user's timezone.
+ *
+ * Report timestamps arrive from the API in UTC.  Rendering them with a plain
+ * `toLocaleString()` call (no explicit `timeZone`) works on the user's own
+ * machine but silently shows UTC in server-side / test environments and in any
+ * browser whose locale timezone differs from the machine's OS setting. Passing
+ * the IANA timezone string (from `Intl.DateTimeFormat().resolvedOptions()`, or
+ * the one returned by the Open-Meteo API alongside `utc_offset_seconds`) gives
+ * a deterministic, user-visible local time regardless of environment.
+ *
+ * Fixes #745: reports always showed UTC because no component passed a timezone
+ * to the formatter.
+ *
+ * @param {string} isoString  — UTC ISO-8601, e.g. "2026-08-26T05:30:00Z"
+ * @param {string} [timeZone] — IANA tz string, e.g. "Asia/Kolkata".
+ *                              Defaults to the browser-detected timezone.
+ * @returns {string|null}     — Formatted local timestamp, or null for invalid input.
+ */
+export function formatReportTimestamp(isoString, timeZone) {
+  if (!isoString || typeof isoString !== 'string') return null;
+  const date = new Date(isoString);
+  if (Number.isNaN(date.getTime())) return null;
+
+  const tz = timeZone ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+  try {
+    return new Intl.DateTimeFormat('en-CA', {
+      timeZone: tz,
+      year:   'numeric',
+      month:  '2-digit',
+      day:    '2-digit',
+      hour:   '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    }).format(date);
+  } catch {
+    // Unknown / unsupported IANA string supplied — fall back to local rendering
+    // rather than throwing to the caller.
+    return new Intl.DateTimeFormat('en-CA', {
+      year:   'numeric',
+      month:  '2-digit',
+      day:    '2-digit',
+      hour:   '2-digit',
+      minute: '2-digit',
+      hour12: false,
+    }).format(date);
+  }
+}
