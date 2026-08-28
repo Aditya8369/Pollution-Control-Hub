@@ -65,6 +65,7 @@ import NoisePollutionTracker from "./components/NoisePollutionTracker";
 import OceanAcidificationMonitor from "./components/OceanAcidificationMonitor";
 
 import HealthImpactDashboard from "./components/HealthImpactDashboard";
+import WeatherHealthCorrelation from "./components/WeatherHealthCorrelation";
 
 const AqiMissionGame = lazy(() => import("./components/AqiMissionGame"));
 const HotspotScoutGame = lazy(() => import("./components/HotspotScoutGame"));
@@ -363,6 +364,7 @@ export function SectionNav({ activeSection, onSectionChange }) {
     { id: "smart-alerts", label: "Smart Alerts" },
     { id: "ocean-acid", label: "Ocean Acidification" },
     { id: "health-impact", label: "Health Impact" },
+    { id: "weather-correlation", label: "Weather–Health" },
   ];
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef(null);
@@ -1284,6 +1286,24 @@ function AppContent() {
             {activeSection === "ocean-acid" && <OceanAcidificationMonitor />}
 
             {activeSection === "health-impact" && <HealthImpactDashboard />}
+            {activeSection === "weather-correlation" && (
+              <div
+                className="content-grid weather-correlation-layout"
+                style={{
+                  maxWidth: "1200px",
+                  margin: "2rem auto",
+                  width: "100%",
+                  display: "block",
+                }}
+              >
+                <WeatherHealthCorrelation
+                  lat={position.lat}
+                  lon={position.lon}
+                  trend={trend}
+                  cityName={position.cityName}
+                />
+              </div>
+            )}
             {activeSection === "CarbonCalculator" && (
               <div
                 className="content-grid carbon-calculator-layout"
