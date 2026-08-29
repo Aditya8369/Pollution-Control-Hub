@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach, vi } from 'vitest';
-import { localDayKey, isDayKey, daysBetweenDayKeys } from './localDay';
+import { localDayKey, isDayKey, daysBetweenDayKeys, formatReportTimestamp } from './localDay';
 
 /**
  * Regression cover for #669. The distinguishing property is that these must
@@ -153,5 +153,86 @@ describe('daysBetweenDayKeys', () => {
     expect(daysBetweenDayKeys('nope', '2026-08-10')).toBeNull();
     expect(daysBetweenDayKeys('2026-08-10', 'nope')).toBeNull();
     expect(daysBetweenDayKeys(null, undefined)).toBeNull();
+  });
+});
+
+/**
+ * Regression cover for #745.
+ *
+ * Reports were displayed in UTC because nothing passed an explicit timezone to
+ * the formatter.  formatReportTimestamp accepts an IANA string and uses
+ * Intl.DateTimeFormat so the output matches the user's local wall clock
+ * regardless of the environment's system timezone.
+ */
+describe('formatReportTimestamp', () => {
+  // 2026-08-26T00:00:00Z is the anchor used in all assertions.
+  // At this instant:
+  //   IST  (UTC+5:30) => 2026-08-26, 05:30
+  //   UTC  (UTC+0)    => 2026-08-26, 00:00
+  //   NYC  (UTC-4 EDT)=> 2026-08-25, 20:00
+  //   Tokyo(UTC+9)    => 2026-08-26, 09:00
+  const UTC_MIDNIGHT = '2026-08-26T00:00:00Z';
+
+  it('renders the correct local time for IST (UTC+5:30)', () => {
+    const result = formatReportTimestamp(UTC_MIDNIGHT, 'Asia/Kolkata');
+    // en-CA format: "YYYY-MM-DD, HH:MM"
+    expect(result).toBe('2026-08-26, 05:30');
+  });
+
+  it('renders the correct local time for Tokyo (UTC+9)', () => {
+    const result = formatReportTimestamp(UTC_MIDNIGHT, 'Asia/Tokyo');
+    expect(result).toBe('2026-08-26, 09:00');
+  });
+
+  it('renders the correct local time for New York (UTC-4 in summer)', () => {
+    // New York observes EDT (UTC-4) in late August.
+    const result = formatReportTimestamp(UTC_MIDNIGHT, 'America/New_York');
+    expect(result).toBe('2026-08-25, 20:00');
+  });
+
+  it('renders UTC correctly when timeZone is explicitly UTC', () => {
+    const result = formatReportTimestamp(UTC_MIDNIGHT, 'UTC');
+    expect(result).toBe('2026-08-26, 00:00');
+  });
+
+  it('does not throw and returns a string when no timeZone is supplied', () => {
+    // We cannot assert an exact value here because the result depends on the
+    // runtime's local timezone, but it must be a non-empty string.
+    const result = formatReportTimestamp(UTC_MIDNIGHT);
+    expect(typeof result).toBe('string');
+    expect(result.length).toBeGreaterThan(0);
+  });
+
+  it('returns null for an empty string', () => {
+    expect(formatReportTimestamp('')).toBeNull();
+  });
+
+  it('returns null for a non-string input', () => {
+    expect(formatReportTimestamp(null)).toBeNull();
+    expect(formatReportTimestamp(undefined)).toBeNull();
+    expect(formatReportTimestamp(12345)).toBeNull();
+  });
+
+  it('returns null for an invalid date string', () => {
+    expect(formatReportTimestamp('not-a-date')).toBeNull();
+    expect(formatReportTimestamp('2026-99-99T00:00:00Z')).toBeNull();
+  });
+
+  it('does not throw for an unrecognised IANA timezone — falls back gracefully', () => {
+    // Should not throw; falls back to local time rendering.
+    expect(() => formatReportTimestamp(UTC_MIDNIGHT, 'Nowhere/Fake')).not.toThrow();
+    const result = formatReportTimestamp(UTC_MIDNIGHT, 'Nowhere/Fake');
+    expect(typeof result).toBe('string');
+  });
+
+  it('is not affected by the surrounding process.env.TZ', () => {
+    // Explicit timeZone arg must win over whatever the OS/Node timezone is.
+    const saved = process.env.TZ;
+    process.env.TZ = 'America/Los_Angeles'; // UTC-7 in summer
+    try {
+      expect(formatReportTimestamp(UTC_MIDNIGHT, 'Asia/Tokyo')).toBe('2026-08-26, 09:00');
+    } finally {
+      process.env.TZ = saved;
+    }
   });
 });

@@ -1,51 +1,44 @@
 /**
  * @fileoverview Service layer for fetching gridded temperature, humidity, and land-cover data.
+ *
+ * The transport moved to `./apiClient` in #1075. This was the one of the five
+ * that already built its query with `URLSearchParams` rather than string
+ * interpolation — that is now what all of them do.
  */
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
+import { apiRequest } from './apiClient';
 
 /**
  * Fetches hyperlocal microclimate and UHI data for a specific bounding box.
+ *
  * @param {number} north - Northern latitude bound.
  * @param {number} south - Southern latitude bound.
  * @param {number} east - Eastern longitude bound.
  * @param {number} west - Western longitude bound.
+ * @param {AbortSignal} [signal]
  * @returns {Promise<import('../types/microclimate').MicroclimateResponse>}
  */
-export const fetchMicroclimateData = async (north, south, east, west) => {
-    const queryParams = new URLSearchParams({ north, south, east, west });
-    const response = await fetch(`${API_BASE}/microclimate/grid?${queryParams}`, {
-        method: 'GET',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-    });
-
-    if (!response.ok) {
-        throw new Error('Failed to fetch microclimate grid data.');
-    }
-
-    return response.json();
-};
+export const fetchMicroclimateData = (north, south, east, west, signal) =>
+  apiRequest({
+    path: ['microclimate', 'grid'],
+    query: { north, south, east, west },
+    errorMessage: 'Failed to fetch microclimate grid data.',
+    signal,
+  });
 
 /**
  * Saves a microclimate zone for the current user.
+ *
  * @param {Object} zoneData - The zone data to save.
+ * @param {AbortSignal} [signal]
  * @returns {Promise<Object>}
  */
-export const saveMicroclimateZone = async (zoneData) => {
-    const response = await fetch(`${API_BASE}/microclimate/zones`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${localStorage.getItem('token')}`,
-        },
-        body: JSON.stringify(zoneData),
-    });
-
-    if (!response.ok) {
-        throw new Error('Failed to save microclimate zone.');
-    }
-
-    return response.json();
-};
+export const saveMicroclimateZone = (zoneData, signal) =>
+  apiRequest({
+    path: ['microclimate', 'zones'],
+    method: 'POST',
+    body: zoneData,
+    auth: true,
+    errorMessage: 'Failed to save microclimate zone.',
+    signal,
+  });

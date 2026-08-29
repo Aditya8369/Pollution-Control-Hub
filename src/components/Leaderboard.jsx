@@ -143,6 +143,7 @@ export default function Leaderboard() {
   }, [isAuthenticated, user, stats]);
 
   const leaderboard = useMemo(() => getLeaderboardData(), [getLeaderboardData]);
+  const nextLevel = useMemo(() => nextTrustLevel(stats.points), [stats.points]);
 
   const currentUserRank = useMemo(() => {
     return leaderboard.findIndex(item => item.isCurrentUser) + 1;

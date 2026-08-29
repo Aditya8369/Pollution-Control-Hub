@@ -147,6 +147,31 @@ export default function ChallengesWidget() {
     }
   }
 
+  // Progress update for weekly tasks
+  const triggerWeeklyProgress = useCallback((eventKey, count = 1) => {
+    setWeeklies(prevWeeklies => {
+      let pointsAwarded = 0;
+      const nextWeeklies = prevWeeklies.map(c => {
+        if (c.event === eventKey && !c.completed) {
+          const nextVal = Math.min(c.target, c.current + count);
+          const isDone = nextVal >= c.target;
+          if (isDone) {
+            pointsAwarded = c.points;
+            eventBus.emit("CHALLENGE_COMPLETED", c);
+          }
+          return { ...c, current: nextVal, completed: isDone };
+        }
+        return c;
+      });
+
+      if (pointsAwarded > 0) {
+        awardPoints(pointsAwarded);
+      }
+      saveToStorage(dailies, nextWeeklies, new Date().toDateString(), getMonday(new Date()));
+      return nextWeeklies;
+    });
+  }, [dailies, awardPoints]);
+
   // Connects to the Eco Impact Dashboard (src/utils/ecoImpactStore.js): logging a
   // trip that matches today's assigned challenge (e.g. "Use public transport
   // today" + a logged public-transport trip) auto-completes it instead of making
@@ -181,31 +206,6 @@ export default function ChallengesWidget() {
     return () => eventBus.off("ECO_TRIP_LOGGED", handleEcoTripLogged);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dailies]);
-
-  // Progress update for weekly tasks
-  const triggerWeeklyProgress = useCallback((eventKey, count = 1) => {
-    setWeeklies(prevWeeklies => {
-      let pointsAwarded = 0;
-      const nextWeeklies = prevWeeklies.map(c => {
-        if (c.event === eventKey && !c.completed) {
-          const nextVal = Math.min(c.target, c.current + count);
-          const isDone = nextVal >= c.target;
-          if (isDone) {
-            pointsAwarded = c.points;
-            eventBus.emit("CHALLENGE_COMPLETED", c);
-          }
-          return { ...c, current: nextVal, completed: isDone };
-        }
-        return c;
-      });
-
-      if (pointsAwarded > 0) {
-        awardPoints(pointsAwarded);
-      }
-      saveToStorage(dailies, nextWeeklies, new Date().toDateString(), getMonday(new Date()));
-      return nextWeeklies;
-    });
-  }, [dailies, awardPoints]);
 
   // Hook event bus to handle auto completions
   useEffect(() => {

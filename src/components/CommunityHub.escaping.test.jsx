@@ -18,7 +18,7 @@ function makeReport(overrides = {}) {
     image: '',
     votes: 0,
     createdAt: '2026-01-01T00:00:00.000Z',
-    status: 'Pending',
+    status: 'New',
     verifiedAt: '',
     moderationNotes: '',
     latitude: null,
@@ -88,10 +88,11 @@ describe('readReports migration (regression for #497)', () => {
   });
 
   it('does not rewrite storage when nothing needs migrating', () => {
-    // makeReport defaults to status 'Pending', which is itself a legacy value
-    // the migration renames — so this fixture did need migrating, and the test
-    // was failing for a reason unrelated to what it set out to check. A report
-    // with nothing to migrate needs a current status.
+    // The status is spelled out rather than left to the fixture default: a
+    // report with nothing to migrate needs a current status, and 'Pending' —
+    // which the migration renames — would have made this fixture need
+    // migrating after all, failing the test for a reason unrelated to what it
+    // sets out to check.
     seed([makeReport({ title: 'Clean title', status: 'New' })]);
     const setItem = vi.spyOn(Storage.prototype, 'setItem');
 

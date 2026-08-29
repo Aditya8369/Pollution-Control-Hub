@@ -63,10 +63,10 @@ export default defineConfig({
     }),
   ],
   server: {
-    https: true,
+    https: false,
   },
   preview: {
-    https: true,
+    https: false,
   },
   build: {
     rollupOptions: {

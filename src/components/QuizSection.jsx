@@ -1,5 +1,6 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { eventBus } from '../core/events';
+import { getNextFocusIndex, getTabStopIndex, isRovingKey } from '../utils/rovingFocus';
 
 const QUIZ_SETS = {
   'eco-iq': {
@@ -292,6 +293,24 @@ const QUIZ_SETS = {
   }
 };
 
+/**
+ * Visually hidden, still announced. The stylesheet's own `.sr-only` is applied
+ * alongside for anywhere it is defined; this inline copy is what guarantees the
+ * text does not show up as visible clutter next to the option label.
+ */
+/** @type {import('react').CSSProperties} */
+const SR_ONLY = {
+  position: 'absolute',
+  width: '1px',
+  height: '1px',
+  padding: 0,
+  margin: '-1px',
+  overflow: 'hidden',
+  clip: 'rect(0, 0, 0, 0)',
+  whiteSpace: 'nowrap',
+  border: 0,
+};
+
 /** @param {any} params */
 function QuizSelector({ onSelectQuiz }) {
   return (
@@ -356,6 +375,40 @@ export default function QuizSection() {
     () => (total ? ((index + 1) / total) * 100 : 0),
     [index, total]
   );
+
+  const options = current ? current.options : [];
+  const optionRefs = useRef([]);
+
+  // Which option carries the group's single tab stop. `tabIndex={selected === option}`
+  // gave every option -1 until one was chosen, so a fresh question had no tab stop
+  // at all and the answers could not be reached with a keyboard - on any question,
+  // because `goNext` resets `selected` each time.
+  const selectedIndex = options.indexOf(selected);
+  const tabStopIndex = getTabStopIndex(selectedIndex, options.length);
+
+  /**
+   * Arrow-key navigation within the group.
+   *
+   * The origin is the option that received the key rather than a piece of state,
+   * so focus and the handler can never disagree about where we are.
+   *
+   * Still active after submitting: the options stay in the accessibility tree so
+   * the answer can be read back, and arrow keys are how a keyboard user gets to
+   * them.
+   *
+   * @param {any} event
+   * @param {number} optionIndex
+   */
+  const handleOptionKeyDown = (event, optionIndex) => {
+    if (!isRovingKey(event.key)) return;
+
+    const next = getNextFocusIndex(event.key, optionIndex, options.length);
+    if (next === null) return;
+
+    // Arrow keys would otherwise scroll the page out from under the group.
+    event.preventDefault();
+    optionRefs.current[next]?.focus();
+  };
 
   /** @param {any} selectedOption */
   const submitAnswer = (selectedOption) => {
@@ -452,12 +505,14 @@ export default function QuizSection() {
         role="radiogroup"
         aria-labelledby="quiz-question-heading"
       >
-        {current.options.map((option) => {
+        {options.map((option, optionIndex) => {
           const selectedClass = selected === option ? 'selected' : '';
+          const isAnswer = option === correctAnswerText;
+          const isChosenWrong = submitted && option === selected && !isAnswer;
           const resultClass = submitted
-            ? option === correctAnswerText
+            ? isAnswer
               ? 'correct'
-              : option === selected
+              : isChosenWrong
                 ? 'wrong'
                 : ''
             : '';
@@ -467,14 +522,25 @@ export default function QuizSection() {
               key={option}
               type="button"
               role="radio"
+              ref={(node) => { optionRefs.current[optionIndex] = node; }}
               aria-checked={selected === option}
+              // `disabled` removes the button from the accessibility tree, so after
+              // answering, a screen reader user could not read back which option was
+              // the correct one - the correct/wrong colouring was the only feedback,
+              // and colour is not an accessible channel. `aria-disabled` keeps them
+              // readable; `submitAnswer` already ignores a second click.
               aria-disabled={submitted}
-              tabIndex={selected === option ? 0 : -1}
+              tabIndex={optionIndex === tabStopIndex ? 0 : -1}
               className={`quiz-option ${selectedClass} ${resultClass}`.trim()}
               onClick={() => submitAnswer(option)}
-              disabled={submitted}
+              onKeyDown={(event) => handleOptionKeyDown(event, optionIndex)}
             >
               {option}
+              {submitted && (isAnswer || isChosenWrong) && (
+                <span className="sr-only" style={SR_ONLY}>
+                  {isAnswer ? ' (correct answer)' : ' (your answer, incorrect)'}
+                </span>
+              )}
             </button>
           );
         })}
