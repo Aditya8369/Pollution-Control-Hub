@@ -5,6 +5,7 @@ import React, {
   useEffect,
   useCallback,
   useMemo,
+  useRef,
 } from "react";
 import { fetchUserTenants, updateTenantSettings as updateSettingsApi } from '../services/tenantService';
 
@@ -83,6 +84,30 @@ function nameFor(id) {
 }
 
 /**
+ * The raw stored tenant id, or null when there isn't one that can be read.
+ *
+ * Reading `localStorage` is not merely "returns null when empty". The property access
+ * itself throws `SecurityError` when the browser is set to block site data — Firefox's
+ * "Block cookies and site data", Safari private browsing with storage disabled, or the
+ * widget embedded in a partitioned iframe. Every read in this module goes through here so
+ * that a browser which refuses to be read is a degraded environment rather than a fatal
+ * one; two reads bypassed it and took `TenantProvider` — and therefore the app — down.
+ *
+ * Deliberately unvalidated: `fetchTenants` matches this against ids the API returned,
+ * which are not limited to `KNOWN_TENANTS`. Validation belongs at the call sites that
+ * need it.
+ *
+ * @returns {string|null}
+ */
+function readStoredTenantId() {
+  try {
+    return localStorage.getItem(STORAGE_KEY);
+  } catch {
+    return null;
+  }
+}
+
+/**
  * The tenant the visitor previously chose, or the default.
  *
  * Anything unrecognised in storage is discarded rather than trusted.
@@ -90,12 +115,8 @@ function nameFor(id) {
  * @returns {string}
  */
 function readStoredTenant() {
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    return isKnownTenant(stored) ? stored : DEFAULT_TENANT_ID;
-  } catch {
-    return DEFAULT_TENANT_ID;
-  }
+  const stored = readStoredTenantId();
+  return isKnownTenant(stored) ? stored : DEFAULT_TENANT_ID;
 }
 
 /**
@@ -134,19 +155,29 @@ export function TenantProvider({ children }) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  // `fetchTenants` needs to know whether a tenant is already selected, but taking that
+  // as a dependency made it a new function on every selection: it is part of the context
+  // value, so each change invalidated the memo and re-rendered every consumer of
+  // `useTenant()`. Reading it through a ref keeps the callback stable.
+  const currentTenantRef = useRef(null);
+  useEffect(() => {
+    currentTenantRef.current = currentTenant;
+  }, [currentTenant]);
+
   const fetchTenants = useCallback(async () => {
     setIsLoading(true);
     setError(null);
     try {
       const data = await fetchUserTenants();
-      setTenants(data);
+      const list = Array.isArray(data) ? data : [];
+      setTenants(list);
 
       // If we have API tenants and no current tenant is set, use the first one
-      if (data.length > 0 && !currentTenant) {
-        const savedTenantId = localStorage.getItem(STORAGE_KEY);
+      if (list.length > 0 && !currentTenantRef.current) {
+        const savedTenantId = readStoredTenantId();
         const savedTenant = savedTenantId
-          ? data.find(t => t.id === savedTenantId) || data[0]
-          : data[0];
+          ? list.find(t => t.id === savedTenantId) || list[0]
+          : list[0];
 
         setCurrentTenant(savedTenant);
         setTenantId(savedTenant.id);
@@ -158,7 +189,7 @@ export function TenantProvider({ children }) {
     } finally {
       setIsLoading(false);
     }
-  }, [currentTenant]);
+  }, []);
 
   const setTenant = useCallback((id) => {
     // Reject unknown ids at the door
@@ -226,18 +257,15 @@ export function TenantProvider({ children }) {
     return nameFor(tenantId);
   }, [tenantId, currentTenant]);
 
+  // Restoring the saved workspace is `fetchTenants`' own job, done against the data it
+  // just received. The block that used to live here read `tenants` out of the mount
+  // closure — always the initial `[]`, because a resolved promise does not rebind a
+  // captured variable — so `tenants.length > 0` was never true and the body was dead.
+  // All it contributed was a second, unguarded `localStorage.getItem` inside an effect,
+  // where a `SecurityError` escapes into React's commit phase and unmounts the provider.
   useEffect(() => {
-    const activeId = localStorage.getItem(STORAGE_KEY);
-    fetchTenants().then(() => {
-      if (activeId && tenants.length > 0) {
-        const saved = tenants.find((t) => t.id === activeId);
-        if (saved) {
-          setCurrentTenant(saved);
-          setTenantId(activeId);
-        }
-      }
-    });
-  }, []);
+    fetchTenants();
+  }, [fetchTenants]);
 
   const value = useMemo(
     () => ({
