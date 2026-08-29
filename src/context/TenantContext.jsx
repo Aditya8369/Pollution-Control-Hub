@@ -84,25 +84,20 @@ function nameFor(id) {
 }
 
 /**
- * The raw stored tenant id, or null when there isn't one that can be read.
+ * Whatever is stored under the tenant key, unvalidated, or null.
  *
- * Reading `localStorage` is not merely "returns null when empty". The property access
- * itself throws `SecurityError` when the browser is set to block site data — Firefox's
- * "Block cookies and site data", Safari private browsing with storage disabled, or the
- * widget embedded in a partitioned iframe. Every read in this module goes through here so
- * that a browser which refuses to be read is a degraded environment rather than a fatal
- * one; two reads bypassed it and took `TenantProvider` — and therefore the app — down.
- *
- * Deliberately unvalidated: `fetchTenants` matches this against ids the API returned,
- * which are not limited to `KNOWN_TENANTS`. Validation belongs at the call sites that
- * need it.
+ * Separate from `readStoredTenant()` because the API-driven paths match the
+ * stored id against the tenant list the server returned, which is not the same
+ * set as `KNOWN_TENANTS` — validating against the static list there would
+ * discard a legitimate server-side workspace id.
  *
  * @returns {string|null}
  */
-function readStoredTenantId() {
+function readRawStoredTenant() {
   try {
     return localStorage.getItem(STORAGE_KEY);
   } catch {
+    // Private browsing, or site data blocked. No stored choice is readable.
     return null;
   }
 }
@@ -115,7 +110,7 @@ function readStoredTenantId() {
  * @returns {string}
  */
 function readStoredTenant() {
-  const stored = readStoredTenantId();
+  const stored = readRawStoredTenant();
   return isKnownTenant(stored) ? stored : DEFAULT_TENANT_ID;
 }
 
@@ -174,7 +169,7 @@ export function TenantProvider({ children }) {
 
       // If we have API tenants and no current tenant is set, use the first one
       if (list.length > 0 && !currentTenantRef.current) {
-        const savedTenantId = readStoredTenantId();
+        const savedTenantId = readRawStoredTenant();
         const savedTenant = savedTenantId
           ? list.find(t => t.id === savedTenantId) || list[0]
           : list[0];
