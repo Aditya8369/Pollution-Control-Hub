@@ -2,6 +2,8 @@
  * Utility to export SVG-based charts (like Recharts) to SVG and PNG formats.
  */
 
+import { downloadFile } from "./downloadFile";
+
 /**
  * Extracts relevant CSS rules (Recharts styling, CSS variables) to embed in the exported SVG
  * so that styling (like gridlines, colors, labels) is preserved.
@@ -70,24 +72,6 @@ export function serializeSVG(svgElement) {
 
   const serializer = new XMLSerializer();
   return serializer.serializeToString(clone);
-}
-
-/**
- * Downloads a string content as a file.
- * @param {string} content
- * @param {string} mimeType
- * @param {string} filename
- */
-function downloadFile(content, mimeType, filename) {
-  const blob = new Blob([content], { type: mimeType });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = filename;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  URL.revokeObjectURL(url);
 }
 
 /**
