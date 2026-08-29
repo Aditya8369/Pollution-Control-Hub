@@ -7,10 +7,11 @@ import {
   TrendingDown,
   TrendingUp
 } from 'lucide-react';
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { formatReportTimestamp } from '../utils/localDay';
 
 import { COMPLIANCE_STATUSES, formatCurrency } from './reportTypes';
+import { DisclosureButton } from './ui/PressableCard';
 
 /**
  * Stat card with icon, value, label, and trend.
@@ -123,6 +124,7 @@ const ReportItemCard = ({ report, delay = 0, isSelected, onSelect, timeZone }) =
  */
 const ComplianceCard = ({ item, delay = 0 }) => {
   const [expanded, setExpanded] = useState(false);
+  const panelId = useId();
   const statusConfig = COMPLIANCE_STATUSES[item.status] || COMPLIANCE_STATUSES.pending_review;
 
   return (
@@ -135,8 +137,14 @@ const ComplianceCard = ({ item, delay = 0 }) => {
         borderRadius: '0.75rem', padding: '0.75rem 1rem', borderLeft: `3px solid ${statusConfig.color}`,
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }} onClick={() => setExpanded(!expanded)}>
-        <span style={{ fontSize: '1rem' }}>{statusConfig.icon}</span>
+      <DisclosureButton
+        expanded={expanded}
+        onToggle={() => setExpanded(!expanded)}
+        controls={panelId}
+        label={`${item.label} compliance detail, ${item.percentOfStandard || 'unknown'}% of standard`}
+        style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+      >
+        <span aria-hidden="true" style={{ fontSize: '1rem' }}>{statusConfig.icon}</span>
         <div style={{ flex: 1 }}>
           <p style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary, #1e293b)', margin: 0 }}>{item.label}</p>
           <p style={{ fontSize: '0.6rem', color: 'var(--muted, #94a3b8)', margin: '0.1rem 0 0' }}>
@@ -147,10 +155,10 @@ const ComplianceCard = ({ item, delay = 0 }) => {
           <span style={{ fontSize: '0.8rem', fontWeight: 800, color: statusConfig.color }}>{item.percentOfStandard || '—'}%</span>
           <p style={{ fontSize: '0.5rem', color: '#94a3b8', margin: 0 }}>of standard</p>
         </div>
-        <ChevronDown size={14} color="#94a3b8" style={{ transform: expanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
-      </div>
+        <ChevronDown aria-hidden="true" size={14} color="#94a3b8" style={{ transform: expanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
+      </DisclosureButton>
       {expanded && (
-        <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} style={{ marginTop: '0.5rem', paddingTop: '0.5rem', borderTop: '1px solid #f1f5f9' }}>
+        <motion.div id={panelId} initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} style={{ marginTop: '0.5rem', paddingTop: '0.5rem', borderTop: '1px solid #f1f5f9' }}>
           <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
             <span style={{ fontSize: '0.55rem', padding: '0.15rem 0.4rem', background: '#f8fafc', borderRadius: '9999px', color: '#64748b' }}>
               Trend: {item.trend === 'improving' ? '📈' : item.trend === 'worsening' ? '📉' : '➡️'} {item.trend}

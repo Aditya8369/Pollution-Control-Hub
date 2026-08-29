@@ -1,4 +1,5 @@
-import React, { useState, useMemo, useCallback } from "react";
+import React, { useCallback, useId, useMemo, useState } from "react";
+import { DisclosureButton } from "./ui/PressableCard";
 
 // ─── AQI & Health Data ──────────────────────────────────────────────────────
 const AQI_CATEGORIES = [
@@ -147,7 +148,11 @@ function AQIGauge({ aqi }) {
 }
 
 function HealthScoreRing({ score }) {
-  const circumference = 2 * Math.PI(40);
+  // Math.PI(40) -- `Math.PI` is a number, so calling it threw
+  // "TypeError: Math.PI is not a function" and took the whole dashboard down on render.
+  // Fixed here because the keyboard fix below cannot be verified on a component that
+  // cannot mount. r=40 matches the <circle r="40"> this dash array is drawn onto.
+  const circumference = 2 * Math.PI * 40;
   const offset = circumference - (score / 100) * circumference;
   const color = score >= 80 ? "#22c55e" : score >= 60 ? "#eab308" : score >= 40 ? "#f97316" : "#ef4444";
 
@@ -182,13 +187,22 @@ function StatCard({ icon, label, value, color, subtext }) {
 
 function PollutantCard({ pollutant, aqi, hours }) {
   const [expanded, setExpanded] = useState(false);
+  const panelId = useId();
   const risk = calculateExposureRisk(aqi, hours, "outdoor");
   const riskColor = risk > 70 ? "#ef4444" : risk > 40 ? "#f97316" : risk > 20 ? "#eab308" : "#22c55e";
 
   return (
-    <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-700/40 cursor-pointer hover:border-slate-600/60 transition-all"
-         onClick={() => setExpanded(!expanded)}>
-      <div className="flex items-center justify-between">
+    <div className="p-4 rounded-xl bg-slate-900/60 border border-slate-700/40 hover:border-slate-600/60 transition-all">
+      {/* The header is the control; the panel it opens sits beside it rather than inside
+          it, so the button's accessible name stays the pollutant rather than becoming the
+          whole card's text once expanded. */}
+      <DisclosureButton
+        expanded={expanded}
+        onToggle={() => setExpanded(!expanded)}
+        controls={panelId}
+        label={`${pollutant.pollutant} health effects, exposure risk ${risk}%`}
+        className="flex items-center justify-between"
+      >
         <div>
           <p className="text-sm font-semibold text-slate-200">{pollutant.pollutant}</p>
           <p className="text-[10px] text-slate-500">Exposure risk: <span style={{ color: riskColor }}>{risk}%</span></p>
@@ -196,10 +210,10 @@ function PollutantCard({ pollutant, aqi, hours }) {
         <div className="h-2 w-20 bg-slate-800 rounded-full overflow-hidden">
           <div className="h-full rounded-full transition-all" style={{ width: `${risk}%`, backgroundColor: riskColor }} />
         </div>
-      </div>
+      </DisclosureButton>
 
       {expanded && (
-        <div className="mt-3 pt-3 border-t border-slate-700/30 space-y-3">
+        <div id={panelId} className="mt-3 pt-3 border-t border-slate-700/30 space-y-3">
           <div>
             <p className="text-xs font-medium text-slate-300 mb-1">Short-term Effects</p>
             <ul className="space-y-0.5">

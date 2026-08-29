@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useCallback } from "react";
+import { SelectionButton } from "./ui/PressableCard";
 
 // ─── Forecast Data Generator ────────────────────────────────────────────────
 const POLLUTANTS = [
@@ -1040,13 +1041,19 @@ export default function AIPollutionForecast() {
         </p>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: "12px" }}>
           {WEATHER_CONDITIONS.map((w, i) => (
-            <div key={i} style={styles.weatherTile(selectedWeather === i)} onClick={() => setSelectedWeather(selectedWeather === i ? null : i)}>
+            <SelectionButton
+              key={i}
+              selected={selectedWeather === i}
+              onSelect={() => setSelectedWeather(selectedWeather === i ? null : i)}
+              label={`Weather condition: ${w.label}, dispersal ${w.dispersal.toFixed(1)}x`}
+              style={styles.weatherTile(selectedWeather === i)}
+            >
               <div style={{ fontSize: "1.5rem", marginBottom: "4px" }}>{w.icon}</div>
               <div style={{ fontSize: "0.8rem", fontWeight: 600, color: "#e2e8f0" }}>{w.label}</div>
               <div style={{ fontSize: "0.7rem", color: w.dispersal > 1 ? "#22c55e" : w.dispersal > 0.5 ? "#eab308" : "#ef4444", marginTop: "4px" }}>
                 Dispersal: {w.dispersal.toFixed(1)}x
               </div>
-            </div>
+            </SelectionButton>
           ))}
         </div>
       </div>
