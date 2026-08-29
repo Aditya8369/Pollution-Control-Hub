@@ -1,10 +1,33 @@
-import { render, screen, fireEvent, act } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import HealthAdvisory from './HealthAdvisory';
+
+const mockPdfSave = vi.fn();
+const mockPdfText = vi.fn();
+
+vi.mock('jspdf', () => ({
+  default: class MockjsPDF {
+    constructor() {
+      this.internal = { pageSize: { getWidth: () => 210, getHeight: () => 297 } };
+    }
+    setFont() { return this; }
+    setFontSize() { return this; }
+    setTextColor() { return this; }
+    setDrawColor() { return this; }
+    setLineWidth() { return this; }
+    splitTextToSize(text) { return [text]; }
+    text(...args) { mockPdfText(...args); return this; }
+    line() { return this; }
+    addPage() { return this; }
+    save(...args) { mockPdfSave(...args); return this; }
+  },
+}));
 
 describe('HealthAdvisory - Personalized Health Recommendations', () => {
   beforeEach(() => {
     localStorage.clear();
+    mockPdfSave.mockClear();
+    mockPdfText.mockClear();
   });
 
   afterEach(() => {
@@ -74,4 +97,45 @@ describe('HealthAdvisory - Personalized Health Recommendations', () => {
     expect(tips[0]).toHaveTextContent(/🚨 Critical/i);
     expect(screen.getAllByTestId('relevance-badge').length).toBeGreaterThan(0);
   });
+
+  describe('Issue #1120 - Download Personalized Health Advisory PDF', () => {
+    it('renders the Download My Health Advisory button', () => {
+      render(<HealthAdvisory currentAqi={120} />);
+
+      const downloadBtn = screen.getByRole('button', { name: /download/i });
+      expect(downloadBtn).toBeInTheDocument();
+    });
+
+    it('triggers PDF download using current component state (selected conditions & active tab tips)', () => {
+      render(<HealthAdvisory currentAqi={150} />);
+
+      // Select Asthma condition
+      const asthmaLabel = screen.getByText(/conditions\.asthma/i);
+      const checkbox = asthmaLabel.querySelector('input[type="checkbox"]');
+      fireEvent.click(checkbox);
+
+      const downloadBtn = screen.getByRole('button', { name: /download/i });
+      fireEvent.click(downloadBtn);
+
+      expect(mockPdfSave).toHaveBeenCalledWith('personalized_health_advisory.pdf');
+
+      // Verify text calls included AQI, Asthma condition, and advisory content
+      const pdfTextCalls = mockPdfText.mock.calls.map(call => call[0]);
+      expect(pdfTextCalls.some(t => String(t).includes('Current AQI: 150'))).toBe(true);
+      expect(pdfTextCalls.some(t => String(t).includes('Asthma'))).toBe(true);
+    });
+
+    it('handles empty health-condition case safely by providing general guidance in PDF', () => {
+      render(<HealthAdvisory currentAqi={50} />);
+
+      const downloadBtn = screen.getByRole('button', { name: /download/i });
+      fireEvent.click(downloadBtn);
+
+      expect(mockPdfSave).toHaveBeenCalledWith('personalized_health_advisory.pdf');
+
+      const pdfTextCalls = mockPdfText.mock.calls.map(call => call[0]);
+      expect(pdfTextCalls.some(t => String(t).includes('No specific pre-existing health conditions selected'))).toBe(true);
+    });
+  });
 });
+
