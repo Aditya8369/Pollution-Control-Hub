@@ -227,7 +227,12 @@ export function TenantProvider({ children }) {
   }, [tenantId, currentTenant]);
 
   useEffect(() => {
-    const activeId = localStorage.getItem(STORAGE_KEY);
+    let activeId = null;
+    try {
+      activeId = localStorage.getItem(STORAGE_KEY);
+    } catch {
+      // Storage unavailable or insecure
+    }
     fetchTenants().then(() => {
       if (activeId && tenants.length > 0) {
         const saved = tenants.find((t) => t.id === activeId);
