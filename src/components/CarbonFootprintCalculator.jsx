@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import jsPDF from 'jspdf';
 import { calculateCarbonFootprint } from '../utils/carbonCalculator';
 import { localDayKey } from '../utils/localDay';
 import './CarbonFootprintCalculator.css';
@@ -195,6 +196,145 @@ export default function CarbonFootprintCalculator() {
       localStorage.removeItem(HISTORY_STORAGE_KEY);
     } catch {
       // ignore storage error
+    }
+  };
+
+  const escapeCsvValue = (val) => {
+    if (val === null || val === undefined) return '';
+    const str = String(val);
+    if (str.includes(',') || str.includes('"') || str.includes('\n') || str.includes('\r')) {
+      return `"${str.replace(/"/g, '""')}"`;
+    }
+    return str;
+  };
+
+  const handleExportCSV = () => {
+    if (!history || history.length === 0) return;
+
+    const headers = [
+      'Date',
+      'Monthly Footprint (kg CO2e)',
+      'Annual Footprint (t CO2e)',
+      'Impact Level',
+      'Vehicle Fuel Type',
+      'Vehicle Distance (km/mo)',
+      'Electricity (kWh/mo)',
+      'LPG Cylinders',
+      'Public Transit (km/mo)',
+      'Short Flights/yr',
+      'Long Flights/yr'
+    ];
+
+    const rows = history.map((entry) => [
+      entry.date || '',
+      entry.monthlyKg ?? '',
+      entry.annualTonnes ?? '',
+      entry.impactLevel || '',
+      entry.inputs?.vehicleType || '',
+      entry.inputs?.vehicleKm ?? '',
+      entry.inputs?.electricityKwh ?? '',
+      entry.inputs?.lpgCylinders ?? '',
+      entry.inputs?.publicTransitKm ?? '',
+      entry.inputs?.shortFlights ?? '',
+      entry.inputs?.longFlights ?? ''
+    ]);
+
+    const csvLines = [
+      headers.map(escapeCsvValue).join(','),
+      ...rows.map((row) => row.map(escapeCsvValue).join(','))
+    ];
+
+    const csvContent = csvLines.join('\r\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'carbon_footprint_history.csv';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleExportJSON = () => {
+    if (!history || history.length === 0) return;
+
+    const jsonContent = JSON.stringify(history, null, 2);
+    const blob = new Blob([jsonContent], { type: 'application/json;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'carbon_footprint_history.json';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleExportPDF = () => {
+    if (!history || history.length === 0) return;
+
+    try {
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const margin = 18;
+      let y = 20;
+
+      // Header Banner
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(18);
+      pdf.setTextColor(13, 148, 136);
+      pdf.text('Pollution Control Hub', pageWidth / 2, y, { align: 'center' });
+      y += 7;
+
+      pdf.setFontSize(12);
+      pdf.setTextColor(30, 41, 59);
+      pdf.text('Carbon Footprint Calculation History', pageWidth / 2, y, { align: 'center' });
+      y += 9;
+
+      pdf.setDrawColor(203, 213, 225);
+      pdf.setLineWidth(0.5);
+      pdf.line(margin, y, pageWidth - margin, y);
+      y += 8;
+
+      history.forEach((entry, idx) => {
+        if (y > 260) {
+          pdf.addPage();
+          y = 20;
+        }
+
+        pdf.setFont('helvetica', 'bold');
+        pdf.setFontSize(11);
+        pdf.setTextColor(13, 148, 136);
+        pdf.text(`#${idx + 1} — ${entry.date || 'Calculation'}`, margin, y);
+        y += 5;
+
+        pdf.setFont('helvetica', 'normal');
+        pdf.setFontSize(9.5);
+        pdf.setTextColor(51, 65, 85);
+        pdf.text(`Emissions: ${entry.monthlyKg} kg CO2e/mo (${entry.annualTonnes} t/yr) | Impact: ${entry.impactLevel}`, margin, y);
+        y += 5;
+
+        if (entry.inputs) {
+          const inp = entry.inputs;
+          const details = `Inputs: ${inp.vehicleType || 'N/A'} (${inp.vehicleKm || 0} km), Elec: ${inp.electricityKwh || 0} kWh, LPG: ${inp.lpgCylinders || 0} cyl, Transit: ${inp.publicTransitKm || 0} km, Flights: ${inp.shortFlights || 0} short / ${inp.longFlights || 0} long`;
+          pdf.setFontSize(8.5);
+          pdf.setTextColor(100, 116, 139);
+          pdf.text(details, margin, y);
+          y += 6;
+        }
+
+        pdf.setDrawColor(241, 245, 249);
+        pdf.setLineWidth(0.2);
+        pdf.line(margin, y, pageWidth - margin, y);
+        y += 5;
+      });
+
+      pdf.save('carbon_footprint_history.pdf');
+    } catch (err) {
+      console.error('Failed to generate PDF report:', err);
     }
   };
 
@@ -711,9 +851,21 @@ export default function CarbonFootprintCalculator() {
             <div className="carbon-card carbon-history-card">
               <div className="carbon-history-header">
                 <h4 className="carbon-subheading">📜 Previous Calculations</h4>
-                <button type="button" className="btn-text-cancel" onClick={handleClearHistory}>
-                  Clear History
-                </button>
+                <div className="carbon-history-actions">
+                  <span className="carbon-export-label">Export:</span>
+                  <button type="button" className="btn-text-export" onClick={handleExportCSV}>
+                    CSV
+                  </button>
+                  <button type="button" className="btn-text-export" onClick={handleExportJSON}>
+                    JSON
+                  </button>
+                  <button type="button" className="btn-text-export" onClick={handleExportPDF}>
+                    PDF
+                  </button>
+                  <button type="button" className="btn-text-cancel" onClick={handleClearHistory}>
+                    Clear History
+                  </button>
+                </div>
               </div>
 
               <div className="carbon-history-list">
