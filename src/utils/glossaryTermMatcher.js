@@ -21,7 +21,15 @@ function buildTermIndex() {
 
     variants.sort((a, b) => b.length - a.length);
     const escaped = variants.map((v) => v.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
-    const pattern = new RegExp(`\\b(${escaped.join("|")})\\b`, "gi");
+    // \b fails for terms that start or end with non-word characters (Unicode
+    // symbols, parentheses, slashes, etc.) because \b is a transition between
+    // \w and \W — it never fires when the term boundary character is itself \W.
+    //
+    // Using negative lookbehind/lookahead against the ASCII word-character set
+    // [A-Za-z0-9_] gives the same partial-word guard for alphanumeric terms
+    // while also matching correctly when the term starts or ends with a symbol,
+    // Unicode character, or punctuation (e.g. "µg/m³", "Lead (Pb)").
+    const pattern = new RegExp(`(?<![A-Za-z0-9_])(${escaped.join("|")})(?![A-Za-z0-9_])`, "gi");
 
     return { lookup, pattern };
 }
