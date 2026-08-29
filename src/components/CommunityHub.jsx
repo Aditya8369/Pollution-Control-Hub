@@ -91,21 +91,31 @@ export function readReports() {
     const parsed = raw ? JSON.parse(raw) : [];
     if (!Array.isArray(parsed)) return [];
 
+    let hasChanges = false;
     const migrated = parsed.map((report) => {
       let r = { ...report };
       if (needsEntityMigration(report)) {
         r.title = decodeStoredEntities(report.title);
         r.description = decodeStoredEntities(report.description);
+        hasChanges = true;
       }
-      if (r.status === 'Pending') r.status = 'New';
-      if (r.status === 'Addressed') r.status = 'Resolved';
+      if (r.status === 'Pending') {
+        r.status = 'New';
+        hasChanges = true;
+      }
+      if (r.status === 'Addressed') {
+        r.status = 'Resolved';
+        hasChanges = true;
+      }
       return r;
     });
 
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(migrated));
-    } catch {
-      // Migration is best-effort; the decoded copy is still returned for this session.
+    if (hasChanges) {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(migrated));
+      } catch {
+        // Migration is best-effort; the decoded copy is still returned for this session.
+      }
     }
 
     return migrated;
@@ -151,6 +161,7 @@ export default function CommunityHub() {
   const [severityFilter, setSeverityFilter] = useState('All');
   const [dateFilter, setDateFilter] = useState('All Time');
   const [locationFilter, setLocationFilter] = useState('');
+  const [exportNotice, setExportNotice] = useState('');
 
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({
@@ -523,6 +534,83 @@ export default function CommunityHub() {
     return true;
   });
 
+  const escapeCsvValue = (val) => {
+    if (val === null || val === undefined) return '';
+    const str = String(val);
+    if (str.includes(',') || str.includes('"') || str.includes('\n') || str.includes('\r')) {
+      return `"${str.replace(/"/g, '""')}"`;
+    }
+    return str;
+  };
+
+  const handleExportCSV = () => {
+    if (!filteredReports || filteredReports.length === 0) {
+      setExportNotice(t('communityHub.noReportsExport', 'No reports available to export for the selected filter.'));
+      setTimeout(() => setExportNotice(''), 4000);
+      return;
+    }
+    setExportNotice('');
+
+    const headers = ['Title', 'Description', 'Hashtag', 'Status', 'Votes', 'Comments', 'Timestamp'];
+    const rows = filteredReports.map((report) => [
+      report.title || '',
+      report.description || '',
+      report.hashtag || '',
+      report.status || '',
+      report.votes ?? 0,
+      Array.isArray(report.comments) ? report.comments.length : (report.comments ?? 0),
+      report.createdAt || ''
+    ]);
+
+    const csvLines = [
+      headers.map(escapeCsvValue).join(','),
+      ...rows.map((row) => row.map(escapeCsvValue).join(','))
+    ];
+
+    const csvContent = csvLines.join('\r\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'community_reports_filtered.csv';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleExportJSON = () => {
+    if (!filteredReports || filteredReports.length === 0) {
+      setExportNotice(t('communityHub.noReportsExport', 'No reports available to export for the selected filter.'));
+      setTimeout(() => setExportNotice(''), 4000);
+      return;
+    }
+    setExportNotice('');
+
+    const mappedReports = filteredReports.map((report) => ({
+      Title: report.title || '',
+      Description: report.description || '',
+      Hashtag: report.hashtag || '',
+      Status: report.status || '',
+      Votes: report.votes ?? 0,
+      Comments: Array.isArray(report.comments) ? report.comments : [],
+      Timestamp: report.createdAt || ''
+    }));
+
+    const jsonContent = JSON.stringify(mappedReports, null, 2);
+    const blob = new Blob([jsonContent], { type: 'application/json;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'community_reports_filtered.json';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   const statusLabel = (status) => {
     if (status === 'New') return t('communityHub.statusNew', 'New');
     if (status === 'Under Review') return t('communityHub.statusUnderReview', 'Under Review');
@@ -805,6 +893,23 @@ export default function CommunityHub() {
             {filterLabel(statusOption)}
           </button>
         ))}
+      </div>
+
+      <div className="community-export-controls" style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '15px', flexWrap: 'wrap' }}>
+        <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--muted, #94a3b8)' }}>
+          {t("communityHub.exportReports", "Export Reports")}:
+        </span>
+        <button type="button" className="btn-secondary text-sm" onClick={handleExportCSV} style={{ padding: '0.3rem 0.65rem', fontSize: '0.8rem' }}>
+          {t("communityHub.exportCSV", "Export CSV")}
+        </button>
+        <button type="button" className="btn-secondary text-sm" onClick={handleExportJSON} style={{ padding: '0.3rem 0.65rem', fontSize: '0.8rem' }}>
+          {t("communityHub.exportJSON", "Export JSON")}
+        </button>
+        {exportNotice && (
+          <span className="export-notice" role="alert" style={{ fontSize: '0.85rem', color: '#ef4444', marginLeft: '8px', fontWeight: '500' }}>
+            {exportNotice}
+          </span>
+        )}
       </div>
 
       <div className="filter-tabs" style={{ display: 'flex', gap: '8px', margin: '15px 0', flexWrap: 'wrap' }}>

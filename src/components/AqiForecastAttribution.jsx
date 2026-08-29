@@ -1,5 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { fetchAqiForecast } from '../services/forecastAttributionService';
+import {
+  hourlyTrend,
+  attributionBarWidth,
+  clampDayIndex,
+  usableAttributions,
+  attributedTotal,
+} from '../utils/forecastTrend';
 
 /**
  * @component AqiForecastAttribution
@@ -49,7 +56,7 @@ const AqiForecastAttribution = () => {
         );
     }
 
-    if (!forecastData || !forecastData.forecasts.length) {
+    if (!forecastData || !forecastData.forecasts?.length) {
         return (
             <div className="p-6 text-center text-gray-500 dark:text-gray-400">
                 No forecast data available for this location.
@@ -57,8 +64,16 @@ const AqiForecastAttribution = () => {
         );
     }
 
-    const currentForecast = forecastData.forecasts[selectedDayIndex];
-    const maxPercentage = Math.max(...currentForecast.attributions.map(a => a.percentage), 1);
+    // `selectedDayIndex` is held across data changes; a refetch returning a
+    // shorter forecast made `forecasts[selectedDayIndex]` undefined, and every
+    // line below dereferences it.
+    const dayIndex = clampDayIndex(selectedDayIndex, forecastData.forecasts.length);
+    const currentForecast = forecastData.forecasts[dayIndex];
+    const attributions = usableAttributions(currentForecast.attributions);
+    const attributedShare = attributedTotal(attributions);
+    const hourlyBreakdown = Array.isArray(currentForecast.hourlyBreakdown)
+        ? currentForecast.hourlyBreakdown
+        : [];
 
     const getSourceColor = (source) => {
         const colors = {
@@ -84,8 +99,10 @@ const AqiForecastAttribution = () => {
                     {forecastData.forecasts.map((day, idx) => (
                         <button
                             key={day.date}
+                            type="button"
                             onClick={() => setSelectedDayIndex(idx)}
-                            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${selectedDayIndex === idx
+                            aria-pressed={dayIndex === idx}
+                            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${dayIndex === idx
                                     ? 'bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm'
                                     : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
                                 }`}
@@ -128,21 +145,42 @@ const AqiForecastAttribution = () => {
 
                 {/* Source Attribution Card */}
                 <div className="lg:col-span-2 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-6">Probable Pollution Sources</h3>
+                    <div className="flex flex-wrap items-baseline justify-between gap-2 mb-6">
+                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Probable Pollution Sources</h3>
+                        {/*
+                          The bars are shares of the whole now, so a set summing
+                          to less than 100 leaves visible space. Saying how much
+                          is accounted for stops that reading as missing bars.
+                        */}
+                        <span className="text-xs text-gray-500 dark:text-gray-400">
+                            {attributedShare}% of the forecast attributed
+                        </span>
+                    </div>
                     <div className="space-y-5">
-                        {currentForecast.attributions.map((attr) => (
+                        {attributions.map((attr) => (
                             <div key={attr.source} className="space-y-2">
                                 <div className="flex justify-between items-center text-sm">
                                     <span className="font-medium text-gray-900 dark:text-white flex items-center gap-2">
                                         <span className={`w-3 h-3 rounded-full ${getSourceColor(attr.source)}`}></span>
-                                        {attr.source.replace('_', ' ')}
+                                        {attr.source.split('_').join(' ')}
                                     </span>
                                     <span className="font-bold text-gray-900 dark:text-white">{attr.percentage}%</span>
                                 </div>
-                                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5 overflow-hidden">
+                                {/*
+                                  Width is the share itself. It used to be
+                                  `attr.percentage / maxPercentage`, which drew
+                                  the largest source full-width whether it was
+                                  80% or 22% — the bar and the number beside it
+                                  disagreed, and the bar is what gets looked at.
+                                */}
+                                <div
+                                    className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5 overflow-hidden"
+                                    role="img"
+                                    aria-label={`${attr.source.split('_').join(' ')}: ${attr.percentage}% of forecast pollution`}
+                                >
                                     <div
                                         className={`h-2.5 rounded-full ${getSourceColor(attr.source)} transition-all duration-1000 ease-out`}
-                                        style={{ width: `${(attr.percentage / maxPercentage) * 100}%` }}
+                                        style={{ width: `${attributionBarWidth(attr.percentage)}%` }}
                                     ></div>
                                 </div>
                                 <div className="flex flex-wrap gap-2 mt-1">
@@ -174,8 +212,10 @@ const AqiForecastAttribution = () => {
                             </tr>
                         </thead>
                         <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                            {currentForecast.hourlyBreakdown.map((hour, idx) => (
-                                <tr key={idx} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                            {hourlyBreakdown.map((hour, idx) => {
+                                const trend = hourlyTrend(hour, hourlyBreakdown[idx - 1]);
+                                return (
+                                <tr key={hour.hour ?? idx} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
                                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">{hour.hour}</td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600 dark:text-gray-300">
                                         {hour.aqiMin} - {hour.aqiMax}
@@ -186,14 +226,21 @@ const AqiForecastAttribution = () => {
                                         </span>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm">
-                                        {idx > 0 && hour.aqiMax > currentForecast.hourlyBreakdown[idx - 1].aqiMax ? (
-                                            <span className="text-red-600 flex items-center gap-1">↑ Rising</span>
-                                        ) : (
-                                            <span className="text-green-600 flex items-center gap-1">↓ Falling</span>
-                                        )}
+                                        <span className={`flex items-center gap-1 ${trend.className}`}>
+                                            <span aria-hidden="true">{trend.symbol}</span>
+                                            {trend.label}
+                                        </span>
                                     </td>
                                 </tr>
-                            ))}
+                                );
+                            })}
+                            {hourlyBreakdown.length === 0 && (
+                                <tr>
+                                    <td colSpan={4} className="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
+                                        No hourly breakdown was published for this day.
+                                    </td>
+                                </tr>
+                            )}
                         </tbody>
                     </table>
                 </div>

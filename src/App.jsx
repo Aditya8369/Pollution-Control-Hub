@@ -61,8 +61,9 @@ import EmbeddableWidgetGenerator from "./components/EmbeddableWidgetGenerator";
 import Glossary from "./components/Glossary";
 import Leaderboard from "./components/Leaderboard";
 import SmartAlertsDashboard from "./components/SmartAlertsDashboard";
-import LightPollutionObservatory from "./components/LightPollutionObservatory";
+import NoisePollutionTracker from "./components/NoisePollutionTracker";
 import OceanAcidificationMonitor from "./components/OceanAcidificationMonitor";
+import LightPollutionObservatory from "./components/LightPollutionObservatory";
 
 import HealthImpactDashboard from "./components/HealthImpactDashboard";
 
@@ -355,9 +356,10 @@ export function SectionNav({ activeSection, onSectionChange }) {
     { id: "achievements", label: "Achievements" },
     { id: "eco-impact", label: "Eco Impact" },
     { id: "city-leaderboard", label: "City Leaderboard" },
+    { id: "light-pollution", label: "Light Pollution" },
     { id: "marine", label: "Marine Water Quality" },
     { id: "smart-alerts", label: "Smart Alerts" },
-    { id: "light-pollution", label: "Light Pollution" },
+    { id: "noise-pollution", label: "Noise Pollution" },
     { id: "ocean-acid", label: "Ocean Acidification" },
 
     { id: "smart-alerts", label: "Smart Alerts" },
@@ -1274,13 +1276,14 @@ function AppContent() {
             {activeSection === "Commute" && <Commute />}
             {activeSection === "Compare" && <CityCompare />}
             {activeSection === "city-leaderboard" && <CityPollutionLeaderboard />}
+            {activeSection === "light-pollution" && <LightPollutionObservatory />}
             {activeSection === "marine" && (
               <Suspense fallback={<div className="loading-spinner" role="status" aria-label="Loading marine suite" />}>
                 <MarineWaterQualitySuite />
               </Suspense>
             )}
             {activeSection === "smart-alerts" && <SmartAlertsDashboard position={position} />}
-            {activeSection === "light-pollution" && <LightPollutionObservatory />}
+            {activeSection === "noise-pollution" && <NoisePollutionTracker />}
             {activeSection === "ocean-acid" && <OceanAcidificationMonitor />}
 
             {activeSection === "health-impact" && <HealthImpactDashboard />}
