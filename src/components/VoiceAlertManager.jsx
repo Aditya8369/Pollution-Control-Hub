@@ -20,6 +20,7 @@ const VoiceAlertManager = () => {
         voices,
         config,
         isSpeaking,
+        queue,
         queueLength,
         addToQueue,
         clearQueue,
@@ -197,7 +198,10 @@ const VoiceAlertManager = () => {
                     <div className="p-4 bg-gray-50 dark:bg-gray-900 rounded-lg">
                         <div className="flex justify-between items-center mb-2">
                             <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Alert Queue</span>
-                            <span className="text-xs font-bold bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 px-2 py-1 rounded-full">
+                            <span
+                                aria-live="polite"
+                                className="text-xs font-bold bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 px-2 py-1 rounded-full"
+                            >
                                 {queueLength} pending
                             </span>
                         </div>
@@ -207,7 +211,7 @@ const VoiceAlertManager = () => {
                         ) : (
                             <ul className="space-y-2 max-h-40 overflow-y-auto">
                                 {queue.map((item, idx) => (
-                                    <li key={item.id} className="text-sm p-2 bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700">
+                                    <li key={item.id ?? idx} className="text-sm p-2 bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700">
                                         <div className="flex justify-between">
                                             <span className="font-medium text-gray-900 dark:text-white truncate">{item.message}</span>
                                             {idx === 0 && isSpeaking && (
