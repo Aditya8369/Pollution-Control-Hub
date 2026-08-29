@@ -31,7 +31,6 @@ import ScrollToTopButton from "./components/ScrollToTopButton";
 import SkeletonDashboard from "./components/SkeletonDashboard";
 import { eventBus } from "./core/events";
 import { useSWR } from "./hooks/useSWR";
-import {
   estimateExposureTime,
   estimateWeeklyMonthlyAverages,
   fetchAirQualityByCoords,
@@ -62,6 +61,7 @@ import EmbeddableWidgetGenerator from "./components/EmbeddableWidgetGenerator";
 import Glossary from "./components/Glossary";
 import Leaderboard from "./components/Leaderboard";
 import SmartAlertsDashboard from "./components/SmartAlertsDashboard";
+import NoisePollutionTracker from "./components/NoisePollutionTracker";
 import OceanAcidificationMonitor from "./components/OceanAcidificationMonitor";
 
 import HealthImpactDashboard from "./components/HealthImpactDashboard";
@@ -356,6 +356,9 @@ export function SectionNav({ activeSection, onSectionChange }) {
     { id: "eco-impact", label: "Eco Impact" },
     { id: "city-leaderboard", label: "City Leaderboard" },
     { id: "marine", label: "Marine Water Quality" },
+    { id: "smart-alerts", label: "Smart Alerts" },
+    { id: "noise-pollution", label: "Noise Pollution" },
+    { id: "ocean-acid", label: "Ocean Acidification" },
 
     { id: "smart-alerts", label: "Smart Alerts" },
     { id: "ocean-acid", label: "Ocean Acidification" },
@@ -1277,6 +1280,7 @@ function AppContent() {
               </Suspense>
             )}
             {activeSection === "smart-alerts" && <SmartAlertsDashboard position={position} />}
+            {activeSection === "noise-pollution" && <NoisePollutionTracker />}
             {activeSection === "ocean-acid" && <OceanAcidificationMonitor />}
 
             {activeSection === "health-impact" && <HealthImpactDashboard />}
