@@ -21,9 +21,7 @@ describe('CommunityHub Component', () => {
 
     const titleInput = screen.getByPlaceholderText(/Issue title/i);
     const descInput = screen.getByPlaceholderText(/Describe location/i);
-    const categorySelect = screen.getByRole('combobox', { name: '' }); // We might need to query by text
-    // actually, let's use document.querySelector
-    const selects = document.querySelectorAll('select');
+    const selects = document.querySelectorAll('.community-form select');
     const categorySelectEl = selects[0];
     const severitySelectEl = selects[1];
 
@@ -67,14 +65,14 @@ describe('CommunityHub Component', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /Report Pollution/i }));
 
-    const useLocationBtn = screen.getByRole('button', { name: /Use GPS for Location/i });
+    const useLocationBtn = screen.getByRole('button', { name: /Use (GPS for|Current) Location/i });
     fireEvent.click(useLocationBtn);
 
-    expect(screen.getByText(/GPS Location attached/i)).toBeInTheDocument();
+    expect(screen.getByText(/Location attached/i)).toBeInTheDocument();
 
     const titleInput = screen.getByPlaceholderText(/Issue title/i);
     const descInput = screen.getByPlaceholderText(/Describe location/i);
-    const selects = document.querySelectorAll('select');
+    const selects = document.querySelectorAll('.community-form select');
     const categorySelectEl = selects[0];
     const severitySelectEl = selects[1];
     const submitBtn = screen.getByRole('button', { name: /Submit Report/i });
@@ -108,7 +106,7 @@ describe('CommunityHub Component', () => {
     render(<CommunityHub />);
     fireEvent.click(screen.getByRole('button', { name: /Report Pollution/i }));
 
-    const useLocationBtn = screen.getByRole('button', { name: /Use GPS for Location/i });
+    const useLocationBtn = screen.getByRole('button', { name: /Use (GPS for|Current) Location/i });
     fireEvent.click(useLocationBtn);
 
     expect(screen.getByText(/Unable to retrieve location/i)).toBeInTheDocument();
@@ -116,7 +114,7 @@ describe('CommunityHub Component', () => {
     // Can still submit report
     const titleInput = screen.getByPlaceholderText(/Issue title/i);
     const descInput = screen.getByPlaceholderText(/Describe location/i);
-    const selects = document.querySelectorAll('select');
+    const selects = document.querySelectorAll('.community-form select');
     const categorySelectEl = selects[0];
     const submitBtn = screen.getByRole('button', { name: /Submit Report/i });
 
@@ -158,7 +156,7 @@ describe('CommunityHub Component', () => {
 
     const titleInput = screen.getByPlaceholderText(/Issue title/i);
     const descInput = screen.getByPlaceholderText(/Describe location/i);
-    const selects = document.querySelectorAll('select');
+    const selects = document.querySelectorAll('.community-form select');
     const categorySelectEl = selects[0];
     const submitBtn = screen.getByRole('button', { name: /Submit Report/i });
 
@@ -194,6 +192,122 @@ describe('CommunityHub Component', () => {
 
     await waitFor(() => {
       expect(screen.getByText(/Only JPEG, PNG, and WebP images are allowed/i)).toBeInTheDocument();
+    });
+  });
+
+  describe('Issue #1118 Export Filtered Reports', () => {
+    let createObjectURLMock;
+    let revokeObjectURLMock;
+
+    const sampleReports = [
+      {
+        id: 'r1',
+        title: 'Garbage Dump, Main Street',
+        description: 'Smoke & dust, "bad smells"',
+        hashtag: '#CleanAir',
+        status: 'New',
+        votes: 3,
+        createdAt: '2026-08-20T10:00:00.000Z',
+        comments: [{ id: 'c1', text: 'Agreed, terrible' }],
+      },
+      {
+        id: 'r2',
+        title: 'Factory Emissions',
+        description: 'Black smoke in the morning',
+        hashtag: '#StubbleBurning',
+        status: 'Verified',
+        votes: 10,
+        createdAt: '2026-08-21T12:00:00.000Z',
+        comments: [],
+      },
+      {
+        id: 'r3',
+        title: 'Construction Dust',
+        description: 'Uncovered sand piles',
+        hashtag: '#CleanAir',
+        status: 'Resolved',
+        votes: 6,
+        createdAt: '2026-08-22T14:00:00.000Z',
+        comments: [],
+      },
+    ];
+
+    beforeEach(() => {
+      createObjectURLMock = vi.fn().mockReturnValue('blob:mock-url');
+      revokeObjectURLMock = vi.fn();
+      globalThis.URL.createObjectURL = createObjectURLMock;
+      globalThis.URL.revokeObjectURL = revokeObjectURLMock;
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(sampleReports));
+    });
+
+    it('exports CSV containing only currently filtered reports (respecting active status filter)', async () => {
+      render(<CommunityHub />);
+
+      // Filter by "Verified" status
+      const verifiedFilterBtn = screen.getByRole('button', { name: 'Verified' });
+      fireEvent.click(verifiedFilterBtn);
+
+      const exportCsvBtn = screen.getByRole('button', { name: 'Export CSV' });
+      fireEvent.click(exportCsvBtn);
+
+      expect(createObjectURLMock).toHaveBeenCalledTimes(1);
+      const blobArg = createObjectURLMock.mock.calls[0][0];
+      expect(blobArg.type).toBe('text/csv;charset=utf-8;');
+
+      const text = await blobArg.text();
+      expect(text).toContain('Factory Emissions');
+      expect(text).not.toContain('Garbage Dump, Main Street');
+      expect(text).not.toContain('Construction Dust');
+    });
+
+    it('exports JSON containing only currently filtered reports', async () => {
+      render(<CommunityHub />);
+
+      // Filter by "Resolved" status
+      const resolvedFilterBtn = screen.getByRole('button', { name: 'Resolved' });
+      fireEvent.click(resolvedFilterBtn);
+
+      const exportJsonBtn = screen.getByRole('button', { name: 'Export JSON' });
+      fireEvent.click(exportJsonBtn);
+
+      expect(createObjectURLMock).toHaveBeenCalledTimes(1);
+      const blobArg = createObjectURLMock.mock.calls[0][0];
+      expect(blobArg.type).toBe('application/json;charset=utf-8;');
+
+      const text = await blobArg.text();
+      const parsed = JSON.parse(text);
+      expect(parsed.length).toBe(1);
+      expect(parsed[0].Title).toBe('Construction Dust');
+    });
+
+    it('escapes CSV values containing commas and quotes properly', async () => {
+      render(<CommunityHub />);
+
+      // Filter "All"
+      const exportCsvBtn = screen.getByRole('button', { name: 'Export CSV' });
+      fireEvent.click(exportCsvBtn);
+
+      const blobArg = createObjectURLMock.mock.calls[0][0];
+      const text = await blobArg.text();
+
+      // "Garbage Dump, Main Street" has a comma -> quoted as "Garbage Dump, Main Street"
+      expect(text).toContain('"Garbage Dump, Main Street"');
+      // 'Smoke & dust, "bad smells"' has quotes & comma -> quoted with "" double quotes
+      expect(text).toContain('"Smoke & dust, ""bad smells"""');
+    });
+
+    it('displays user-facing message and suppresses download when filtered results are empty', () => {
+      render(<CommunityHub />);
+
+      // Filter by "Rejected" (no reports have Rejected status)
+      const rejectedFilterBtn = screen.getByRole('button', { name: 'Rejected' });
+      fireEvent.click(rejectedFilterBtn);
+
+      const exportCsvBtn = screen.getByRole('button', { name: 'Export CSV' });
+      fireEvent.click(exportCsvBtn);
+
+      expect(createObjectURLMock).not.toHaveBeenCalled();
+      expect(screen.getByRole('alert')).toHaveTextContent(/No reports available to export/i);
     });
   });
 });
