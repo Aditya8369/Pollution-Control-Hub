@@ -18,7 +18,7 @@ function makeReport(overrides = {}) {
     image: '',
     votes: 0,
     createdAt: '2026-01-01T00:00:00.000Z',
-    status: 'Pending',
+    status: 'New',
     verifiedAt: '',
     moderationNotes: '',
     latitude: null,
@@ -136,6 +136,7 @@ describe('CommunityHub report text round-trip', () => {
 
   it('stores and displays punctuation exactly as the author typed it', async () => {
     render(<CommunityHub />);
+    fireEvent.click(screen.getByRole('button', { name: /Report Pollution/i }));
 
     const title = "Smoke & dust near St. Mary's";
     const description = 'Residents said "it\'s unbearable" — AQI > 300';
@@ -145,6 +146,9 @@ describe('CommunityHub report text round-trip', () => {
     });
     fireEvent.change(screen.getByPlaceholderText(/Describe location/i), {
       target: { value: description },
+    });
+    fireEvent.change(document.querySelector('.community-form select'), {
+      target: { value: 'Garbage burning' },
     });
     fireEvent.click(screen.getByRole('button', { name: /Submit Report/i }));
 
@@ -175,12 +179,16 @@ describe('CommunityHub report text round-trip', () => {
 
   it('caps stored title and description length', async () => {
     render(<CommunityHub />);
+    fireEvent.click(screen.getByRole('button', { name: /Report Pollution/i }));
 
     fireEvent.change(screen.getByPlaceholderText(/Issue title/i), {
       target: { value: 'T'.repeat(400) },
     });
     fireEvent.change(screen.getByPlaceholderText(/Describe location/i), {
       target: { value: 'D'.repeat(5000) },
+    });
+    fireEvent.change(document.querySelector('.community-form select'), {
+      target: { value: 'Garbage burning' },
     });
     fireEvent.click(screen.getByRole('button', { name: /Submit Report/i }));
 
