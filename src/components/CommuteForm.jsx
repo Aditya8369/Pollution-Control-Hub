@@ -6,8 +6,10 @@ const CommuteForm = ({ onSearch }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (start && end) {
-      onSearch(start, end);
+    const trimmedStart = start.trim();
+    const trimmedEnd = end.trim();
+    if (trimmedStart && trimmedEnd) {
+      onSearch(trimmedStart, trimmedEnd);
     }
   };
 
