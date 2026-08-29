@@ -144,5 +144,15 @@ describe('formatHistoricalCSV', () => {
       const csv = formatHistoricalCSV([], undefined, undefined, ';');
       expect(csv).toBe('Date;AQI;PM2.5;PM10;NO2;Ozone;CO');
     });
+
+    it('escapes embedded delimiters and neutralizes formula injection in values', () => {
+      const complexData = [
+        { date: '2026-07-01', maxAqi: '=SUM(1,2)', pm25: '35,5', pm10: 70, no2: 10, ozone: 20, co: 4 },
+      ];
+      const csv = formatHistoricalCSV(complexData, undefined, undefined, ',');
+      const lines = csv.split('\n');
+      expect(lines[1]).toBe('2026-07-01,"\'=SUM(1,2)","35,5",70,10,20,4');
+    });
   });
 });
+

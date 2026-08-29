@@ -1,6 +1,7 @@
 import { getTenantScopedDbName, getTenantScopedStoreName } from './tenantService';
 import { logger } from '../utils/logger';
 import { localDayKey } from '../utils/localDay';
+import { formatCSV, formatCSVRow } from '../utils/csv';
 
 const log = logger.child({ module: 'historicalDataService' });
 
@@ -266,9 +267,10 @@ export function getDelimiterForLocale(locale) {
  */
 export function formatHistoricalCSV(dailyData, startDate, endDate, delimiter) {
   const actualDelimiter = delimiter !== undefined ? delimiter : getDelimiterForLocale();
+  const headers = ['Date', 'AQI', 'PM2.5', 'PM10', 'NO2', 'Ozone', 'CO'];
 
   if (!Array.isArray(dailyData) || dailyData.length === 0) {
-    return ['Date', 'AQI', 'PM2.5', 'PM10', 'NO2', 'Ozone', 'CO'].join(actualDelimiter);
+    return formatCSVRow(headers, actualDelimiter);
   }
 
   const filtered = dailyData
@@ -280,7 +282,6 @@ export function formatHistoricalCSV(dailyData, startDate, endDate, delimiter) {
     })
     .sort((a, b) => a.date.localeCompare(b.date));
 
-  const headers = ['Date', 'AQI', 'PM2.5', 'PM10', 'NO2', 'Ozone', 'CO'];
   const rows = filtered.map((day) => [
     day.date,
     day.maxAqi != null ? day.maxAqi : (day.aqi != null ? day.aqi : ''),
@@ -291,5 +292,5 @@ export function formatHistoricalCSV(dailyData, startDate, endDate, delimiter) {
     day.co != null ? day.co : ''
   ]);
 
-  return [headers.join(actualDelimiter), ...rows.map((r) => r.join(actualDelimiter))].join('\n');
+  return formatCSV([headers, ...rows], actualDelimiter);
 }
