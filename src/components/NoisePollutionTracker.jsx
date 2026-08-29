@@ -463,7 +463,7 @@ export default function NoisePollutionTracker() {
           </div>
           <div style={{ ...st.kpi, flex: 1 }}>
             <div style={{ fontSize: "0.8rem", color: "#64748b", marginBottom: "4px" }}>Night Compliance</div>
-            <div style={{ fontSize: "2rem", fontWeight: 800, color={hourly.filter(h => (h.hour >= 22 || h.hour < 6) && h.db > zone.nightLimit).length === 0 ? "#22c55e" : "#ef4444"}>
+            <div style={{ fontSize: "2rem", fontWeight: 800, color: hourly.filter(h => (h.hour >= 22 || h.hour < 6) && h.db > zone.nightLimit).length === 0 ? "#22c55e" : "#ef4444" }}>
               {Math.round(hourly.filter(h => (h.hour >= 22 || h.hour < 6) && h.db <= zone.nightLimit).length / hourly.filter(h => h.hour >= 22 || h.hour < 6).length * 100)}%
             </div>
             <div style={st.progressTrack}>
