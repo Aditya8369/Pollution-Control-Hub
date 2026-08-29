@@ -1,0 +1,3827 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`Glossary Component - Pagination & Off-by-one verification (#738) > navigates to the last page and verifies no extra empty row exists 1`] = `
+<DocumentFragment>
+  <section
+    aria-labelledby="glossary-heading"
+    class="glossary-container"
+    data-testid="glossary-page"
+  >
+    <div
+      class="glossary-header-card"
+    >
+      <div
+        aria-hidden="true"
+        class="glossary-header-badge"
+      >
+        📖 Reference Guide
+      </div>
+      <h2
+        class="glossary-title"
+        id="glossary-heading"
+      >
+        Pollution & Air Quality Glossary
+      </h2>
+      <p
+        class="glossary-subtitle"
+      >
+        A comprehensive reference of 
+        <strong>
+          77 key terms
+        </strong>
+         spanning pollutants, health effects, climate science, measurement standards, and regulatory frameworks. Use the search and filters below to find what you need.
+      </p>
+      <div
+        aria-label="Category statistics"
+        class="glossary-quick-stats"
+      >
+        <button
+          aria-label="Filter by Pollutants category. 15 terms available."
+          class="glossary-quick-stat-chip"
+          style="border-color: rgb(239, 68, 68); color: rgb(252, 165, 165); background-color: rgba(239, 68, 68, 0.12);"
+          type="button"
+        >
+          <span
+            aria-hidden="true"
+          >
+            💨
+          </span>
+           Pollutants
+          <span
+            aria-hidden="true"
+            class="glossary-quick-stat-num"
+          >
+            15
+          </span>
+        </button>
+        <button
+          aria-label="Filter by Measurement category. 10 terms available."
+          class="glossary-quick-stat-chip"
+          style="border-color: rgb(59, 130, 246); color: rgb(147, 197, 253); background-color: rgba(59, 130, 246, 0.12);"
+          type="button"
+        >
+          <span
+            aria-hidden="true"
+          >
+            📏
+          </span>
+           Measurement
+          <span
+            aria-hidden="true"
+            class="glossary-quick-stat-num"
+          >
+            10
+          </span>
+        </button>
+        <button
+          aria-label="Filter by Health category. 12 terms available."
+          class="glossary-quick-stat-chip"
+          style="border-color: rgb(168, 85, 247); color: rgb(216, 180, 254); background-color: rgba(168, 85, 247, 0.12);"
+          type="button"
+        >
+          <span
+            aria-hidden="true"
+          >
+            🫁
+          </span>
+           Health
+          <span
+            aria-hidden="true"
+            class="glossary-quick-stat-num"
+          >
+            12
+          </span>
+        </button>
+        <button
+          aria-label="Filter by Climate category. 10 terms available."
+          class="glossary-quick-stat-chip"
+          style="border-color: rgb(34, 197, 94); color: rgb(134, 239, 172); background-color: rgba(34, 197, 94, 0.12);"
+          type="button"
+        >
+          <span
+            aria-hidden="true"
+          >
+            🌡️
+          </span>
+           Climate
+          <span
+            aria-hidden="true"
+            class="glossary-quick-stat-num"
+          >
+            10
+          </span>
+        </button>
+        <button
+          aria-label="Filter by Phenomena category. 17 terms available."
+          class="glossary-quick-stat-chip"
+          style="border-color: rgb(245, 158, 11); color: rgb(252, 211, 77); background-color: rgba(245, 158, 11, 0.12);"
+          type="button"
+        >
+          <span
+            aria-hidden="true"
+          >
+            🌫️
+          </span>
+           Phenomena
+          <span
+            aria-hidden="true"
+            class="glossary-quick-stat-num"
+          >
+            17
+          </span>
+        </button>
+        <button
+          aria-label="Filter by Regulation category. 5 terms available."
+          class="glossary-quick-stat-chip"
+          style="border-color: rgb(20, 184, 166); color: rgb(94, 234, 212); background-color: rgba(20, 184, 166, 0.12);"
+          type="button"
+        >
+          <span
+            aria-hidden="true"
+          >
+            📋
+          </span>
+           Regulation
+          <span
+            aria-hidden="true"
+            class="glossary-quick-stat-num"
+          >
+            5
+          </span>
+        </button>
+        <button
+          aria-label="Filter by Sources category. 8 terms available."
+          class="glossary-quick-stat-chip"
+          style="border-color: rgb(249, 115, 22); color: rgb(253, 186, 116); background-color: rgba(249, 115, 22, 0.12);"
+          type="button"
+        >
+          <span
+            aria-hidden="true"
+          >
+            🏭
+          </span>
+           Sources
+          <span
+            aria-hidden="true"
+            class="glossary-quick-stat-num"
+          >
+            8
+          </span>
+        </button>
+      </div>
+    </div>
+    <div
+      class="glossary-search-bar"
+    >
+      <label
+        class="sr-only"
+        for="glossary-search-input"
+      >
+        Search glossary terms
+      </label>
+      <div
+        class="glossary-search-wrapper"
+      >
+        <span
+          aria-hidden="true"
+          class="glossary-search-icon"
+        >
+          🔍
+        </span>
+        <input
+          autocomplete="off"
+          class="glossary-search-input"
+          id="glossary-search-input"
+          placeholder="Search terms, definitions, examples… (Press "/" to focus)"
+          spellcheck="false"
+          type="search"
+          value=""
+        />
+      </div>
+      <div
+        aria-hidden="true"
+        class="glossary-search-hint"
+      >
+        <kbd>
+          /
+        </kbd>
+         to search · 
+        <kbd>
+          Esc
+        </kbd>
+         to clear
+      </div>
+    </div>
+    <div
+      aria-label="Filter by category"
+      class="glossary-category-filter"
+      role="group"
+    >
+      <button
+        aria-pressed="true"
+        class="glossary-cat-btn glossary-cat-btn--active"
+        type="button"
+      >
+        <span
+          aria-hidden="true"
+          class="glossary-cat-emoji"
+        >
+          🌐
+        </span>
+        All
+        <span
+          aria-label="77 terms"
+          class="glossary-cat-count"
+        >
+          77
+        </span>
+      </button>
+      <button
+        aria-pressed="false"
+        class="glossary-cat-btn"
+        type="button"
+      >
+        <span
+          aria-hidden="true"
+          class="glossary-cat-emoji"
+        >
+          💨
+        </span>
+        Pollutants
+        <span
+          aria-label="15 terms"
+          class="glossary-cat-count"
+        >
+          15
+        </span>
+      </button>
+      <button
+        aria-pressed="false"
+        class="glossary-cat-btn"
+        type="button"
+      >
+        <span
+          aria-hidden="true"
+          class="glossary-cat-emoji"
+        >
+          📏
+        </span>
+        Measurement
+        <span
+          aria-label="10 terms"
+          class="glossary-cat-count"
+        >
+          10
+        </span>
+      </button>
+      <button
+        aria-pressed="false"
+        class="glossary-cat-btn"
+        type="button"
+      >
+        <span
+          aria-hidden="true"
+          class="glossary-cat-emoji"
+        >
+          🫁
+        </span>
+        Health
+        <span
+          aria-label="12 terms"
+          class="glossary-cat-count"
+        >
+          12
+        </span>
+      </button>
+      <button
+        aria-pressed="false"
+        class="glossary-cat-btn"
+        type="button"
+      >
+        <span
+          aria-hidden="true"
+          class="glossary-cat-emoji"
+        >
+          🌡️
+        </span>
+        Climate
+        <span
+          aria-label="10 terms"
+          class="glossary-cat-count"
+        >
+          10
+        </span>
+      </button>
+      <button
+        aria-pressed="false"
+        class="glossary-cat-btn"
+        type="button"
+      >
+        <span
+          aria-hidden="true"
+          class="glossary-cat-emoji"
+        >
+          🌫️
+        </span>
+        Phenomena
+        <span
+          aria-label="17 terms"
+          class="glossary-cat-count"
+        >
+          17
+        </span>
+      </button>
+      <button
+        aria-pressed="false"
+        class="glossary-cat-btn"
+        type="button"
+      >
+        <span
+          aria-hidden="true"
+          class="glossary-cat-emoji"
+        >
+          📋
+        </span>
+        Regulation
+        <span
+          aria-label="5 terms"
+          class="glossary-cat-count"
+        >
+          5
+        </span>
+      </button>
+      <button
+        aria-pressed="false"
+        class="glossary-cat-btn"
+        type="button"
+      >
+        <span
+          aria-hidden="true"
+          class="glossary-cat-emoji"
+        >
+          🏭
+        </span>
+        Sources
+        <span
+          aria-label="8 terms"
+          class="glossary-cat-count"
+        >
+          8
+        </span>
+      </button>
+    </div>
+    <div
+      class="glossary-controls-row"
+      style="outline: none;"
+      tabindex="-1"
+    >
+      <div
+        aria-label="Sort options"
+        class="glossary-sort-group"
+        role="group"
+      >
+        <span
+          class="glossary-sort-label"
+          id="sort-label"
+        >
+          Sort:
+        </span>
+        <button
+          aria-labelledby="sort-label"
+          aria-pressed="true"
+          class="glossary-sort-btn glossary-sort-btn--active"
+          type="button"
+        >
+          A–Z
+        </button>
+        <button
+          aria-labelledby="sort-label"
+          aria-pressed="false"
+          class="glossary-sort-btn"
+          type="button"
+        >
+          By Category
+        </button>
+      </div>
+      <div
+        aria-atomic="true"
+        aria-live="polite"
+        class="glossary-stats-bar"
+      >
+        <span
+          class="glossary-stats-count"
+        >
+          <strong>
+            77
+          </strong>
+           terms
+        </span>
+      </div>
+    </div>
+    <nav
+      aria-label="Jump to letter"
+      class="glossary-alpha-nav"
+    >
+      <button
+        aria-disabled="false"
+        aria-label="Jump to terms starting with A"
+        class="glossary-alpha-btn"
+        type="button"
+      >
+        A
+      </button>
+      <button
+        aria-disabled="false"
+        aria-label="Jump to terms starting with B"
+        class="glossary-alpha-btn"
+        type="button"
+      >
+        B
+      </button>
+      <button
+        aria-disabled="false"
+        aria-label="Jump to terms starting with C"
+        class="glossary-alpha-btn"
+        type="button"
+      >
+        C
+      </button>
+      <button
+        aria-disabled="false"
+        aria-label="Jump to terms starting with D"
+        class="glossary-alpha-btn"
+        type="button"
+      >
+        D
+      </button>
+      <button
+        aria-disabled="false"
+        aria-label="Jump to terms starting with E"
+        class="glossary-alpha-btn"
+        type="button"
+      >
+        E
+      </button>
+      <button
+        aria-disabled="true"
+        aria-label="Jump to terms starting with F"
+        class="glossary-alpha-btn glossary-alpha-btn--disabled"
+        disabled=""
+        type="button"
+      >
+        F
+      </button>
+      <button
+        aria-disabled="false"
+        aria-label="Jump to terms starting with G"
+        class="glossary-alpha-btn"
+        type="button"
+      >
+        G
+      </button>
+      <button
+        aria-disabled="false"
+        aria-label="Jump to terms starting with H"
+        class="glossary-alpha-btn"
+        type="button"
+      >
+        H
+      </button>
+      <button
+        aria-disabled="false"
+        aria-label="Jump to terms starting with I"
+        class="glossary-alpha-btn"
+        type="button"
+      >
+        I
+      </button>
+      <button
+        aria-disabled="true"
+        aria-label="Jump to terms starting with J"
+        class="glossary-alpha-btn glossary-alpha-btn--disabled"
+        disabled=""
+        type="button"
+      >
+        J
+      </button>
+      <button
+        aria-disabled="true"
+        aria-label="Jump to terms starting with K"
+        class="glossary-alpha-btn glossary-alpha-btn--disabled"
+        disabled=""
+        type="button"
+      >
+        K
+      </button>
+      <button
+        aria-disabled="false"
+        aria-label="Jump to terms starting with L"
+        class="glossary-alpha-btn"
+        type="button"
+      >
+        L
+      </button>
+      <button
+        aria-disabled="false"
+        aria-label="Jump to terms starting with M"
+        class="glossary-alpha-btn"
+        type="button"
+      >
+        M
+      </button>
+      <button
+        aria-disabled="false"
+        aria-label="Jump to terms starting with N"
+        class="glossary-alpha-btn"
+        type="button"
+      >
+        N
+      </button>
+      <button
+        aria-disabled="false"
+        aria-label="Jump to terms starting with O"
+        class="glossary-alpha-btn"
+        type="button"
+      >
+        O
+      </button>
+      <button
+        aria-disabled="false"
+        aria-label="Jump to terms starting with P"
+        class="glossary-alpha-btn"
+        type="button"
+      >
+        P
+      </button>
+      <button
+        aria-disabled="true"
+        aria-label="Jump to terms starting with Q"
+        class="glossary-alpha-btn glossary-alpha-btn--disabled"
+        disabled=""
+        type="button"
+      >
+        Q
+      </button>
+      <button
+        aria-disabled="false"
+        aria-label="Jump to terms starting with R"
+        class="glossary-alpha-btn"
+        type="button"
+      >
+        R
+      </button>
+      <button
+        aria-disabled="false"
+        aria-label="Jump to terms starting with S"
+        class="glossary-alpha-btn"
+        type="button"
+      >
+        S
+      </button>
+      <button
+        aria-disabled="false"
+        aria-label="Jump to terms starting with T"
+        class="glossary-alpha-btn"
+        type="button"
+      >
+        T
+      </button>
+      <button
+        aria-disabled="true"
+        aria-label="Jump to terms starting with U"
+        class="glossary-alpha-btn glossary-alpha-btn--disabled"
+        disabled=""
+        type="button"
+      >
+        U
+      </button>
+      <button
+        aria-disabled="false"
+        aria-label="Jump to terms starting with V"
+        class="glossary-alpha-btn"
+        type="button"
+      >
+        V
+      </button>
+      <button
+        aria-disabled="false"
+        aria-label="Jump to terms starting with W"
+        class="glossary-alpha-btn"
+        type="button"
+      >
+        W
+      </button>
+      <button
+        aria-disabled="true"
+        aria-label="Jump to terms starting with X"
+        class="glossary-alpha-btn glossary-alpha-btn--disabled"
+        disabled=""
+        type="button"
+      >
+        X
+      </button>
+      <button
+        aria-disabled="true"
+        aria-label="Jump to terms starting with Y"
+        class="glossary-alpha-btn glossary-alpha-btn--disabled"
+        disabled=""
+        type="button"
+      >
+        Y
+      </button>
+      <button
+        aria-disabled="true"
+        aria-label="Jump to terms starting with Z"
+        class="glossary-alpha-btn glossary-alpha-btn--disabled"
+        disabled=""
+        type="button"
+      >
+        Z
+      </button>
+    </nav>
+    <div
+      class="glossary-results"
+    >
+      <div
+        class="glossary-letter-group"
+        style="outline: none;"
+        tabindex="-1"
+      >
+        <div
+          aria-label="Terms starting with letter P"
+          aria-level="2"
+          class="glossary-letter-heading"
+          role="heading"
+        >
+          P
+        </div>
+        <article
+          class="glossary-card"
+        >
+          <div
+            aria-level="3"
+            role="heading"
+            style="display: contents;"
+          >
+            <button
+              aria-controls="glossary-card-body-Public Transit"
+              aria-expanded="false"
+              aria-label="Expand definition of Public Transit"
+              class="glossary-card-header"
+              type="button"
+            >
+              <div
+                class="glossary-card-title-row"
+              >
+                <div
+                  class="glossary-card-term-group"
+                >
+                  <span
+                    class="glossary-card-term"
+                  >
+                    Public Transit
+                  </span>
+                  <span
+                    class="glossary-card-fullform"
+                  >
+                    Public Transportation
+                  </span>
+                </div>
+                <div
+                  class="glossary-card-meta"
+                >
+                  <span
+                    class="glossary-category-badge"
+                    style="background-color: rgba(249, 115, 22, 0.12); color: rgb(253, 186, 116); border-color: rgb(249, 115, 22);"
+                  >
+                    <span
+                      aria-hidden="true"
+                    >
+                      🏭
+                    </span>
+                     Sources
+                  </span>
+                  <span
+                    aria-hidden="true"
+                    class="glossary-chevron"
+                  >
+                    ▾
+                  </span>
+                </div>
+              </div>
+              <p
+                class="glossary-card-preview"
+              >
+                Shared transportation services including buses, metro trains, suburban rail, and trams. Per-capita emissions are signifi…
+              </p>
+            </button>
+          </div>
+        </article>
+      </div>
+      <div
+        class="glossary-letter-group"
+        style="outline: none;"
+        tabindex="-1"
+      >
+        <div
+          aria-label="Terms starting with letter R"
+          aria-level="2"
+          class="glossary-letter-heading"
+          role="heading"
+        >
+          R
+        </div>
+        <article
+          class="glossary-card"
+        >
+          <div
+            aria-level="3"
+            role="heading"
+            style="display: contents;"
+          >
+            <button
+              aria-controls="glossary-card-body-Renewable Energy"
+              aria-expanded="false"
+              aria-label="Expand definition of Renewable Energy"
+              class="glossary-card-header"
+              type="button"
+            >
+              <div
+                class="glossary-card-title-row"
+              >
+                <div
+                  class="glossary-card-term-group"
+                >
+                  <span
+                    class="glossary-card-term"
+                  >
+                    Renewable Energy
+                  </span>
+                </div>
+                <div
+                  class="glossary-card-meta"
+                >
+                  <span
+                    class="glossary-category-badge"
+                    style="background-color: rgba(34, 197, 94, 0.12); color: rgb(134, 239, 172); border-color: rgb(34, 197, 94);"
+                  >
+                    <span
+                      aria-hidden="true"
+                    >
+                      🌡️
+                    </span>
+                     Climate
+                  </span>
+                  <span
+                    aria-hidden="true"
+                    class="glossary-chevron"
+                  >
+                    ▾
+                  </span>
+                </div>
+              </div>
+              <p
+                class="glossary-card-preview"
+              >
+                Energy generated from naturally replenishing sources—solar, wind, hydro, geothermal, and biomass—that produce little or …
+              </p>
+            </button>
+          </div>
+        </article>
+      </div>
+      <div
+        class="glossary-letter-group"
+        style="outline: none;"
+        tabindex="-1"
+      >
+        <div
+          aria-label="Terms starting with letter S"
+          aria-level="2"
+          class="glossary-letter-heading"
+          role="heading"
+        >
+          S
+        </div>
+        <article
+          class="glossary-card"
+        >
+          <div
+            aria-level="3"
+            role="heading"
+            style="display: contents;"
+          >
+            <button
+              aria-controls="glossary-card-body-Satellite Data"
+              aria-expanded="false"
+              aria-label="Expand definition of Satellite Data"
+              class="glossary-card-header"
+              type="button"
+            >
+              <div
+                class="glossary-card-title-row"
+              >
+                <div
+                  class="glossary-card-term-group"
+                >
+                  <span
+                    class="glossary-card-term"
+                  >
+                    Satellite Data
+                  </span>
+                  <span
+                    class="glossary-card-fullform"
+                  >
+                    Satellite-derived Air Quality Data
+                  </span>
+                </div>
+                <div
+                  class="glossary-card-meta"
+                >
+                  <span
+                    class="glossary-category-badge"
+                    style="background-color: rgba(59, 130, 246, 0.12); color: rgb(147, 197, 253); border-color: rgb(59, 130, 246);"
+                  >
+                    <span
+                      aria-hidden="true"
+                    >
+                      📏
+                    </span>
+                     Measurement
+                  </span>
+                  <span
+                    aria-hidden="true"
+                    class="glossary-chevron"
+                  >
+                    ▾
+                  </span>
+                </div>
+              </div>
+              <p
+                class="glossary-card-preview"
+              >
+                Air quality estimates derived from Earth observation satellites (e.g. Sentinel-5P, MODIS) that measure light scattered o…
+              </p>
+            </button>
+          </div>
+        </article>
+        <article
+          class="glossary-card"
+        >
+          <div
+            aria-level="3"
+            role="heading"
+            style="display: contents;"
+          >
+            <button
+              aria-controls="glossary-card-body-Secondary Pollutant"
+              aria-expanded="false"
+              aria-label="Expand definition of Secondary Pollutant"
+              class="glossary-card-header"
+              type="button"
+            >
+              <div
+                class="glossary-card-title-row"
+              >
+                <div
+                  class="glossary-card-term-group"
+                >
+                  <span
+                    class="glossary-card-term"
+                  >
+                    Secondary Pollutant
+                  </span>
+                </div>
+                <div
+                  class="glossary-card-meta"
+                >
+                  <span
+                    class="glossary-category-badge"
+                    style="background-color: rgba(245, 158, 11, 0.12); color: rgb(252, 211, 77); border-color: rgb(245, 158, 11);"
+                  >
+                    <span
+                      aria-hidden="true"
+                    >
+                      🌫️
+                    </span>
+                     Phenomena
+                  </span>
+                  <span
+                    aria-hidden="true"
+                    class="glossary-chevron"
+                  >
+                    ▾
+                  </span>
+                </div>
+              </div>
+              <p
+                class="glossary-card-preview"
+              >
+                A pollutant formed in the atmosphere through chemical reactions between primary pollutants and other molecules. Unlike p…
+              </p>
+            </button>
+          </div>
+        </article>
+        <article
+          class="glossary-card"
+        >
+          <div
+            aria-level="3"
+            role="heading"
+            style="display: contents;"
+          >
+            <button
+              aria-controls="glossary-card-body-Sensitive Groups"
+              aria-expanded="false"
+              aria-label="Expand definition of Sensitive Groups"
+              class="glossary-card-header"
+              type="button"
+            >
+              <div
+                class="glossary-card-title-row"
+              >
+                <div
+                  class="glossary-card-term-group"
+                >
+                  <span
+                    class="glossary-card-term"
+                  >
+                    Sensitive Groups
+                  </span>
+                  <span
+                    class="glossary-card-fullform"
+                  >
+                    Pollution-sensitive Population Groups
+                  </span>
+                </div>
+                <div
+                  class="glossary-card-meta"
+                >
+                  <span
+                    class="glossary-category-badge"
+                    style="background-color: rgba(168, 85, 247, 0.12); color: rgb(216, 180, 254); border-color: rgb(168, 85, 247);"
+                  >
+                    <span
+                      aria-hidden="true"
+                    >
+                      🫁
+                    </span>
+                     Health
+                  </span>
+                  <span
+                    aria-hidden="true"
+                    class="glossary-chevron"
+                  >
+                    ▾
+                  </span>
+                </div>
+              </div>
+              <p
+                class="glossary-card-preview"
+              >
+                People who are more vulnerable to the health effects of air pollution, including children, the elderly, pregnant women, …
+              </p>
+            </button>
+          </div>
+        </article>
+        <article
+          class="glossary-card"
+        >
+          <div
+            aria-level="3"
+            role="heading"
+            style="display: contents;"
+          >
+            <button
+              aria-controls="glossary-card-body-Smog"
+              aria-expanded="false"
+              aria-label="Expand definition of Smog"
+              class="glossary-card-header"
+              type="button"
+            >
+              <div
+                class="glossary-card-title-row"
+              >
+                <div
+                  class="glossary-card-term-group"
+                >
+                  <span
+                    class="glossary-card-term"
+                  >
+                    Smog
+                  </span>
+                  <span
+                    class="glossary-card-fullform"
+                  >
+                    Smoke + Fog
+                  </span>
+                </div>
+                <div
+                  class="glossary-card-meta"
+                >
+                  <span
+                    class="glossary-category-badge"
+                    style="background-color: rgba(245, 158, 11, 0.12); color: rgb(252, 211, 77); border-color: rgb(245, 158, 11);"
+                  >
+                    <span
+                      aria-hidden="true"
+                    >
+                      🌫️
+                    </span>
+                     Phenomena
+                  </span>
+                  <span
+                    aria-hidden="true"
+                    class="glossary-chevron"
+                  >
+                    ▾
+                  </span>
+                </div>
+              </div>
+              <p
+                class="glossary-card-preview"
+              >
+                A type of air pollution that forms a thick, hazy layer over urban areas. There are two main types: industrial smog (sulf…
+              </p>
+            </button>
+          </div>
+        </article>
+        <article
+          class="glossary-card"
+        >
+          <div
+            aria-level="3"
+            role="heading"
+            style="display: contents;"
+          >
+            <button
+              aria-controls="glossary-card-body-SO2"
+              aria-expanded="false"
+              aria-label="Expand definition of SO2"
+              class="glossary-card-header"
+              type="button"
+            >
+              <div
+                class="glossary-card-title-row"
+              >
+                <div
+                  class="glossary-card-term-group"
+                >
+                  <span
+                    class="glossary-card-term"
+                  >
+                    SO2
+                  </span>
+                  <span
+                    class="glossary-card-fullform"
+                  >
+                    Sulfur Dioxide
+                  </span>
+                </div>
+                <div
+                  class="glossary-card-meta"
+                >
+                  <span
+                    class="glossary-category-badge"
+                    style="background-color: rgba(239, 68, 68, 0.12); color: rgb(252, 165, 165); border-color: rgb(239, 68, 68);"
+                  >
+                    <span
+                      aria-hidden="true"
+                    >
+                      💨
+                    </span>
+                     Pollutants
+                  </span>
+                  <span
+                    aria-hidden="true"
+                    class="glossary-chevron"
+                  >
+                    ▾
+                  </span>
+                </div>
+              </div>
+              <p
+                class="glossary-card-preview"
+              >
+                A colorless gas with a sharp smell, released primarily by burning coal and oil. SO2 can cause respiratory harm and is th…
+              </p>
+            </button>
+          </div>
+        </article>
+        <article
+          class="glossary-card"
+        >
+          <div
+            aria-level="3"
+            role="heading"
+            style="display: contents;"
+          >
+            <button
+              aria-controls="glossary-card-body-Stratosphere"
+              aria-expanded="false"
+              aria-label="Expand definition of Stratosphere"
+              class="glossary-card-header"
+              type="button"
+            >
+              <div
+                class="glossary-card-title-row"
+              >
+                <div
+                  class="glossary-card-term-group"
+                >
+                  <span
+                    class="glossary-card-term"
+                  >
+                    Stratosphere
+                  </span>
+                </div>
+                <div
+                  class="glossary-card-meta"
+                >
+                  <span
+                    class="glossary-category-badge"
+                    style="background-color: rgba(245, 158, 11, 0.12); color: rgb(252, 211, 77); border-color: rgb(245, 158, 11);"
+                  >
+                    <span
+                      aria-hidden="true"
+                    >
+                      🌫️
+                    </span>
+                     Phenomena
+                  </span>
+                  <span
+                    aria-hidden="true"
+                    class="glossary-chevron"
+                  >
+                    ▾
+                  </span>
+                </div>
+              </div>
+              <p
+                class="glossary-card-preview"
+              >
+                The atmospheric layer above the troposphere (12–50 km). Contains the ozone layer, which shields the Earth from ultraviol…
+              </p>
+            </button>
+          </div>
+        </article>
+        <article
+          class="glossary-card"
+        >
+          <div
+            aria-level="3"
+            role="heading"
+            style="display: contents;"
+          >
+            <button
+              aria-controls="glossary-card-body-Stub Burning"
+              aria-expanded="false"
+              aria-label="Expand definition of Stub Burning"
+              class="glossary-card-header"
+              type="button"
+            >
+              <div
+                class="glossary-card-title-row"
+              >
+                <div
+                  class="glossary-card-term-group"
+                >
+                  <span
+                    class="glossary-card-term"
+                  >
+                    Stub Burning
+                  </span>
+                  <span
+                    class="glossary-card-fullform"
+                  >
+                    Crop Residue Burning
+                  </span>
+                </div>
+                <div
+                  class="glossary-card-meta"
+                >
+                  <span
+                    class="glossary-category-badge"
+                    style="background-color: rgba(249, 115, 22, 0.12); color: rgb(253, 186, 116); border-color: rgb(249, 115, 22);"
+                  >
+                    <span
+                      aria-hidden="true"
+                    >
+                      🏭
+                    </span>
+                     Sources
+                  </span>
+                  <span
+                    aria-hidden="true"
+                    class="glossary-chevron"
+                  >
+                    ▾
+                  </span>
+                </div>
+              </div>
+              <p
+                class="glossary-card-preview"
+              >
+                The practice of setting fire to leftover crop stalks after harvest to quickly clear fields. A major seasonal source of P…
+              </p>
+            </button>
+          </div>
+        </article>
+      </div>
+      <div
+        class="glossary-letter-group"
+        style="outline: none;"
+        tabindex="-1"
+      >
+        <div
+          aria-label="Terms starting with letter T"
+          aria-level="2"
+          class="glossary-letter-heading"
+          role="heading"
+        >
+          T
+        </div>
+        <article
+          class="glossary-card"
+        >
+          <div
+            aria-level="3"
+            role="heading"
+            style="display: contents;"
+          >
+            <button
+              aria-controls="glossary-card-body-Troposphere"
+              aria-expanded="false"
+              aria-label="Expand definition of Troposphere"
+              class="glossary-card-header"
+              type="button"
+            >
+              <div
+                class="glossary-card-title-row"
+              >
+                <div
+                  class="glossary-card-term-group"
+                >
+                  <span
+                    class="glossary-card-term"
+                  >
+                    Troposphere
+                  </span>
+                </div>
+                <div
+                  class="glossary-card-meta"
+                >
+                  <span
+                    class="glossary-category-badge"
+                    style="background-color: rgba(245, 158, 11, 0.12); color: rgb(252, 211, 77); border-color: rgb(245, 158, 11);"
+                  >
+                    <span
+                      aria-hidden="true"
+                    >
+                      🌫️
+                    </span>
+                     Phenomena
+                  </span>
+                  <span
+                    aria-hidden="true"
+                    class="glossary-chevron"
+                  >
+                    ▾
+                  </span>
+                </div>
+              </div>
+              <p
+                class="glossary-card-preview"
+              >
+                The lowest layer of the Earth's atmosphere (0–12 km altitude) where weather occurs and where most air pollution is conce…
+              </p>
+            </button>
+          </div>
+        </article>
+        <article
+          class="glossary-card"
+        >
+          <div
+            aria-level="3"
+            role="heading"
+            style="display: contents;"
+          >
+            <button
+              aria-controls="glossary-card-body-TSP"
+              aria-expanded="false"
+              aria-label="Expand definition of TSP"
+              class="glossary-card-header"
+              type="button"
+            >
+              <div
+                class="glossary-card-title-row"
+              >
+                <div
+                  class="glossary-card-term-group"
+                >
+                  <span
+                    class="glossary-card-term"
+                  >
+                    TSP
+                  </span>
+                  <span
+                    class="glossary-card-fullform"
+                  >
+                    Total Suspended Particles
+                  </span>
+                </div>
+                <div
+                  class="glossary-card-meta"
+                >
+                  <span
+                    class="glossary-category-badge"
+                    style="background-color: rgba(239, 68, 68, 0.12); color: rgb(252, 165, 165); border-color: rgb(239, 68, 68);"
+                  >
+                    <span
+                      aria-hidden="true"
+                    >
+                      💨
+                    </span>
+                     Pollutants
+                  </span>
+                  <span
+                    aria-hidden="true"
+                    class="glossary-chevron"
+                  >
+                    ▾
+                  </span>
+                </div>
+              </div>
+              <p
+                class="glossary-card-preview"
+              >
+                All airborne particles regardless of size, including those larger than PM10. TSP was the primary measure of air quality …
+              </p>
+            </button>
+          </div>
+        </article>
+      </div>
+      <div
+        class="glossary-letter-group"
+        style="outline: none;"
+        tabindex="-1"
+      >
+        <div
+          aria-label="Terms starting with letter V"
+          aria-level="2"
+          class="glossary-letter-heading"
+          role="heading"
+        >
+          V
+        </div>
+        <article
+          class="glossary-card"
+        >
+          <div
+            aria-level="3"
+            role="heading"
+            style="display: contents;"
+          >
+            <button
+              aria-controls="glossary-card-body-Vehicular Pollution"
+              aria-expanded="false"
+              aria-label="Expand definition of Vehicular Pollution"
+              class="glossary-card-header"
+              type="button"
+            >
+              <div
+                class="glossary-card-title-row"
+              >
+                <div
+                  class="glossary-card-term-group"
+                >
+                  <span
+                    class="glossary-card-term"
+                  >
+                    Vehicular Pollution
+                  </span>
+                  <span
+                    class="glossary-card-fullform"
+                  >
+                    Vehicular Emissions
+                  </span>
+                </div>
+                <div
+                  class="glossary-card-meta"
+                >
+                  <span
+                    class="glossary-category-badge"
+                    style="background-color: rgba(249, 115, 22, 0.12); color: rgb(253, 186, 116); border-color: rgb(249, 115, 22);"
+                  >
+                    <span
+                      aria-hidden="true"
+                    >
+                      🏭
+                    </span>
+                     Sources
+                  </span>
+                  <span
+                    aria-hidden="true"
+                    class="glossary-chevron"
+                  >
+                    ▾
+                  </span>
+                </div>
+              </div>
+              <p
+                class="glossary-card-preview"
+              >
+                Air pollutants emitted by motor vehicles, including CO, NOx, VOCs, PM2.5, and black carbon from exhaust, as well as non-…
+              </p>
+            </button>
+          </div>
+        </article>
+        <article
+          class="glossary-card"
+        >
+          <div
+            aria-level="3"
+            role="heading"
+            style="display: contents;"
+          >
+            <button
+              aria-controls="glossary-card-body-Visibility"
+              aria-expanded="false"
+              aria-label="Expand definition of Visibility"
+              class="glossary-card-header"
+              type="button"
+            >
+              <div
+                class="glossary-card-title-row"
+              >
+                <div
+                  class="glossary-card-term-group"
+                >
+                  <span
+                    class="glossary-card-term"
+                  >
+                    Visibility
+                  </span>
+                  <span
+                    class="glossary-card-fullform"
+                  >
+                    Atmospheric Visibility
+                  </span>
+                </div>
+                <div
+                  class="glossary-card-meta"
+                >
+                  <span
+                    class="glossary-category-badge"
+                    style="background-color: rgba(245, 158, 11, 0.12); color: rgb(252, 211, 77); border-color: rgb(245, 158, 11);"
+                  >
+                    <span
+                      aria-hidden="true"
+                    >
+                      🌫️
+                    </span>
+                     Phenomena
+                  </span>
+                  <span
+                    aria-hidden="true"
+                    class="glossary-chevron"
+                  >
+                    ▾
+                  </span>
+                </div>
+              </div>
+              <p
+                class="glossary-card-preview"
+              >
+                The furthest distance at which objects can be clearly seen, measured in kilometers. Visibility degrades as particulate m…
+              </p>
+            </button>
+          </div>
+        </article>
+        <article
+          class="glossary-card"
+        >
+          <div
+            aria-level="3"
+            role="heading"
+            style="display: contents;"
+          >
+            <button
+              aria-controls="glossary-card-body-VOC"
+              aria-expanded="false"
+              aria-label="Expand definition of VOC"
+              class="glossary-card-header"
+              type="button"
+            >
+              <div
+                class="glossary-card-title-row"
+              >
+                <div
+                  class="glossary-card-term-group"
+                >
+                  <span
+                    class="glossary-card-term"
+                  >
+                    VOC
+                  </span>
+                  <span
+                    class="glossary-card-fullform"
+                  >
+                    Volatile Organic Compounds
+                  </span>
+                </div>
+                <div
+                  class="glossary-card-meta"
+                >
+                  <span
+                    class="glossary-category-badge"
+                    style="background-color: rgba(239, 68, 68, 0.12); color: rgb(252, 165, 165); border-color: rgb(239, 68, 68);"
+                  >
+                    <span
+                      aria-hidden="true"
+                    >
+                      💨
+                    </span>
+                     Pollutants
+                  </span>
+                  <span
+                    aria-hidden="true"
+                    class="glossary-chevron"
+                  >
+                    ▾
+                  </span>
+                </div>
+              </div>
+              <p
+                class="glossary-card-preview"
+              >
+                Organic chemicals that easily evaporate at room temperature. VOCs react with NOx in sunlight to form ground-level ozone …
+              </p>
+            </button>
+          </div>
+        </article>
+      </div>
+      <div
+        class="glossary-letter-group"
+        style="outline: none;"
+        tabindex="-1"
+      >
+        <div
+          aria-label="Terms starting with letter W"
+          aria-level="2"
+          class="glossary-letter-heading"
+          role="heading"
+        >
+          W
+        </div>
+        <article
+          class="glossary-card"
+        >
+          <div
+            aria-level="3"
+            role="heading"
+            style="display: contents;"
+          >
+            <button
+              aria-controls="glossary-card-body-WHO Guidelines"
+              aria-expanded="false"
+              aria-label="Expand definition of WHO Guidelines"
+              class="glossary-card-header"
+              type="button"
+            >
+              <div
+                class="glossary-card-title-row"
+              >
+                <div
+                  class="glossary-card-term-group"
+                >
+                  <span
+                    class="glossary-card-term"
+                  >
+                    WHO Guidelines
+                  </span>
+                  <span
+                    class="glossary-card-fullform"
+                  >
+                    World Health Organization Air Quality Guidelines
+                  </span>
+                </div>
+                <div
+                  class="glossary-card-meta"
+                >
+                  <span
+                    class="glossary-category-badge"
+                    style="background-color: rgba(20, 184, 166, 0.12); color: rgb(94, 234, 212); border-color: rgb(20, 184, 166);"
+                  >
+                    <span
+                      aria-hidden="true"
+                    >
+                      📋
+                    </span>
+                     Regulation
+                  </span>
+                  <span
+                    aria-hidden="true"
+                    class="glossary-chevron"
+                  >
+                    ▾
+                  </span>
+                </div>
+              </div>
+              <p
+                class="glossary-card-preview"
+              >
+                International benchmarks for safe pollutant levels based on global health evidence. The 2021 WHO guidelines are more str…
+              </p>
+            </button>
+          </div>
+        </article>
+        <article
+          class="glossary-card"
+        >
+          <div
+            aria-level="3"
+            role="heading"
+            style="display: contents;"
+          >
+            <button
+              aria-controls="glossary-card-body-Wildfire Smoke"
+              aria-expanded="false"
+              aria-label="Expand definition of Wildfire Smoke"
+              class="glossary-card-header"
+              type="button"
+            >
+              <div
+                class="glossary-card-title-row"
+              >
+                <div
+                  class="glossary-card-term-group"
+                >
+                  <span
+                    class="glossary-card-term"
+                  >
+                    Wildfire Smoke
+                  </span>
+                </div>
+                <div
+                  class="glossary-card-meta"
+                >
+                  <span
+                    class="glossary-category-badge"
+                    style="background-color: rgba(249, 115, 22, 0.12); color: rgb(253, 186, 116); border-color: rgb(249, 115, 22);"
+                  >
+                    <span
+                      aria-hidden="true"
+                    >
+                      🏭
+                    </span>
+                     Sources
+                  </span>
+                  <span
+                    aria-hidden="true"
+                    class="glossary-chevron"
+                  >
+                    ▾
+                  </span>
+                </div>
+              </div>
+              <p
+                class="glossary-card-preview"
+              >
+                Smoke from large-scale vegetation fires containing high concentrations of PM2.5, CO, VOCs, and toxins like acrolein and …
+              </p>
+            </button>
+          </div>
+        </article>
+      </div>
+      <div
+        class="glossary-letter-group"
+        style="outline: none;"
+        tabindex="-1"
+      >
+        <div
+          aria-label="Terms starting with letter Μ"
+          aria-level="2"
+          class="glossary-letter-heading"
+          role="heading"
+        >
+          Μ
+        </div>
+        <article
+          class="glossary-card"
+        >
+          <div
+            aria-level="3"
+            role="heading"
+            style="display: contents;"
+          >
+            <button
+              aria-controls="glossary-card-body-µg/m³"
+              aria-expanded="false"
+              aria-label="Expand definition of µg/m³"
+              class="glossary-card-header"
+              type="button"
+            >
+              <div
+                class="glossary-card-title-row"
+              >
+                <div
+                  class="glossary-card-term-group"
+                >
+                  <span
+                    class="glossary-card-term"
+                  >
+                    µg/m³
+                  </span>
+                  <span
+                    class="glossary-card-fullform"
+                  >
+                    Micrograms per Cubic Meter
+                  </span>
+                </div>
+                <div
+                  class="glossary-card-meta"
+                >
+                  <span
+                    class="glossary-category-badge"
+                    style="background-color: rgba(59, 130, 246, 0.12); color: rgb(147, 197, 253); border-color: rgb(59, 130, 246);"
+                  >
+                    <span
+                      aria-hidden="true"
+                    >
+                      📏
+                    </span>
+                     Measurement
+                  </span>
+                  <span
+                    aria-hidden="true"
+                    class="glossary-chevron"
+                  >
+                    ▾
+                  </span>
+                </div>
+              </div>
+              <p
+                class="glossary-card-preview"
+              >
+                The standard unit used to express concentrations of air pollutants such as PM2.5 and PM10. It measures the mass (in micr…
+              </p>
+            </button>
+          </div>
+        </article>
+      </div>
+    </div>
+    <nav
+      aria-label="Glossary pages"
+      class="glossary-pagination"
+    >
+      <button
+        aria-disabled="false"
+        aria-label="Previous page"
+        class="glossary-page-btn"
+        type="button"
+      >
+        ← Prev
+      </button>
+      <div
+        class="glossary-page-numbers"
+      >
+        <button
+          aria-label="Go to page 1"
+          class="glossary-page-num"
+          type="button"
+        >
+          1
+        </button>
+        <button
+          aria-label="Go to page 2"
+          class="glossary-page-num"
+          type="button"
+        >
+          2
+        </button>
+        <button
+          aria-label="Go to page 3"
+          class="glossary-page-num"
+          type="button"
+        >
+          3
+        </button>
+        <button
+          aria-current="page"
+          aria-label="Go to page 4"
+          class="glossary-page-num glossary-page-num--active"
+          type="button"
+        >
+          4
+        </button>
+      </div>
+      <button
+        aria-disabled="true"
+        aria-label="Next page"
+        class="glossary-page-btn"
+        disabled=""
+        type="button"
+      >
+        Next →
+      </button>
+      <span
+        aria-live="polite"
+        class="glossary-page-info"
+      >
+        Page 4 of 4
+      </span>
+    </nav>
+    <div
+      class="glossary-footer-note"
+      role="contentinfo"
+    >
+      <p>
+        <span
+          aria-hidden="true"
+        >
+          📚
+        </span>
+         Definitions are based on WHO, EPA, and CPCB guidelines. This glossary is maintained as part of the Pollution Control Hub open-source project.
+      </p>
+    </div>
+  </section>
+</DocumentFragment>
+`;
+
+exports[`Glossary Component - Pagination & Off-by-one verification (#738) > renders page 1 initially and matches snapshot 1`] = `
+<DocumentFragment>
+  <section
+    aria-labelledby="glossary-heading"
+    class="glossary-container"
+    data-testid="glossary-page"
+  >
+    <div
+      class="glossary-header-card"
+    >
+      <div
+        aria-hidden="true"
+        class="glossary-header-badge"
+      >
+        📖 Reference Guide
+      </div>
+      <h2
+        class="glossary-title"
+        id="glossary-heading"
+      >
+        Pollution & Air Quality Glossary
+      </h2>
+      <p
+        class="glossary-subtitle"
+      >
+        A comprehensive reference of 
+        <strong>
+          77 key terms
+        </strong>
+         spanning pollutants, health effects, climate science, measurement standards, and regulatory frameworks. Use the search and filters below to find what you need.
+      </p>
+      <div
+        aria-label="Category statistics"
+        class="glossary-quick-stats"
+      >
+        <button
+          aria-label="Filter by Pollutants category. 15 terms available."
+          class="glossary-quick-stat-chip"
+          style="border-color: rgb(239, 68, 68); color: rgb(252, 165, 165); background-color: rgba(239, 68, 68, 0.12);"
+          type="button"
+        >
+          <span
+            aria-hidden="true"
+          >
+            💨
+          </span>
+           Pollutants
+          <span
+            aria-hidden="true"
+            class="glossary-quick-stat-num"
+          >
+            15
+          </span>
+        </button>
+        <button
+          aria-label="Filter by Measurement category. 10 terms available."
+          class="glossary-quick-stat-chip"
+          style="border-color: rgb(59, 130, 246); color: rgb(147, 197, 253); background-color: rgba(59, 130, 246, 0.12);"
+          type="button"
+        >
+          <span
+            aria-hidden="true"
+          >
+            📏
+          </span>
+           Measurement
+          <span
+            aria-hidden="true"
+            class="glossary-quick-stat-num"
+          >
+            10
+          </span>
+        </button>
+        <button
+          aria-label="Filter by Health category. 12 terms available."
+          class="glossary-quick-stat-chip"
+          style="border-color: rgb(168, 85, 247); color: rgb(216, 180, 254); background-color: rgba(168, 85, 247, 0.12);"
+          type="button"
+        >
+          <span
+            aria-hidden="true"
+          >
+            🫁
+          </span>
+           Health
+          <span
+            aria-hidden="true"
+            class="glossary-quick-stat-num"
+          >
+            12
+          </span>
+        </button>
+        <button
+          aria-label="Filter by Climate category. 10 terms available."
+          class="glossary-quick-stat-chip"
+          style="border-color: rgb(34, 197, 94); color: rgb(134, 239, 172); background-color: rgba(34, 197, 94, 0.12);"
+          type="button"
+        >
+          <span
+            aria-hidden="true"
+          >
+            🌡️
+          </span>
+           Climate
+          <span
+            aria-hidden="true"
+            class="glossary-quick-stat-num"
+          >
+            10
+          </span>
+        </button>
+        <button
+          aria-label="Filter by Phenomena category. 17 terms available."
+          class="glossary-quick-stat-chip"
+          style="border-color: rgb(245, 158, 11); color: rgb(252, 211, 77); background-color: rgba(245, 158, 11, 0.12);"
+          type="button"
+        >
+          <span
+            aria-hidden="true"
+          >
+            🌫️
+          </span>
+           Phenomena
+          <span
+            aria-hidden="true"
+            class="glossary-quick-stat-num"
+          >
+            17
+          </span>
+        </button>
+        <button
+          aria-label="Filter by Regulation category. 5 terms available."
+          class="glossary-quick-stat-chip"
+          style="border-color: rgb(20, 184, 166); color: rgb(94, 234, 212); background-color: rgba(20, 184, 166, 0.12);"
+          type="button"
+        >
+          <span
+            aria-hidden="true"
+          >
+            📋
+          </span>
+           Regulation
+          <span
+            aria-hidden="true"
+            class="glossary-quick-stat-num"
+          >
+            5
+          </span>
+        </button>
+        <button
+          aria-label="Filter by Sources category. 8 terms available."
+          class="glossary-quick-stat-chip"
+          style="border-color: rgb(249, 115, 22); color: rgb(253, 186, 116); background-color: rgba(249, 115, 22, 0.12);"
+          type="button"
+        >
+          <span
+            aria-hidden="true"
+          >
+            🏭
+          </span>
+           Sources
+          <span
+            aria-hidden="true"
+            class="glossary-quick-stat-num"
+          >
+            8
+          </span>
+        </button>
+      </div>
+    </div>
+    <div
+      class="glossary-search-bar"
+    >
+      <label
+        class="sr-only"
+        for="glossary-search-input"
+      >
+        Search glossary terms
+      </label>
+      <div
+        class="glossary-search-wrapper"
+      >
+        <span
+          aria-hidden="true"
+          class="glossary-search-icon"
+        >
+          🔍
+        </span>
+        <input
+          autocomplete="off"
+          class="glossary-search-input"
+          id="glossary-search-input"
+          placeholder="Search terms, definitions, examples… (Press "/" to focus)"
+          spellcheck="false"
+          type="search"
+          value=""
+        />
+      </div>
+      <div
+        aria-hidden="true"
+        class="glossary-search-hint"
+      >
+        <kbd>
+          /
+        </kbd>
+         to search · 
+        <kbd>
+          Esc
+        </kbd>
+         to clear
+      </div>
+    </div>
+    <div
+      aria-label="Filter by category"
+      class="glossary-category-filter"
+      role="group"
+    >
+      <button
+        aria-pressed="true"
+        class="glossary-cat-btn glossary-cat-btn--active"
+        type="button"
+      >
+        <span
+          aria-hidden="true"
+          class="glossary-cat-emoji"
+        >
+          🌐
+        </span>
+        All
+        <span
+          aria-label="77 terms"
+          class="glossary-cat-count"
+        >
+          77
+        </span>
+      </button>
+      <button
+        aria-pressed="false"
+        class="glossary-cat-btn"
+        type="button"
+      >
+        <span
+          aria-hidden="true"
+          class="glossary-cat-emoji"
+        >
+          💨
+        </span>
+        Pollutants
+        <span
+          aria-label="15 terms"
+          class="glossary-cat-count"
+        >
+          15
+        </span>
+      </button>
+      <button
+        aria-pressed="false"
+        class="glossary-cat-btn"
+        type="button"
+      >
+        <span
+          aria-hidden="true"
+          class="glossary-cat-emoji"
+        >
+          📏
+        </span>
+        Measurement
+        <span
+          aria-label="10 terms"
+          class="glossary-cat-count"
+        >
+          10
+        </span>
+      </button>
+      <button
+        aria-pressed="false"
+        class="glossary-cat-btn"
+        type="button"
+      >
+        <span
+          aria-hidden="true"
+          class="glossary-cat-emoji"
+        >
+          🫁
+        </span>
+        Health
+        <span
+          aria-label="12 terms"
+          class="glossary-cat-count"
+        >
+          12
+        </span>
+      </button>
+      <button
+        aria-pressed="false"
+        class="glossary-cat-btn"
+        type="button"
+      >
+        <span
+          aria-hidden="true"
+          class="glossary-cat-emoji"
+        >
+          🌡️
+        </span>
+        Climate
+        <span
+          aria-label="10 terms"
+          class="glossary-cat-count"
+        >
+          10
+        </span>
+      </button>
+      <button
+        aria-pressed="false"
+        class="glossary-cat-btn"
+        type="button"
+      >
+        <span
+          aria-hidden="true"
+          class="glossary-cat-emoji"
+        >
+          🌫️
+        </span>
+        Phenomena
+        <span
+          aria-label="17 terms"
+          class="glossary-cat-count"
+        >
+          17
+        </span>
+      </button>
+      <button
+        aria-pressed="false"
+        class="glossary-cat-btn"
+        type="button"
+      >
+        <span
+          aria-hidden="true"
+          class="glossary-cat-emoji"
+        >
+          📋
+        </span>
+        Regulation
+        <span
+          aria-label="5 terms"
+          class="glossary-cat-count"
+        >
+          5
+        </span>
+      </button>
+      <button
+        aria-pressed="false"
+        class="glossary-cat-btn"
+        type="button"
+      >
+        <span
+          aria-hidden="true"
+          class="glossary-cat-emoji"
+        >
+          🏭
+        </span>
+        Sources
+        <span
+          aria-label="8 terms"
+          class="glossary-cat-count"
+        >
+          8
+        </span>
+      </button>
+    </div>
+    <div
+      class="glossary-controls-row"
+      style="outline: none;"
+      tabindex="-1"
+    >
+      <div
+        aria-label="Sort options"
+        class="glossary-sort-group"
+        role="group"
+      >
+        <span
+          class="glossary-sort-label"
+          id="sort-label"
+        >
+          Sort:
+        </span>
+        <button
+          aria-labelledby="sort-label"
+          aria-pressed="true"
+          class="glossary-sort-btn glossary-sort-btn--active"
+          type="button"
+        >
+          A–Z
+        </button>
+        <button
+          aria-labelledby="sort-label"
+          aria-pressed="false"
+          class="glossary-sort-btn"
+          type="button"
+        >
+          By Category
+        </button>
+      </div>
+      <div
+        aria-atomic="true"
+        aria-live="polite"
+        class="glossary-stats-bar"
+      >
+        <span
+          class="glossary-stats-count"
+        >
+          <strong>
+            77
+          </strong>
+           terms
+        </span>
+      </div>
+    </div>
+    <nav
+      aria-label="Jump to letter"
+      class="glossary-alpha-nav"
+    >
+      <button
+        aria-disabled="false"
+        aria-label="Jump to terms starting with A"
+        class="glossary-alpha-btn"
+        type="button"
+      >
+        A
+      </button>
+      <button
+        aria-disabled="false"
+        aria-label="Jump to terms starting with B"
+        class="glossary-alpha-btn"
+        type="button"
+      >
+        B
+      </button>
+      <button
+        aria-disabled="false"
+        aria-label="Jump to terms starting with C"
+        class="glossary-alpha-btn"
+        type="button"
+      >
+        C
+      </button>
+      <button
+        aria-disabled="false"
+        aria-label="Jump to terms starting with D"
+        class="glossary-alpha-btn"
+        type="button"
+      >
+        D
+      </button>
+      <button
+        aria-disabled="false"
+        aria-label="Jump to terms starting with E"
+        class="glossary-alpha-btn"
+        type="button"
+      >
+        E
+      </button>
+      <button
+        aria-disabled="true"
+        aria-label="Jump to terms starting with F"
+        class="glossary-alpha-btn glossary-alpha-btn--disabled"
+        disabled=""
+        type="button"
+      >
+        F
+      </button>
+      <button
+        aria-disabled="false"
+        aria-label="Jump to terms starting with G"
+        class="glossary-alpha-btn"
+        type="button"
+      >
+        G
+      </button>
+      <button
+        aria-disabled="false"
+        aria-label="Jump to terms starting with H"
+        class="glossary-alpha-btn"
+        type="button"
+      >
+        H
+      </button>
+      <button
+        aria-disabled="false"
+        aria-label="Jump to terms starting with I"
+        class="glossary-alpha-btn"
+        type="button"
+      >
+        I
+      </button>
+      <button
+        aria-disabled="true"
+        aria-label="Jump to terms starting with J"
+        class="glossary-alpha-btn glossary-alpha-btn--disabled"
+        disabled=""
+        type="button"
+      >
+        J
+      </button>
+      <button
+        aria-disabled="true"
+        aria-label="Jump to terms starting with K"
+        class="glossary-alpha-btn glossary-alpha-btn--disabled"
+        disabled=""
+        type="button"
+      >
+        K
+      </button>
+      <button
+        aria-disabled="false"
+        aria-label="Jump to terms starting with L"
+        class="glossary-alpha-btn"
+        type="button"
+      >
+        L
+      </button>
+      <button
+        aria-disabled="false"
+        aria-label="Jump to terms starting with M"
+        class="glossary-alpha-btn"
+        type="button"
+      >
+        M
+      </button>
+      <button
+        aria-disabled="false"
+        aria-label="Jump to terms starting with N"
+        class="glossary-alpha-btn"
+        type="button"
+      >
+        N
+      </button>
+      <button
+        aria-disabled="false"
+        aria-label="Jump to terms starting with O"
+        class="glossary-alpha-btn"
+        type="button"
+      >
+        O
+      </button>
+      <button
+        aria-disabled="false"
+        aria-label="Jump to terms starting with P"
+        class="glossary-alpha-btn"
+        type="button"
+      >
+        P
+      </button>
+      <button
+        aria-disabled="true"
+        aria-label="Jump to terms starting with Q"
+        class="glossary-alpha-btn glossary-alpha-btn--disabled"
+        disabled=""
+        type="button"
+      >
+        Q
+      </button>
+      <button
+        aria-disabled="false"
+        aria-label="Jump to terms starting with R"
+        class="glossary-alpha-btn"
+        type="button"
+      >
+        R
+      </button>
+      <button
+        aria-disabled="false"
+        aria-label="Jump to terms starting with S"
+        class="glossary-alpha-btn"
+        type="button"
+      >
+        S
+      </button>
+      <button
+        aria-disabled="false"
+        aria-label="Jump to terms starting with T"
+        class="glossary-alpha-btn"
+        type="button"
+      >
+        T
+      </button>
+      <button
+        aria-disabled="true"
+        aria-label="Jump to terms starting with U"
+        class="glossary-alpha-btn glossary-alpha-btn--disabled"
+        disabled=""
+        type="button"
+      >
+        U
+      </button>
+      <button
+        aria-disabled="false"
+        aria-label="Jump to terms starting with V"
+        class="glossary-alpha-btn"
+        type="button"
+      >
+        V
+      </button>
+      <button
+        aria-disabled="false"
+        aria-label="Jump to terms starting with W"
+        class="glossary-alpha-btn"
+        type="button"
+      >
+        W
+      </button>
+      <button
+        aria-disabled="true"
+        aria-label="Jump to terms starting with X"
+        class="glossary-alpha-btn glossary-alpha-btn--disabled"
+        disabled=""
+        type="button"
+      >
+        X
+      </button>
+      <button
+        aria-disabled="true"
+        aria-label="Jump to terms starting with Y"
+        class="glossary-alpha-btn glossary-alpha-btn--disabled"
+        disabled=""
+        type="button"
+      >
+        Y
+      </button>
+      <button
+        aria-disabled="true"
+        aria-label="Jump to terms starting with Z"
+        class="glossary-alpha-btn glossary-alpha-btn--disabled"
+        disabled=""
+        type="button"
+      >
+        Z
+      </button>
+    </nav>
+    <div
+      class="glossary-results"
+    >
+      <div
+        class="glossary-letter-group"
+        style="outline: none;"
+        tabindex="-1"
+      >
+        <div
+          aria-label="Terms starting with letter A"
+          aria-level="2"
+          class="glossary-letter-heading"
+          role="heading"
+        >
+          A
+        </div>
+        <article
+          class="glossary-card"
+        >
+          <div
+            aria-level="3"
+            role="heading"
+            style="display: contents;"
+          >
+            <button
+              aria-controls="glossary-card-body-Acid Rain"
+              aria-expanded="false"
+              aria-label="Expand definition of Acid Rain"
+              class="glossary-card-header"
+              type="button"
+            >
+              <div
+                class="glossary-card-title-row"
+              >
+                <div
+                  class="glossary-card-term-group"
+                >
+                  <span
+                    class="glossary-card-term"
+                  >
+                    Acid Rain
+                  </span>
+                  <span
+                    class="glossary-card-fullform"
+                  >
+                    Acid Deposition
+                  </span>
+                </div>
+                <div
+                  class="glossary-card-meta"
+                >
+                  <span
+                    class="glossary-category-badge"
+                    style="background-color: rgba(245, 158, 11, 0.12); color: rgb(252, 211, 77); border-color: rgb(245, 158, 11);"
+                  >
+                    <span
+                      aria-hidden="true"
+                    >
+                      🌫️
+                    </span>
+                     Phenomena
+                  </span>
+                  <span
+                    aria-hidden="true"
+                    class="glossary-chevron"
+                  >
+                    ▾
+                  </span>
+                </div>
+              </div>
+              <p
+                class="glossary-card-preview"
+              >
+                Rain, snow, or fog that is abnormally acidic (pH below 5.6) due to SO2 and NOx emissions reacting with water vapor in th…
+              </p>
+            </button>
+          </div>
+        </article>
+        <article
+          class="glossary-card"
+        >
+          <div
+            aria-level="3"
+            role="heading"
+            style="display: contents;"
+          >
+            <button
+              aria-controls="glossary-card-body-Aerosol"
+              aria-expanded="false"
+              aria-label="Expand definition of Aerosol"
+              class="glossary-card-header"
+              type="button"
+            >
+              <div
+                class="glossary-card-title-row"
+              >
+                <div
+                  class="glossary-card-term-group"
+                >
+                  <span
+                    class="glossary-card-term"
+                  >
+                    Aerosol
+                  </span>
+                  <span
+                    class="glossary-card-fullform"
+                  >
+                    Atmospheric Aerosol
+                  </span>
+                </div>
+                <div
+                  class="glossary-card-meta"
+                >
+                  <span
+                    class="glossary-category-badge"
+                    style="background-color: rgba(239, 68, 68, 0.12); color: rgb(252, 165, 165); border-color: rgb(239, 68, 68);"
+                  >
+                    <span
+                      aria-hidden="true"
+                    >
+                      💨
+                    </span>
+                     Pollutants
+                  </span>
+                  <span
+                    aria-hidden="true"
+                    class="glossary-chevron"
+                  >
+                    ▾
+                  </span>
+                </div>
+              </div>
+              <p
+                class="glossary-card-preview"
+              >
+                Tiny solid or liquid particles suspended in a gas (the atmosphere). Aerosols include both natural (dust, sea salt, volca…
+              </p>
+            </button>
+          </div>
+        </article>
+        <article
+          class="glossary-card"
+        >
+          <div
+            aria-level="3"
+            role="heading"
+            style="display: contents;"
+          >
+            <button
+              aria-controls="glossary-card-body-Air Purifier"
+              aria-expanded="false"
+              aria-label="Expand definition of Air Purifier"
+              class="glossary-card-header"
+              type="button"
+            >
+              <div
+                class="glossary-card-title-row"
+              >
+                <div
+                  class="glossary-card-term-group"
+                >
+                  <span
+                    class="glossary-card-term"
+                  >
+                    Air Purifier
+                  </span>
+                  <span
+                    class="glossary-card-fullform"
+                  >
+                    Indoor Air Purifier
+                  </span>
+                </div>
+                <div
+                  class="glossary-card-meta"
+                >
+                  <span
+                    class="glossary-category-badge"
+                    style="background-color: rgba(168, 85, 247, 0.12); color: rgb(216, 180, 254); border-color: rgb(168, 85, 247);"
+                  >
+                    <span
+                      aria-hidden="true"
+                    >
+                      🫁
+                    </span>
+                     Health
+                  </span>
+                  <span
+                    aria-hidden="true"
+                    class="glossary-chevron"
+                  >
+                    ▾
+                  </span>
+                </div>
+              </div>
+              <p
+                class="glossary-card-preview"
+              >
+                A device that filters indoor air to remove pollutants, primarily PM2.5, using HEPA filters, activated carbon, or electro…
+              </p>
+            </button>
+          </div>
+        </article>
+        <article
+          class="glossary-card"
+        >
+          <div
+            aria-level="3"
+            role="heading"
+            style="display: contents;"
+          >
+            <button
+              aria-controls="glossary-card-body-AQI"
+              aria-expanded="false"
+              aria-label="Expand definition of AQI"
+              class="glossary-card-header"
+              type="button"
+            >
+              <div
+                class="glossary-card-title-row"
+              >
+                <div
+                  class="glossary-card-term-group"
+                >
+                  <span
+                    class="glossary-card-term"
+                  >
+                    AQI
+                  </span>
+                  <span
+                    class="glossary-card-fullform"
+                  >
+                    Air Quality Index
+                  </span>
+                </div>
+                <div
+                  class="glossary-card-meta"
+                >
+                  <span
+                    class="glossary-category-badge"
+                    style="background-color: rgba(59, 130, 246, 0.12); color: rgb(147, 197, 253); border-color: rgb(59, 130, 246);"
+                  >
+                    <span
+                      aria-hidden="true"
+                    >
+                      📏
+                    </span>
+                     Measurement
+                  </span>
+                  <span
+                    aria-hidden="true"
+                    class="glossary-chevron"
+                  >
+                    ▾
+                  </span>
+                </div>
+              </div>
+              <p
+                class="glossary-card-preview"
+              >
+                A standardized numerical scale (0–500) used to communicate how polluted the air is. Lower values indicate cleaner air. T…
+              </p>
+            </button>
+          </div>
+        </article>
+        <article
+          class="glossary-card"
+        >
+          <div
+            aria-level="3"
+            role="heading"
+            style="display: contents;"
+          >
+            <button
+              aria-controls="glossary-card-body-Asthma"
+              aria-expanded="false"
+              aria-label="Expand definition of Asthma"
+              class="glossary-card-header"
+              type="button"
+            >
+              <div
+                class="glossary-card-title-row"
+              >
+                <div
+                  class="glossary-card-term-group"
+                >
+                  <span
+                    class="glossary-card-term"
+                  >
+                    Asthma
+                  </span>
+                  <span
+                    class="glossary-card-fullform"
+                  >
+                    Bronchial Asthma
+                  </span>
+                </div>
+                <div
+                  class="glossary-card-meta"
+                >
+                  <span
+                    class="glossary-category-badge"
+                    style="background-color: rgba(168, 85, 247, 0.12); color: rgb(216, 180, 254); border-color: rgb(168, 85, 247);"
+                  >
+                    <span
+                      aria-hidden="true"
+                    >
+                      🫁
+                    </span>
+                     Health
+                  </span>
+                  <span
+                    aria-hidden="true"
+                    class="glossary-chevron"
+                  >
+                    ▾
+                  </span>
+                </div>
+              </div>
+              <p
+                class="glossary-card-preview"
+              >
+                A chronic inflammatory airway disease characterized by reversible airflow obstruction, wheezing, and breathlessness. Air…
+              </p>
+            </button>
+          </div>
+        </article>
+      </div>
+      <div
+        class="glossary-letter-group"
+        style="outline: none;"
+        tabindex="-1"
+      >
+        <div
+          aria-label="Terms starting with letter B"
+          aria-level="2"
+          class="glossary-letter-heading"
+          role="heading"
+        >
+          B
+        </div>
+        <article
+          class="glossary-card"
+        >
+          <div
+            aria-level="3"
+            role="heading"
+            style="display: contents;"
+          >
+            <button
+              aria-controls="glossary-card-body-Biogenic Emissions"
+              aria-expanded="false"
+              aria-label="Expand definition of Biogenic Emissions"
+              class="glossary-card-header"
+              type="button"
+            >
+              <div
+                class="glossary-card-title-row"
+              >
+                <div
+                  class="glossary-card-term-group"
+                >
+                  <span
+                    class="glossary-card-term"
+                  >
+                    Biogenic Emissions
+                  </span>
+                </div>
+                <div
+                  class="glossary-card-meta"
+                >
+                  <span
+                    class="glossary-category-badge"
+                    style="background-color: rgba(249, 115, 22, 0.12); color: rgb(253, 186, 116); border-color: rgb(249, 115, 22);"
+                  >
+                    <span
+                      aria-hidden="true"
+                    >
+                      🏭
+                    </span>
+                     Sources
+                  </span>
+                  <span
+                    aria-hidden="true"
+                    class="glossary-chevron"
+                  >
+                    ▾
+                  </span>
+                </div>
+              </div>
+              <p
+                class="glossary-card-preview"
+              >
+                Natural emissions of gases and particles from vegetation, soil, and oceans. Major biogenic compounds include isoprene an…
+              </p>
+            </button>
+          </div>
+        </article>
+        <article
+          class="glossary-card"
+        >
+          <div
+            aria-level="3"
+            role="heading"
+            style="display: contents;"
+          >
+            <button
+              aria-controls="glossary-card-body-Black Carbon"
+              aria-expanded="false"
+              aria-label="Expand definition of Black Carbon"
+              class="glossary-card-header"
+              type="button"
+            >
+              <div
+                class="glossary-card-title-row"
+              >
+                <div
+                  class="glossary-card-term-group"
+                >
+                  <span
+                    class="glossary-card-term"
+                  >
+                    Black Carbon
+                  </span>
+                  <span
+                    class="glossary-card-fullform"
+                  >
+                    Black Carbon (BC)
+                  </span>
+                </div>
+                <div
+                  class="glossary-card-meta"
+                >
+                  <span
+                    class="glossary-category-badge"
+                    style="background-color: rgba(239, 68, 68, 0.12); color: rgb(252, 165, 165); border-color: rgb(239, 68, 68);"
+                  >
+                    <span
+                      aria-hidden="true"
+                    >
+                      💨
+                    </span>
+                     Pollutants
+                  </span>
+                  <span
+                    aria-hidden="true"
+                    class="glossary-chevron"
+                  >
+                    ▾
+                  </span>
+                </div>
+              </div>
+              <p
+                class="glossary-card-preview"
+              >
+                The sooty black fraction of PM2.5, produced by incomplete combustion. Black carbon is a potent short-lived climate pollu…
+              </p>
+            </button>
+          </div>
+        </article>
+        <article
+          class="glossary-card"
+        >
+          <div
+            aria-level="3"
+            role="heading"
+            style="display: contents;"
+          >
+            <button
+              aria-controls="glossary-card-body-Boundary Layer"
+              aria-expanded="false"
+              aria-label="Expand definition of Boundary Layer"
+              class="glossary-card-header"
+              type="button"
+            >
+              <div
+                class="glossary-card-title-row"
+              >
+                <div
+                  class="glossary-card-term-group"
+                >
+                  <span
+                    class="glossary-card-term"
+                  >
+                    Boundary Layer
+                  </span>
+                  <span
+                    class="glossary-card-fullform"
+                  >
+                    Planetary Boundary Layer
+                  </span>
+                </div>
+                <div
+                  class="glossary-card-meta"
+                >
+                  <span
+                    class="glossary-category-badge"
+                    style="background-color: rgba(245, 158, 11, 0.12); color: rgb(252, 211, 77); border-color: rgb(245, 158, 11);"
+                  >
+                    <span
+                      aria-hidden="true"
+                    >
+                      🌫️
+                    </span>
+                     Phenomena
+                  </span>
+                  <span
+                    aria-hidden="true"
+                    class="glossary-chevron"
+                  >
+                    ▾
+                  </span>
+                </div>
+              </div>
+              <p
+                class="glossary-card-preview"
+              >
+                The lowest layer of the atmosphere, directly influenced by the Earth's surface. Pollutants are primarily contained withi…
+              </p>
+            </button>
+          </div>
+        </article>
+      </div>
+      <div
+        class="glossary-letter-group"
+        style="outline: none;"
+        tabindex="-1"
+      >
+        <div
+          aria-label="Terms starting with letter C"
+          aria-level="2"
+          class="glossary-letter-heading"
+          role="heading"
+        >
+          C
+        </div>
+        <article
+          class="glossary-card"
+        >
+          <div
+            aria-level="3"
+            role="heading"
+            style="display: contents;"
+          >
+            <button
+              aria-controls="glossary-card-body-CAAQMS"
+              aria-expanded="false"
+              aria-label="Expand definition of CAAQMS"
+              class="glossary-card-header"
+              type="button"
+            >
+              <div
+                class="glossary-card-title-row"
+              >
+                <div
+                  class="glossary-card-term-group"
+                >
+                  <span
+                    class="glossary-card-term"
+                  >
+                    CAAQMS
+                  </span>
+                  <span
+                    class="glossary-card-fullform"
+                  >
+                    Continuous Ambient Air Quality Monitoring Station
+                  </span>
+                </div>
+                <div
+                  class="glossary-card-meta"
+                >
+                  <span
+                    class="glossary-category-badge"
+                    style="background-color: rgba(59, 130, 246, 0.12); color: rgb(147, 197, 253); border-color: rgb(59, 130, 246);"
+                  >
+                    <span
+                      aria-hidden="true"
+                    >
+                      📏
+                    </span>
+                     Measurement
+                  </span>
+                  <span
+                    aria-hidden="true"
+                    class="glossary-chevron"
+                  >
+                    ▾
+                  </span>
+                </div>
+              </div>
+              <p
+                class="glossary-card-preview"
+              >
+                Automated, fixed monitoring stations that continuously measure ambient concentrations of multiple pollutants (PM2.5, PM1…
+              </p>
+            </button>
+          </div>
+        </article>
+        <article
+          class="glossary-card"
+        >
+          <div
+            aria-level="3"
+            role="heading"
+            style="display: contents;"
+          >
+            <button
+              aria-controls="glossary-card-body-Carbon Footprint"
+              aria-expanded="false"
+              aria-label="Expand definition of Carbon Footprint"
+              class="glossary-card-header"
+              type="button"
+            >
+              <div
+                class="glossary-card-title-row"
+              >
+                <div
+                  class="glossary-card-term-group"
+                >
+                  <span
+                    class="glossary-card-term"
+                  >
+                    Carbon Footprint
+                  </span>
+                </div>
+                <div
+                  class="glossary-card-meta"
+                >
+                  <span
+                    class="glossary-category-badge"
+                    style="background-color: rgba(34, 197, 94, 0.12); color: rgb(134, 239, 172); border-color: rgb(34, 197, 94);"
+                  >
+                    <span
+                      aria-hidden="true"
+                    >
+                      🌡️
+                    </span>
+                     Climate
+                  </span>
+                  <span
+                    aria-hidden="true"
+                    class="glossary-chevron"
+                  >
+                    ▾
+                  </span>
+                </div>
+              </div>
+              <p
+                class="glossary-card-preview"
+              >
+                The total amount of greenhouse gases, measured in CO2 equivalent (CO2e), generated by an individual, organization, event…
+              </p>
+            </button>
+          </div>
+        </article>
+        <article
+          class="glossary-card"
+        >
+          <div
+            aria-level="3"
+            role="heading"
+            style="display: contents;"
+          >
+            <button
+              aria-controls="glossary-card-body-Carbon Neutral"
+              aria-expanded="false"
+              aria-label="Expand definition of Carbon Neutral"
+              class="glossary-card-header"
+              type="button"
+            >
+              <div
+                class="glossary-card-title-row"
+              >
+                <div
+                  class="glossary-card-term-group"
+                >
+                  <span
+                    class="glossary-card-term"
+                  >
+                    Carbon Neutral
+                  </span>
+                </div>
+                <div
+                  class="glossary-card-meta"
+                >
+                  <span
+                    class="glossary-category-badge"
+                    style="background-color: rgba(34, 197, 94, 0.12); color: rgb(134, 239, 172); border-color: rgb(34, 197, 94);"
+                  >
+                    <span
+                      aria-hidden="true"
+                    >
+                      🌡️
+                    </span>
+                     Climate
+                  </span>
+                  <span
+                    aria-hidden="true"
+                    class="glossary-chevron"
+                  >
+                    ▾
+                  </span>
+                </div>
+              </div>
+              <p
+                class="glossary-card-preview"
+              >
+                Achieving net-zero CO2 emissions by balancing the amount of CO2 released with an equivalent amount offset or removed fro…
+              </p>
+            </button>
+          </div>
+        </article>
+        <article
+          class="glossary-card"
+        >
+          <div
+            aria-level="3"
+            role="heading"
+            style="display: contents;"
+          >
+            <button
+              aria-controls="glossary-card-body-Carbon Offset"
+              aria-expanded="false"
+              aria-label="Expand definition of Carbon Offset"
+              class="glossary-card-header"
+              type="button"
+            >
+              <div
+                class="glossary-card-title-row"
+              >
+                <div
+                  class="glossary-card-term-group"
+                >
+                  <span
+                    class="glossary-card-term"
+                  >
+                    Carbon Offset
+                  </span>
+                </div>
+                <div
+                  class="glossary-card-meta"
+                >
+                  <span
+                    class="glossary-category-badge"
+                    style="background-color: rgba(34, 197, 94, 0.12); color: rgb(134, 239, 172); border-color: rgb(34, 197, 94);"
+                  >
+                    <span
+                      aria-hidden="true"
+                    >
+                      🌡️
+                    </span>
+                     Climate
+                  </span>
+                  <span
+                    aria-hidden="true"
+                    class="glossary-chevron"
+                  >
+                    ▾
+                  </span>
+                </div>
+              </div>
+              <p
+                class="glossary-card-preview"
+              >
+                A reduction or removal of greenhouse gas emissions in one place used to compensate for emissions made elsewhere. Example…
+              </p>
+            </button>
+          </div>
+        </article>
+        <article
+          class="glossary-card"
+        >
+          <div
+            aria-level="3"
+            role="heading"
+            style="display: contents;"
+          >
+            <button
+              aria-controls="glossary-card-body-Cardiovascular Effects"
+              aria-expanded="false"
+              aria-label="Expand definition of Cardiovascular Effects"
+              class="glossary-card-header"
+              type="button"
+            >
+              <div
+                class="glossary-card-title-row"
+              >
+                <div
+                  class="glossary-card-term-group"
+                >
+                  <span
+                    class="glossary-card-term"
+                  >
+                    Cardiovascular Effects
+                  </span>
+                  <span
+                    class="glossary-card-fullform"
+                  >
+                    Cardiovascular Health Effects
+                  </span>
+                </div>
+                <div
+                  class="glossary-card-meta"
+                >
+                  <span
+                    class="glossary-category-badge"
+                    style="background-color: rgba(168, 85, 247, 0.12); color: rgb(216, 180, 254); border-color: rgb(168, 85, 247);"
+                  >
+                    <span
+                      aria-hidden="true"
+                    >
+                      🫁
+                    </span>
+                     Health
+                  </span>
+                  <span
+                    aria-hidden="true"
+                    class="glossary-chevron"
+                  >
+                    ▾
+                  </span>
+                </div>
+              </div>
+              <p
+                class="glossary-card-preview"
+              >
+                Damage to the heart and blood vessels caused by air pollution. Fine particles (PM2.5) entering the bloodstream can cause…
+              </p>
+            </button>
+          </div>
+        </article>
+        <article
+          class="glossary-card"
+        >
+          <div
+            aria-level="3"
+            role="heading"
+            style="display: contents;"
+          >
+            <button
+              aria-controls="glossary-card-body-CH4"
+              aria-expanded="false"
+              aria-label="Expand definition of CH4"
+              class="glossary-card-header"
+              type="button"
+            >
+              <div
+                class="glossary-card-title-row"
+              >
+                <div
+                  class="glossary-card-term-group"
+                >
+                  <span
+                    class="glossary-card-term"
+                  >
+                    CH4
+                  </span>
+                  <span
+                    class="glossary-card-fullform"
+                  >
+                    Methane
+                  </span>
+                </div>
+                <div
+                  class="glossary-card-meta"
+                >
+                  <span
+                    class="glossary-category-badge"
+                    style="background-color: rgba(34, 197, 94, 0.12); color: rgb(134, 239, 172); border-color: rgb(34, 197, 94);"
+                  >
+                    <span
+                      aria-hidden="true"
+                    >
+                      🌡️
+                    </span>
+                     Climate
+                  </span>
+                  <span
+                    aria-hidden="true"
+                    class="glossary-chevron"
+                  >
+                    ▾
+                  </span>
+                </div>
+              </div>
+              <p
+                class="glossary-card-preview"
+              >
+                A potent greenhouse gas produced by livestock digestion, rice paddies, landfills, and natural gas leaks. Though shorter-…
+              </p>
+            </button>
+          </div>
+        </article>
+        <article
+          class="glossary-card"
+        >
+          <div
+            aria-level="3"
+            role="heading"
+            style="display: contents;"
+          >
+            <button
+              aria-controls="glossary-card-body-Climate Change"
+              aria-expanded="false"
+              aria-label="Expand definition of Climate Change"
+              class="glossary-card-header"
+              type="button"
+            >
+              <div
+                class="glossary-card-title-row"
+              >
+                <div
+                  class="glossary-card-term-group"
+                >
+                  <span
+                    class="glossary-card-term"
+                  >
+                    Climate Change
+                  </span>
+                  <span
+                    class="glossary-card-fullform"
+                  >
+                    Anthropogenic Climate Change
+                  </span>
+                </div>
+                <div
+                  class="glossary-card-meta"
+                >
+                  <span
+                    class="glossary-category-badge"
+                    style="background-color: rgba(34, 197, 94, 0.12); color: rgb(134, 239, 172); border-color: rgb(34, 197, 94);"
+                  >
+                    <span
+                      aria-hidden="true"
+                    >
+                      🌡️
+                    </span>
+                     Climate
+                  </span>
+                  <span
+                    aria-hidden="true"
+                    class="glossary-chevron"
+                  >
+                    ▾
+                  </span>
+                </div>
+              </div>
+              <p
+                class="glossary-card-preview"
+              >
+                Long-term shifts in global temperature and weather patterns driven primarily by human activities, especially the burning…
+              </p>
+            </button>
+          </div>
+        </article>
+        <article
+          class="glossary-card"
+        >
+          <div
+            aria-level="3"
+            role="heading"
+            style="display: contents;"
+          >
+            <button
+              aria-controls="glossary-card-body-CO"
+              aria-expanded="false"
+              aria-label="Expand definition of CO"
+              class="glossary-card-header"
+              type="button"
+            >
+              <div
+                class="glossary-card-title-row"
+              >
+                <div
+                  class="glossary-card-term-group"
+                >
+                  <span
+                    class="glossary-card-term"
+                  >
+                    CO
+                  </span>
+                  <span
+                    class="glossary-card-fullform"
+                  >
+                    Carbon Monoxide
+                  </span>
+                </div>
+                <div
+                  class="glossary-card-meta"
+                >
+                  <span
+                    class="glossary-category-badge"
+                    style="background-color: rgba(239, 68, 68, 0.12); color: rgb(252, 165, 165); border-color: rgb(239, 68, 68);"
+                  >
+                    <span
+                      aria-hidden="true"
+                    >
+                      💨
+                    </span>
+                     Pollutants
+                  </span>
+                  <span
+                    aria-hidden="true"
+                    class="glossary-chevron"
+                  >
+                    ▾
+                  </span>
+                </div>
+              </div>
+              <p
+                class="glossary-card-preview"
+              >
+                A colorless, odorless gas produced by incomplete combustion of fossil fuels. CO binds to hemoglobin in the blood, reduci…
+              </p>
+            </button>
+          </div>
+        </article>
+        <article
+          class="glossary-card"
+        >
+          <div
+            aria-level="3"
+            role="heading"
+            style="display: contents;"
+          >
+            <button
+              aria-controls="glossary-card-body-CO2"
+              aria-expanded="false"
+              aria-label="Expand definition of CO2"
+              class="glossary-card-header"
+              type="button"
+            >
+              <div
+                class="glossary-card-title-row"
+              >
+                <div
+                  class="glossary-card-term-group"
+                >
+                  <span
+                    class="glossary-card-term"
+                  >
+                    CO2
+                  </span>
+                  <span
+                    class="glossary-card-fullform"
+                  >
+                    Carbon Dioxide
+                  </span>
+                </div>
+                <div
+                  class="glossary-card-meta"
+                >
+                  <span
+                    class="glossary-category-badge"
+                    style="background-color: rgba(239, 68, 68, 0.12); color: rgb(252, 165, 165); border-color: rgb(239, 68, 68);"
+                  >
+                    <span
+                      aria-hidden="true"
+                    >
+                      💨
+                    </span>
+                     Pollutants
+                  </span>
+                  <span
+                    aria-hidden="true"
+                    class="glossary-chevron"
+                  >
+                    ▾
+                  </span>
+                </div>
+              </div>
+              <p
+                class="glossary-card-preview"
+              >
+                A greenhouse gas produced by burning fossil fuels, deforestation, and biological respiration. While not directly toxic a…
+              </p>
+            </button>
+          </div>
+        </article>
+        <article
+          class="glossary-card"
+        >
+          <div
+            aria-level="3"
+            role="heading"
+            style="display: contents;"
+          >
+            <button
+              aria-controls="glossary-card-body-CO2e"
+              aria-expanded="false"
+              aria-label="Expand definition of CO2e"
+              class="glossary-card-header"
+              type="button"
+            >
+              <div
+                class="glossary-card-title-row"
+              >
+                <div
+                  class="glossary-card-term-group"
+                >
+                  <span
+                    class="glossary-card-term"
+                  >
+                    CO2e
+                  </span>
+                  <span
+                    class="glossary-card-fullform"
+                  >
+                    Carbon Dioxide Equivalent
+                  </span>
+                </div>
+                <div
+                  class="glossary-card-meta"
+                >
+                  <span
+                    class="glossary-category-badge"
+                    style="background-color: rgba(34, 197, 94, 0.12); color: rgb(134, 239, 172); border-color: rgb(34, 197, 94);"
+                  >
+                    <span
+                      aria-hidden="true"
+                    >
+                      🌡️
+                    </span>
+                     Climate
+                  </span>
+                  <span
+                    aria-hidden="true"
+                    class="glossary-chevron"
+                  >
+                    ▾
+                  </span>
+                </div>
+              </div>
+              <p
+                class="glossary-card-preview"
+              >
+                A universal unit for measuring the global warming potential of various greenhouse gases relative to CO2. It allows compa…
+              </p>
+            </button>
+          </div>
+        </article>
+        <article
+          class="glossary-card"
+        >
+          <div
+            aria-level="3"
+            role="heading"
+            style="display: contents;"
+          >
+            <button
+              aria-controls="glossary-card-body-Combustion"
+              aria-expanded="false"
+              aria-label="Expand definition of Combustion"
+              class="glossary-card-header"
+              type="button"
+            >
+              <div
+                class="glossary-card-title-row"
+              >
+                <div
+                  class="glossary-card-term-group"
+                >
+                  <span
+                    class="glossary-card-term"
+                  >
+                    Combustion
+                  </span>
+                </div>
+                <div
+                  class="glossary-card-meta"
+                >
+                  <span
+                    class="glossary-category-badge"
+                    style="background-color: rgba(249, 115, 22, 0.12); color: rgb(253, 186, 116); border-color: rgb(249, 115, 22);"
+                  >
+                    <span
+                      aria-hidden="true"
+                    >
+                      🏭
+                    </span>
+                     Sources
+                  </span>
+                  <span
+                    aria-hidden="true"
+                    class="glossary-chevron"
+                  >
+                    ▾
+                  </span>
+                </div>
+              </div>
+              <p
+                class="glossary-card-preview"
+              >
+                The chemical process of burning fuel (wood, coal, petrol, diesel, natural gas) with oxygen to produce energy. Combustion…
+              </p>
+            </button>
+          </div>
+        </article>
+        <article
+          class="glossary-card"
+        >
+          <div
+            aria-level="3"
+            role="heading"
+            style="display: contents;"
+          >
+            <button
+              aria-controls="glossary-card-body-COPD"
+              aria-expanded="false"
+              aria-label="Expand definition of COPD"
+              class="glossary-card-header"
+              type="button"
+            >
+              <div
+                class="glossary-card-title-row"
+              >
+                <div
+                  class="glossary-card-term-group"
+                >
+                  <span
+                    class="glossary-card-term"
+                  >
+                    COPD
+                  </span>
+                  <span
+                    class="glossary-card-fullform"
+                  >
+                    Chronic Obstructive Pulmonary Disease
+                  </span>
+                </div>
+                <div
+                  class="glossary-card-meta"
+                >
+                  <span
+                    class="glossary-category-badge"
+                    style="background-color: rgba(168, 85, 247, 0.12); color: rgb(216, 180, 254); border-color: rgb(168, 85, 247);"
+                  >
+                    <span
+                      aria-hidden="true"
+                    >
+                      🫁
+                    </span>
+                     Health
+                  </span>
+                  <span
+                    aria-hidden="true"
+                    class="glossary-chevron"
+                  >
+                    ▾
+                  </span>
+                </div>
+              </div>
+              <p
+                class="glossary-card-preview"
+              >
+                A group of chronic inflammatory lung diseases (including emphysema and chronic bronchitis) that obstruct airflow. Long-t…
+              </p>
+            </button>
+          </div>
+        </article>
+      </div>
+    </div>
+    <nav
+      aria-label="Glossary pages"
+      class="glossary-pagination"
+    >
+      <button
+        aria-disabled="true"
+        aria-label="Previous page"
+        class="glossary-page-btn"
+        disabled=""
+        type="button"
+      >
+        ← Prev
+      </button>
+      <div
+        class="glossary-page-numbers"
+      >
+        <button
+          aria-current="page"
+          aria-label="Go to page 1"
+          class="glossary-page-num glossary-page-num--active"
+          type="button"
+        >
+          1
+        </button>
+        <button
+          aria-label="Go to page 2"
+          class="glossary-page-num"
+          type="button"
+        >
+          2
+        </button>
+        <button
+          aria-label="Go to page 3"
+          class="glossary-page-num"
+          type="button"
+        >
+          3
+        </button>
+        <button
+          aria-label="Go to page 4"
+          class="glossary-page-num"
+          type="button"
+        >
+          4
+        </button>
+      </div>
+      <button
+        aria-disabled="false"
+        aria-label="Next page"
+        class="glossary-page-btn"
+        type="button"
+      >
+        Next →
+      </button>
+      <span
+        aria-live="polite"
+        class="glossary-page-info"
+      >
+        Page 1 of 4
+      </span>
+    </nav>
+    <div
+      class="glossary-footer-note"
+      role="contentinfo"
+    >
+      <p>
+        <span
+          aria-hidden="true"
+        >
+          📚
+        </span>
+         Definitions are based on WHO, EPA, and CPCB guidelines. This glossary is maintained as part of the Pollution Control Hub open-source project.
+      </p>
+    </div>
+  </section>
+</DocumentFragment>
+`;

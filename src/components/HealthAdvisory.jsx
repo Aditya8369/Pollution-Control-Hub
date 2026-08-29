@@ -1,5 +1,6 @@
 import { useState, useEffect, memo, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
+import jsPDF from 'jspdf';
 import GlossaryLinkedText from './GlossaryLinkedText';
 
 // -----------------------------------------------------------------------------
@@ -273,15 +274,165 @@ export default function HealthAdvisory({ currentAqi }) {
     }).sort((a, b) => b.relevance - a.relevance);
   }, [activeTab, currentAqi, healthConditions]);
 
+  const handleDownloadPDF = () => {
+    try {
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const margin = 18;
+      const contentWidth = pageWidth - margin * 2;
+      let y = 20;
+
+      const checkPageBreak = (needed = 12) => {
+        if (y + needed > pageHeight - margin) {
+          pdf.addPage();
+          y = 20;
+        }
+      };
+
+      // Header Banner
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(18);
+      pdf.setTextColor(13, 148, 136);
+      pdf.text('Pollution Control Hub', pageWidth / 2, y, { align: 'center' });
+      y += 7;
+
+      pdf.setFontSize(13);
+      pdf.setTextColor(30, 41, 59);
+      pdf.text('Personalized Health Advisory', pageWidth / 2, y, { align: 'center' });
+      y += 8;
+
+      pdf.setFont('helvetica', 'normal');
+      pdf.setFontSize(9.5);
+      pdf.setTextColor(100, 116, 139);
+      const aqiText = currentAqi != null ? `Current AQI: ${currentAqi}` : 'Current AQI: N/A';
+      const dateText = `Generated: ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
+      pdf.text(`${aqiText} | ${dateText}`, pageWidth / 2, y, { align: 'center' });
+      y += 8;
+
+      pdf.setDrawColor(203, 213, 225);
+      pdf.setLineWidth(0.5);
+      pdf.line(margin, y, pageWidth - margin, y);
+      y += 8;
+
+      // Section 1: Health Profile & Conditions
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(11.5);
+      pdf.setTextColor(13, 148, 136);
+      pdf.text('Selected Health Profile & Conditions', margin, y);
+      y += 6;
+
+      if (hasSensitiveProfile) {
+        healthConditions.forEach((id) => {
+          checkPageBreak(16);
+          const conditionLabel = HEALTH_CONDITIONS.find((c) => c.id === id)?.label || id;
+          const warningText = getPersonalizedWarning(id, currentAqi);
+
+          pdf.setFont('helvetica', 'bold');
+          pdf.setFontSize(10);
+          pdf.setTextColor(30, 41, 59);
+          pdf.text(`• ${conditionLabel}:`, margin, y);
+          y += 5;
+
+          pdf.setFont('helvetica', 'normal');
+          pdf.setFontSize(9);
+          pdf.setTextColor(71, 85, 105);
+          const wrappedLines = pdf.splitTextToSize(warningText, contentWidth - 4);
+          wrappedLines.forEach((line) => {
+            checkPageBreak(5);
+            pdf.text(line, margin + 4, y);
+            y += 4.5;
+          });
+          y += 2;
+        });
+      } else {
+        pdf.setFont('helvetica', 'normal');
+        pdf.setFontSize(9.5);
+        pdf.setTextColor(71, 85, 105);
+        pdf.text('No specific pre-existing health conditions selected. Providing general audience guidance.', margin, y);
+        y += 6;
+      }
+
+      y += 4;
+      checkPageBreak(15);
+
+      // Section 2: Active Advisory Category
+      const activeAudience = audiences[activeTab] || audiences.general;
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(11.5);
+      pdf.setTextColor(13, 148, 136);
+      pdf.text(`Advisory Audience: ${activeAudience.label}`, margin, y);
+      y += 5.5;
+
+      if (activeAudience.desc) {
+        pdf.setFont('helvetica', 'normal');
+        pdf.setFontSize(9);
+        pdf.setTextColor(100, 116, 139);
+        const descLines = pdf.splitTextToSize(activeAudience.desc, contentWidth);
+        descLines.forEach((line) => {
+          checkPageBreak(5);
+          pdf.text(line, margin, y);
+          y += 4.5;
+        });
+      }
+      y += 6;
+
+      // Section 3: Actionable Tips
+      checkPageBreak(15);
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(11.5);
+      pdf.setTextColor(13, 148, 136);
+      pdf.text('Recommended Health & Protective Tips', margin, y);
+      y += 6;
+
+      sortedTips.forEach((tip, index) => {
+        checkPageBreak(18);
+
+        pdf.setFont('helvetica', 'bold');
+        pdf.setFontSize(10);
+        pdf.setTextColor(30, 41, 59);
+        pdf.text(`${index + 1}. ${tip.title} [Priority: ${tip.priority}]`, margin, y);
+        y += 5;
+
+        pdf.setFont('helvetica', 'normal');
+        pdf.setFontSize(9);
+        pdf.setTextColor(71, 85, 105);
+        const detailLines = pdf.splitTextToSize(tip.detail, contentWidth - 4);
+        detailLines.forEach((line) => {
+          checkPageBreak(5);
+          pdf.text(line, margin + 4, y);
+          y += 4.5;
+        });
+        y += 3;
+      });
+
+      pdf.save('personalized_health_advisory.pdf');
+    } catch (err) {
+      console.error('Failed to generate PDF report:', err);
+    }
+  };
+
   return (
     <section data-testid="health-advisory" className="panel health-advisory-panel" aria-labelledby="health-advisory-title">
-      <div className="panel-head">
-        <h2 id="health-advisory-title">{t('healthAdvisory.title', { defaultValue: 'Health Advisory' })}</h2>
-        {currentAqi != null && (
-          <span data-testid="advisory-aqi" style={{ fontSize: '0.9rem', fontWeight: 'bold', background: 'rgba(13, 148, 136, 0.15)', color: 'var(--brand)', padding: '0.2rem 0.6rem', borderRadius: '999px' }}>
-            Current AQI: {currentAqi}
-          </span>
-        )}
+      <div className="panel-head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
+        <div>
+          <h2 id="health-advisory-title">{t('healthAdvisory.title', { defaultValue: 'Health Advisory' })}</h2>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+          {currentAqi != null && (
+            <span data-testid="advisory-aqi" style={{ fontSize: '0.9rem', fontWeight: 'bold', background: 'rgba(13, 148, 136, 0.15)', color: 'var(--brand)', padding: '0.2rem 0.6rem', borderRadius: '999px' }}>
+              Current AQI: {currentAqi}
+            </span>
+          )}
+          <button
+            type="button"
+            className="btn-secondary text-sm"
+            onClick={handleDownloadPDF}
+            style={{ padding: '0.35rem 0.75rem', fontSize: '0.85rem' }}
+          >
+            📥 {t('healthAdvisory.downloadBtn', { defaultValue: 'Download My Health Advisory' })}
+          </button>
+        </div>
       </div>
 
       {/* Voluntary Health Profile */}

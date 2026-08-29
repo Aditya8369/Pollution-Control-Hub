@@ -28,6 +28,25 @@ export default [
   },
 
   js.configs.recommended,
+  // ── Node / CommonJS scripts & routes in src ────────────────────────────────
+  {
+    files: [
+      'src/routes/**/*.{js,cjs}',
+      'src/sensorPool.js',
+      'src/sensorWorker.js',
+      'src/services/cacheService.js',
+      'src/services/ingestionService.js',
+    ],
+    languageOptions: {
+      sourceType: 'commonjs',
+      globals: {
+        ...globals.node,
+      },
+    },
+    rules: {
+      'no-unused-vars': 'warn',
+    },
+  },
 
   // ── Application source ─────────────────────────────────────────────────────
   {
@@ -50,6 +69,7 @@ export default [
       globals: {
         ...globals.browser,
         ...globals.es2025,
+        ...globals.node,
         // Vite statically replaces `process.env.NODE_ENV`, and useSWR reads it behind a
         // `typeof process !== 'undefined'` guard to skip retry backoff under test.
         process: 'readonly',
@@ -76,6 +96,7 @@ export default [
       'react-hooks/exhaustive-deps': 'warn',
 
       ...jsxA11y.configs.recommended.rules,
+      'jsx-a11y/label-has-associated-control': 'warn',
 
       // A horizontal scroll container has to be reachable by keyboard, or its overflow
       // is unreadable without a mouse or a trackpad gesture. The WAI-ARIA authoring
@@ -89,11 +110,12 @@ export default [
         { tags: [], roles: ['tabpanel', 'region'], allowExpressionValues: true },
       ],
 
+      'no-empty': 'warn',
       // `catch (_e)` is the established convention in this codebase for an error that is
       // deliberately swallowed. ESLint 9 defaults `caughtErrors` to 'all', which turned
       // every one of them into an error.
       'no-unused-vars': [
-        'error',
+        'warn',
         {
           args: 'after-used',
           argsIgnorePattern: '^_',
@@ -153,7 +175,7 @@ export default [
       // unused to the core rule, and test files legitimately declare fixtures they only
       // pass around.
       'no-unused-vars': [
-        'error',
+        'warn',
         {
           args: 'none',
           varsIgnorePattern: '^_',

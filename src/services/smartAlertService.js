@@ -22,7 +22,9 @@ export function saveAlertHistory(history) {
 export function clearAlertHistory() {
   try {
     localStorage.removeItem(SMART_ALERTS_STORAGE_KEY);
-  } catch (e) {}
+  } catch (_e) {
+    // Ignore localStorage errors
+  }
 }
 
 export function generateAlertId(location, pollutant, type, timestamp) {
