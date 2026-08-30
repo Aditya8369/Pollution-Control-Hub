@@ -63,22 +63,17 @@ import Leaderboard from "./components/Leaderboard";
 import SmartAlertsDashboard from "./components/SmartAlertsDashboard";
 import NoisePollutionTracker from "./components/NoisePollutionTracker";
 import OceanAcidificationMonitor from "./components/OceanAcidificationMonitor";
-
 import HealthImpactDashboard from "./components/HealthImpactDashboard";
-
 const AqiMissionGame = lazy(() => import("./components/AqiMissionGame"));
 const HotspotScoutGame = lazy(() => import("./components/HotspotScoutGame"));
 const RiverOriginGame = lazy(() => import("./components/RiverOriginGame"));
 const MarineWaterQualitySuite = lazy(() => import("./components/MarineWaterQualitySuite"));
-
 const DEFAULT_POSITION = {
   lat: 28.6139,
   lon: 77.209,
   cityName: "Delhi",
 };
-
 const SAVED_LOCATIONS_KEY = "pollution-hub-saved-locations";
-
 const THEME_STORAGE_KEY = "pollution-hub-theme";
 // Whether the stored theme reflects a deliberate choice ("manual") or just mirrors what
 // the OS was set to when the app last rendered ("system"). The theme value alone cannot
@@ -93,7 +88,6 @@ const AUTO_REFRESH_OPTIONS = [
   { label: "5 min", seconds: 300 },
   { label: "10 min", seconds: 600 },
 ];
-
 /** @returns {number} Saved auto-refresh interval in seconds, or the default. */
 function readAutoRefreshSeconds() {
   try {
@@ -108,46 +102,33 @@ function readAutoRefreshSeconds() {
     return DEFAULT_AUTO_REFRESH_SECONDS;
   }
 }
-
 /** @returns {boolean} True when the user has explicitly picked a theme in the app. */
 function hasManualThemePreference() {
   return localStorage.getItem(THEME_SOURCE_KEY) === "manual";
-}
-
 /** @returns {any[]} The locations the user pinned, or an empty list if none are readable. */
 function readSavedLocations() {
-  try {
     const raw = localStorage.getItem(SAVED_LOCATIONS_KEY);
     const parsed = raw ? JSON.parse(raw) : [];
     return Array.isArray(parsed) ? parsed : [];
-  } catch {
     return [];
-  }
-}
-
 // Nominatim's usage policy allows at most 1 request per second, so we track
 // the last call time here and space out requests if needed.
 let lastGeocodeRequestAt = 0;
-
 async function reverseGeocodeCity(lat, lon) {
   // Round coordinates so tiny GPS jitter reuses the same cache entry
   // instead of triggering a new network request every time.
   const cacheKey = `geocode-${lat.toFixed(2)},${lon.toFixed(2)}`;
   const cached = await cacheStore.get(cacheKey);
   if (cached && cached.data) return cached.data;
-
   const elapsed = Date.now() - lastGeocodeRequestAt;
   if (elapsed < 1100) {
     await new Promise((resolve) => setTimeout(resolve, 1100 - elapsed));
-  }
   lastGeocodeRequestAt = Date.now();
-
   const response = await fetch(
     `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`,
   );
   if (!response.ok) {
     throw new Error(`Reverse geocoding failed with status: ${response.status}`);
-  }
   const data = await response.json();
   const address = data?.address || {};
   const cityName =
@@ -157,10 +138,8 @@ async function reverseGeocodeCity(lat, lon) {
     address.suburb ||
     data?.display_name?.split(",")[0] ||
     "Your Current Location";
-
   cacheStore.set(cacheKey, cityName);
   return cityName;
-}
 /** @param {any} params */
 function Hero({ cityName }) {
   const { t } = useTranslation();
@@ -173,10 +152,6 @@ function Hero({ cityName }) {
         <p>{t("hero.description", "A single digital platform to track air quality in {{cityName}}, protect health, and mobilize community-driven climate action.", { cityName })}</p>
       </div>
     </header>
-  );
-}
-
-/** @param {any} params */
 function AppControls({
   selectedCity,
   onCityChange,
@@ -191,12 +166,8 @@ function AppControls({
   autoRefreshSeconds,
   onAutoRefreshChange,
 }) {
-  const { t } = useTranslation();
   const isCurrentCitySaved = savedLocations.some(
     (item) => item.name === currentCity,
-  );
-
-  return (
     <section className="app-controls" aria-label="Live controls">
       <div
         className="control-group"
@@ -225,31 +196,16 @@ function AppControls({
         >
           {detecting ? t("controls.detecting", "Detecting...") : t("controls.autoDetect", "Auto Detect")}
         </button>
-        <button
-          type="button"
-          className="btn-secondary text-sm"
-          style={{
-            padding: "0.4rem 0.8rem",
-            whiteSpace: "nowrap",
-            flexShrink: 0,
-          }}
           onClick={onSaveLocation}
           disabled={isCurrentCitySaved}
-        >
           {isCurrentCitySaved ? "Saved" : "Save Location"}
-        </button>
-      </div>
-
       {savedLocations.length > 0 && (
         <div
           className="control-group saved-locations"
-          style={{
             display: "flex",
             alignItems: "center",
             gap: "0.5rem",
             flexWrap: "wrap",
-          }}
-        >
           {/* Introduces the chips below, not a form control — <label> claimed a
               relationship with an input that does not exist. */}
           <span>Saved:</span>
@@ -270,20 +226,14 @@ function AppControls({
               >
                 {location.name}
               </button>
-              <button
-                type="button"
-                className="btn-secondary text-sm"
                 style={{ padding: "0.3rem 0.5rem" }}
                 onClick={() => onRemoveSavedLocation(location.name)}
                 aria-label={`Remove ${location.name} from saved locations`}
-              >
                 ×
-              </button>
             </span>
           ))}
         </div>
       )}
-
       <div className="control-group status">
         <span className={`live-dot ${isRefreshing ? "active" : ""}`} />
         <p>
@@ -301,36 +251,22 @@ function AppControls({
           value={autoRefreshSeconds}
           onChange={(event) => onAutoRefreshChange(Number(event.target.value))}
           style={{ padding: "0.3rem 0.5rem" }}
-        >
           {AUTO_REFRESH_OPTIONS.map((option) => (
             <option key={option.seconds} value={option.seconds}>
               {option.label}
             </option>
-          ))}
         </select>
-      </div>
-
       <div className="control-group actions">
-        <button
-          type="button"
           onClick={() => eventBus.emit("FORCE_REFRESH")}
           disabled={isRefreshing}
-        >
           {t("controls.refreshNow", "Refresh Now")}
-        </button>
         <small>
           {lastUpdated
             ? t("controls.lastUpdated", "Last updated: {{time}}", { time: new Date(lastUpdated).toLocaleTimeString() })
             : t("controls.waiting", "Waiting...")}
         </small>
-      </div>
     </section>
-  );
-}
-
-/** @param {any} params */
 export function SectionNav({ activeSection, onSectionChange }) {
-  const { t } = useTranslation();
   const sections = [
     { id: "home", label: "Home" },
     { id: "copilot", label: "AI Copilot" },
@@ -356,10 +292,17 @@ export function SectionNav({ activeSection, onSectionChange }) {
     { id: "eco-impact", label: "Eco Impact" },
     { id: "city-leaderboard", label: "City Leaderboard" },
     { id: "marine", label: "Marine Water Quality" },
+import AlertsPanel from "./components/AlertsPanel";
+import HealthAdvisory from "./components/HealthAdvisory";
+import PollenAllergenForecast from "./components/PollenAllergenForecast";
+import LocationMap from "./components/LocationMap";
+import SolutionsAwareness from "./components/SolutionsAwareness";
+import ScenarioSimulator from "./components/ScenarioSimulator";
+import SunSafetyDashboard from "./components/SunSafetyDashboard";
+import PollutionHealthRiskCalculator from "./components/PollutionHealthRiskCalculator";
     { id: "smart-alerts", label: "Smart Alerts" },
     { id: "noise-pollution", label: "Noise Pollution" },
     { id: "ocean-acid", label: "Ocean Acidification" },
-
     { id: "smart-alerts", label: "Smart Alerts" },
     { id: "ocean-acid", label: "Ocean Acidification" },
     { id: "health-impact", label: "Health Impact" },
@@ -368,21 +311,16 @@ export function SectionNav({ activeSection, onSectionChange }) {
   const menuRef = useRef(null);
   const mobileNavRef = useRef(null);
   const hamburgerBtnRef = useRef(null);
-
   useEffect(() => {
     function handleClickOutside(event) {
       if (menuRef.current && !menuRef.current.contains(event.target)) {
         setIsMenuOpen(false);
       }
     }
-
     function handleKeyDown(event) {
       if (event.key === "Escape") {
-        setIsMenuOpen(false);
         hamburgerBtnRef.current?.focus();
         return;
-      }
-
       // Trap focus inside the open mobile menu so Tab/Shift+Tab can't
       // escape onto the content sitting behind the overlay.
       if (event.key === "Tab" && mobileNavRef.current) {
@@ -390,10 +328,8 @@ export function SectionNav({ activeSection, onSectionChange }) {
           'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
         );
         if (!focusableElements.length) return;
-
         const firstElement = focusableElements[0];
         const lastElement = focusableElements[focusableElements.length - 1];
-
         if (event.shiftKey) {
           if (document.activeElement === firstElement) {
             event.preventDefault();
@@ -401,51 +337,35 @@ export function SectionNav({ activeSection, onSectionChange }) {
           }
         } else {
           if (document.activeElement === lastElement) {
-            event.preventDefault();
             firstElement.focus();
-          }
         }
-      }
-    }
-
     if (isMenuOpen) {
       document.addEventListener("mousedown", handleClickOutside);
       document.addEventListener("keydown", handleKeyDown);
-    }
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
       document.removeEventListener("keydown", handleKeyDown);
     };
   }, [isMenuOpen]);
-
   // While the mobile menu is open: prevent the page underneath from
   // scrolling, and move focus onto the first menu item so keyboard/screen
   // reader users land inside the trapped region right away.
-  useEffect(() => {
     if (!isMenuOpen) return;
-
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
-
     const focusTimer = setTimeout(() => {
       const firstFocusable = mobileNavRef.current?.querySelector(
         'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
       );
       firstFocusable?.focus();
     }, 50);
-
-    return () => {
       document.body.style.overflow = previousOverflow;
       clearTimeout(focusTimer);
-    };
-  }, [isMenuOpen]);
-
   /** @param {any} id */
   const handleSectionClick = (id) => {
     onSectionChange(id);
     setIsMenuOpen(false);
   };
-
   return (
     <>
       {isMenuOpen && (
@@ -476,18 +396,15 @@ export function SectionNav({ activeSection, onSectionChange }) {
           <LanguageSwitcher />
           <ThemeSwitcher />
         </div>
-
         {/* Mobile Section Navigation */}
         <div className="section-nav-mobile">
           <div className="mobile-nav-toggle-wrap">
-            <button
               ref={hamburgerBtnRef}
               className="hamburger-btn"
               onClick={() => setIsMenuOpen(!isMenuOpen)}
               aria-expanded={isMenuOpen}
               aria-label={t("nav.toggleNavigation", "Toggle navigation")}
               aria-controls="mobile-navigation"
-            >
               <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
                 {isMenuOpen ? (
                   <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z" />
@@ -495,8 +412,6 @@ export function SectionNav({ activeSection, onSectionChange }) {
                   <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z" />
                 )}
               </svg>
-            </button>
-
             {isMenuOpen && (
               <div
                 id="mobile-navigation"
@@ -516,23 +431,17 @@ export function SectionNav({ activeSection, onSectionChange }) {
               </div>
             )}
           </div>
-
           <div className="mobile-nav-controls">
             <LanguageSwitcher />
             <ThemeSwitcher />
-          </div>
-        </div>
       </nav>
     </>
   );
 }
-
 function AppContent() {
   const { t } = useTranslation();
   const [activeSection, setActiveSection] = useState(
     () => localStorage.getItem("activeSection") || "home",
-  );
-
   // --- Helper: read city info from the URL hash (e.g. #city=Mumbai&lat=19.07&lon=72.87) ---
   function getCityFromHash() {
     const params = new URLSearchParams(window.location.hash.slice(1));
@@ -542,10 +451,8 @@ function AppContent() {
     // Only use hash values if all three are present and valid
     if (name && !isNaN(lat) && !isNaN(lon)) {
       return { name, lat, lon };
-    }
     return null;
   }
-
   // --- Helper: write city info into the URL hash so Back/Forward works ---
   function setCityInHash(name, lat, lon) {
     const params = new URLSearchParams();
@@ -554,23 +461,18 @@ function AppContent() {
     params.set("lon", lon);
     // pushState so browser Back button can restore the previous city
     window.history.pushState(null, "", "#" + params.toString());
-  }
-
   // On first load: prefer URL hash → then localStorage → then 'auto'
   const [selectedCity, setSelectedCity] = useState(() => {
     const fromHash = getCityFromHash();
     if (fromHash) return fromHash.name;
     return localStorage.getItem("selectedCity") || "auto";
   });
-
   // On first load: prefer URL hash → then localStorage → then DEFAULT_POSITION
   const [position, setPosition] = useState(() => {
-    const fromHash = getCityFromHash();
     if (fromHash)
       return { lat: fromHash.lat, lon: fromHash.lon, cityName: fromHash.name };
     const saved = localStorage.getItem("position");
     return saved ? JSON.parse(saved) : DEFAULT_POSITION;
-  });
   const aqiKey =
     position.lat && position.lon ? `aqi_${position.lat}_${position.lon}` : null;
   const {
@@ -580,56 +482,40 @@ function AppContent() {
     mutate: mutateAqi,
     // @ts-ignore
   } = useSWR(aqiKey, () => fetchAirQualityByCoords(position.lat, position.lon));
-
   const cityKey = "city_comparisons";
-  const {
     data: cityComparisons,
     error: citiesError,
     isValidating: isCitiesValidating,
     mutate: mutateCities,
-    // @ts-ignore
   } = useSWR(cityKey, () => fetchCityComparisons());
-
   const windKey =
     position.lat && position.lon
       ? `wind_${position.lat}_${position.lon}`
       : null;
-  const {
     data: windData,
     error: windError,
     isValidating: isWindValidating,
     mutate: mutateWind,
-    // @ts-ignore
   } = useSWR(windKey, () => fetchWindData(position.lat, position.lon));
-
   const precomputedKey =
-    position.lat && position.lon
       ? `precomputed_${position.lat.toFixed(4)}_${position.lon.toFixed(4)}`
-      : null;
-  const {
     data: precomputedData,
     mutate: mutatePrecomputed,
   } = useSWR(precomputedKey, () => getPrecomputedAverages(position.lat, position.lon));
-
   const current = aqiData?.current;
   const trend = aqiData?.trend || [];
   const nearbyPoints = aqiData?.nearbyPoints || [];
   const confidenceScore = aqiData?.confidenceScore || "High";
   const dataCompleteness = aqiData?.dataCompleteness || 100;
-
   const loading =
     (!aqiData && isAqiValidating) || (!cityComparisons && isCitiesValidating);
   const isRefreshing =
     (isAqiValidating || isCitiesValidating || isWindValidating) && !!aqiData;
   const error = (aqiError || citiesError)?.message || "";
-
   const [lastUpdated, setLastUpdated] = useState("");
   const [autoRefreshSeconds, setAutoRefreshSeconds] = useState(
     () => readAutoRefreshSeconds(),
-  );
   const [refreshCountdown, setRefreshCountdown] = useState(
-    () => readAutoRefreshSeconds(),
-  );
   const [savedLocations, setSavedLocations] = useState(() => readSavedLocations());
   const [locationNotice, setLocationNotice] = useState("");
   const [persistenceWarning, setPersistenceWarning] = useState("");
@@ -637,7 +523,6 @@ function AppContent() {
   const [timeRange, setTimeRange] = useState(() => {
     const saved = localStorage.getItem("timeRange");
     return saved ? Number(saved) : 24;
-  });
   const [osThemeSuggestion, setOsThemeSuggestion] = useState(null);
   // Mirrors `theme` for the media-query listener, which is registered once on mount.
   const themeRef = useRef(theme);
@@ -645,178 +530,110 @@ function AppContent() {
   const debounceRef = useRef(null);
   const geoRequestId = useRef(0);
   const scrollAnchorRef = useRef(null);
-
-  useEffect(() => {
     if (activeSection === "home") {
       window.scrollTo({ top: 0, behavior: "smooth" });
     } else if (scrollAnchorRef.current) {
       scrollAnchorRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
-    }
   }, [activeSection]);
   const [detecting, setDetecting] = useState(false);
-
-  useEffect(() => {
     const unsubscribe = cacheStore.onPersistenceError(() => {
       setPersistenceWarning(
         i18n.t("status.offlineWarning", "Offline caching is unavailable — your data may not persist between sessions.")
-      );
     });
     return () => { unsubscribe(); };
   }, []);
-
-
-  useEffect(() => {
-    return () => {
       if (debounceRef.current) {
         clearTimeout(debounceRef.current);
-      }
-    };
-  }, []);
-
-  useEffect(() => {
     localStorage.setItem("activeSection", activeSection);
-  }, [activeSection]);
-
-  useEffect(() => {
     localStorage.setItem("selectedCity", selectedCity);
   }, [selectedCity]);
-
-  useEffect(() => {
     localStorage.setItem("position", JSON.stringify(position));
   }, [position]);
-
-  useEffect(() => {
     try {
       localStorage.setItem(SAVED_LOCATIONS_KEY, JSON.stringify(savedLocations));
     } catch {
       // Pinned locations are a convenience, so a full quota must not break the dashboard.
-    }
   }, [savedLocations]);
-
-  useEffect(() => {
     localStorage.setItem("timeRange", timeRange.toString());
   }, [timeRange]);
-
   // Update lastUpdated when data changes
-  useEffect(() => {
     if (aqiData)  setLastUpdated(aqiData?.readingTimeUTC);
   }, [aqiData]);
-
   // Persist the theme value so the next load paints without a flash. This runs on mount
   // too, which is why "has the user chosen a theme?" is tracked under a separate key
   // rather than inferred from this one existing.
-  useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
     localStorage.setItem(THEME_STORAGE_KEY, theme);
   }, [theme]);
-
   // Sync theme with OS dark-mode changes (only when user has no manual preference)
-  useEffect(() => {
     if (!window.matchMedia) return;
-
     const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
-
     const handleOsThemeChange = (e) => {
       const newSystemTheme = e.matches ? "dark" : "light";
-
       if (!hasManualThemePreference()) {
         // No in-app choice has been made — follow the OS silently.
         // @ts-ignore
         setTheme(newSystemTheme);
-        return;
-      }
-
       // Compare against the live theme via the ref: this listener is registered once, so
       // reading `theme` from the closure would compare against the first render's value
       // and prompt even when the requested theme is already active.
       if (newSystemTheme !== themeRef.current) {
         setOsThemeSuggestion(newSystemTheme);
-      }
-    };
     mediaQuery.addEventListener("change", handleOsThemeChange);
     return () => mediaQuery.removeEventListener("change", handleOsThemeChange);
-  }, []);
-
   const startGeolocation = useCallback(() => {
     const requestId = ++geoRequestId.current;
-
     if (!navigator.geolocation) {
       setLocationNotice(
         i18n.t("status.geolocationUnavailable", "Your browser can't detect location, so we're showing Delhi."),
-      );
       setPosition(DEFAULT_POSITION);
       setDetecting(false);
       return;
-    }
-
     navigator.geolocation.getCurrentPosition(
       async (coords) => {
         if (requestId !== geoRequestId.current) return;
         const lat = Number(coords.coords.latitude.toFixed(4));
         const lon = Number(coords.coords.longitude.toFixed(4));
-
         setLocationNotice("");
         setPosition({ lat, lon, cityName: "Your Current Location" });
         setDetecting(false);
-
         try {
           const cityName = await reverseGeocodeCity(lat, lon);
           if (requestId === geoRequestId.current) {
             setPosition({ lat, lon, cityName });
-          }
-        }
         catch (err) {
           console.warn("Reverse geocoding failed, keeping generic label.", err);
-
-          if (requestId === geoRequestId.current) {
             setLocationNotice(
               "Couldn't retrieve your city name. Using your current coordinates instead."
             );
-
             setPosition({
               lat,
               lon,
               cityName: "Your Current Location",
             });
-          }
-        }
       }, (error) => {
-        if (requestId !== geoRequestId.current) return;
         console.warn("Geolocation is unavailable. Using the fallback location.");
-
         if (import.meta.env.DEV) {
           console.debug("Geolocation fallback diagnostics:", error);
-        }
         setLocationNotice(
           i18n.t("status.geolocationError", "Couldn't detect your location — showing Delhi for now."),
-        );
         setPosition(DEFAULT_POSITION);
-        setDetecting(false);
       },
       { timeout: 8000 },
     );
-  }, []);
-
   // Initial mount geolocation if selectedCity is auto
-  useEffect(() => {
     if (selectedCity === "auto") {
       setDetecting(true);
       startGeolocation();
-    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   const handleAutoDetect = useCallback(() => {
     if (debounceRef.current) {
       clearTimeout(debounceRef.current);
-    }
     setDetecting(true);
     debounceRef.current = setTimeout(() => {
       setSelectedCity("auto");
-      startGeolocation();
     }, 500);
   }, [startGeolocation]);
-
   /** @param {any} location */
   const handleLocationSelected = useCallback((location) => {
     if (location === "auto") {
@@ -830,9 +647,7 @@ function AppContent() {
       });
       setCityInHash(location.name, location.lat, location.lon);
       setLocationNotice("");
-    }
   }, [handleAutoDetect]);
-
   const handleSaveLocation = useCallback(() => {
     setSavedLocations((prev) =>
       prev.some((item) => item.name === position.cityName)
@@ -841,16 +656,10 @@ function AppContent() {
           ...prev,
           { name: position.cityName, lat: position.lat, lon: position.lon },
         ],
-    );
-  }, [position]);
-
   /** @param {string} name */
   const handleRemoveSavedLocation = useCallback((name) => {
     setSavedLocations((prev) => prev.filter((item) => item.name !== name));
-  }, []);
-
   // Listen for browser Back/Forward (popstate) and restore the city from the URL hash
-  useEffect(() => {
     function handlePopState() {
       const fromHash = getCityFromHash();
       if (fromHash) {
@@ -866,41 +675,24 @@ function AppContent() {
         setSelectedCity("auto");
         setDetecting(true);
         startGeolocation();
-      }
-    }
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
-  }, [startGeolocation]);
-
   const mutateAqiRef = useRef(mutateAqi);
   const mutateCitiesRef = useRef(mutateCities);
   const mutateWindRef = useRef(mutateWind);
   const mutatePrecomputedRef = useRef(mutatePrecomputed);
-
-  useEffect(() => {
     mutateAqiRef.current = mutateAqi;
     mutateCitiesRef.current = mutateCities;
     mutateWindRef.current = mutateWind;
     mutatePrecomputedRef.current = mutatePrecomputed;
-  });
-
-  useEffect(() => {
-    try {
       localStorage.setItem(
         AUTO_REFRESH_STORAGE_KEY,
         String(autoRefreshSeconds),
-      );
-    } catch {
       // Preference is optional — a full quota shouldn't break the dashboard.
-    }
     setRefreshCountdown(autoRefreshSeconds);
   }, [autoRefreshSeconds]);
-
-  useEffect(() => {
     if (autoRefreshSeconds === 0) {
       return undefined;
-    }
-
     const refreshTimer = setInterval(() => {
       if (navigator.onLine) {
         mutateAqiRef.current();
@@ -908,53 +700,32 @@ function AppContent() {
         mutateWindRef.current();
         mutatePrecomputedRef.current();
         setRefreshCountdown(autoRefreshSeconds);
-      }
     }, autoRefreshSeconds * 1000);
-
     const countdownTimer = setInterval(() => {
       setRefreshCountdown((prev) =>
         prev <= 1 ? autoRefreshSeconds : prev - 1,
-      );
     }, 1000);
-
-    return () => {
       clearInterval(refreshTimer);
       clearInterval(countdownTimer);
-    };
-  }, [autoRefreshSeconds]);
-
   const analytics = useMemo(() => {
     if (precomputedData) {
       return precomputedData;
-    }
     return estimateWeeklyMonthlyAverages(trend);
   }, [precomputedData, trend]);
   const exposureEstimate = useMemo(
     () => estimateExposureTime(trend, current?.us_aqi),
     [trend, current],
-  );
-
   // Using the in-app toggle is the one action that counts as choosing a theme.
   const toggleTheme = useCallback(() => {
     localStorage.setItem(THEME_SOURCE_KEY, "manual");
-    // @ts-ignore
     setTheme((prev) => {
       if (prev === 'light') return 'dark';
       if (prev === 'dark') return 'high-contrast';
       return 'light';
-    });
-  }, []);
-
   const acceptOsThemeSuggestion = () => {
-    // @ts-ignore
     setTheme(osThemeSuggestion);
     setOsThemeSuggestion(null);
-  };
-
-
   const dismissOsThemeSuggestion = () => {
-    setOsThemeSuggestion(null);
-  };
   const refreshNow = useCallback(async () => {
     if (isRefreshing) return;
     await cacheStore.invalidate();
@@ -964,35 +735,20 @@ function AppContent() {
     mutatePrecomputed();
     if (autoRefreshSeconds > 0) {
       setRefreshCountdown(autoRefreshSeconds);
-    }
   }, [isRefreshing, mutateAqi, mutateCities, mutateWind, mutatePrecomputed, autoRefreshSeconds]);
-
-  useEffect(() => {
     const handleOnline = () => {
       // Wipe any cached AQI/city/wind data so refreshNow() below is forced
       // to fetch fresh data instead of serving stale results that were
       // cached before we went offline.
       cacheStore.invalidate(undefined);
       refreshNow();
-    };
-
     window.addEventListener("online", handleOnline);
-
-    return () => {
       window.removeEventListener("online", handleOnline);
-    };
-  }, []);
-  useEffect(() => {
     eventBus.on("TOGGLE_THEME", toggleTheme);
     eventBus.on("FORCE_REFRESH", refreshNow);
-
-    return () => {
       eventBus.off("TOGGLE_THEME", toggleTheme);
       eventBus.off("FORCE_REFRESH", refreshNow);
-    };
   }, [toggleTheme, refreshNow]);
-
-  return (
     <main className="app-shell">
       <a href="#main-content" className="skip-link">
         Skip to main content
@@ -1008,10 +764,8 @@ function AppContent() {
       <SectionNav
         activeSection={activeSection}
         onSectionChange={setActiveSection}
-      />
       <BadgeNotification />
       <div id="main-content">
-
         {/*
           Above the readings rather than beside them. Someone who has just been told
           the air is fine needs to know the answer is four hours old before they read
@@ -1021,8 +775,6 @@ function AppContent() {
         <ConnectivityStatus
           dataTimestamp={lastUpdated ? Date.parse(lastUpdated) : null}
           onRetry={refreshNow}
-        />
-
         {loading && !error ? (
           <>
             <div role="status" aria-live="polite" aria-label={t("status.loading", "Loading")}>
@@ -1032,27 +784,16 @@ function AppContent() {
             <h1 className="loading-title text-3xl">
               {t("status.preparing", "Preparing live pollution intelligence...")}
             </h1>
-
             <Factoid />
-
             <Hero cityName={position.cityName} />
             <div ref={scrollAnchorRef} aria-hidden="true" />
             {activeSection === "home" && (
-              <div
                 key="skeleton-grid"
                 className="content-grid"
                 style={{ marginTop: "var(--sp-4)" }}
-              >
                 <SkeletonDashboard />
-              </div>
-            )}
           </>
         ) : (
-          <>
-            <Hero cityName={position.cityName} />
-            <div ref={scrollAnchorRef} aria-hidden="true" />
-
-            {activeSection === "home" && (
               <AppControls
                 selectedCity={selectedCity}
                 onCityChange={handleLocationSelected}
@@ -1067,29 +808,20 @@ function AppContent() {
                 autoRefreshSeconds={autoRefreshSeconds}
                 onAutoRefreshChange={setAutoRefreshSeconds}
               />
-            )}
-
             {locationNotice && selectedCity === "auto" && (
               <div className="location-notice" role="status">
                 <p>{locationNotice}</p>
                 <button type="button" onClick={() => setLocationNotice("")}>
                   {t("status.dismiss", "Dismiss")}
                 </button>
-              </div>
-            )}
-
             {error && <p className="error-banner">{error}</p>}
             {persistenceWarning && <p className="error-banner">{persistenceWarning}</p>}
             {osThemeSuggestion && (
-              <div className="location-notice" role="status">
                 <p>System theme changed. Switch to match?</p>
                 <button type="button" onClick={acceptOsThemeSuggestion}>
                   Yes
-                </button>
                 <button type="button" onClick={dismissOsThemeSuggestion}>
                   No
-                </button>
-              </div>
             )}          {activeSection === "home" && current && (
               <div key="dashboard-grid" className="content-grid">
                 <Dashboard
@@ -1111,11 +843,7 @@ function AppContent() {
                   windError={windError?.message}
                   exposureEstimate={exposureEstimate}
                 />
-              </div>
-            )}
-
             {activeSection === "exposure" && (
-              <div
                 className="content-grid exposure-layout"
                 style={{
                   maxWidth: "1100px",
@@ -1123,122 +851,45 @@ function AppContent() {
                   width: "100%",
                   display: "block"
                 }}
-              >
                 <ExposureCalculator currentAqi={current?.us_aqi || 100} />
-              </div>
-            )}
-
             {activeSection === "copilot" && (
-              <div
                 className="content-grid copilot-layout"
-                style={{
                   maxWidth: "900px",
-                  margin: "2rem auto",
-                  width: "100%",
-                  display: "block"
-                }}
-              >
                 <AIPollutionCopilot
-                  current={current}
-                  cityName={position.cityName}
-                />
-              </div>
-            )}
-
             {activeSection === "community" && (
               <div className="content-grid community-layout">
                 <CommunityHub />
-              </div>
-            )}
-
             {activeSection === "indoor" && (
-              <div
                 className="content-grid indoor-layout"
                 style={{ maxWidth: "1100px", margin: "2rem auto", width: "100%", display: "block" }}
-              >
                 <IndoorTracker current={current} cityName={position.cityName} />
-              </div>
-            )}
-
             {activeSection === "exposure-tracker" && (
-              <div
                 className="content-grid exposure-tracker-layout"
-                style={{ maxWidth: "1100px", margin: "2rem auto", width: "100%", display: "block" }}
-              >
                 <ExposureTracker current={current} cityName={position.cityName} />
-              </div>
-            )}
-
             {activeSection === "heatmap-timeline" && (
-              <div
                 className="content-grid heatmap-timeline-layout"
-                style={{ maxWidth: "1100px", margin: "2rem auto", width: "100%", display: "block" }}
-              >
                 <HeatmapTimeline lat={position.lat} lon={position.lon} cityName={position.cityName} />
-              </div>
-            )}
-
             {activeSection === "anomaly-alert" && (
-              <div
                 className="content-grid anomaly-alert-layout"
-                style={{ maxWidth: "1100px", margin: "2rem auto", width: "100%", display: "block" }}
-              >
                 <AnomalyAlert lat={position.lat} lon={position.lon} current={current} cityName={position.cityName} />
-              </div>
-            )}
-
             {activeSection === "history" && (
               <div className="content-grid history-layout">
                 <HistoricalAnalysis position={position} />
-              </div>
-            )}
             {activeSection === "historical-data" && (
-              <div className="content-grid history-layout">
                 <HistoricalData position={position} />
-              </div>
-            )}
-
             {activeSection === "quiz" && (
               <div className="content-grid quiz-layout">
                 <QuizSection />
-              </div>
-            )}
-
             {activeSection === "leaderboard" && (
-              <div
                 className="content-grid leaderboard-layout"
-                style={{
-                  maxWidth: "1100px",
-                  margin: "2rem auto",
-                  width: "100%",
                   gridColumn: "1 / -1"
-                }}
-              >
                 <Leaderboard />
-              </div>
-            )}
-
             {activeSection === "widget" && (
-              <div
                 className="content-grid widget-layout"
-                style={{
-                  maxWidth: "1100px",
-                  margin: "2rem auto",
-                  width: "100%",
-                  display: "block"
-                }}
-              >
                 <EmbeddableWidgetGenerator
-                  cityName={position.cityName}
-                  lat={position.lat}
-                  lon={position.lon}
                   currentAqi={current?.us_aqi ?? null}
                   pm25={current?.pm2_5 ?? null}
                   no2={current?.nitrogen_dioxide ?? null}
-                />
-              </div>
-            )}
-
             {activeSection === "game" && (
               <Suspense
                 fallback={
@@ -1249,40 +900,32 @@ function AppContent() {
                       alignItems: "center",
                       minHeight: "300px",
                     }}
-                  >
                     <div role="status" aria-live="polite">
                       <div className="loading-spinner" />
                       <p style={{ marginTop: "1rem" }}>Loading games...</p>
                     </div>
                   </div>
                 }
-              >
                 <div className="content-grid game-layout">
                   <AqiMissionGame current={current} />
                   <HotspotScoutGame nearbyPoints={nearbyPoints} />
                   <RiverOriginGame />
                 </div>
               </Suspense>
-            )}
-
             {activeSection === "getting-started" && (
               <div className="content-grid getting-started-layout">
                 <GettingStarted />
-              </div>
-            )}
-
             {activeSection === "Commute" && <Commute />}
             {activeSection === "Compare" && <CityCompare />}
             {activeSection === "city-leaderboard" && <CityPollutionLeaderboard />}
             {activeSection === "marine" && (
               <Suspense fallback={<div className="loading-spinner" role="status" aria-label="Loading marine suite" />}>
                 <MarineWaterQualitySuite />
-              </Suspense>
-            )}
+    { id: "health-risk", label: "Health Risk Calculator" },
+    if (aqiData) setLastUpdated(new Date().toISOString());
             {activeSection === "smart-alerts" && <SmartAlertsDashboard position={position} />}
             {activeSection === "noise-pollution" && <NoisePollutionTracker />}
             {activeSection === "ocean-acid" && <OceanAcidificationMonitor />}
-
             {activeSection === "health-impact" && <HealthImpactDashboard />}
             {activeSection === "CarbonCalculator" && (
               <div
@@ -1298,29 +941,16 @@ function AppContent() {
               </div>
             )}
             {activeSection === "glossary" && (
-              <div
                 className="content-grid glossary-layout"
                 style={{ maxWidth: "1100px", margin: "2rem auto", width: "100%", display: "block" }}
-              >
                 <Glossary />
-              </div>
-            )}
             {activeSection === "achievements" && (
-              <div
                 className="content-grid achievements-layout"
-                style={{ maxWidth: "1100px", margin: "2rem auto", width: "100%", display: "block" }}
-              >
                 <Achievements />
-              </div>
-            )}
             {activeSection === "eco-impact" && (
-              <div
                 className="content-grid eco-impact-layout"
                 style={{ maxWidth: "900px", margin: "2rem auto", width: "100%", display: "block" }}
-              >
                 <EcoImpactDashboard />
-              </div>
-            )}
             <Footer />
             <ScrollToTopButton />
           </>
@@ -1329,7 +959,6 @@ function AppContent() {
     </main>
   );
 }
-
 export default function App() {
   return (
     <ThemeProvider>
@@ -1338,7 +967,6 @@ export default function App() {
         behind one: any render error anywhere took the page to a blank white screen.
         The lint noise is what hid it — the import sat among ~190 identical
         "defined but never used" reports on components that *are* used in JSX.
-
         It wraps AppContent rather than ThemeProvider so the fallback still renders
         in the visitor's chosen theme.
       */}
@@ -1346,5 +974,4 @@ export default function App() {
         <AppContent />
       </ErrorBoundary>
     </ThemeProvider>
-  );
-}
+            {activeSection === "health-risk" && <PollutionHealthRiskCalculator />}
