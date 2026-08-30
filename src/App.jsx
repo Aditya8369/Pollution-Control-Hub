@@ -71,6 +71,7 @@ import SmartAlertsDashboard from "./components/SmartAlertsDashboard";
 import CityPollutionLeaderboard from "./components/CityPollutionLeaderboard";
 import OceanAcidificationMonitor from "./components/OceanAcidificationMonitor";
 import HealthImpactDashboard from "./components/HealthImpactDashboard";
+import PollutionForecastDashboard from "./components/PollutionForecastDashboard";
 
 const AqiMissionGame = lazy(() => import("./components/AqiMissionGame"));
 const HotspotScoutGame = lazy(() => import("./components/HotspotScoutGame"));
@@ -364,6 +365,7 @@ export function SectionNav({ activeSection, onSectionChange }) {
     { id: "marine", label: "Marine Water Quality" },
     { id: "smart-alerts", label: "Smart Alerts" },
     { id: "ocean-acid", label: "Ocean Acidification" },
+    { id: "forecast", label: "Pollution Forecast" },
     { id: "health-impact", label: "Health Impact" },
   ];
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -1284,6 +1286,7 @@ function AppContent() {
             {activeSection === "smart-alerts" && <SmartAlertsDashboard position={position} />}
             {activeSection === "ocean-acid" && <OceanAcidificationMonitor />}
             {activeSection === "health-impact" && <HealthImpactDashboard />}
+            {activeSection === "forecast" && <PollutionForecastDashboard />}
             {activeSection === "CarbonCalculator" && (
               <div
                 className="content-grid carbon-calculator-layout"
