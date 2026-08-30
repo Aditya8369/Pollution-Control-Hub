@@ -425,8 +425,12 @@ export default function NoisePollutionTracker() {
         {ZONES.map((z, i) => {
           const active = selectedZone === z.id;
           return (
-            <div key={i} style={{ ...st.zoneRow, borderColor: active ? z.color : "#2d1b4e", background: active ? `${z.color}10` : undefined, cursor: "pointer" }}
-              onClick={() => setSelectedZone(z.id)}>
+            <button
+              type="button"
+              key={i}
+              style={{ ...st.zoneRow, width: "100%", textAlign: "left", font: "inherit", borderColor: active ? z.color : "#2d1b4e", background: active ? `${z.color}10` : undefined, cursor: "pointer" }}
+              onClick={() => setSelectedZone(z.id)}
+            >
               <span style={{ fontSize: "1.3rem" }}>{z.icon}</span>
               <div style={{ flex: 1 }}>
                 <div style={{ fontWeight: 600, color: active ? z.color : "#e2e8f0" }}>{z.name}</div>
@@ -443,7 +447,7 @@ export default function NoisePollutionTracker() {
                 </div>
                 <span style={st.badge(z.color)}>Active</span>
               </div>
-            </div>
+            </button>
           );
         })}
       </div>
