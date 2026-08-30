@@ -2,6 +2,46 @@ import { useState, useEffect, memo, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import jsPDF from 'jspdf';
 import GlossaryLinkedText from './GlossaryLinkedText';
+import { readSymptomReports } from './SymptomReportButton';
+import { eventBus } from '../core/events';
+import { getAQIBand } from '../services/airQualityService';
+
+function isSameLocalDay(d1, d2) {
+  return (
+    d1.getFullYear() === d2.getFullYear() &&
+    d1.getMonth() === d2.getMonth() &&
+    d1.getDate() === d2.getDate()
+  );
+}
+
+function calculateSymptomReportCounts() {
+  try {
+    const reports = readSymptomReports();
+    const now = new Date();
+    const yesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+
+    let todayCount = 0;
+    let yesterdayCount = 0;
+
+    if (Array.isArray(reports)) {
+      reports.forEach((report) => {
+        if (!report || !report.timestamp) return;
+        const reportDate = new Date(report.timestamp);
+        if (isNaN(reportDate.getTime())) return;
+
+        if (isSameLocalDay(reportDate, now)) {
+          todayCount++;
+        } else if (isSameLocalDay(reportDate, yesterday)) {
+          yesterdayCount++;
+        }
+      });
+    }
+
+    return { todayCount, yesterdayCount };
+  } catch {
+    return { todayCount: 0, yesterdayCount: 0 };
+  }
+}
 
 // -----------------------------------------------------------------------------
 // 1. MEMOIZED ICONS (Extracted outside the component to prevent re-renders)
@@ -202,6 +242,18 @@ export default function HealthAdvisory({ currentAqi }) {
   const [activeTab, setActiveTab] = useState('general');
   const [healthConditions, setHealthConditions] = useState(loadHealthProfile);
   const hasSensitiveProfile = healthConditions.length > 0;
+  const [symptomStats, setSymptomStats] = useState(() => calculateSymptomReportCounts());
+
+  useEffect(() => {
+    const handleReportSubmitted = () => {
+      setSymptomStats(calculateSymptomReportCounts());
+    };
+
+    eventBus.on('SYMPTOM_REPORT_SUBMITTED', handleReportSubmitted);
+    return () => {
+      eventBus.off('SYMPTOM_REPORT_SUBMITTED', handleReportSubmitted);
+    };
+  }, []);
 
   // Persist the user's voluntary health profile locally on this device.
   useEffect(() => {
@@ -433,6 +485,38 @@ export default function HealthAdvisory({ currentAqi }) {
             📥 {t('healthAdvisory.downloadBtn', { defaultValue: 'Download My Health Advisory' })}
           </button>
         </div>
+      </div>
+
+      {/* Community Health Insight */}
+      <div
+        className="community-health-insight"
+        data-testid="community-health-insight"
+        style={{
+          marginTop: '1rem',
+          marginBottom: '1rem',
+          padding: '1rem 1.25rem',
+          borderRadius: '8px',
+          border: '1px solid var(--border-color, #e2e8f0)',
+          backgroundColor: 'var(--card-bg, #f8fafc)',
+        }}
+      >
+        <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 600 }}>
+          Community Health Insight
+        </h3>
+        <p style={{ margin: '0.35rem 0', fontSize: '0.9rem', color: 'var(--text-secondary, #475569)' }}>
+          {symptomStats.todayCount} symptom report{symptomStats.todayCount === 1 ? '' : 's'} today vs. {symptomStats.yesterdayCount} yesterday
+        </p>
+        <p style={{ margin: 0, fontSize: '0.85rem', fontWeight: 500 }}>
+          Current AQI: {' '}
+          <span style={{ color: getAQIBand(currentAqi).color, fontWeight: 700 }}>
+            {currentAqi != null ? currentAqi : 'Unavailable'}
+          </span>
+          {currentAqi != null && (
+            <span style={{ marginLeft: '0.4rem', color: getAQIBand(currentAqi).color }}>
+              ({getAQIBand(currentAqi).label})
+            </span>
+          )}
+        </p>
       </div>
 
       {/* Voluntary Health Profile */}
