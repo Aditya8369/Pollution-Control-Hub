@@ -22,6 +22,21 @@ const AUTH_TOKEN_KEY = 'token';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
 
+export interface TenantChallengePayload {
+  id?: string;
+  title: string;
+  description: string;
+  category: string;
+  targetValue: number;
+  unit?: string;
+  rewardValue?: number;
+  badgeName?: string | null;
+  verificationType?: string;
+  startDate?: string;
+  endDate?: string;
+  isGlobal?: boolean;
+}
+
 // ─── Local scoping (#759) ────────────────────────────────────────────────────
 
 /**
@@ -183,3 +198,60 @@ export async function removeTenantMember(tenantId: string, memberId: string): Pr
     throw await errorFor(response, 'Failed to remove member');
   }
 }
+
+/**
+ * Creates a tenant-owned custom challenge.
+ */
+export async function createTenantChallenge(
+  tenantId: string,
+  challenge: TenantChallengePayload
+): Promise<Record<string, any>> {
+  const response = await fetch(`${API_BASE}/tenants/${encodeURIComponent(tenantId)}/challenges`, {
+    method: 'POST',
+    headers: authHeaders(JSON_HEADERS),
+    body: JSON.stringify(challenge),
+  });
+  if (!response.ok) {
+    throw await errorFor(response, 'Failed to create tenant challenge');
+  }
+  return response.json();
+}
+
+/**
+ * Updates a tenant-owned custom challenge.
+ */
+export async function updateTenantChallenge(
+  tenantId: string,
+  challengeId: string,
+  challenge: Partial<TenantChallengePayload>
+): Promise<Record<string, any>> {
+  const response = await fetch(
+    `${API_BASE}/tenants/${encodeURIComponent(tenantId)}/challenges/${encodeURIComponent(challengeId)}`,
+    {
+      method: 'PUT',
+      headers: authHeaders(JSON_HEADERS),
+      body: JSON.stringify(challenge),
+    }
+  );
+  if (!response.ok) {
+    throw await errorFor(response, 'Failed to update tenant challenge');
+  }
+  return response.json();
+}
+
+/**
+ * Deletes a tenant-owned custom challenge.
+ */
+export async function deleteTenantChallenge(tenantId: string, challengeId: string): Promise<void> {
+  const response = await fetch(
+    `${API_BASE}/tenants/${encodeURIComponent(tenantId)}/challenges/${encodeURIComponent(challengeId)}`,
+    {
+      method: 'DELETE',
+      headers: authHeaders(),
+    }
+  );
+  if (!response.ok) {
+    throw await errorFor(response, 'Failed to delete tenant challenge');
+  }
+}
+

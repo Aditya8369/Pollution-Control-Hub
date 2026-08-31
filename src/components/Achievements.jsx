@@ -2,8 +2,10 @@ import { useEffect, useState, useRef } from "react";
 import html2canvas from "html2canvas";
 import { BADGES, getEarnedBadges } from "../utils/achievementsStore";
 import { eventBus } from "../core/events";
+import { useTenant } from "../context/TenantContext";
 
 export default function Achievements() {
+    const { tenantId, tenantName } = useTenant();
     const [earned, setEarned] = useState(() => getEarnedBadges());
     const [isSharing, setIsSharing] = useState(false);
     const shareCardRef = useRef(null);
@@ -70,12 +72,17 @@ export default function Achievements() {
         link.click();
     }
 
+    const organizationBanner = tenantId && tenantId !== 'default'
+        ? `Organization view: ${tenantName}`
+        : 'Global achievement view';
+
     return (
         <section className="panel achievements-panel">
             <div className="panel-head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
                 <div>
                     <h2>Achievements</h2>
                     <p>{earnedCount} of {BADGES.length} badges earned</p>
+                    <p style={{ marginTop: '0.25rem', fontSize: '0.8rem', color: 'var(--muted, #94a3b8)' }}>{organizationBanner}</p>
                 </div>
                 <button
                     type="button"

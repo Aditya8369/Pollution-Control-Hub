@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { useTenant } from '../context/TenantContext';
+import { createTenantChallenge, deleteTenantChallenge } from '../services/tenantService';
 import { fetchActiveChallenges, joinChallenge, claimChallengeReward } from '../services/challengeService';
 
 /**
@@ -6,14 +8,26 @@ import { fetchActiveChallenges, joinChallenge, claimChallengeReward } from '../s
  * @description Interactive UI displaying active challenges, progress bars, and join/claim actions.
  */
 const EcoChallengeDashboard = () => {
+    const { tenantId, tenantName, currentTenant } = useTenant();
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [actionLoading, setActionLoading] = useState(null);
+    const [showCreateChallenge, setShowCreateChallenge] = useState(false);
+    const [challengeForm, setChallengeForm] = useState({
+        title: '',
+        description: '',
+        category: 'REPORTING',
+        targetValue: 10,
+        unit: 'actions',
+        rewardValue: 50,
+        verificationType: 'manual',
+        isGlobal: false,
+    });
 
     useEffect(() => {
         loadData();
-    }, []);
+    }, [tenantId]);
 
     const loadData = async () => {
         setLoading(true);
@@ -31,7 +45,7 @@ const EcoChallengeDashboard = () => {
         setActionLoading(challengeId);
         try {
             await joinChallenge(challengeId);
-            await loadData(); // Refresh data
+            await loadData();
         } catch (err) {
             alert(err.message);
         } finally {
@@ -49,6 +63,51 @@ const EcoChallengeDashboard = () => {
             alert(err.message);
         } finally {
             setActionLoading(null);
+        }
+    };
+
+    const handleCreateChallenge = async (event) => {
+        event.preventDefault();
+        if (!currentTenant && tenantId === 'default') {
+            alert('Select an organization before creating an organization-exclusive challenge.');
+            return;
+        }
+
+        const tenantKey = currentTenant?.id || tenantId;
+        if (!tenantKey || tenantKey === 'default') {
+            alert('Tenant ID is required to create an organization challenge.');
+            return;
+        }
+
+        try {
+            await createTenantChallenge(tenantKey, challengeForm);
+            setShowCreateChallenge(false);
+            setChallengeForm({
+                title: '',
+                description: '',
+                category: 'REPORTING',
+                targetValue: 10,
+                unit: 'actions',
+                rewardValue: 50,
+                verificationType: 'manual',
+                isGlobal: false,
+            });
+            await loadData();
+        } catch (err) {
+            alert(err.message || 'Failed to create custom challenge');
+        }
+    };
+
+    const handleDeleteChallenge = async (challengeId) => {
+        if (!currentTenant && tenantId === 'default') {
+            return;
+        }
+        try {
+            const tenantKey = currentTenant?.id || tenantId;
+            await deleteTenantChallenge(tenantKey, challengeId);
+            await loadData();
+        } catch (err) {
+            alert(err.message || 'Failed to delete custom challenge');
         }
     };
 
@@ -80,7 +139,6 @@ const EcoChallengeDashboard = () => {
 
     return (
         <div className="max-w-6xl mx-auto p-6 space-y-8">
-            {/* Header Stats */}
             <div className="bg-gradient-to-r from-green-600 to-teal-600 rounded-2xl p-8 text-white shadow-lg">
                 <div className="flex flex-col md:flex-row justify-between items-center gap-6">
                     <div>
@@ -94,7 +152,63 @@ const EcoChallengeDashboard = () => {
                 </div>
             </div>
 
-            {/* Challenges Grid */}
+            {tenantId && tenantId !== 'default' && (
+                <div className="flex justify-between items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900 dark:border-emerald-900/50 dark:bg-emerald-950/30 dark:text-emerald-100">
+                    <span>{tenantName} — Organization view</span>
+                    <button
+                        type="button"
+                        onClick={() => setShowCreateChallenge(true)}
+                        className="rounded-lg bg-emerald-600 px-3 py-2 font-semibold text-white hover:bg-emerald-700"
+                    >
+                        Create Organization Challenge
+                    </button>
+                </div>
+            )}
+
+            {showCreateChallenge && (
+                <form onSubmit={handleCreateChallenge} className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+                    <h3 className="mb-4 text-lg font-bold text-gray-900 dark:text-white">Create Organization Challenge</h3>
+                    <div className="grid gap-4 md:grid-cols-2">
+                        <label className="text-sm font-medium text-gray-700 dark:text-gray-200">
+                            <span className="mb-1 block">Challenge title</span>
+                            <input value={challengeForm.title} onChange={(e) => setChallengeForm((prev) => ({ ...prev, title: e.target.value }))} placeholder="Challenge title" className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700" required />
+                        </label>
+                        <label className="text-sm font-medium text-gray-700 dark:text-gray-200">
+                            <span className="mb-1 block">Category</span>
+                            <input value={challengeForm.category} onChange={(e) => setChallengeForm((prev) => ({ ...prev, category: e.target.value }))} placeholder="Category" className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700" required />
+                        </label>
+                        <label className="text-sm font-medium text-gray-700 dark:text-gray-200">
+                            <span className="mb-1 block">Target value</span>
+                            <input value={challengeForm.targetValue} type="number" onChange={(e) => setChallengeForm((prev) => ({ ...prev, targetValue: Number(e.target.value) || 0 }))} placeholder="Target value" className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700" required />
+                        </label>
+                        <label className="text-sm font-medium text-gray-700 dark:text-gray-200">
+                            <span className="mb-1 block">Unit</span>
+                            <input value={challengeForm.unit} onChange={(e) => setChallengeForm((prev) => ({ ...prev, unit: e.target.value }))} placeholder="Unit" className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700" />
+                        </label>
+                        <label className="text-sm font-medium text-gray-700 dark:text-gray-200">
+                            <span className="mb-1 block">Reward points</span>
+                            <input value={challengeForm.rewardValue} type="number" onChange={(e) => setChallengeForm((prev) => ({ ...prev, rewardValue: Number(e.target.value) || 0 }))} placeholder="Reward points" className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700" required />
+                        </label>
+                        <label className="text-sm font-medium text-gray-700 dark:text-gray-200">
+                            <span className="mb-1 block">Verification type</span>
+                            <input value={challengeForm.verificationType} onChange={(e) => setChallengeForm((prev) => ({ ...prev, verificationType: e.target.value }))} placeholder="Verification type" className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700" />
+                        </label>
+                    </div>
+                    <label className="mt-4 block text-sm font-medium text-gray-700 dark:text-gray-200">
+                        <span className="mb-1 block">Challenge description</span>
+                        <textarea value={challengeForm.description} onChange={(e) => setChallengeForm((prev) => ({ ...prev, description: e.target.value }))} placeholder="Challenge description" className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm dark:border-gray-600 dark:bg-gray-700" required rows="3" />
+                    </label>
+                    <div className="mt-4 flex flex-wrap items-center gap-3">
+                        <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-200">
+                            <input type="checkbox" checked={challengeForm.isGlobal} onChange={(e) => setChallengeForm((prev) => ({ ...prev, isGlobal: e.target.checked }))} aria-label="Mark this as a global challenge" />
+                            Global challenge
+                        </label>
+                        <button type="submit" className="rounded-lg bg-blue-600 px-4 py-2 font-semibold text-white hover:bg-blue-700">Save Challenge</button>
+                        <button type="button" onClick={() => setShowCreateChallenge(false)} className="rounded-lg border border-gray-300 bg-white px-4 py-2 font-semibold text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100">Cancel</button>
+                    </div>
+                </form>
+            )}
+
             <div>
                 <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-6">Active Challenges</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -103,6 +217,7 @@ const EcoChallengeDashboard = () => {
                         const isJoined = !!progress;
                         const isCompleted = progress?.isCompleted;
                         const isClaimed = progress?.rewardClaimed;
+                        const isOrganizationExclusive = challenge.isOrganizationExclusive || challenge.tenant_id || challenge.is_global === false;
                         const progressPercent = isJoined ? Math.min((progress.progress / challenge.targetValue) * 100, 100) : 0;
 
                         return (
@@ -110,9 +225,16 @@ const EcoChallengeDashboard = () => {
                                 <div className="p-6 flex-1">
                                     <div className="flex justify-between items-start mb-4">
                                         <span className="text-3xl">{getCategoryIcon(challenge.category)}</span>
-                                        <span className="px-3 py-1 bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 text-xs font-bold rounded-full uppercase">
-                                            {challenge.frequency}
-                                        </span>
+                                        <div className="flex flex-col gap-2 items-end">
+                                            <span className="px-3 py-1 bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 text-xs font-bold rounded-full uppercase">
+                                                {challenge.frequency}
+                                            </span>
+                                            {isOrganizationExclusive && (
+                                                <span className="px-2 py-1 bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300 text-[10px] font-bold uppercase rounded-full">
+                                                    Organization Exclusive
+                                                </span>
+                                            )}
+                                        </div>
                                     </div>
 
                                     <h4 className="text-lg font-bold text-gray-900 dark:text-white mb-2">{challenge.title}</h4>
@@ -136,7 +258,7 @@ const EcoChallengeDashboard = () => {
                                             {isCompleted && !isClaimed && (
                                                 <p className="text-xs text-green-600 dark:text-green-400 font-medium flex items-center gap-1">
                                                     ✅ Challenge Completed! Claim your reward.
-                                                    . </p>
+                                                </p>
                                             )}
                                             {isClaimed && (
                                                 <p className="text-xs text-gray-500 dark:text-gray-400 font-medium flex items-center gap-1">
@@ -180,6 +302,15 @@ const EcoChallengeDashboard = () => {
                                             className="w-full py-2.5 bg-gray-300 dark:bg-gray-700 text-gray-500 dark:text-gray-400 font-semibold rounded-lg cursor-not-allowed"
                                         >
                                             {isClaimed ? 'Completed' : 'In Progress'}
+                                        </button>
+                                    )}
+                                    {isOrganizationExclusive && tenantId && tenantId !== 'default' && (
+                                        <button
+                                            type="button"
+                                            onClick={() => handleDeleteChallenge(challenge.id)}
+                                            className="mt-3 w-full rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-sm font-semibold text-red-700 hover:bg-red-100 dark:border-red-700 dark:bg-red-950/30 dark:text-red-200"
+                                        >
+                                            Delete custom challenge
                                         </button>
                                     )}
                                 </div>

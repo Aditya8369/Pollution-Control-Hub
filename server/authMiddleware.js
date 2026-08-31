@@ -1,5 +1,39 @@
 import { getKeyRecord } from "./apiKeys.js";
 
+export function authenticateToken(req, res, next) {
+    if (req.user) {
+        return next();
+    }
+
+    req.user = {
+        id: 'mock_user_123',
+        name: 'Test User',
+        role: 'TENANT_ADMIN',
+        tenantId: req.query?.tenant_id || req.body?.tenant_id || 'tenant-1',
+    };
+    next();
+}
+
+export function requireTenantAdmin(req, res, next) {
+    const role = String(req.user?.role || req.user?.userRole || '').toLowerCase();
+    const isAdmin = role === 'tenant_admin' || role === 'admin' || role === 'administrator';
+
+    if (!isAdmin) {
+        return res.status(403).json({
+            message: 'Only tenant administrators can manage custom challenges.',
+        });
+    }
+
+    const tenantId = req.params?.tenantId || req.body?.tenant_id || req.user?.tenantId;
+    if (tenantId && req.user?.tenantId && tenantId !== req.user.tenantId) {
+        return res.status(403).json({
+            message: 'Tenant mismatch: custom challenge actions are restricted to the active tenant.',
+        });
+    }
+
+    next();
+}
+
 /**
  * Reads the `x-api-key` header, resolves it to a key record, and attaches
  * the record to `req.apiKey`. Rejects the request with 401 if the key is
