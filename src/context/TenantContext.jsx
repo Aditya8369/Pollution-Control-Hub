@@ -83,6 +83,25 @@ function nameFor(id) {
 }
 
 /**
+ * Whatever is stored under the tenant key, unvalidated, or null.
+ *
+ * Separate from `readStoredTenant()` because the API-driven paths match the
+ * stored id against the tenant list the server returned, which is not the same
+ * set as `KNOWN_TENANTS` — validating against the static list there would
+ * discard a legitimate server-side workspace id.
+ *
+ * @returns {string|null}
+ */
+function readRawStoredTenant() {
+  try {
+    return localStorage.getItem(STORAGE_KEY);
+  } catch {
+    // Private browsing, or site data blocked. No stored choice is readable.
+    return null;
+  }
+}
+
+/**
  * The tenant the visitor previously chose, or the default.
  *
  * Anything unrecognised in storage is discarded rather than trusted.
@@ -90,12 +109,8 @@ function nameFor(id) {
  * @returns {string}
  */
 function readStoredTenant() {
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    return isKnownTenant(stored) ? stored : DEFAULT_TENANT_ID;
-  } catch {
-    return DEFAULT_TENANT_ID;
-  }
+  const stored = readRawStoredTenant();
+  return isKnownTenant(stored) ? stored : DEFAULT_TENANT_ID;
 }
 
 /**
@@ -141,9 +156,12 @@ export function TenantProvider({ children }) {
       const data = await fetchUserTenants();
       setTenants(data);
 
-      // If we have API tenants and no current tenant is set, use the first one
+      // If we have API tenants and no current tenant is set, use the first one.
+      // Read through readStoredTenant() rather than touching localStorage
+      // directly: a browser with site data blocked throws on the bare call, and
+      // this one runs inside an async callback where nothing catches it (#843).
       if (data.length > 0 && !currentTenant) {
-        const savedTenantId = localStorage.getItem(STORAGE_KEY);
+        const savedTenantId = readRawStoredTenant();
         const savedTenant = savedTenantId
           ? data.find(t => t.id === savedTenantId) || data[0]
           : data[0];
@@ -227,12 +245,7 @@ export function TenantProvider({ children }) {
   }, [tenantId, currentTenant]);
 
   useEffect(() => {
-    let activeId = null;
-    try {
-      activeId = localStorage.getItem(STORAGE_KEY);
-    } catch {
-      // Storage unavailable or insecure
-    }
+    const activeId = readRawStoredTenant();
     fetchTenants().then(() => {
       if (activeId && tenants.length > 0) {
         const saved = tenants.find((t) => t.id === activeId);

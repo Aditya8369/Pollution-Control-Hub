@@ -1,0 +1,261 @@
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding: 1.5rem;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.header { text-align: center; }
+
+.headerTitle {
+  font-size: 1.6rem;
+  font-weight: 700;
+  margin: 0 0 0.25rem;
+  color: var(--text-primary, #0f172a);
+}
+
+.headerSubtitle {
+  font-size: 0.95rem;
+  color: var(--text-secondary, #64748b);
+  margin: 0;
+}
+
+/* Stats row */
+.statsRow {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 0.75rem;
+}
+
+.statCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 1rem 0.5rem;
+  background: var(--bg-card, #fff);
+  border: 1px solid var(--border-color, #e2e8f0);
+  border-radius: 0.65rem;
+  text-align: center;
+  transition: transform 0.12s, box-shadow 0.12s;
+}
+
+.statCard:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.06);
+}
+
+.statIcon { font-size: 1.4rem; margin-bottom: 0.2rem; }
+.statValue { font-size: 1.3rem; font-weight: 700; color: var(--text-primary, #0f172a); }
+.statLabel { font-size: 0.7rem; color: var(--text-secondary, #64748b); margin-top: 0.15rem; }
+
+/* Ranking list */
+.rankingSection {
+  background: var(--bg-card, #fff);
+  border: 1px solid var(--border-color, #e2e8f0);
+  border-radius: 0.75rem;
+  padding: 1.25rem;
+}
+
+.sectionTitle {
+  font-size: 1.05rem;
+  font-weight: 600;
+  margin: 0 0 0.75rem;
+  color: var(--text-primary, #0f172a);
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.rankingList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.rankingItem {
+  display: grid;
+  grid-template-columns: 3rem 1fr auto auto;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: var(--bg-secondary, #f8fafc);
+  border-radius: 0.5rem;
+  border-left: 4px solid transparent;
+  transition: transform 0.1s;
+}
+
+.rankingItem:hover { transform: translateX(3px); }
+.rankingItem[data-rank="1"] { border-left-color: #fbbf24; background: #fffbeb; }
+.rankingItem[data-rank="2"] { border-left-color: #94a3b8; background: #f8fafc; }
+.rankingItem[data-rank="3"] { border-left-color: #cd7f32; background: #fdf2e9; }
+
+.rankBadge {
+  font-size: 1.1rem;
+  font-weight: 700;
+  text-align: center;
+  color: var(--text-primary, #0f172a);
+}
+
+.cityName {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-primary, #0f172a);
+}
+
+.aqiValue {
+  font-size: 1.2rem;
+  font-weight: 700;
+  text-align: right;
+}
+
+.bandBadge {
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+/* Pollutant comparison */
+.pollutantSection {
+  background: var(--bg-card, #fff);
+  border: 1px solid var(--border-color, #e2e8f0);
+  border-radius: 0.75rem;
+  padding: 1.25rem;
+}
+
+.pollutantTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+}
+
+.pollutantTable th,
+.pollutantTable td {
+  padding: 0.5rem 0.65rem;
+  border-bottom: 1px solid var(--border-color, #f1f5f9);
+  text-align: left;
+}
+
+.pollutantTable th {
+  background: var(--bg-secondary, #f8fafc);
+  font-weight: 600;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-secondary, #475569);
+}
+
+.pollutantTable .exceeds { color: #ef4444; font-weight: 600; }
+.pollutantTable .within { color: #22c55e; }
+
+/* Risk groups */
+.riskSection {
+  background: var(--bg-card, #fff);
+  border: 1px solid var(--border-color, #e2e8f0);
+  border-radius: 0.75rem;
+  padding: 1.25rem;
+}
+
+.riskGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 0.75rem;
+}
+
+.riskGroup {
+  padding: 0.85rem 1rem;
+  border-radius: 0.5rem;
+  border-left: 4px solid transparent;
+}
+
+.riskGroupTitle {
+  font-size: 0.8rem;
+  font-weight: 600;
+  margin: 0 0 0.3rem;
+}
+
+.riskGroupCities {
+  font-size: 0.82rem;
+  color: var(--text-secondary, #475569);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.riskSafe { border-left-color: #22c55e; background: #f0fdf4; }
+.riskSafe .riskGroupTitle { color: #16a34a; }
+.riskModerate { border-left-color: #eab308; background: #fefce8; }
+.riskModerate .riskGroupTitle { color: #ca8a04; }
+.riskUnhealthy { border-left-color: #f97316; background: #fff7ed; }
+.riskUnhealthy .riskGroupTitle { color: #ea580c; }
+.riskCritical { border-left-color: #ef4444; background: #fef2f2; }
+.riskCritical .riskGroupTitle { color: #dc2626; }
+
+/* Actions bar */
+.actionsBar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  justify-content: center;
+}
+
+.actionBtn {
+  padding: 0.55rem 1.25rem;
+  border: 1px solid var(--border-color, #cbd5e1);
+  border-radius: 0.5rem;
+  background: var(--bg-card, #fff);
+  color: var(--text-primary, #0f172a);
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: background 0.12s, border-color 0.12s;
+}
+
+.actionBtn:hover {
+  background: var(--bg-secondary, #f8fafc);
+  border-color: var(--brand, #0d9488);
+}
+
+.actionBtnPrimary {
+  background: var(--brand, #0d9488);
+  color: #fff;
+  border-color: var(--brand, #0d9488);
+}
+
+.actionBtnPrimary:hover { background: #0b8577; }
+
+/* Empty state */
+.emptyState {
+  text-align: center;
+  padding: 3rem 1.5rem;
+  color: var(--text-secondary, #94a3b8);
+}
+
+.emptyIcon { font-size: 2.5rem; margin-bottom: 0.75rem; }
+.emptyTitle { font-size: 1.1rem; font-weight: 600; margin: 0 0 0.3rem; color: var(--text-primary, #475569); }
+.emptyDesc { font-size: 0.85rem; margin: 0; max-width: 400px; margin-left: auto; margin-right: auto; line-height: 1.5; }
+
+/* Toast */
+.toast {
+  position: fixed;
+  bottom: 1.5rem;
+  left: 50%;
+  transform: translateX(-50%) translateY(120%);
+  background: #1e293b;
+  color: #fff;
+  padding: 0.65rem 1.25rem;
+  border-radius: 0.5rem;
+  font-size: 0.85rem;
+  font-weight: 500;
+  z-index: 9999;
+  opacity: 0;
+  transition: transform 0.25s ease, opacity 0.25s ease;
+  pointer-events: none;
+}
+
+.toastVisible {
+  transform: translateX(-50%) translateY(0);
+  opacity: 1;
+}
