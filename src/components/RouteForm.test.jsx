@@ -107,4 +107,53 @@ describe('RouteForm Component', () => {
     expect(setOrigin).toHaveBeenCalledWith('');
     expect(screen.queryByTestId('origin-suggestions')).not.toBeInTheDocument();
   });
+
+  it('supports keyboard navigation and ARIA combobox attributes for suggestions', async () => {
+    vi.mocked(searchLocations).mockResolvedValue(mockLocations);
+    const setOrigin = vi.fn();
+
+    render(<RouteForm {...defaultProps} origin="Conn" setOrigin={setOrigin} />);
+
+    await act(async () => {
+      await vi.advanceTimersByTime(300);
+    });
+
+    const originInput = screen.getByLabelText(/Starting Point/i);
+    expect(originInput).toHaveAttribute('role', 'combobox');
+    expect(originInput).toHaveAttribute('aria-expanded', 'true');
+    expect(originInput).toHaveAttribute('aria-controls', 'origin-listbox');
+
+    const options = screen.getAllByRole('option');
+    expect(options).toHaveLength(2);
+    expect(options[0]).toHaveAttribute('aria-selected', 'false');
+
+    // Navigate down with ArrowDown
+    fireEvent.keyDown(originInput, { key: 'ArrowDown' });
+    expect(originInput).toHaveAttribute('aria-activedescendant', 'origin-option-0');
+    expect(options[0]).toHaveAttribute('aria-selected', 'true');
+
+    // Navigate down again to second option
+    fireEvent.keyDown(originInput, { key: 'ArrowDown' });
+    expect(originInput).toHaveAttribute('aria-activedescendant', 'origin-option-1');
+    expect(options[1]).toHaveAttribute('aria-selected', 'true');
+
+    // Press Enter to select second option
+    fireEvent.keyDown(originInput, { key: 'Enter' });
+    expect(setOrigin).toHaveBeenCalledWith('India Gate, Delhi, India');
+  });
+
+  it('closes suggestions when Escape key is pressed', async () => {
+    vi.mocked(searchLocations).mockResolvedValue(mockLocations);
+    render(<RouteForm {...defaultProps} origin="Conn" setOrigin={vi.fn()} />);
+
+    await act(async () => {
+      await vi.advanceTimersByTime(300);
+    });
+
+    const originInput = screen.getByLabelText(/Starting Point/i);
+    expect(screen.getByTestId('origin-suggestions')).toBeInTheDocument();
+
+    fireEvent.keyDown(originInput, { key: 'Escape' });
+    expect(screen.queryByTestId('origin-suggestions')).not.toBeInTheDocument();
+  });
 });
