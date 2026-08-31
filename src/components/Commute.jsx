@@ -30,6 +30,7 @@ function readStoredMode() {
   }
 }
 
+// Defined at module scope so it is created once on load, not re-created on every render.
 const LEGEND_ITEMS = [
   { range: "0–50", aqi: 25 },
   { range: "51–100", aqi: 75 },
