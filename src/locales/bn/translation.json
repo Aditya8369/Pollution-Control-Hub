@@ -311,7 +311,14 @@
     "moderatorMarkSuspicious": "সন্দেহজনক চিহ্নিত করুন",
     "moderatorOverrideVerified": "ওভাররাইড: যাচাইকৃত",
     "moderatorPanel": "মডারেটর কার্যক্রম",
-    "reportsNearby": "কাছের রিপোর্ট: {{count}}"
+    "reportsNearby": "কাছের রিপোর্ট: {{count}}",
+    "labelTitle": "সমস্যার শিরোনাম",
+    "labelDesc": "সমস্যার বিবরণ",
+    "labelCategory": "ঘটনার শ্রেণি",
+    "labelSeverity": "ঘটনার তীব্রতা",
+    "labelLocationName": "স্থানের নাম বা ঠিকানা",
+    "labelHashtag": "হ্যাশট্যাগ (ঐচ্ছিক)",
+    "labelPhoto": "ছবি প্রমাণ (ঐচ্ছিক)"
   },
   "historicalAnalysis": {
     "loading": "৩ বছরের ঐতিহাসিক একিউআই ডেটা প্রসেস করা হচ্ছে...",

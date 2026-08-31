@@ -311,7 +311,14 @@
     "moderatorMarkSuspicious": "Mark Suspicious",
     "moderatorOverrideVerified": "Override: Verified",
     "moderatorPanel": "Moderator Actions",
-    "reportsNearby": "Reports nearby: {{count}}"
+    "reportsNearby": "Reports nearby: {{count}}",
+    "labelTitle": "Issue title",
+    "labelDesc": "Issue description",
+    "labelCategory": "Incident category",
+    "labelSeverity": "Incident severity",
+    "labelLocationName": "Location name or address",
+    "labelHashtag": "Hashtag (optional)",
+    "labelPhoto": "Photo evidence (optional)"
   },
   "historicalAnalysis": {
     "loading": "Crunching 3 years of historical AQI data...",
@@ -480,5 +487,39 @@
     "chartCycling": "Cycling",
     "chartTransit": "Public transport",
     "chartCarAvoided": "Car avoided"
+  },
+  "analytics": {
+    "title": "Weather & Air Quality Correlation Analytics",
+    "heatmap_title": "Correlation Matrix Heatmap",
+    "scatter_toggle": "Scatter Plot View",
+    "dual_axis_toggle": "Dual-Axis Trend View",
+    "automated_insights": "Automated Correlation Insights",
+    "no_strong_patterns": "No strong correlation patterns detected for the current parameters.",
+    "loading": "Loading correlation metrics...",
+    "error_loading": "Failed to load weather and air quality correlation data.",
+    "band_analysis_title": "AQI Band Breakdown",
+    "weather_metric": "Weather Metric",
+    "aqi_metric": "AQI Metric",
+    "select_weather": "Select Weather Metric",
+    "select_aqi": "Select AQI Metric",
+    "insights": {
+      "strong_positive": "Strong positive correlation (r={{value}}) observed between {{weather}} and {{aqi}}.",
+      "strong_negative": "Strong negative correlation (r={{value}}) observed between {{weather}} and {{aqi}}.",
+      "moderate_positive": "Moderate positive correlation (r={{value}}) between {{weather}} and {{aqi}}.",
+      "moderate_negative": "Moderate negative correlation (r={{value}}) between {{weather}} and {{aqi}}.",
+      "weak_positive": "Weak positive correlation (r={{value}}) between {{weather}} and {{aqi}}.",
+      "weak_negative": "Weak negative correlation (r={{value}}) between {{weather}} and {{aqi}}.",
+      "insignificant": "Insignificant correlation (r={{value}}) between {{weather}} and {{aqi}}."
+    }
+  },
+  "metrics": {
+    "temperature": "Temperature (°C)",
+    "humidity": "Humidity (%)",
+    "windSpeed": "Wind Speed (km/h)",
+    "pm25": "PM2.5 (µg/m³)",
+    "pm10": "PM10 (µg/m³)",
+    "no2": "NO₂ (ppb)",
+    "o3": "O₃ (ppb)",
+    "co": "CO (ppm)"
   }
 }

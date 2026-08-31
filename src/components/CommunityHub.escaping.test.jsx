@@ -88,13 +88,44 @@ describe('readReports migration (regression for #497)', () => {
   });
 
   it('does not rewrite storage when nothing needs migrating', () => {
-    seed([makeReport({ title: 'Clean title' })]);
+    // The status is spelled out rather than left to the fixture default: a
+    // report with nothing to migrate needs a current status, and 'Pending' —
+    // which the migration renames — would have made this fixture need
+    // migrating after all, failing the test for a reason unrelated to what it
+    // sets out to check.
+    seed([makeReport({ title: 'Clean title', status: 'New' })]);
     const setItem = vi.spyOn(Storage.prototype, 'setItem');
 
     readReports();
 
     expect(setItem).not.toHaveBeenCalledWith(STORAGE_KEY, expect.anything());
     setItem.mockRestore();
+  });
+
+  it('does not rewrite storage on a second read of an already-migrated list', () => {
+    // The write-back used to be unconditional, so this loop rewrote the whole
+    // list — images included — once per call, for ever.
+    seed([makeReport({ id: 'legacy', title: 'A &amp; B', status: 'New' })]);
+
+    readReports(); // repairs and writes back, once
+
+    const setItem = vi.spyOn(Storage.prototype, 'setItem');
+    readReports();
+    readReports();
+    readReports();
+
+    expect(setItem).not.toHaveBeenCalledWith(STORAGE_KEY, expect.anything());
+    setItem.mockRestore();
+  });
+
+  it('still writes back when only the status needed renaming', () => {
+    seed([makeReport({ title: 'Clean title', status: 'Addressed' })]);
+
+    const [report] = readReports();
+    expect(report.status).toBe('Resolved');
+
+    const persisted = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+    expect(persisted[0].status).toBe('Resolved');
   });
 
   it('preserves every other field on a migrated report', () => {
@@ -134,21 +165,34 @@ describe('CommunityHub report text round-trip', () => {
   });
   afterEach(() => localStorage.clear());
 
-  it('stores and displays punctuation exactly as the author typed it', async () => {
+  /**
+   * Renders the hub and opens the report form.
+   *
+   * The form became collapsible behind a "Report Pollution" toggle and these
+   * tests were never updated, so they were querying a form that had not been
+   * rendered yet.
+   */
+  function renderWithFormOpen() {
     render(<CommunityHub />);
     fireEvent.click(screen.getByRole('button', { name: /Report Pollution/i }));
+  }
+
+  it('stores and displays punctuation exactly as the author typed it', async () => {
+    renderWithFormOpen();
 
     const title = "Smoke & dust near St. Mary's";
     const description = 'Residents said "it\'s unbearable" — AQI > 300';
 
-    fireEvent.change(screen.getByPlaceholderText(/Issue title/i), {
+    fireEvent.change(screen.getByRole('textbox', { name: 'Issue title' }), {
       target: { value: title },
     });
-    fireEvent.change(screen.getByPlaceholderText(/Describe location/i), {
+    fireEvent.change(screen.getByRole('textbox', { name: 'Issue description' }), {
       target: { value: description },
     });
-    fireEvent.change(document.querySelector('.community-form select'), {
-      target: { value: 'Garbage burning' },
+    // Category is a required field, so a submit without one is blocked by
+    // constraint validation before onSubmit ever runs.
+    fireEvent.change(screen.getByRole('combobox', { name: 'Incident category' }), {
+      target: { value: 'Industrial smoke' },
     });
     fireEvent.click(screen.getByRole('button', { name: /Submit Report/i }));
 
@@ -178,17 +222,16 @@ describe('CommunityHub report text round-trip', () => {
   });
 
   it('caps stored title and description length', async () => {
-    render(<CommunityHub />);
-    fireEvent.click(screen.getByRole('button', { name: /Report Pollution/i }));
+    renderWithFormOpen();
 
-    fireEvent.change(screen.getByPlaceholderText(/Issue title/i), {
+    fireEvent.change(screen.getByRole('textbox', { name: 'Issue title' }), {
       target: { value: 'T'.repeat(400) },
     });
-    fireEvent.change(screen.getByPlaceholderText(/Describe location/i), {
+    fireEvent.change(screen.getByRole('textbox', { name: 'Issue description' }), {
       target: { value: 'D'.repeat(5000) },
     });
-    fireEvent.change(document.querySelector('.community-form select'), {
-      target: { value: 'Garbage burning' },
+    fireEvent.change(screen.getByRole('combobox', { name: 'Incident category' }), {
+      target: { value: 'Industrial smoke' },
     });
     fireEvent.click(screen.getByRole('button', { name: /Submit Report/i }));
 
