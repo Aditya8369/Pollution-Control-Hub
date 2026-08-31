@@ -18,6 +18,13 @@ export const POLLUTANTS = {
  * @param {string} pollutantKey
  * @returns {{ label: string, color: string }}
  */
+/**
+ * Returns color scale and risk label for a given pollutant and value.
+ *
+ * @param {number|null|undefined} value
+ * @param {string} pollutantKey
+ * @returns {{ label: string, color: string }}
+ */
 export function getPollutantBand(value, pollutantKey = 'us_aqi') {
   if (value == null || !Number.isFinite(value)) {
     return { label: 'No Data', color: '#94a3b8' };
@@ -72,6 +79,27 @@ export function getPollutantBand(value, pollutantKey = 'us_aqi') {
 }
 
 /**
+ * Resolves a pollutant numerical value from an item object using field aliases.
+ *
+ * @param {Object} item
+ * @param {string} key
+ * @returns {number|null}
+ */
+export function getPollutantValue(item, key) {
+  if (!item || typeof item !== 'object') return null;
+  let val = item[key];
+  if (val === undefined) {
+    if (key === 'us_aqi') val = item.maxAqi ?? item.aqi ?? item.AQI;
+    else if (key === 'pm2_5') val = item.pm25 ?? item['PM2.5'];
+    else if (key === 'pm10') val = item.pm10 ?? item.PM10;
+    else if (key === 'nitrogen_dioxide') val = item.no2 ?? item.NO2;
+    else if (key === 'ozone') val = item.ozone ?? item.Ozone;
+    else if (key === 'carbon_monoxide') val = item.co ?? item.CO;
+  }
+  return typeof val === 'number' && Number.isFinite(val) ? val : null;
+}
+
+/**
  * Aggregates a series of trend points by time granularity (hourly, 3h, daily, weekly).
  *
  * @param {Array<Object>} items Array of data objects containing timestamp (`time` or `date`) and pollutant values.
@@ -92,8 +120,8 @@ export function aggregateData(items = [], granularity = 'hourly', activePollutan
       
       const point = { ...item, label, rawTime: timeStr };
       activePollutants.forEach((key) => {
-        const val = item[key] ?? item[key.replace('_', '')] ?? item[key === 'us_aqi' ? 'maxAqi' : key];
-        point[key] = typeof val === 'number' && Number.isFinite(val) ? Math.round(val * 10) / 10 : null;
+        const val = getPollutantValue(item, key);
+        point[key] = val !== null ? Math.round(val * 10) / 10 : null;
       });
       return point;
     });
@@ -124,7 +152,10 @@ export function aggregateData(items = [], granularity = 'hourly', activePollutan
       const day = startOfWeek.getDay();
       const diff = startOfWeek.getDate() - day + (day === 0 ? -6 : 1);
       startOfWeek.setDate(diff);
-      bucketKey = `${startOfWeek.getFullYear()}-W${Math.ceil(startOfWeek.getDate() / 7)}`;
+      const yyyy = startOfWeek.getFullYear();
+      const mm = String(startOfWeek.getMonth() + 1).padStart(2, '0');
+      const dd = String(startOfWeek.getDate()).padStart(2, '0');
+      bucketKey = `${yyyy}-${mm}-${dd}`;
       label = `Week of ${startOfWeek.toLocaleDateString([], { month: 'short', day: 'numeric' })}`;
     }
 
@@ -136,16 +167,8 @@ export function aggregateData(items = [], granularity = 'hourly', activePollutan
     bucket.count += 1;
 
     activePollutants.forEach((key) => {
-      let val = item[key];
-      if (val === undefined) {
-        if (key === 'us_aqi') val = item.maxAqi ?? item.aqi ?? item.AQI;
-        else if (key === 'pm2_5') val = item.pm25 ?? item['PM2.5'];
-        else if (key === 'pm10') val = item.pm10 ?? item.PM10;
-        else if (key === 'nitrogen_dioxide') val = item.no2 ?? item.NO2;
-        else if (key === 'ozone') val = item.ozone ?? item.Ozone;
-        else if (key === 'carbon_monoxide') val = item.co ?? item.CO;
-      }
-      if (typeof val === 'number' && Number.isFinite(val)) {
+      const val = getPollutantValue(item, key);
+      if (val !== null) {
         if (!bucket.sums[key]) bucket.sums[key] = { total: 0, count: 0 };
         bucket.sums[key].total += val;
         bucket.sums[key].count += 1;
