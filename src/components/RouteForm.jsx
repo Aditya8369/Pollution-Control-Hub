@@ -29,8 +29,8 @@ export default function RouteForm({
 
   const originDebounceRef = useRef(null);
   const destinationDebounceRef = useRef(null);
-  const selectedOriginRef = useRef(origin);
-  const selectedDestinationRef = useRef(destination);
+  const selectedOriginRef = useRef(null);
+  const selectedDestinationRef = useRef(null);
   const containerRef = useRef(null);
 
   // Close dropdowns on click outside
@@ -69,15 +69,6 @@ export default function RouteForm({
     }
   }, [destinationActiveIndex, showDestinationSuggestions]);
 
-  // Update refs when origin/destination props change externally (e.g. "Use My Location" or chip selection)
-  useEffect(() => {
-    selectedOriginRef.current = origin;
-  }, [origin]);
-
-  useEffect(() => {
-    selectedDestinationRef.current = destination;
-  }, [destination]);
-
   // Debounced geocoding search for origin (300ms)
   useEffect(() => {
     if (originDebounceRef.current) {
@@ -92,7 +83,7 @@ export default function RouteForm({
     }
 
     // Don't search if the query matches the selected suggestion or external update
-    if (selectedOriginRef.current === origin) {
+    if (selectedOriginRef.current !== null && selectedOriginRef.current === origin) {
       return;
     }
 
@@ -130,7 +121,7 @@ export default function RouteForm({
       return;
     }
 
-    if (selectedDestinationRef.current === destination) {
+    if (selectedDestinationRef.current !== null && selectedDestinationRef.current === destination) {
       return;
     }
 

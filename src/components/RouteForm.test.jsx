@@ -43,8 +43,8 @@ describe('RouteForm Component', () => {
 
   it('renders correctly with default values', () => {
     render(<RouteForm {...defaultProps} />);
-    expect(screen.getByLabelText(/Starting Point/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/Destination/i)).toBeInTheDocument();
+    expect(screen.getByRole('combobox', { name: 'Starting Point' })).toBeInTheDocument();
+    expect(screen.getByRole('combobox', { name: 'Destination' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Find Cleanest Route/i })).toBeInTheDocument();
   });
 
@@ -68,7 +68,7 @@ describe('RouteForm Component', () => {
     expect(searchLocations).toHaveBeenCalledWith('Conn', 5);
     
     // Verify suggestions dropdown is shown
-    const suggestionsList = await screen.findByTestId('origin-suggestions');
+    const suggestionsList = screen.getByTestId('origin-suggestions');
     expect(suggestionsList).toBeInTheDocument();
     expect(screen.getByText('Connaught Place, Delhi, India')).toBeInTheDocument();
   });
@@ -118,7 +118,7 @@ describe('RouteForm Component', () => {
       await vi.advanceTimersByTime(300);
     });
 
-    const originInput = screen.getByLabelText(/Starting Point/i);
+    const originInput = screen.getByRole('combobox', { name: 'Starting Point' });
     expect(originInput).toHaveAttribute('role', 'combobox');
     expect(originInput).toHaveAttribute('aria-expanded', 'true');
     expect(originInput).toHaveAttribute('aria-controls', 'origin-listbox');
@@ -150,7 +150,7 @@ describe('RouteForm Component', () => {
       await vi.advanceTimersByTime(300);
     });
 
-    const originInput = screen.getByLabelText(/Starting Point/i);
+    const originInput = screen.getByRole('combobox', { name: 'Starting Point' });
     expect(screen.getByTestId('origin-suggestions')).toBeInTheDocument();
 
     fireEvent.keyDown(originInput, { key: 'Escape' });
