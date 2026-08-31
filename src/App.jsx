@@ -66,6 +66,8 @@ import OceanAcidificationMonitor from "./components/OceanAcidificationMonitor";
 import LightPollutionObservatory from "./components/LightPollutionObservatory";
 
 import HealthImpactDashboard from "./components/HealthImpactDashboard";
+import DataExportDashboard from "./components/DataExportDashboard";
+import CityComparisonReport from "./components/CityComparisonReport";
 
 const AqiMissionGame = lazy(() => import("./components/AqiMissionGame"));
 const HotspotScoutGame = lazy(() => import("./components/HotspotScoutGame"));
@@ -365,6 +367,8 @@ export function SectionNav({ activeSection, onSectionChange }) {
     { id: "smart-alerts", label: "Smart Alerts" },
     { id: "ocean-acid", label: "Ocean Acidification" },
     { id: "health-impact", label: "Health Impact" },
+    { id: "data-export", label: "Data Export" },
+    { id: "city-comparison-report", label: "City Compare Report" },
   ];
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef(null);
@@ -1287,6 +1291,40 @@ function AppContent() {
             {activeSection === "ocean-acid" && <OceanAcidificationMonitor />}
 
             {activeSection === "health-impact" && <HealthImpactDashboard />}
+            {activeSection === "data-export" && (
+              <div
+                className="content-grid data-export-layout"
+                style={{
+                  maxWidth: "1200px",
+                  margin: "2rem auto",
+                  width: "100%",
+                  display: "block",
+                }}
+              >
+                <DataExportDashboard
+                  trend={trend}
+                  current={current}
+                  cityName={position.cityName}
+                  position={position}
+                />
+              </div>
+            )}
+            {activeSection === "city-comparison-report" && (
+              <div
+                className="content-grid city-comparison-report-layout"
+                style={{
+                  maxWidth: "1200px",
+                  margin: "2rem auto",
+                  width: "100%",
+                  display: "block",
+                }}
+              >
+                <CityComparisonReport
+                  savedLocations={savedLocations}
+                  cityName={position.cityName}
+                />
+              </div>
+            )}
             {activeSection === "CarbonCalculator" && (
               <div
                 className="content-grid carbon-calculator-layout"
