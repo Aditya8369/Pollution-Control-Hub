@@ -37,6 +37,7 @@ import {
   fetchAirQualityByCoords,
   fetchCityComparisons,
   fetchWindData,
+  getAQIBand,
 } from "./services/airQualityService";
 import { cacheStore } from "./utils/cacheStore";
 import { getPrecomputedAverages } from "./services/aqiPrecomputationService";
@@ -196,6 +197,45 @@ function AppControls({
   onAutoRefreshChange,
 }) {
   const { t } = useTranslation();
+  const [savedAqiData, setSavedAqiData] = useState({});
+
+  useEffect(() => {
+    if (!savedLocations || savedLocations.length === 0) {
+      setSavedAqiData({});
+      return;
+    }
+
+    let isMounted = true;
+
+    Promise.all(
+      savedLocations.map(async (location) => {
+        try {
+          const result = await fetchAirQualityByCoords(
+            location.lat,
+            location.lon,
+            undefined,
+            true
+          );
+          const aqi = result?.current?.us_aqi ?? null;
+          return { name: location.name, aqi, error: false };
+        } catch {
+          return { name: location.name, aqi: null, error: true };
+        }
+      })
+    ).then((results) => {
+      if (!isMounted) return;
+      const nextMap = {};
+      results.forEach((item) => {
+        nextMap[item.name] = { aqi: item.aqi, error: item.error };
+      });
+      setSavedAqiData(nextMap);
+    });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [savedLocations, isRefreshing, lastUpdated]);
+
   const isCurrentCitySaved = savedLocations.some(
     (item) => item.name === currentCity,
   );
@@ -257,34 +297,61 @@ function AppControls({
           {/* Introduces the chips below, not a form control — <label> claimed a
               relationship with an input that does not exist. */}
           <span>Saved:</span>
-          {savedLocations.map((location) => (
-            <span
-              key={location.name}
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "0.35rem",
-              }}
-            >
-              <button
-                type="button"
-                className="btn-secondary text-sm"
-                style={{ padding: "0.3rem 0.7rem", whiteSpace: "nowrap" }}
-                onClick={() => onCityChange(location)}
+          {savedLocations.map((location) => {
+            const aqiItem = savedAqiData[location.name];
+            const aqiValue = aqiItem?.aqi;
+            const band = getAQIBand(aqiValue);
+            const displayValue =
+              aqiItem == null ? "--" : aqiValue != null ? aqiValue : "N/A";
+
+            return (
+              <span
+                key={location.name}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "0.35rem",
+                }}
               >
-                {location.name}
-              </button>
-              <button
-                type="button"
-                className="btn-secondary text-sm"
-                style={{ padding: "0.3rem 0.5rem" }}
-                onClick={() => onRemoveSavedLocation(location.name)}
-                aria-label={`Remove ${location.name} from saved locations`}
-              >
-                ×
-              </button>
-            </span>
-          ))}
+                <button
+                  type="button"
+                  className="btn-secondary text-sm"
+                  style={{ padding: "0.3rem 0.7rem", whiteSpace: "nowrap" }}
+                  onClick={() => onCityChange(location)}
+                >
+                  {location.name}
+                  <span
+                    className="saved-location-aqi-chip"
+                    style={{
+                      marginLeft: "0.4rem",
+                      padding: "0.1rem 0.4rem",
+                      borderRadius: "4px",
+                      fontSize: "0.75rem",
+                      fontWeight: "bold",
+                      backgroundColor: aqiValue != null ? band.color : "#64748b",
+                      color: "#ffffff",
+                    }}
+                    title={
+                      aqiValue != null
+                        ? `${band.label} (AQI ${aqiValue})`
+                        : "AQI unavailable"
+                    }
+                  >
+                    {displayValue}
+                  </span>
+                </button>
+                <button
+                  type="button"
+                  className="btn-secondary text-sm"
+                  style={{ padding: "0.3rem 0.5rem" }}
+                  onClick={() => onRemoveSavedLocation(location.name)}
+                  aria-label={`Remove ${location.name} from saved locations`}
+                >
+                  ×
+                </button>
+              </span>
+            );
+          })}
         </div>
       )}
 

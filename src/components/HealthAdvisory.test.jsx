@@ -1,6 +1,8 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, act } from '@testing-library/react';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import HealthAdvisory from './HealthAdvisory';
+import { SYMPTOM_REPORTS_STORAGE_KEY } from './SymptomReportButton';
+import { eventBus } from '../core/events';
 
 const mockPdfSave = vi.fn();
 const mockPdfText = vi.fn();
@@ -135,6 +137,65 @@ describe('HealthAdvisory - Personalized Health Recommendations', () => {
 
       const pdfTextCalls = mockPdfText.mock.calls.map(call => call[0]);
       expect(pdfTextCalls.some(t => String(t).includes('No specific pre-existing health conditions selected'))).toBe(true);
+    });
+  });
+
+  describe('Community Health Insight (Issue #1154)', () => {
+    it('correctly counts reports from today vs yesterday and ignores invalid/older timestamps', () => {
+      const now = new Date();
+      const yesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+      const threeDaysAgo = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 3);
+
+      const sampleReports = [
+        { id: '1', timestamp: now.toISOString(), symptoms: ['Headache'] },
+        { id: '2', timestamp: now.toISOString(), symptoms: ['Coughing'] },
+        { id: '3', timestamp: yesterday.toISOString(), symptoms: ['Eye irritation'] },
+        { id: '4', timestamp: threeDaysAgo.toISOString(), symptoms: ['Dizziness'] }, // Older, ignore
+        { id: '5', timestamp: 'invalid-date-string', symptoms: ['Fatigue'] }, // Invalid, ignore
+        { id: '6', symptoms: ['Shortness of breath'] }, // Missing timestamp, ignore
+      ];
+
+      localStorage.setItem(SYMPTOM_REPORTS_STORAGE_KEY, JSON.stringify(sampleReports));
+
+      render(<HealthAdvisory currentAqi={187} />);
+
+      const insight = screen.getByTestId('community-health-insight');
+      expect(insight).toBeInTheDocument();
+      expect(insight).toHaveTextContent('2 symptom reports today vs. 1 yesterday');
+      expect(insight).toHaveTextContent('Current AQI: 187');
+    });
+
+    it('handles zero reports safely with non-causational observational wording', () => {
+      render(<HealthAdvisory currentAqi={45} />);
+
+      const insight = screen.getByTestId('community-health-insight');
+      expect(insight).toBeInTheDocument();
+      expect(insight).toHaveTextContent('0 symptom reports today vs. 0 yesterday');
+      expect(insight).toHaveTextContent('Current AQI: 45');
+
+      // Verify no causational language is present
+      const text = insight.textContent;
+      expect(text).not.toMatch(/caused/i);
+      expect(text).not.toMatch(/because/i);
+    });
+
+    it('updates dynamically when SYMPTOM_REPORT_SUBMITTED event is emitted', () => {
+      render(<HealthAdvisory currentAqi={95} />);
+
+      const insight = screen.getByTestId('community-health-insight');
+      expect(insight).toHaveTextContent('0 symptom reports today vs. 0 yesterday');
+
+      const now = new Date();
+      const newReports = [
+        { id: '1', timestamp: now.toISOString(), symptoms: ['Headache'] },
+      ];
+      localStorage.setItem(SYMPTOM_REPORTS_STORAGE_KEY, JSON.stringify(newReports));
+
+      act(() => {
+        eventBus.emit('SYMPTOM_REPORT_SUBMITTED');
+      });
+
+      expect(insight).toHaveTextContent('1 symptom report today vs. 0 yesterday');
     });
   });
 });
