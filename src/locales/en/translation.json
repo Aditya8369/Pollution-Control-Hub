@@ -311,7 +311,14 @@
     "moderatorMarkSuspicious": "Mark Suspicious",
     "moderatorOverrideVerified": "Override: Verified",
     "moderatorPanel": "Moderator Actions",
-    "reportsNearby": "Reports nearby: {{count}}"
+    "reportsNearby": "Reports nearby: {{count}}",
+    "labelTitle": "Issue title",
+    "labelDesc": "Issue description",
+    "labelCategory": "Incident category",
+    "labelSeverity": "Incident severity",
+    "labelLocationName": "Location name or address",
+    "labelHashtag": "Hashtag (optional)",
+    "labelPhoto": "Photo evidence (optional)"
   },
   "historicalAnalysis": {
     "loading": "Crunching 3 years of historical AQI data...",
