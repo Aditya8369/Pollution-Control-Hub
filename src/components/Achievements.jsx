@@ -2,8 +2,11 @@ import { useEffect, useState, useRef } from "react";
 import html2canvas from "html2canvas";
 import { BADGES, getEarnedBadges } from "../utils/achievementsStore";
 import { eventBus } from "../core/events";
+import { useTenant } from "../context/TenantContext";
 
 export default function Achievements() {
+    const { tenantId, teamId } = useTenant();
+    const [scope, setScope] = useState('global');
     const [earned, setEarned] = useState(() => getEarnedBadges());
     const [isSharing, setIsSharing] = useState(false);
     const shareCardRef = useRef(null);
@@ -70,12 +73,29 @@ export default function Achievements() {
         link.click();
     }
 
+    useEffect(() => {
+        if (scope === 'tenant' && (!tenantId || tenantId === 'default')) {
+            setScope('global');
+        }
+        if (scope === 'team' && (!tenantId || tenantId === 'default' || !teamId)) {
+            setScope('tenant');
+        }
+    }, [scope, tenantId, teamId]);
+
+    const scopeSummary =
+        scope === 'global'
+            ? 'Global badge ledger'
+            : scope === 'tenant'
+                ? `Organization view: ${tenantId || 'default'}`
+                : `Team view: ${teamId || 'operations'}`;
+
     return (
         <section className="panel achievements-panel">
             <div className="panel-head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
                 <div>
                     <h2>Achievements</h2>
                     <p>{earnedCount} of {BADGES.length} badges earned</p>
+                    <p style={{ marginTop: '0.25rem', color: 'var(--muted, #94a3b8)', fontSize: '0.8rem' }}>{scopeSummary}</p>
                 </div>
                 <button
                     type="button"
@@ -87,6 +107,37 @@ export default function Achievements() {
                     {isSharing ? "Generating Card..." : "Share Achievements"}
                 </button>
             </div>
+
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginTop: '1rem', marginBottom: '1rem' }}>
+                {['global', 'tenant', 'team'].map((option) => {
+                    const label = option === 'global' ? 'Global' : option === 'tenant' ? 'Organization' : 'Team';
+                    const isDisabled = option === 'tenant' && (!tenantId || tenantId === 'default');
+                    const isTeamDisabled = option === 'team' && (!tenantId || tenantId === 'default' || !teamId);
+                    const isActive = scope === option;
+
+                    return (
+                        <button
+                            key={option}
+                            type="button"
+                            onClick={() => setScope(option)}
+                            disabled={isDisabled || isTeamDisabled}
+                            style={{
+                                padding: '0.5rem 0.9rem',
+                                borderRadius: '999px',
+                                border: '1px solid rgba(148, 163, 184, 0.35)',
+                                background: isActive ? '#2dd4bf' : 'transparent',
+                                color: isActive ? '#062c2a' : '#f8fafc',
+                                opacity: isDisabled || isTeamDisabled ? 0.55 : 1,
+                                cursor: isDisabled || isTeamDisabled ? 'not-allowed' : 'pointer',
+                                fontWeight: 700,
+                            }}
+                        >
+                            {label}
+                        </button>
+                    );
+                })}
+            </div>
+
             <div className="achievements-grid">
                 {BADGES.map((badge) => {
                     const earnedAt = earned[badge.id];

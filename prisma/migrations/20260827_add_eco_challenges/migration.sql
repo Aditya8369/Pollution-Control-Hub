@@ -10,6 +10,8 @@ CREATE TABLE "Challenge" (
     "rewardType" TEXT NOT NULL,
     "rewardValue" INTEGER NOT NULL,
     "badgeName" TEXT,
+    "tenantId" TEXT,
+    "teamId" TEXT,
     "startDate" TIMESTAMP(3) NOT NULL,
     "endDate" TIMESTAMP(3) NOT NULL,
     "isActive" BOOLEAN NOT NULL DEFAULT true,
@@ -25,6 +27,8 @@ CREATE TABLE "UserChallengeProgress" (
     "id" TEXT NOT NULL,
     "userId" TEXT NOT NULL,
     "challengeId" TEXT NOT NULL,
+    "tenantId" TEXT,
+    "teamId" TEXT,
     "progress" INTEGER NOT NULL DEFAULT 0,
     "isCompleted" BOOLEAN NOT NULL DEFAULT false,
     "completedAt" TIMESTAMP(3),
@@ -42,6 +46,8 @@ CREATE UNIQUE INDEX "UserChallengeProgress_userId_challengeId_key" ON "UserChall
 
 -- CreateIndex
 CREATE INDEX "Challenge_isActive_endDate_idx" ON "Challenge"("isActive", "endDate");
+CREATE INDEX "Challenge_tenantId_teamId_idx" ON "Challenge"("tenantId", "teamId");
+CREATE INDEX "UserChallengeProgress_tenantId_teamId_idx" ON "UserChallengeProgress"("tenantId", "teamId");
 
 
 -- AddForeignKey

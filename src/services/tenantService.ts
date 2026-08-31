@@ -18,6 +18,7 @@
 import type { Tenant, TenantMember, TenantSettings } from '../types/tenant';
 
 const TENANT_STORAGE_KEY = 'pch_tenant_id';
+const TEAM_STORAGE_KEY = 'pch_team_id';
 const AUTH_TOKEN_KEY = 'token';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api';
@@ -48,6 +49,13 @@ export function getCurrentTenantId(): string {
 }
 
 /**
+ * The current team ID from localStorage, or null when no team is selected.
+ */
+export function getCurrentTeamId(): string | null {
+  return readStorage(TEAM_STORAGE_KEY);
+}
+
+/**
  * A scoped IndexedDB database name for the current tenant.
  * Each tenant gets its own isolated IndexedDB database.
  */
@@ -71,11 +79,35 @@ export function getTenantScopedKey(key: string): string {
 }
 
 /**
- * Appends `tenant_id` as a query parameter to an API URL.
+ * Appends `tenant_id` and `team_id` query parameters to an API URL.
  */
-export function scopeApiUrl(url: string): string {
+export function scopeApiUrl(url: string, tenantId = getCurrentTenantId(), teamId = getCurrentTeamId()): string {
+  const params = new URLSearchParams();
+  params.set('tenant_id', tenantId || 'default');
+
+  if (teamId) {
+    params.set('team_id', teamId);
+  }
+
   const separator = url.includes('?') ? '&' : '?';
-  return `${url}${separator}tenant_id=${encodeURIComponent(getCurrentTenantId())}`;
+  return `${url}${separator}${params.toString()}`;
+}
+
+/**
+ * Builds a challenge leaderboard query string for the active scope.
+ */
+export function buildChallengeScopeQuery(scope: 'global' | 'tenant' | 'team' = 'global', tenantId = getCurrentTenantId(), teamId = getCurrentTeamId()): string {
+  const params = new URLSearchParams({ scope });
+
+  if (scope !== 'global' && tenantId && tenantId !== 'default') {
+    params.set('tenant_id', tenantId);
+  }
+
+  if (scope === 'team' && teamId) {
+    params.set('team_id', teamId);
+  }
+
+  return params.toString();
 }
 
 // ─── Workspace REST client (#1031) ───────────────────────────────────────────

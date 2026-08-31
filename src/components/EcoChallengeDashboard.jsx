@@ -1,24 +1,42 @@
 import React, { useState, useEffect } from 'react';
-import { fetchActiveChallenges, joinChallenge, claimChallengeReward } from '../services/challengeService';
+import { useTenant } from '../context/TenantContext';
+import { buildChallengeScopeQuery } from '../services/tenantService';
 
 /**
  * @component EcoChallengeDashboard
  * @description Interactive UI displaying active challenges, progress bars, and join/claim actions.
  */
 const EcoChallengeDashboard = () => {
+    const { tenantId, teamId, setTeam, clearTeam } = useTenant();
+    const [scope, setScope] = useState('global');
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [actionLoading, setActionLoading] = useState(null);
 
     useEffect(() => {
+        if (scope === 'tenant' && (!tenantId || tenantId === 'default')) {
+            setScope('global');
+        }
+        if (scope === 'team' && (!tenantId || tenantId === 'default' || !teamId)) {
+            setScope('tenant');
+        }
+    }, [scope, tenantId, teamId]);
+
+    useEffect(() => {
         loadData();
-    }, []);
+    }, [scope, tenantId, teamId]);
 
     const loadData = async () => {
         setLoading(true);
         try {
-            const result = await fetchActiveChallenges();
+            const query = buildChallengeScopeQuery(scope, tenantId, teamId);
+            const response = await fetch(`/api/challenges/active?${query}`);
+            if (!response.ok) {
+                const errorPayload = await response.json().catch(() => ({}));
+                throw new Error(errorPayload.message || 'Failed to fetch active challenges.');
+            }
+            const result = await response.json();
             setData(result);
         } catch (err) {
             setError(err.message);
@@ -27,11 +45,22 @@ const EcoChallengeDashboard = () => {
         }
     };
 
+    const activeTenantId = scope === 'global' ? null : tenantId && tenantId !== 'default' ? tenantId : null;
+    const activeTeamId = scope === 'team' ? teamId : null;
+
     const handleJoin = async (challengeId) => {
         setActionLoading(challengeId);
         try {
-            await joinChallenge(challengeId);
-            await loadData(); // Refresh data
+            const response = await fetch(`/api/challenges/${encodeURIComponent(challengeId)}/join`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ tenant_id: activeTenantId, team_id: activeTeamId }),
+            });
+            const payload = await response.json().catch(() => ({}));
+            if (!response.ok) {
+                throw new Error(payload.message || 'Failed to join challenge.');
+            }
+            await loadData();
         } catch (err) {
             alert(err.message);
         } finally {
@@ -42,8 +71,16 @@ const EcoChallengeDashboard = () => {
     const handleClaim = async (challengeId) => {
         setActionLoading(challengeId);
         try {
-            const result = await claimChallengeReward(challengeId);
-            alert(`🎉 Congratulations! You earned ${result.pointsAwarded} points!`);
+            const response = await fetch(`/api/challenges/${encodeURIComponent(challengeId)}/claim`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ tenant_id: activeTenantId, team_id: activeTeamId }),
+            });
+            const payload = await response.json().catch(() => ({}));
+            if (!response.ok) {
+                throw new Error(payload.message || 'Failed to claim reward.');
+            }
+            alert(`🎉 Congratulations! You earned ${payload.pointsAwarded || 0} points!`);
             await loadData();
         } catch (err) {
             alert(err.message);
@@ -80,7 +117,6 @@ const EcoChallengeDashboard = () => {
 
     return (
         <div className="max-w-6xl mx-auto p-6 space-y-8">
-            {/* Header Stats */}
             <div className="bg-gradient-to-r from-green-600 to-teal-600 rounded-2xl p-8 text-white shadow-lg">
                 <div className="flex flex-col md:flex-row justify-between items-center gap-6">
                     <div>
@@ -91,6 +127,54 @@ const EcoChallengeDashboard = () => {
                         <div className="text-sm text-green-100 uppercase tracking-wide font-semibold">Total Points</div>
                         <div className="text-4xl font-bold mt-1">{data?.totalPointsEarned || 0}</div>
                     </div>
+                </div>
+            </div>
+
+            <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 shadow-sm">
+                <div className="flex flex-wrap items-center gap-2">
+                    {['global', 'tenant', 'team'].map((option) => {
+                        const isActive = scope === option;
+                        const label = option === 'global' ? 'Global' : option === 'tenant' ? 'Organization' : 'Team';
+                        const disabled = option === 'tenant' && (!tenantId || tenantId === 'default');
+                        const teamDisabled = option === 'team' && (!tenantId || tenantId === 'default' || !teamId);
+
+                        return (
+                            <button
+                                key={option}
+                                type="button"
+                                onClick={() => {
+                                    if (option === 'team') {
+                                        if (!teamId) {
+                                            setTeam('team_operations');
+                                        }
+                                    }
+                                    setScope(option);
+                                }}
+                                disabled={disabled || teamDisabled}
+                                className={`px-4 py-2 rounded-lg text-sm font-semibold transition-colors ${
+                                    isActive
+                                        ? 'bg-green-600 text-white'
+                                        : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600'
+                                } ${disabled || teamDisabled ? 'opacity-50 cursor-not-allowed' : ''}`}
+                            >
+                                {label}
+                            </button>
+                        );
+                    })}
+                    {scope === 'team' && teamId && (
+                        <button
+                            type="button"
+                            onClick={() => clearTeam()}
+                            className="px-3 py-2 rounded-lg text-xs bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-200"
+                        >
+                            Reset team
+                        </button>
+                    )}
+                </div>
+                <div className="mt-3 text-sm text-gray-600 dark:text-gray-400">
+                    {scope === 'global' && 'Individual impact across all communities.'}
+                    {scope === 'tenant' && `Organization view for ${tenantId || 'default'}.`}
+                    {scope === 'team' && `Team view for team ${teamId || 'operations'}.`}
                 </div>
             </div>
 

@@ -9,6 +9,7 @@ import React, {
 import { fetchUserTenants, updateTenantSettings as updateSettingsApi } from '../services/tenantService';
 
 const STORAGE_KEY = "pch_tenant_id";
+const TEAM_STORAGE_KEY = "pch_team_id";
 
 export const DEFAULT_TENANT_ID = "default";
 
@@ -101,6 +102,14 @@ function readRawStoredTenant() {
   }
 }
 
+function readStoredTeam() {
+  try {
+    return localStorage.getItem(TEAM_STORAGE_KEY);
+  } catch {
+    return null;
+  }
+}
+
 /**
  * The tenant the visitor previously chose, or the default.
  *
@@ -137,6 +146,22 @@ function forgetTenant() {
   }
 }
 
+function persistTeam(id) {
+  try {
+    localStorage.setItem(TEAM_STORAGE_KEY, id);
+  } catch {
+    // Ignore storage failures during team selection.
+  }
+}
+
+function forgetTeam() {
+  try {
+    localStorage.removeItem(TEAM_STORAGE_KEY);
+  } catch {
+    // Ignore storage failures during team clearing.
+  }
+}
+
 /**
  * Provides the active tenant and the operations that change it.
  *
@@ -144,6 +169,7 @@ function forgetTenant() {
  */
 export function TenantProvider({ children }) {
   const [tenantId, setTenantId] = useState(readStoredTenant);
+  const [teamId, setTeamId] = useState(() => readStoredTeam());
   const [currentTenant, setCurrentTenant] = useState(null);
   const [tenants, setTenants] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -195,10 +221,26 @@ export function TenantProvider({ children }) {
     // The default is the absence of a choice, so selecting it clears the key
     if (id === DEFAULT_TENANT_ID) {
       forgetTenant();
+      forgetTeam();
     } else {
       persistTenant(id);
     }
   }, [tenants]);
+
+  const setTeam = useCallback((id) => {
+    if (!id) {
+      setTeamId(null);
+      forgetTeam();
+      return;
+    }
+    setTeamId(id);
+    persistTeam(id);
+  }, []);
+
+  const clearTeam = useCallback(() => {
+    setTeamId(null);
+    forgetTeam();
+  }, []);
 
   const switchTenant = useCallback(async (tenantId) => {
     setIsLoading(true);
@@ -220,7 +262,9 @@ export function TenantProvider({ children }) {
   const clearTenant = useCallback(() => {
     setTenantId(DEFAULT_TENANT_ID);
     setCurrentTenant(null);
+    setTeamId(null);
     forgetTenant();
+    forgetTeam();
   }, []);
 
   const updateTenantSettings = useCallback(async (settings) => {
@@ -263,6 +307,9 @@ export function TenantProvider({ children }) {
       tenantName,
       setTenant,
       clearTenant,
+      teamId,
+      setTeam,
+      clearTeam,
       isMultiTenant: true,
       knownTenants: KNOWN_TENANTS,
       currentTenant,
@@ -273,7 +320,7 @@ export function TenantProvider({ children }) {
       fetchTenants,
       updateTenantSettings,
     }),
-    [tenantId, tenantName, setTenant, clearTenant, currentTenant, tenants, isLoading, error, switchTenant, fetchTenants, updateTenantSettings]
+    [tenantId, tenantName, setTenant, clearTenant, teamId, setTeam, clearTeam, currentTenant, tenants, isLoading, error, switchTenant, fetchTenants, updateTenantSettings]
   );
 
   return (

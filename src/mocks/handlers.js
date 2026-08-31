@@ -1,6 +1,14 @@
 import { http, HttpResponse } from 'msw';
 
 export const handlers = [
+  // Tenant workspace list used by TenantContext on mount
+  http.get('/api/tenants', () => {
+    return HttpResponse.json([
+      { id: 'tenant-1', name: 'Acme Corp' },
+      { id: 'tenant-2', name: 'Eco Org' },
+    ]);
+  }),
+
   // Nominatim geocoding
   http.get('https://nominatim.openstreetmap.org/search', ({ request }) => {
     const url = new URL(request.url);
