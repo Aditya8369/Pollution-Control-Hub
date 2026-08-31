@@ -63,9 +63,9 @@ import Leaderboard from "./components/Leaderboard";
 import SmartAlertsDashboard from "./components/SmartAlertsDashboard";
 import NoisePollutionTracker from "./components/NoisePollutionTracker";
 import OceanAcidificationMonitor from "./components/OceanAcidificationMonitor";
+import LightPollutionObservatory from "./components/LightPollutionObservatory";
 
 import HealthImpactDashboard from "./components/HealthImpactDashboard";
-import WeatherHealthCorrelation from "./components/WeatherHealthCorrelation";
 
 const AqiMissionGame = lazy(() => import("./components/AqiMissionGame"));
 const HotspotScoutGame = lazy(() => import("./components/HotspotScoutGame"));
@@ -356,6 +356,7 @@ export function SectionNav({ activeSection, onSectionChange }) {
     { id: "achievements", label: "Achievements" },
     { id: "eco-impact", label: "Eco Impact" },
     { id: "city-leaderboard", label: "City Leaderboard" },
+    { id: "light-pollution", label: "Light Pollution" },
     { id: "marine", label: "Marine Water Quality" },
     { id: "smart-alerts", label: "Smart Alerts" },
     { id: "noise-pollution", label: "Noise Pollution" },
@@ -364,7 +365,6 @@ export function SectionNav({ activeSection, onSectionChange }) {
     { id: "smart-alerts", label: "Smart Alerts" },
     { id: "ocean-acid", label: "Ocean Acidification" },
     { id: "health-impact", label: "Health Impact" },
-    { id: "weather-correlation", label: "Weather–Health" },
   ];
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef(null);
@@ -1276,6 +1276,7 @@ function AppContent() {
             {activeSection === "Commute" && <Commute />}
             {activeSection === "Compare" && <CityCompare />}
             {activeSection === "city-leaderboard" && <CityPollutionLeaderboard />}
+            {activeSection === "light-pollution" && <LightPollutionObservatory />}
             {activeSection === "marine" && (
               <Suspense fallback={<div className="loading-spinner" role="status" aria-label="Loading marine suite" />}>
                 <MarineWaterQualitySuite />
@@ -1286,24 +1287,6 @@ function AppContent() {
             {activeSection === "ocean-acid" && <OceanAcidificationMonitor />}
 
             {activeSection === "health-impact" && <HealthImpactDashboard />}
-            {activeSection === "weather-correlation" && (
-              <div
-                className="content-grid weather-correlation-layout"
-                style={{
-                  maxWidth: "1200px",
-                  margin: "2rem auto",
-                  width: "100%",
-                  display: "block",
-                }}
-              >
-                <WeatherHealthCorrelation
-                  lat={position.lat}
-                  lon={position.lon}
-                  trend={trend}
-                  cityName={position.cityName}
-                />
-              </div>
-            )}
             {activeSection === "CarbonCalculator" && (
               <div
                 className="content-grid carbon-calculator-layout"
