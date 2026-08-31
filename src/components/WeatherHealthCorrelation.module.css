@@ -1,0 +1,399 @@
+/* WeatherHealthCorrelation.module.css */
+
+/* ==========================================================================
+   Root container
+   ========================================================================== */
+.correlationRoot {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding: 1.5rem;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* ==========================================================================
+   Header
+   ========================================================================== */
+.header {
+  text-align: center;
+}
+
+.headerTitle {
+  font-size: 1.6rem;
+  font-weight: 700;
+  margin: 0 0 0.25rem 0;
+  color: var(--text-primary, #0f172a);
+}
+
+.headerSubtitle {
+  font-size: 0.95rem;
+  color: var(--text-secondary, #64748b);
+  margin: 0;
+}
+
+/* ==========================================================================
+   Control bar (variable selectors + time range)
+   ========================================================================== */
+.controlBar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: var(--bg-card, #ffffff);
+  border: 1px solid var(--border-color, #e2e8f0);
+  border-radius: 0.75rem;
+}
+
+.controlGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.controlLabel {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary, #64748b);
+}
+
+.controlSelect {
+  padding: 0.4rem 0.75rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--border-color, #cbd5e1);
+  background: var(--bg-card, #ffffff);
+  color: var(--text-primary, #0f172a);
+  font-size: 0.875rem;
+  cursor: pointer;
+  min-width: 140px;
+}
+
+.controlSelect:focus {
+  outline: 2px solid var(--brand, #0d9488);
+  outline-offset: 2px;
+}
+
+/* ==========================================================================
+   Stats row
+   ========================================================================== */
+.statsRow {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1rem;
+}
+
+.statCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 1rem;
+  background: var(--bg-card, #ffffff);
+  border: 1px solid var(--border-color, #e2e8f0);
+  border-radius: 0.75rem;
+  text-align: center;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.statCard:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.statIcon {
+  font-size: 1.5rem;
+  margin-bottom: 0.35rem;
+}
+
+.statValue {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: var(--text-primary, #0f172a);
+  line-height: 1.2;
+}
+
+.statLabel {
+  font-size: 0.75rem;
+  color: var(--text-secondary, #64748b);
+  margin-top: 0.2rem;
+}
+
+/* ==========================================================================
+   Correlation matrix
+   ========================================================================== */
+.matrixSection {
+  background: var(--bg-card, #ffffff);
+  border: 1px solid var(--border-color, #e2e8f0);
+  border-radius: 0.75rem;
+  padding: 1.25rem;
+}
+
+.sectionTitle {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 0 0 1rem 0;
+  color: var(--text-primary, #0f172a);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.matrixTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+}
+
+.matrixTable th,
+.matrixTable td {
+  padding: 0.5rem 0.6rem;
+  text-align: center;
+  border: 1px solid var(--border-color, #e2e8f0);
+  white-space: nowrap;
+}
+
+.matrixTable th {
+  background: var(--bg-secondary, #f8fafc);
+  font-weight: 600;
+  font-size: 0.75rem;
+  color: var(--text-secondary, #475569);
+}
+
+.matrixTable thead th {
+  border-bottom: 2px solid var(--border-color, #cbd5e1);
+}
+
+.matrixTable tbody th {
+  text-align: right;
+  background: var(--bg-secondary, #f8fafc);
+  font-weight: 600;
+}
+
+.matrixCell {
+  font-weight: 600;
+  border-radius: 4px;
+  transition: transform 0.1s ease;
+  cursor: default;
+}
+
+.matrixCell:hover {
+  transform: scale(1.08);
+  z-index: 2;
+  position: relative;
+}
+
+/* ==========================================================================
+   Charts grid
+   ========================================================================== */
+.chartsGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+}
+
+@media (max-width: 800px) {
+  .chartsGrid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.chartCard {
+  background: var(--bg-card, #ffffff);
+  border: 1px solid var(--border-color, #e2e8f0);
+  border-radius: 0.75rem;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.chartTitle {
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin: 0 0 0.75rem 0;
+  color: var(--text-primary, #0f172a);
+}
+
+.chartContainer {
+  width: 100%;
+  height: 260px;
+}
+
+/* ==========================================================================
+   Scatter tooltip
+   ========================================================================== */
+.scatterTooltip {
+  background: var(--bg-card, #ffffff);
+  border: 1px solid var(--border-color, #e2e8f0);
+  border-radius: 0.5rem;
+  padding: 0.75rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  font-size: 0.8rem;
+  line-height: 1.4;
+  max-width: 220px;
+}
+
+.scatterTooltipValue {
+  font-weight: 700;
+  color: var(--text-primary, #0f172a);
+}
+
+.scatterTooltipTime {
+  font-size: 0.7rem;
+  color: var(--text-secondary, #94a3b8);
+  margin-top: 0.25rem;
+}
+
+/* ==========================================================================
+   Insights panel
+   ========================================================================== */
+.insightsSection {
+  background: var(--bg-card, #ffffff);
+  border: 1px solid var(--border-color, #e2e8f0);
+  border-radius: 0.75rem;
+  padding: 1.25rem;
+}
+
+.insightsList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.insightItem {
+  display: flex;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  border-left: 4px solid var(--border-color, #cbd5e1);
+  background: var(--bg-secondary, #f8fafc);
+}
+
+.insightItemHigh {
+  border-left-color: #ef4444;
+  background: #fef2f2;
+}
+
+.insightItemMedium {
+  border-left-color: #f59e0b;
+  background: #fffbeb;
+}
+
+.insightItemInsight {
+  border-left-color: var(--brand, #0d9488);
+  background: #f0fdfa;
+}
+
+.insightIcon {
+  font-size: 1.3rem;
+  flex-shrink: 0;
+}
+
+.insightContent {
+  flex: 1;
+}
+
+.insightTitle {
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin: 0 0 0.2rem 0;
+  color: var(--text-primary, #0f172a);
+}
+
+.insightDescription {
+  font-size: 0.8rem;
+  margin: 0;
+  color: var(--text-secondary, #475569);
+  line-height: 1.5;
+}
+
+/* ==========================================================================
+   Empty / loading states
+   ========================================================================== */
+.emptyState {
+  text-align: center;
+  padding: 3rem 1.5rem;
+  color: var(--text-secondary, #94a3b8);
+}
+
+.emptyIcon {
+  font-size: 2.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.emptyTitle {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 0 0 0.3rem 0;
+  color: var(--text-primary, #475569);
+}
+
+.emptyDescription {
+  font-size: 0.85rem;
+  margin: 0;
+  max-width: 400px;
+  margin-left: auto;
+  margin-right: auto;
+  line-height: 1.5;
+}
+
+.loadingState {
+  text-align: center;
+  padding: 3rem 1.5rem;
+  color: var(--text-secondary, #94a3b8);
+}
+
+/* ==========================================================================
+   Legend
+   ========================================================================== */
+.legendBar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  justify-content: center;
+  padding: 0.75rem 1rem;
+  background: var(--bg-secondary, #f8fafc);
+  border-radius: 0.5rem;
+  font-size: 0.75rem;
+  color: var(--text-secondary, #475569);
+}
+
+.legendItem {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.legendDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+/* ==========================================================================
+   Data quality badge
+   ========================================================================== */
+.qualityBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  background: #f0fdfa;
+  color: var(--brand, #0d9488);
+  border: 1px solid var(--brand, #0d9488);
+}
+
+.qualityBadgeLow {
+  background: #fffbeb;
+  color: #d97706;
+  border-color: #d97706;
+}
