@@ -463,7 +463,7 @@ export default function NoisePollutionTracker() {
           </div>
           <div style={{ ...st.kpi, flex: 1 }}>
             <div style={{ fontSize: "0.8rem", color: "#64748b", marginBottom: "4px" }}>Night Compliance</div>
-            <div style={{ fontSize: "2rem", fontWeight: 800, color={hourly.filter(h => (h.hour >= 22 || h.hour < 6) && h.db > zone.nightLimit).length === 0 ? "#22c55e" : "#ef4444"}>
+            <div style={{ fontSize: "2rem", fontWeight: 800, color: (hourly.filter(h => (h.hour >= 22 || h.hour < 6) && h.db > zone.nightLimit).length === 0 ? "#22c55e" : "#ef4444") }}>
               {Math.round(hourly.filter(h => (h.hour >= 22 || h.hour < 6) && h.db <= zone.nightLimit).length / hourly.filter(h => h.hour >= 22 || h.hour < 6).length * 100)}%
             </div>
             <div style={st.progressTrack}>
@@ -613,6 +613,8 @@ export default function NoisePollutionTracker() {
   );
 
   const renderInsights = () => {
+    const exposureHours = hourly.filter(h => h.db > 85).length;
+    const leq8h = Math.round(hourly.slice(0, 8).reduce((acc, h) => acc + h.db, 0) / (hourly.slice(0, 8).length || 1)) || avgDb;
     const insights = [
       { icon: "🔊", title: "Chronic Exposure Alert", color: "#ef4444", body: `At ${currentDb} dB (current), hearing damage begins after ${currentDb > 100 ? "15 minutes" : currentDb > 85 ? "2 hours" : currentDb > 70 ? "8 hours" : "no significant risk"}. ${exposureHours > 2 ? `You've experienced ${exposureHours} hours above 85 dB in the last 24h — well above safe daily limits.` : "Daily exposure is within safe limits for most hearing health standards."}` },
       { icon: "🚗", title: "Primary Noise Contributor", color: "#f97316", body: `Traffic noise is the dominant environmental noise source, contributing an average of 78–92 dB. WHO recommends ≤53 dB for roads to avoid health effects. Current urban levels typically exceed this by 20–40 dB, causing annoyance, sleep disturbance, and cardiovascular risk.` },

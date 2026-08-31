@@ -31,11 +31,13 @@ import ScrollToTopButton from "./components/ScrollToTopButton";
 import SkeletonDashboard from "./components/SkeletonDashboard";
 import { eventBus } from "./core/events";
 import { useSWR } from "./hooks/useSWR";
+import {
   estimateExposureTime,
   estimateWeeklyMonthlyAverages,
   fetchAirQualityByCoords,
   fetchCityComparisons,
   fetchWindData,
+  getAQIBand,
 } from "./services/airQualityService";
 import { cacheStore } from "./utils/cacheStore";
 import { getPrecomputedAverages } from "./services/aqiPrecomputationService";
@@ -64,16 +66,22 @@ import SmartAlertsDashboard from "./components/SmartAlertsDashboard";
 import NoisePollutionTracker from "./components/NoisePollutionTracker";
 import OceanAcidificationMonitor from "./components/OceanAcidificationMonitor";
 import HealthImpactDashboard from "./components/HealthImpactDashboard";
+import LightPollutionObservatory from "./components/LightPollutionObservatory";
+
+import DataExportDashboard from "./components/DataExportDashboard";
+import CityComparisonReport from "./components/CityComparisonReport";
 const AqiMissionGame = lazy(() => import("./components/AqiMissionGame"));
 const HotspotScoutGame = lazy(() => import("./components/HotspotScoutGame"));
 const RiverOriginGame = lazy(() => import("./components/RiverOriginGame"));
 const MarineWaterQualitySuite = lazy(() => import("./components/MarineWaterQualitySuite"));
+
 const DEFAULT_POSITION = {
   lat: 28.6139,
   lon: 77.209,
   cityName: "Delhi",
 };
 const SAVED_LOCATIONS_KEY = "pollution-hub-saved-locations";
+
 const THEME_STORAGE_KEY = "pollution-hub-theme";
 // Whether the stored theme reflects a deliberate choice ("manual") or just mirrors what
 // the OS was set to when the app last rendered ("system"). The theme value alone cannot
@@ -88,6 +96,7 @@ const AUTO_REFRESH_OPTIONS = [
   { label: "5 min", seconds: 300 },
   { label: "10 min", seconds: 600 },
 ];
+
 /** @returns {number} Saved auto-refresh interval in seconds, or the default. */
 function readAutoRefreshSeconds() {
   try {
@@ -114,6 +123,11 @@ function readSavedLocations() {
 // Nominatim's usage policy allows at most 1 request per second, so we track
 // the last call time here and space out requests if needed.
 let lastGeocodeRequestAt = 0;
+
+}
+  try {
+  } catch {
+  }
 async function reverseGeocodeCity(lat, lon) {
   // Round coordinates so tiny GPS jitter reuses the same cache entry
   // instead of triggering a new network request every time.
@@ -124,11 +138,14 @@ async function reverseGeocodeCity(lat, lon) {
   if (elapsed < 1100) {
     await new Promise((resolve) => setTimeout(resolve, 1100 - elapsed));
   lastGeocodeRequestAt = Date.now();
+
+  }
   const response = await fetch(
     `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`,
   );
   if (!response.ok) {
     throw new Error(`Reverse geocoding failed with status: ${response.status}`);
+  }
   const data = await response.json();
   const address = data?.address || {};
   const cityName =
@@ -140,6 +157,8 @@ async function reverseGeocodeCity(lat, lon) {
     "Your Current Location";
   cacheStore.set(cacheKey, cityName);
   return cityName;
+
+}
 /** @param {any} params */
 function Hero({ cityName }) {
   const { t } = useTranslation();
@@ -152,6 +171,10 @@ function Hero({ cityName }) {
         <p>{t("hero.description", "A single digital platform to track air quality in {{cityName}}, protect health, and mobilize community-driven climate action.", { cityName })}</p>
       </div>
     </header>
+  );
+}
+
+/** @param {any} params */
 function AppControls({
   selectedCity,
   onCityChange,
@@ -168,6 +191,44 @@ function AppControls({
 }) {
   const isCurrentCitySaved = savedLocations.some(
     (item) => item.name === currentCity,
+  const { t } = useTranslation();
+  const [savedAqiData, setSavedAqiData] = useState({});
+
+  useEffect(() => {
+    if (!savedLocations || savedLocations.length === 0) {
+      setSavedAqiData({});
+      return;
+    }
+    let isMounted = true;
+    Promise.all(
+      savedLocations.map(async (location) => {
+        try {
+          const result = await fetchAirQualityByCoords(
+            location.lat,
+            location.lon,
+            undefined,
+            true
+          );
+          const aqi = result?.current?.us_aqi ?? null;
+          return { name: location.name, aqi, error: false };
+        } catch {
+          return { name: location.name, aqi: null, error: true };
+        }
+      })
+    ).then((results) => {
+      if (!isMounted) return;
+      const nextMap = {};
+      results.forEach((item) => {
+        nextMap[item.name] = { aqi: item.aqi, error: item.error };
+      });
+      setSavedAqiData(nextMap);
+    });
+    return () => {
+      isMounted = false;
+    };
+  }, [savedLocations, isRefreshing, lastUpdated]);
+  );
+  return (
     <section className="app-controls" aria-label="Live controls">
       <div
         className="control-group"
@@ -202,6 +263,18 @@ function AppControls({
       {savedLocations.length > 0 && (
         <div
           className="control-group saved-locations"
+        <button
+          type="button"
+          className="btn-secondary text-sm"
+          style={{
+            padding: "0.4rem 0.8rem",
+            whiteSpace: "nowrap",
+            flexShrink: 0,
+          }}
+        >
+        </button>
+      </div>
+
             display: "flex",
             alignItems: "center",
             gap: "0.5rem",
@@ -234,6 +307,57 @@ function AppControls({
           ))}
         </div>
       )}
+          }}
+        >
+          {savedLocations.map((location) => {
+            const aqiItem = savedAqiData[location.name];
+            const aqiValue = aqiItem?.aqi;
+            const band = getAQIBand(aqiValue);
+            const displayValue =
+              aqiItem == null ? "--" : aqiValue != null ? aqiValue : "N/A";
+
+            return (
+              <span
+                key={location.name}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "0.35rem",
+                }}
+                <button
+                  type="button"
+                  className="btn-secondary text-sm"
+                  style={{ padding: "0.3rem 0.7rem", whiteSpace: "nowrap" }}
+                  onClick={() => onCityChange(location)}
+                >
+                  {location.name}
+                  <span
+                    className="saved-location-aqi-chip"
+                    style={{
+                      marginLeft: "0.4rem",
+                      padding: "0.1rem 0.4rem",
+                      borderRadius: "4px",
+                      fontSize: "0.75rem",
+                      fontWeight: "bold",
+                      backgroundColor: aqiValue != null ? band.color : "#64748b",
+                      color: "#ffffff",
+                    }}
+                    title={
+                      aqiValue != null
+                        ? `${band.label} (AQI ${aqiValue})`
+                        : "AQI unavailable"
+                    }
+                  >
+                    {displayValue}
+                  </span>
+                </button>
+                  style={{ padding: "0.3rem 0.5rem" }}
+                  onClick={() => onRemoveSavedLocation(location.name)}
+                  aria-label={`Remove ${location.name} from saved locations`}
+                  ×
+              </span>
+            );
+          })}
       <div className="control-group status">
         <span className={`live-dot ${isRefreshing ? "active" : ""}`} />
         <p>
@@ -251,6 +375,7 @@ function AppControls({
           value={autoRefreshSeconds}
           onChange={(event) => onAutoRefreshChange(Number(event.target.value))}
           style={{ padding: "0.3rem 0.5rem" }}
+        >
           {AUTO_REFRESH_OPTIONS.map((option) => (
             <option key={option.seconds} value={option.seconds}>
               {option.label}
@@ -260,6 +385,13 @@ function AppControls({
           onClick={() => eventBus.emit("FORCE_REFRESH")}
           disabled={isRefreshing}
           {t("controls.refreshNow", "Refresh Now")}
+          ))}
+      </div>
+
+        <button
+          type="button"
+        >
+        </button>
         <small>
           {lastUpdated
             ? t("controls.lastUpdated", "Last updated: {{time}}", { time: new Date(lastUpdated).toLocaleTimeString() })
@@ -267,6 +399,12 @@ function AppControls({
         </small>
     </section>
 export function SectionNav({ activeSection, onSectionChange }) {
+      </div>
+  );
+}
+
+/** @param {any} params */
+  const { t } = useTranslation();
   const sections = [
     { id: "home", label: "Home" },
     { id: "copilot", label: "AI Copilot" },
@@ -303,14 +441,17 @@ import PollutionForecastDashboard from "./components/PollutionForecastDashboard"
     { id: "smart-alerts", label: "Smart Alerts" },
     { id: "noise-pollution", label: "Noise Pollution" },
     { id: "ocean-acid", label: "Ocean Acidification" },
-    { id: "smart-alerts", label: "Smart Alerts" },
-    { id: "ocean-acid", label: "Ocean Acidification" },
     { id: "health-impact", label: "Health Impact" },
+    { id: "light-pollution", label: "Light Pollution" },
+
+    { id: "data-export", label: "Data Export" },
+    { id: "city-comparison-report", label: "City Compare Report" },
   ];
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef(null);
   const mobileNavRef = useRef(null);
   const hamburgerBtnRef = useRef(null);
+
   useEffect(() => {
     function handleClickOutside(event) {
       if (menuRef.current && !menuRef.current.contains(event.target)) {
@@ -321,6 +462,9 @@ import PollutionForecastDashboard from "./components/PollutionForecastDashboard"
       if (event.key === "Escape") {
         hamburgerBtnRef.current?.focus();
         return;
+
+        setIsMenuOpen(false);
+      }
       // Trap focus inside the open mobile menu so Tab/Shift+Tab can't
       // escape onto the content sitting behind the overlay.
       if (event.key === "Tab" && mobileNavRef.current) {
@@ -330,6 +474,7 @@ import PollutionForecastDashboard from "./components/PollutionForecastDashboard"
         if (!focusableElements.length) return;
         const firstElement = focusableElements[0];
         const lastElement = focusableElements[focusableElements.length - 1];
+
         if (event.shiftKey) {
           if (document.activeElement === firstElement) {
             event.preventDefault();
@@ -342,6 +487,11 @@ import PollutionForecastDashboard from "./components/PollutionForecastDashboard"
     if (isMenuOpen) {
       document.addEventListener("mousedown", handleClickOutside);
       document.addEventListener("keydown", handleKeyDown);
+            event.preventDefault();
+          }
+      }
+    }
+
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
       document.removeEventListener("keydown", handleKeyDown);
@@ -353,6 +503,8 @@ import PollutionForecastDashboard from "./components/PollutionForecastDashboard"
     if (!isMenuOpen) return;
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
+
+  useEffect(() => {
     const focusTimer = setTimeout(() => {
       const firstFocusable = mobileNavRef.current?.querySelector(
         'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
@@ -361,11 +513,16 @@ import PollutionForecastDashboard from "./components/PollutionForecastDashboard"
     }, 50);
       document.body.style.overflow = previousOverflow;
       clearTimeout(focusTimer);
+
+    return () => {
+    };
+  }, [isMenuOpen]);
   /** @param {any} id */
   const handleSectionClick = (id) => {
     onSectionChange(id);
     setIsMenuOpen(false);
   };
+
   return (
     <>
       {isMenuOpen && (
@@ -399,12 +556,15 @@ import PollutionForecastDashboard from "./components/PollutionForecastDashboard"
         {/* Mobile Section Navigation */}
         <div className="section-nav-mobile">
           <div className="mobile-nav-toggle-wrap">
+
+            <button
               ref={hamburgerBtnRef}
               className="hamburger-btn"
               onClick={() => setIsMenuOpen(!isMenuOpen)}
               aria-expanded={isMenuOpen}
               aria-label={t("nav.toggleNavigation", "Toggle navigation")}
               aria-controls="mobile-navigation"
+            >
               <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
                 {isMenuOpen ? (
                   <path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41z" />
@@ -412,6 +572,8 @@ import PollutionForecastDashboard from "./components/PollutionForecastDashboard"
                   <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z" />
                 )}
               </svg>
+            </button>
+
             {isMenuOpen && (
               <div
                 id="mobile-navigation"
@@ -434,14 +596,20 @@ import PollutionForecastDashboard from "./components/PollutionForecastDashboard"
           <div className="mobile-nav-controls">
             <LanguageSwitcher />
             <ThemeSwitcher />
+
+          </div>
+        </div>
       </nav>
     </>
   );
 }
+
 function AppContent() {
   const { t } = useTranslation();
   const [activeSection, setActiveSection] = useState(
     () => localStorage.getItem("activeSection") || "home",
+  );
+
   // --- Helper: read city info from the URL hash (e.g. #city=Mumbai&lat=19.07&lon=72.87) ---
   function getCityFromHash() {
     const params = new URLSearchParams(window.location.hash.slice(1));
@@ -453,6 +621,8 @@ function AppContent() {
       return { name, lat, lon };
     return null;
   }
+    }
+
   // --- Helper: write city info into the URL hash so Back/Forward works ---
   function setCityInHash(name, lat, lon) {
     const params = new URLSearchParams();
@@ -461,6 +631,8 @@ function AppContent() {
     params.set("lon", lon);
     // pushState so browser Back button can restore the previous city
     window.history.pushState(null, "", "#" + params.toString());
+  }
+
   // On first load: prefer URL hash → then localStorage → then 'auto'
   const [selectedCity, setSelectedCity] = useState(() => {
     const fromHash = getCityFromHash();
@@ -469,10 +641,13 @@ function AppContent() {
   });
   // On first load: prefer URL hash → then localStorage → then DEFAULT_POSITION
   const [position, setPosition] = useState(() => {
+
+    const fromHash = getCityFromHash();
     if (fromHash)
       return { lat: fromHash.lat, lon: fromHash.lon, cityName: fromHash.name };
     const saved = localStorage.getItem("position");
     return saved ? JSON.parse(saved) : DEFAULT_POSITION;
+  });
   const aqiKey =
     position.lat && position.lon ? `aqi_${position.lat}_${position.lon}` : null;
   const {
@@ -483,15 +658,20 @@ function AppContent() {
     // @ts-ignore
   } = useSWR(aqiKey, () => fetchAirQualityByCoords(position.lat, position.lon));
   const cityKey = "city_comparisons";
+
+  const {
     data: cityComparisons,
     error: citiesError,
     isValidating: isCitiesValidating,
     mutate: mutateCities,
   } = useSWR(cityKey, () => fetchCityComparisons());
+    // @ts-ignore
+
   const windKey =
     position.lat && position.lon
       ? `wind_${position.lat}_${position.lon}`
       : null;
+  const {
     data: windData,
     error: windError,
     isValidating: isWindValidating,
@@ -502,11 +682,17 @@ function AppContent() {
     data: precomputedData,
     mutate: mutatePrecomputed,
   } = useSWR(precomputedKey, () => getPrecomputedAverages(position.lat, position.lon));
+    // @ts-ignore
+
+    position.lat && position.lon
+      : null;
+  const {
   const current = aqiData?.current;
   const trend = aqiData?.trend || [];
   const nearbyPoints = aqiData?.nearbyPoints || [];
   const confidenceScore = aqiData?.confidenceScore || "High";
   const dataCompleteness = aqiData?.dataCompleteness || 100;
+
   const loading =
     (!aqiData && isAqiValidating) || (!cityComparisons && isCitiesValidating);
   const isRefreshing =
@@ -516,6 +702,8 @@ function AppContent() {
   const [autoRefreshSeconds, setAutoRefreshSeconds] = useState(
     () => readAutoRefreshSeconds(),
   const [refreshCountdown, setRefreshCountdown] = useState(
+
+  );
   const [savedLocations, setSavedLocations] = useState(() => readSavedLocations());
   const [locationNotice, setLocationNotice] = useState("");
   const [persistenceWarning, setPersistenceWarning] = useState("");
@@ -523,6 +711,7 @@ function AppContent() {
   const [timeRange, setTimeRange] = useState(() => {
     const saved = localStorage.getItem("timeRange");
     return saved ? Number(saved) : 24;
+  });
   const [osThemeSuggestion, setOsThemeSuggestion] = useState(null);
   // Mirrors `theme` for the media-query listener, which is registered once on mount.
   const themeRef = useRef(theme);
@@ -530,6 +719,8 @@ function AppContent() {
   const debounceRef = useRef(null);
   const geoRequestId = useRef(0);
   const scrollAnchorRef = useRef(null);
+
+  useEffect(() => {
     if (activeSection === "home") {
       window.scrollTo({ top: 0, behavior: "smooth" });
     } else if (scrollAnchorRef.current) {
@@ -549,6 +740,13 @@ function AppContent() {
   }, [selectedCity]);
     localStorage.setItem("position", JSON.stringify(position));
   }, [position]);
+    }
+
+  useEffect(() => {
+      );
+    return () => {
+      }
+    };
     try {
       localStorage.setItem(SAVED_LOCATIONS_KEY, JSON.stringify(savedLocations));
     } catch {
@@ -570,10 +768,16 @@ function AppContent() {
     const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
     const handleOsThemeChange = (e) => {
       const newSystemTheme = e.matches ? "dark" : "light";
+    }
+
+  useEffect(() => {
       if (!hasManualThemePreference()) {
         // No in-app choice has been made — follow the OS silently.
         // @ts-ignore
         setTheme(newSystemTheme);
+        return;
+      }
+
       // Compare against the live theme via the ref: this listener is registered once, so
       // reading `theme` from the closure would compare against the first render's value
       // and prompt even when the requested theme is already active.
@@ -589,6 +793,12 @@ function AppContent() {
       setPosition(DEFAULT_POSITION);
       setDetecting(false);
       return;
+      }
+    };
+  }, []);
+
+      );
+    }
     navigator.geolocation.getCurrentPosition(
       async (coords) => {
         if (requestId !== geoRequestId.current) return;
@@ -597,6 +807,7 @@ function AppContent() {
         setLocationNotice("");
         setPosition({ lat, lon, cityName: "Your Current Location" });
         setDetecting(false);
+
         try {
           const cityName = await reverseGeocodeCity(lat, lon);
           if (requestId === geoRequestId.current) {
@@ -606,6 +817,10 @@ function AppContent() {
             setLocationNotice(
               "Couldn't retrieve your city name. Using your current coordinates instead."
             );
+          }
+        }
+
+          if (requestId === geoRequestId.current) {
             setPosition({
               lat,
               lon,
@@ -634,6 +849,15 @@ function AppContent() {
       setSelectedCity("auto");
     }, 500);
   }, [startGeolocation]);
+          }
+        }
+        if (requestId !== geoRequestId.current) return;
+
+        );
+        setDetecting(false);
+  }, []);
+  useEffect(() => {
+    }
   /** @param {any} location */
   const handleLocationSelected = useCallback((location) => {
     if (location === "auto") {
@@ -648,6 +872,8 @@ function AppContent() {
       setCityInHash(location.name, location.lat, location.lon);
       setLocationNotice("");
   }, [handleAutoDetect]);
+    }
+
   const handleSaveLocation = useCallback(() => {
     setSavedLocations((prev) =>
       prev.some((item) => item.name === position.cityName)
@@ -660,6 +886,11 @@ function AppContent() {
   const handleRemoveSavedLocation = useCallback((name) => {
     setSavedLocations((prev) => prev.filter((item) => item.name !== name));
   // Listen for browser Back/Forward (popstate) and restore the city from the URL hash
+    );
+  }, [position]);
+
+  }, []);
+  useEffect(() => {
     function handlePopState() {
       const fromHash = getCityFromHash();
       if (fromHash) {
@@ -677,10 +908,16 @@ function AppContent() {
         startGeolocation();
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
+      }
+    }
+  }, [startGeolocation]);
+
   const mutateAqiRef = useRef(mutateAqi);
   const mutateCitiesRef = useRef(mutateCities);
   const mutateWindRef = useRef(mutateWind);
   const mutatePrecomputedRef = useRef(mutatePrecomputed);
+
+  useEffect(() => {
     mutateAqiRef.current = mutateAqi;
     mutateCitiesRef.current = mutateCities;
     mutateWindRef.current = mutateWind;
@@ -693,6 +930,13 @@ function AppContent() {
   }, [autoRefreshSeconds]);
     if (autoRefreshSeconds === 0) {
       return undefined;
+  });
+
+  useEffect(() => {
+    try {
+      );
+    } catch {
+    }
     const refreshTimer = setInterval(() => {
       if (navigator.onLine) {
         mutateAqiRef.current();
@@ -710,6 +954,13 @@ function AppContent() {
   const analytics = useMemo(() => {
     if (precomputedData) {
       return precomputedData;
+      }
+
+      );
+    return () => {
+    };
+  }, [autoRefreshSeconds]);
+    }
     return estimateWeeklyMonthlyAverages(trend);
   }, [precomputedData, trend]);
   const exposureEstimate = useMemo(
@@ -718,6 +969,9 @@ function AppContent() {
   // Using the in-app toggle is the one action that counts as choosing a theme.
   const toggleTheme = useCallback(() => {
     localStorage.setItem(THEME_SOURCE_KEY, "manual");
+  );
+
+    // @ts-ignore
     setTheme((prev) => {
       if (prev === 'light') return 'dark';
       if (prev === 'dark') return 'high-contrast';
@@ -726,6 +980,11 @@ function AppContent() {
     setTheme(osThemeSuggestion);
     setOsThemeSuggestion(null);
   const dismissOsThemeSuggestion = () => {
+    });
+  }, []);
+
+    // @ts-ignore
+  };
   const refreshNow = useCallback(async () => {
     if (isRefreshing) return;
     await cacheStore.invalidate();
@@ -736,6 +995,9 @@ function AppContent() {
     if (autoRefreshSeconds > 0) {
       setRefreshCountdown(autoRefreshSeconds);
   }, [isRefreshing, mutateAqi, mutateCities, mutateWind, mutatePrecomputed, autoRefreshSeconds]);
+    }
+
+  useEffect(() => {
     const handleOnline = () => {
       // Wipe any cached AQI/city/wind data so refreshNow() below is forced
       // to fetch fresh data instead of serving stale results that were
@@ -749,6 +1011,12 @@ function AppContent() {
       eventBus.off("TOGGLE_THEME", toggleTheme);
       eventBus.off("FORCE_REFRESH", refreshNow);
   }, [toggleTheme, refreshNow]);
+    };
+
+    return () => {
+  }, []);
+  useEffect(() => {
+  return (
     <main className="app-shell">
       <a href="#main-content" className="skip-link">
         Skip to main content
@@ -766,6 +1034,8 @@ function AppContent() {
         onSectionChange={setActiveSection}
       <BadgeNotification />
       <div id="main-content">
+      />
+
         {/*
           Above the readings rather than beside them. Someone who has just been told
           the air is fine needs to know the answer is four hours old before they read
@@ -775,6 +1045,8 @@ function AppContent() {
         <ConnectivityStatus
           dataTimestamp={lastUpdated ? Date.parse(lastUpdated) : null}
           onRetry={refreshNow}
+        />
+
         {loading && !error ? (
           <>
             <div role="status" aria-live="polite" aria-label={t("status.loading", "Loading")}>
@@ -794,6 +1066,12 @@ function AppContent() {
                 <SkeletonDashboard />
           </>
         ) : (
+
+              <div
+              >
+              </div>
+            )}
+          <>
               <AppControls
                 selectedCity={selectedCity}
                 onCityChange={handleLocationSelected}
@@ -808,6 +1086,8 @@ function AppContent() {
                 autoRefreshSeconds={autoRefreshSeconds}
                 onAutoRefreshChange={setAutoRefreshSeconds}
               />
+            )}
+
             {locationNotice && selectedCity === "auto" && (
               <div className="location-notice" role="status">
                 <p>{locationNotice}</p>
@@ -822,6 +1102,11 @@ function AppContent() {
                   Yes
                 <button type="button" onClick={dismissOsThemeSuggestion}>
                   No
+              </div>
+            )}
+
+              <div className="location-notice" role="status">
+                </button>
             )}          {activeSection === "home" && current && (
               <div key="dashboard-grid" className="content-grid">
                 <Dashboard
@@ -844,6 +1129,10 @@ function AppContent() {
                   exposureEstimate={exposureEstimate}
                 />
             {activeSection === "exposure" && (
+              </div>
+            )}
+
+              <div
                 className="content-grid exposure-layout"
                 style={{
                   maxWidth: "1100px",
@@ -890,6 +1179,22 @@ function AppContent() {
                   currentAqi={current?.us_aqi ?? null}
                   pm25={current?.pm2_5 ?? null}
                   no2={current?.nitrogen_dioxide ?? null}
+              >
+              </div>
+            )}
+
+              <div
+                style={{
+                  margin: "2rem auto",
+                  width: "100%",
+                  display: "block"
+                }}
+                  current={current}
+                  cityName={position.cityName}
+                />
+                  maxWidth: "1100px",
+                  lat={position.lat}
+                  lon={position.lon}
             {activeSection === "game" && (
               <Suspense
                 fallback={
@@ -900,12 +1205,14 @@ function AppContent() {
                       alignItems: "center",
                       minHeight: "300px",
                     }}
+                  >
                     <div role="status" aria-live="polite">
                       <div className="loading-spinner" />
                       <p style={{ marginTop: "1rem" }}>Loading games...</p>
                     </div>
                   </div>
                 }
+              >
                 <div className="content-grid game-layout">
                   <AqiMissionGame current={current} />
                   <HotspotScoutGame nearbyPoints={nearbyPoints} />
@@ -927,6 +1234,31 @@ function AppContent() {
             {activeSection === "noise-pollution" && <NoisePollutionTracker />}
             {activeSection === "ocean-acid" && <OceanAcidificationMonitor />}
             {activeSection === "health-impact" && <HealthImpactDashboard />}
+            )}
+
+              </div>
+            {activeSection === "light-pollution" && <LightPollutionObservatory />}
+              </Suspense>
+            {activeSection === "data-export" && (
+              <div
+                className="content-grid data-export-layout"
+                style={{
+                  maxWidth: "1200px",
+                  margin: "2rem auto",
+                  width: "100%",
+                  display: "block",
+                }}
+              >
+                <DataExportDashboard
+                  trend={trend}
+                  current={current}
+                  cityName={position.cityName}
+                  position={position}
+                />
+            {activeSection === "city-comparison-report" && (
+                className="content-grid city-comparison-report-layout"
+                <CityComparisonReport
+                  savedLocations={savedLocations}
             {activeSection === "CarbonCalculator" && (
               <div
                 className="content-grid carbon-calculator-layout"
@@ -951,6 +1283,10 @@ function AppContent() {
                 className="content-grid eco-impact-layout"
                 style={{ maxWidth: "900px", margin: "2rem auto", width: "100%", display: "block" }}
                 <EcoImpactDashboard />
+              <div
+              >
+              </div>
+            )}
             <Footer />
             <ScrollToTopButton />
           </>
@@ -959,6 +1295,7 @@ function AppContent() {
     </main>
   );
 }
+
 export default function App() {
   return (
     <ThemeProvider>
@@ -967,6 +1304,7 @@ export default function App() {
         behind one: any render error anywhere took the page to a blank white screen.
         The lint noise is what hid it — the import sat among ~190 identical
         "defined but never used" reports on components that *are* used in JSX.
+
         It wraps AppContent rather than ThemeProvider so the fallback still renders
         in the visitor's chosen theme.
       */}
@@ -975,3 +1313,5 @@ export default function App() {
       </ErrorBoundary>
     </ThemeProvider>
             {activeSection === "forecast" && <PollutionForecastDashboard />}
+  );
+}

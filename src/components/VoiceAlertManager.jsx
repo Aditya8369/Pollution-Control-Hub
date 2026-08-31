@@ -21,6 +21,7 @@ const VoiceAlertManager = () => {
         config,
         isSpeaking,
         queueLength,
+        queue = [],
         addToQueue,
         clearQueue,
         updateConfig,

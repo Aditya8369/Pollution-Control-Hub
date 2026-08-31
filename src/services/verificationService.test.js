@@ -319,7 +319,7 @@ describe('computeVerificationScore', () => {
     const result = computeVerificationScore(report, {});
     // Only freshness (10 pts for fresh) can contribute
     expect(result.confidenceScore).toBeLessThanOrEqual(10);
-    expect(result.factors).toHaveLength(5);
+    expect(result.factors).toHaveLength(6);
   });
 
   it('composite score does not exceed 100', () => {
