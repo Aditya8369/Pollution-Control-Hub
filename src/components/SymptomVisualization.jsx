@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { 
     BarChart, 
     Bar, 
@@ -8,30 +8,65 @@ import {
     ResponsiveContainer, 
     CartesianGrid 
 } from 'recharts';
+import { readSymptomReports, SYMPTOM_REPORTS_STORAGE_KEY } from './SymptomReportButton';
+import { eventBus } from '../core/events';
 
 export default function SymptomVisualization() {
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
-    useEffect(() => {
-        const fetchAggregatedData = async () => {
-            try {
-                // Fetching from our new backend endpoint
-                const response = await fetch('http://localhost:3001/api/symptoms/aggregated');
-                if (!response.ok) throw new Error('Failed to fetch symptom data');
-                
-                const result = await response.json();
-                setData(result);
-            } catch (err) {
-                setError(err.message);
-            } finally {
-                setLoading(false);
+    const loadAggregatedData = useCallback(() => {
+        try {
+            const reports = readSymptomReports();
+            const counts = {};
+
+            if (Array.isArray(reports)) {
+                reports.forEach((report) => {
+                    if (report && Array.isArray(report.symptoms)) {
+                        report.symptoms.forEach((symptom) => {
+                            if (typeof symptom === 'string' && symptom.trim() !== '') {
+                                counts[symptom] = (counts[symptom] || 0) + 1;
+                            }
+                        });
+                    }
+                });
             }
+
+            const aggregated = Object.entries(counts)
+                .map(([symptom, count]) => ({ symptom, count }))
+                .sort((a, b) => b.count - a.count);
+
+            setData(aggregated);
+            setError(null);
+        } catch (err) {
+            setError(err?.message || 'Failed to load symptom data');
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        loadAggregatedData();
+
+        const handleUpdate = () => {
+            loadAggregatedData();
         };
 
-        fetchAggregatedData();
-    }, []);
+        eventBus.on('SYMPTOM_REPORT_SUBMITTED', handleUpdate);
+
+        const handleStorage = (e) => {
+            if (!e.key || e.key === SYMPTOM_REPORTS_STORAGE_KEY) {
+                handleUpdate();
+            }
+        };
+        window.addEventListener('storage', handleStorage);
+
+        return () => {
+            eventBus.off('SYMPTOM_REPORT_SUBMITTED', handleUpdate);
+            window.removeEventListener('storage', handleStorage);
+        };
+    }, [loadAggregatedData]);
 
     if (loading) return <div className="p-4 text-center">Loading local health data...</div>;
     if (error) return <div className="p-4 text-center text-red-500">Error loading data: {error}</div>;
