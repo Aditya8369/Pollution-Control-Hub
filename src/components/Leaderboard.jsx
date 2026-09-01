@@ -59,6 +59,7 @@ export default function Leaderboard() {
   // threw `ReferenceError: nextLevel is not defined`, blanking the whole panel.
   // `nextTrustLevel` was already imported and was the only import from
   // contributionStats that nothing called.
+  const nextLevel = useMemo(() => nextTrustLevel(stats.points), [stats.points]);
 
   useEffect(() => {
     refresh();
@@ -142,7 +143,6 @@ export default function Leaderboard() {
   }, [isAuthenticated, user, stats]);
 
   const leaderboard = useMemo(() => getLeaderboardData(), [getLeaderboardData]);
-  const nextLevel = useMemo(() => nextTrustLevel(stats.points), [stats.points]);
 
   const currentUserRank = useMemo(() => {
     return leaderboard.findIndex(item => item.isCurrentUser) + 1;
