@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from "react";
+import { SelectionButton } from "./ui/PressableCard";
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 const OCEAN_REGIONS = [
@@ -359,9 +360,14 @@ export default function OceanAcidificationMonitor() {
             {OCEAN_REGIONS.map((r, i) => {
               const cat = pH_SCALE.find(c => r.avgPh >= c.min && c.max > r.avgPh) || pH_SCALE[4];
               return (
-                <div key={i} style={{ ...s.regionRow, borderColor: selectedRegion === i ? cat.color : "#1e3a5f", background: selectedRegion === i ? `${cat.color}10` : undefined }}
-                  onClick={() => setSelectedRegion(i)}>
-                  <span style={{ width: "24px", textAlign: "center" }}>{i === selectedRegion ? "🔵" : "⚪"}</span>
+                <SelectionButton
+                  key={i}
+                  selected={selectedRegion === i}
+                  onSelect={() => setSelectedRegion(i)}
+                  label={`Ocean region: ${r.name}, average pH ${r.avgPh}`}
+                  style={{ ...s.regionRow, borderColor: selectedRegion === i ? cat.color : "#1e3a5f", background: selectedRegion === i ? `${cat.color}10` : undefined }}
+                >
+                  <span aria-hidden="true" style={{ width: "24px", textAlign: "center" }}>{i === selectedRegion ? "🔵" : "⚪"}</span>
                   <div style={{ flex: 1 }}>
                     <div style={{ fontWeight: 600, color: "#e2e8f0", fontSize: "0.9rem" }}>{r.name}</div>
                     <div style={{ fontSize: "0.75rem", color: "#64748b" }}>{r.lat > 0 ? `${r.lat}°N` : `${Math.abs(r.lat)}°S`} · {Math.abs(r.lon)}°{r.lon > 0 ? "E" : "W"}</div>
@@ -370,7 +376,7 @@ export default function OceanAcidificationMonitor() {
                     <div style={{ fontWeight: 700, color: cat.color, fontSize: "1.1rem" }}>{r.avgPh}</div>
                     <div style={{ fontSize: "0.7rem", color: "#ef4444" }}>{r.trend}/yr</div>
                   </div>
-                </div>
+                </SelectionButton>
               );
             })}
           </div>
@@ -615,8 +621,13 @@ export default function OceanAcidificationMonitor() {
         {/* Scenario details */}
         <div style={s.grid2}>
           {CO2_SCENARIOS.map(sc => (
-            <div key={sc.id} style={{ ...s.insightCard, borderLeft: `4px solid ${sc.color}`, cursor: "pointer", opacity: selectedScenario === sc.id ? 1 : 0.6 }}
-              onClick={() => setSelectedScenario(sc.id)}>
+            <SelectionButton
+              key={sc.id}
+              selected={selectedScenario === sc.id}
+              onSelect={() => setSelectedScenario(sc.id)}
+              label={`CO2 scenario: ${sc.name}, peaking at ${sc.peakPpm} ppm in ${sc.peakYear}`}
+              style={{ ...s.insightCard, borderLeft: `4px solid ${sc.color}`, cursor: "pointer", opacity: selectedScenario === sc.id ? 1 : 0.6 }}
+            >
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <span style={{ fontWeight: 700, color: sc.color }}>{sc.name}</span>
                 {selectedScenario === sc.id && <span style={s.badge(sc.color)}>Active</span>}
@@ -625,7 +636,7 @@ export default function OceanAcidificationMonitor() {
                 <span>Peak: {sc.peakPpm} ppm ({sc.peakYear})</span>
                 <span>End: {sc.endPpm} ppm</span>
               </div>
-            </div>
+            </SelectionButton>
           ))}
         </div>
       </div>

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
   TrendingUp,
@@ -27,6 +27,7 @@ import {
   getAQIBand,
   getRiskScore,
 } from './healthRiskTypes';
+import { DisclosureButton } from './ui/PressableCard';
 
 /**
  * Stat card with icon, value, and optional trend.
@@ -228,6 +229,7 @@ const VulnerableGroupCard = ({ group, delay = 0 }) => {
  */
 const PollutantEffectCard = ({ pollutant, delay = 0 }) => {
   const [expanded, setExpanded] = useState(false);
+  const panelId = useId();
   const riskColor = pollutant.riskLevel === 'high' ? '#ef4444' : pollutant.riskLevel === 'moderate' ? '#f59e0b' : '#22c55e';
 
   return (
@@ -243,7 +245,13 @@ const PollutantEffectCard = ({ pollutant, delay = 0 }) => {
         borderLeft: `3px solid ${riskColor}`,
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }} onClick={() => setExpanded(!expanded)}>
+      <DisclosureButton
+        expanded={expanded}
+        onToggle={() => setExpanded(!expanded)}
+        controls={panelId}
+        label={`${pollutant.label} health risks, ${pollutant.riskLevel} risk`}
+        style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+      >
         <div style={{ flex: 1 }}>
           <p style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-primary, #1e293b)', margin: 0 }}>{pollutant.label}</p>
           <p style={{ fontSize: '0.6rem', color: 'var(--muted, #94a3b8)', margin: '0.1rem 0 0' }}>
@@ -256,10 +264,11 @@ const PollutantEffectCard = ({ pollutant, delay = 0 }) => {
         }}>
           {pollutant.riskLevel.toUpperCase()}
         </span>
-        <ChevronDown size={14} color="#94a3b8" style={{ transform: expanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
-      </div>
+        <ChevronDown aria-hidden="true" size={14} color="#94a3b8" style={{ transform: expanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }} />
+      </DisclosureButton>
       {expanded && (
         <motion.div
+          id={panelId}
           initial={{ height: 0, opacity: 0 }}
           animate={{ height: 'auto', opacity: 1 }}
           style={{ marginTop: '0.75rem', borderTop: '1px solid #f1f5f9', paddingTop: '0.75rem' }}
