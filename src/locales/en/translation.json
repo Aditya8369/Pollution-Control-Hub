@@ -521,5 +521,31 @@
     "no2": "NO₂ (ppb)",
     "o3": "O₃ (ppb)",
     "co": "CO (ppm)"
+  },
+  "weatherCorrelation": {
+    "title": "Weather–Health Correlation Analytics",
+    "subtitle": "Analyzing how weather conditions affect air quality health risks in {{city}}",
+    "weatherVar": "Weather Variable",
+    "pollutantVar": "Pollutant / AQI Metric",
+    "view": "View",
+    "showTrend": "Show Dual-Axis Trend",
+    "showScatter": "Show Scatter Plot",
+    "avgAqi": "Avg AQI",
+    "avgTemp": "Avg Temperature",
+    "avgHumidity": "Avg Humidity",
+    "avgWind": "Avg Wind Speed",
+    "matrixTitle": "Weather–Pollutant Correlation Matrix",
+    "weatherFactors": "Weather ↓ / Pollutant →",
+    "positiveCorr": "Positive (+0.2 to +1.0)",
+    "nearZeroCorr": "Near Zero (-0.2 to +0.2)",
+    "negativeCorr": "Negative (-1.0 to -0.2)",
+    "unavailableCorr": "N/A (n < 3)",
+    "insightsTitle": "Severity-Rated Weather–Pollution Insights",
+    "weatherUnavailable": "Weather data unavailable",
+    "weatherUnavailableDesc": "Could not retrieve weather forecast data. Set VITE_OPENWEATHER_API_KEY in your .env file to enable this feature.",
+    "collecting": "Collecting data points…",
+    "collectingDesc": "Weather and AQI data are being gathered. Correlations will appear once enough overlapping readings are available.",
+    "byBand": "by AQI Band",
+    "noBandData": "No data available for AQI band breakdown"
   }
 }

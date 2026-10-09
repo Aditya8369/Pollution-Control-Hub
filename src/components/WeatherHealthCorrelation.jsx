@@ -14,28 +14,30 @@ import {
   LineChart,
   Line,
   Legend,
-  ReferenceLine,
 } from "recharts";
 import { useSWR } from "../hooks/useSWR";
 import { fetchHourlyWeather } from "../services/weatherService";
 import {
   WEATHER_VARIABLES,
+  POLLUTANT_VARIABLES,
   AQI_VARIABLES,
   alignDatasets,
   computeCorrelationMatrix,
   prepareScatterData,
   prepareDualAxisData,
+  computeAqiBandBreakdown,
   generateInsights,
   pearsonCorrelation,
   mean,
   aqiColor,
   aqiBandLabel,
   classifyCorrelation,
+  MIN_CORRELATION_OBSERVATIONS,
 } from "../services/weatherCorrelationService";
 import styles from "./WeatherHealthCorrelation.module.css";
 
 // ---------------------------------------------------------------------------
-// Memoized sub-components
+// Sub-components
 // ---------------------------------------------------------------------------
 
 const InsightItem = memo(function InsightItem({ insight }) {
@@ -44,17 +46,33 @@ const InsightItem = memo(function InsightItem({ insight }) {
     insight.severity === "high" ? styles.insightItemHigh : "",
     insight.severity === "medium" ? styles.insightItemMedium : "",
     insight.severity === "insight" ? styles.insightItemInsight : "",
+    insight.severity === "insufficient" ? styles.insightItemInsufficient : "",
   ]
     .filter(Boolean)
     .join(" ");
 
   return (
-    <li className={className} role="listitem">
+    <li className={className}>
       <span className={styles.insightIcon} aria-hidden="true">
         {insight.icon}
       </span>
       <div className={styles.insightContent}>
-        <p className={styles.insightTitle}>{insight.title}</p>
+        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+          <p className={styles.insightTitle}>{insight.title}</p>
+          <span
+            className={`${styles.severityBadge} ${
+              insight.severity === "high"
+                ? styles.severityBadgeHigh
+                : insight.severity === "medium"
+                ? styles.severityBadgeMedium
+                : insight.severity === "insufficient"
+                ? styles.severityBadgeInsufficient
+                : styles.severityBadgeLow
+            }`}
+          >
+            {insight.severity.toUpperCase()}
+          </span>
+        </div>
         <p className={styles.insightDescription}>{insight.description}</p>
       </div>
     </li>
@@ -70,7 +88,7 @@ function ScatterTooltipContent({ active, payload }) {
   return (
     <div className={styles.scatterTooltip}>
       <p className={styles.scatterTooltipValue}>
-        AQI: {data.y} ({aqiBandLabel(data.y)})
+        Pollutant: {data.y}
       </p>
       <p className={styles.scatterTooltipValue}>
         Weather: {data.x}
@@ -94,25 +112,21 @@ function DualAxisTooltip({ active, payload, label }) {
       <p className={styles.scatterTooltipTime}>{label}</p>
       {payload.map((entry) => (
         <p key={entry.dataKey} className={styles.scatterTooltipValue} style={{ color: entry.color }}>
-          {entry.name}: {entry.value != null ? entry.value.toFixed(1) : "—"}
+          {entry.name}: {entry.value != null ? Number(entry.value).toFixed(1) : "—"}
         </p>
       ))}
     </div>
   );
 }
 
-// ---------------------------------------------------------------------------
-// Data quality computation
-// ---------------------------------------------------------------------------
-
-function computeDataQuality(alignedData, weatherKey, aqiKey) {
-  if (alignedData.length === 0) return { count: 0, percent: 0, quality: "none" };
+function computeDataQuality(alignedData, weatherKey, pollutantKey) {
+  if (!alignedData || alignedData.length === 0) return { count: 0, percent: 0, quality: "none" };
   const validPairs = alignedData.filter(
     (d) =>
       typeof d[weatherKey] === "number" &&
       Number.isFinite(d[weatherKey]) &&
-      typeof d[aqiKey] === "number" &&
-      Number.isFinite(d[aqiKey]),
+      typeof d[pollutantKey] === "number" &&
+      Number.isFinite(d[pollutantKey]),
   );
   const percent = Math.round((validPairs.length / alignedData.length) * 100);
   const quality = percent >= 80 ? "high" : percent >= 50 ? "medium" : "low";
@@ -120,16 +134,16 @@ function computeDataQuality(alignedData, weatherKey, aqiKey) {
 }
 
 // ---------------------------------------------------------------------------
-// Main component
+// Main WeatherHealthCorrelation component
 // ---------------------------------------------------------------------------
 
-export default function WeatherHealthCorrelation({ lat, lon, trend, cityName }) {
+export default function WeatherHealthCorrelation({ lat, lon, trend, cityName = "Delhi" }) {
   const { t } = useTranslation();
   const [weatherVar, setWeatherVar] = useState("temperature");
-  const [aqiVar, setAqiVar] = useState("us_aqi");
+  const [pollutantVar, setPollutantVar] = useState("pm2_5");
   const [showScatter, setShowScatter] = useState(true);
 
-  // Fetch weather data
+  // Fetch hourly weather data
   const weatherKey =
     lat && lon ? `weather_corr_${lat.toFixed(4)}_${lon.toFixed(4)}` : null;
   const { data: weatherData, error: weatherError } = useSWR(
@@ -138,69 +152,76 @@ export default function WeatherHealthCorrelation({ lat, lon, trend, cityName }) 
     { ttl: 60 * 60 * 1000 },
   );
 
-  // Align datasets
+  // Align datasets by timestamp
   const alignedData = useMemo(
     () => alignDatasets(weatherData || [], trend || []),
     [weatherData, trend],
   );
 
-  // Compute correlation matrix
+  // Correlation matrix calculation
   const { matrix } = useMemo(
     () => computeCorrelationMatrix(alignedData),
     [alignedData],
   );
 
-  // Generate insights
-  const insights = useMemo(() => generateInsights(matrix), [matrix]);
+  // Derived severity-rated insights
+  const insights = useMemo(
+    () => generateInsights(matrix, alignedData.length),
+    [matrix, alignedData.length],
+  );
 
-  // Scatter data
+  // Scatter & Dual Axis Data
   const scatterData = useMemo(
-    () => prepareScatterData(alignedData, weatherVar, aqiVar),
-    [alignedData, weatherVar, aqiVar],
+    () => prepareScatterData(alignedData, weatherVar, pollutantVar),
+    [alignedData, weatherVar, pollutantVar],
   );
 
-  // Dual-axis data
   const dualData = useMemo(
-    () => prepareDualAxisData(alignedData, weatherVar, aqiVar),
-    [alignedData, weatherVar, aqiVar],
+    () => prepareDualAxisData(alignedData, weatherVar, pollutantVar),
+    [alignedData, weatherVar, pollutantVar],
   );
 
-  // Selected variable labels
-  const weatherVarDef = WEATHER_VARIABLES.find((v) => v.key === weatherVar);
-  const aqiVarDef = AQI_VARIABLES.find((v) => v.key === aqiVar);
+  // Variable Definitions
+  const weatherVarDef = WEATHER_VARIABLES.find((v) => v.key === weatherVar) || WEATHER_VARIABLES[0];
+  const pollutantVarDef = AQI_VARIABLES.find((v) => v.key === pollutantVar) || POLLUTANT_VARIABLES[0];
 
-  // Compute key stats
+  // Averages for KPI Cards
   const avgAqi = useMemo(() => {
-    const vals = alignedData.map((d) => d.us_aqi).filter((v) => typeof v === "number");
+    const vals = alignedData.map((d) => d.us_aqi).filter((v) => typeof v === "number" && Number.isFinite(v));
     return mean(vals);
   }, [alignedData]);
 
   const avgTemp = useMemo(() => {
-    const vals = alignedData.map((d) => d.temperature).filter((v) => typeof v === "number");
+    const vals = alignedData.map((d) => d.temperature).filter((v) => typeof v === "number" && Number.isFinite(v));
     return mean(vals);
   }, [alignedData]);
 
   const avgHumidity = useMemo(() => {
-    const vals = alignedData.map((d) => d.humidity).filter((v) => typeof v === "number");
+    const vals = alignedData.map((d) => d.humidity).filter((v) => typeof v === "number" && Number.isFinite(v));
     return mean(vals);
   }, [alignedData]);
 
-  // Current correlation for selected pair
+  const avgWindSpeed = useMemo(() => {
+    const vals = alignedData.map((d) => d.windSpeed).filter((v) => typeof v === "number" && Number.isFinite(v));
+    return mean(vals);
+  }, [alignedData]);
+
+  // Selected Pair Correlation Coefficient
   const currentCorrelation = useMemo(() => {
     const xVals = alignedData.map((d) => d[weatherVar]);
-    const yVals = alignedData.map((d) => d[aqiVar]);
+    const yVals = alignedData.map((d) => d[pollutantVar]);
     return pearsonCorrelation(xVals, yVals);
-  }, [alignedData, weatherVar, aqiVar]);
+  }, [alignedData, weatherVar, pollutantVar]);
 
   const correlationStrength = classifyCorrelation(currentCorrelation);
 
   const dataQuality = useMemo(
-    () => computeDataQuality(alignedData, weatherVar, aqiVar),
-    [alignedData, weatherVar, aqiVar],
+    () => computeDataQuality(alignedData, weatherVar, pollutantVar),
+    [alignedData, weatherVar, pollutantVar],
   );
 
   const handleWeatherChange = useCallback((e) => setWeatherVar(e.target.value), []);
-  const handleAqiChange = useCallback((e) => setAqiVar(e.target.value), []);
+  const handlePollutantChange = useCallback((e) => setPollutantVar(e.target.value), []);
   const toggleScatter = useCallback(() => setShowScatter((prev) => !prev), []);
 
   // --- Error state ---
@@ -214,7 +235,7 @@ export default function WeatherHealthCorrelation({ lat, lon, trend, cityName }) 
             </h2>
             <p className={styles.headerSubtitle}>
               {t("weatherCorrelation.subtitle", {
-                defaultValue: "Analyzing how weather conditions affect air quality health risks",
+                defaultValue: `Analyzing how weather conditions affect air quality health risks in ${cityName}`,
                 city: cityName,
               })}
             </p>
@@ -246,7 +267,7 @@ export default function WeatherHealthCorrelation({ lat, lon, trend, cityName }) 
             </h2>
             <p className={styles.headerSubtitle}>
               {t("weatherCorrelation.subtitle", {
-                defaultValue: "Analyzing how weather conditions affect air quality health risks",
+                defaultValue: `Analyzing how weather conditions affect air quality health risks in ${cityName}`,
                 city: cityName,
               })}
             </p>
@@ -273,56 +294,58 @@ export default function WeatherHealthCorrelation({ lat, lon, trend, cityName }) 
         {/* Header */}
         <div className={styles.header}>
           <h2 className={styles.headerTitle}>
-            🌤️ {t("weatherCorrelation.title", "Weather–Health Correlation")}
+            🌤️ {t("weatherCorrelation.title", "Weather–Health Correlation Analytics")}
           </h2>
           <p className={styles.headerSubtitle}>
             {t("weatherCorrelation.subtitle", {
-              defaultValue: "Analyzing how weather conditions affect air quality health risks in {{city}}",
+              defaultValue: `Analyzing how weather conditions affect air quality health risks in ${cityName}`,
               city: cityName,
             })}
           </p>
         </div>
 
-        {/* Controls */}
+        {/* Controls Bar */}
         <div className={styles.controlBar} role="toolbar" aria-label="Correlation settings">
           <div className={styles.controlGroup}>
             <label className={styles.controlLabel} htmlFor="weather-var-select">
-              {t("weatherCorrelation.weatherVar", "Weather Factor")}
+              {t("weatherCorrelation.weatherVar", "Weather Variable")}
+              <select
+                id="weather-var-select"
+                className={styles.controlSelect}
+                value={weatherVar}
+                onChange={handleWeatherChange}
+                style={{ display: "block", marginTop: "0.25rem" }}
+              >
+                {WEATHER_VARIABLES.map((v) => (
+                  <option key={v.key} value={v.key}>
+                    {v.icon} {v.label} ({v.unit})
+                  </option>
+                ))}
+              </select>
             </label>
-            <select
-              id="weather-var-select"
-              className={styles.controlSelect}
-              value={weatherVar}
-              onChange={handleWeatherChange}
-            >
-              {WEATHER_VARIABLES.map((v) => (
-                <option key={v.key} value={v.key}>
-                  {v.icon} {v.label} ({v.unit})
-                </option>
-              ))}
-            </select>
           </div>
           <div className={styles.controlGroup}>
-            <label className={styles.controlLabel} htmlFor="aqi-var-select">
-              {t("weatherCorrelation.aqiVar", "Pollution Metric")}
+            <label className={styles.controlLabel} htmlFor="pollutant-var-select">
+              {t("weatherCorrelation.pollutantVar", "Pollutant / AQI Metric")}
+              <select
+                id="pollutant-var-select"
+                className={styles.controlSelect}
+                value={pollutantVar}
+                onChange={handlePollutantChange}
+                style={{ display: "block", marginTop: "0.25rem" }}
+              >
+                {AQI_VARIABLES.map((v) => (
+                  <option key={v.key} value={v.key}>
+                    {v.icon} {v.label} {v.unit ? `(${v.unit})` : ""}
+                  </option>
+                ))}
+              </select>
             </label>
-            <select
-              id="aqi-var-select"
-              className={styles.controlSelect}
-              value={aqiVar}
-              onChange={handleAqiChange}
-            >
-              {AQI_VARIABLES.map((v) => (
-                <option key={v.key} value={v.key}>
-                  {v.icon} {v.label} {v.unit ? `(${v.unit})` : ""}
-                </option>
-              ))}
-            </select>
           </div>
           <div className={styles.controlGroup}>
-            <label className={styles.controlLabel}>
-              {t("weatherCorrelation.view", "View")}
-            </label>
+            <span className={styles.controlLabel} style={{ display: "block", marginBottom: "0.25rem" }}>
+              {t("weatherCorrelation.view", "View Mode")}
+            </span>
             <button
               type="button"
               className={styles.controlSelect}
@@ -330,25 +353,25 @@ export default function WeatherHealthCorrelation({ lat, lon, trend, cityName }) 
               style={{ cursor: "pointer", textAlign: "center" }}
             >
               {showScatter
-                ? "📊 " + t("weatherCorrelation.showTrend", "Show Trend")
-                : "📈 " + t("weatherCorrelation.showScatter", "Show Scatter")}
+                ? "📈 " + t("weatherCorrelation.showTrend", "Show Dual-Axis Trend")
+                : "📊 " + t("weatherCorrelation.showScatter", "Show Scatter Plot")}
             </button>
           </div>
         </div>
 
         {/* Data quality badge */}
-        <div style={{ textAlign: "center" }}>
+        <div style={{ textAlign: "center", marginBottom: "1rem" }}>
           <span
             className={`${styles.qualityBadge} ${
               dataQuality.quality === "low" ? styles.qualityBadgeLow : ""
             }`}
             data-testid="data-quality-badge"
           >
-            📊 {dataQuality.count} aligned data points ({dataQuality.percent}% quality)
+            📊 {dataQuality.count} aligned observation pairs ({dataQuality.percent}% match rate)
           </span>
         </div>
 
-        {/* Key stats */}
+        {/* Key Summary Stats */}
         <div className={styles.statsRow} data-testid="stats-row">
           <div className={styles.statCard}>
             <span className={styles.statIcon} aria-hidden="true">
@@ -358,7 +381,7 @@ export default function WeatherHealthCorrelation({ lat, lon, trend, cityName }) 
               {Math.round(avgAqi)}
             </span>
             <span className={styles.statLabel}>
-              {t("weatherCorrelation.avgAqi", "Avg AQI")}
+              {t("weatherCorrelation.avgAqi", "Avg AQI")} ({aqiBandLabel(avgAqi)})
             </span>
           </div>
           <div className={styles.statCard}>
@@ -380,38 +403,40 @@ export default function WeatherHealthCorrelation({ lat, lon, trend, cityName }) 
             </span>
           </div>
           <div className={styles.statCard}>
-            <span
-              className={styles.statIcon}
-              aria-hidden="true"
-              style={{ fontSize: "1rem" }}
-            >
+            <span className={styles.statIcon} aria-hidden="true">
+              🌬️
+            </span>
+            <span className={styles.statValue}>{avgWindSpeed.toFixed(1)} m/s</span>
+            <span className={styles.statLabel}>
+              {t("weatherCorrelation.avgWind", "Avg Wind Speed")}
+            </span>
+          </div>
+          <div className={styles.statCard}>
+            <span className={styles.statIcon} aria-hidden="true" style={{ fontSize: "1rem" }}>
               {correlationStrength.emoji}
             </span>
-            <span
-              className={styles.statValue}
-              style={{ color: correlationStrength.color }}
-            >
-              {currentCorrelation.toFixed(2)}
+            <span className={styles.statValue} style={{ color: correlationStrength.color }}>
+              {currentCorrelation !== null ? (currentCorrelation >= 0 ? `+${currentCorrelation.toFixed(2)}` : currentCorrelation.toFixed(2)) : "N/A"}
             </span>
             <span className={styles.statLabel}>
-              {weatherVarDef?.label} ↔ {aqiVarDef?.label}
+              {weatherVarDef?.label} ↔ {pollutantVarDef?.label}
             </span>
           </div>
         </div>
 
-        {/* Correlation Matrix */}
+        {/* Interactive 15-Pair Correlation Matrix */}
         <div className={styles.matrixSection} data-testid="correlation-matrix">
           <h3 className={styles.sectionTitle}>
-            🔬 {t("weatherCorrelation.matrixTitle", "Correlation Matrix")}
+            🔬 {t("weatherCorrelation.matrixTitle", "Weather–Pollutant Correlation Matrix")}
           </h3>
           <div style={{ overflowX: "auto" }}>
-            <table className={styles.matrixTable}>
+            <table className={styles.matrixTable} aria-label="15 Weather-Pollutant correlation matrix">
               <thead>
                 <tr>
                   <th scope="col">
-                    {t("weatherCorrelation.weatherFactors", "Weather ↓ / AQI →")}
+                    {t("weatherCorrelation.weatherFactors", "Weather ↓ / Pollutant →")}
                   </th>
-                  {AQI_VARIABLES.map((v) => (
+                  {POLLUTANT_VARIABLES.map((v) => (
                     <th key={v.key} scope="col">
                       {v.icon} {v.label}
                     </th>
@@ -424,28 +449,36 @@ export default function WeatherHealthCorrelation({ lat, lon, trend, cityName }) 
                     <th scope="row">
                       {wv.icon} {wv.label}
                     </th>
-                    {AQI_VARIABLES.map((av, ai) => {
-                      const cell = matrix[wi]?.[ai];
-                      if (!cell) return <td key={av.key}>—</td>;
+                    {POLLUTANT_VARIABLES.map((pv, pi) => {
+                      const cell = matrix[wi]?.[pi];
+                      if (!cell || cell.r === null || cell.unavailable) {
+                        return (
+                          <td key={pv.key}>
+                            <span className={styles.matrixCellUnavailable} title={`${wv.label} ↔ ${pv.label}: Insufficient Data`}>
+                              N/A
+                            </span>
+                          </td>
+                        );
+                      }
+                      const r = cell.r;
                       const bg =
-                        cell.r > 0
-                          ? `rgba(239, 68, 68, ${Math.min(Math.abs(cell.r) * 0.5, 0.6)})`
-                          : `rgba(59, 130, 246, ${Math.min(Math.abs(cell.r) * 0.5, 0.6)})`;
+                        r > 0
+                          ? `rgba(239, 68, 68, ${Math.min(Math.abs(r) * 0.65, 0.75)})`
+                          : `rgba(59, 130, 246, ${Math.min(Math.abs(r) * 0.65, 0.75)})`;
+                      const formattedVal = r >= 0 ? `+${r.toFixed(2)}` : r.toFixed(2);
                       return (
-                        <td key={av.key}>
+                        <td key={pv.key}>
                           <span
                             className={styles.matrixCell}
                             style={{
                               background: bg,
-                              color: Math.abs(cell.r) > 0.35 ? "#fff" : "inherit",
-                              display: "inline-block",
-                              padding: "0.2rem 0.45rem",
-                              minWidth: "3rem",
+                              color: Math.abs(r) > 0.35 ? "#fff" : "inherit",
                             }}
-                            title={`${wv.label} ↔ ${av.label}: r=${cell.r.toFixed(3)} (${cell.label})`}
+                            title={`${wv.label} ↔ ${pv.label}: r = ${formattedVal} (${cell.label}, n=${cell.count})`}
                             data-testid="matrix-cell"
+                            aria-label={`${wv.label} vs ${pv.label}: r = ${formattedVal}, ${cell.label} correlation with ${cell.count} observations`}
                           >
-                            {cell.r.toFixed(2)}
+                            {formattedVal}
                           </span>
                         </td>
                       );
@@ -455,67 +488,77 @@ export default function WeatherHealthCorrelation({ lat, lon, trend, cityName }) 
               </tbody>
             </table>
           </div>
+
+          {/* Color Scale Legend */}
+          <div className={styles.legendBar} role="img" aria-label="Correlation color scale legend">
+            <span className={styles.legendItem}>
+              <span className={styles.legendDot} style={{ background: "rgba(239, 68, 68, 0.7)" }} />
+              {t("weatherCorrelation.positiveCorr", "Positive (+0.2 to +1.0)")}
+            </span>
+            <span className={styles.legendItem}>
+              <span className={styles.legendDot} style={{ background: "#f1f5f9" }} />
+              {t("weatherCorrelation.nearZeroCorr", "Near Zero (-0.2 to +0.2)")}
+            </span>
+            <span className={styles.legendItem}>
+              <span className={styles.legendDot} style={{ background: "rgba(59, 130, 246, 0.7)" }} />
+              {t("weatherCorrelation.negativeCorr", "Negative (-1.0 to -0.2)")}
+            </span>
+            <span className={styles.legendItem}>
+              <span className={styles.legendDot} style={{ background: "#cbd5e1" }} />
+              {t("weatherCorrelation.unavailableCorr", "N/A (n < 3)")}
+            </span>
+          </div>
         </div>
 
-        {/* Legend */}
-        <div className={styles.legendBar} role="img" aria-label="Correlation strength legend">
-          <span className={styles.legendItem}>
-            <span className={styles.legendDot} style={{ background: "rgba(239, 68, 68, 0.5)" }} />
-            {t("weatherCorrelation.positiveCorr", "Positive (higher weather → higher AQI)")}
-          </span>
-          <span className={styles.legendItem}>
-            <span className={styles.legendDot} style={{ background: "rgba(59, 130, 246, 0.5)" }} />
-            {t("weatherCorrelation.negativeCorr", "Negative (higher weather → lower AQI)")}
-          </span>
-          <span className={styles.legendItem}>
-            <span className={styles.legendDot} style={{ background: "#f1f5f9" }} />
-            {t("weatherCorrelation.weakCorr", "Weak / negligible")}
-          </span>
-        </div>
-
-        {/* Charts */}
+        {/* Visualizations Grid */}
         <div className={styles.chartsGrid} data-testid="charts-area">
-          {/* Scatter / Dual Axis Chart */}
+          {/* Scatter Plot / Dual Axis Trend */}
           <div className={styles.chartCard}>
             <h3 className={styles.chartTitle}>
               {showScatter
-                ? `📊 ${weatherVarDef?.label} vs ${aqiVarDef?.label}`
-                : `📈 ${weatherVarDef?.label} & ${aqiVarDef?.label} Trend`}
+                ? `📊 Scatter Plot: ${weatherVarDef?.label} vs ${pollutantVarDef?.label}`
+                : `📈 Dual-Axis Trend: ${weatherVarDef?.label} & ${pollutantVarDef?.label}`}
             </h3>
             <div className={styles.chartContainer}>
               {showScatter ? (
+                scatterData.length >= MIN_CORRELATION_OBSERVATIONS ? (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <ScatterChart margin={{ top: 10, right: 20, bottom: 15, left: 10 }}>
+                      <CartesianGrid strokeDasharray="3 3" opacity={0.15} />
+                      <XAxis
+                        type="number"
+                        dataKey="x"
+                        name={weatherVarDef?.label}
+                        unit={weatherVarDef?.unit ? ` ${weatherVarDef.unit}` : ""}
+                        fontSize={11}
+                        tick={{ fill: "var(--text-secondary, #64748b)" }}
+                      />
+                      <YAxis
+                        type="number"
+                        dataKey="y"
+                        name={pollutantVarDef?.label}
+                        unit={pollutantVarDef?.unit ? ` ${pollutantVarDef.unit}` : ""}
+                        fontSize={11}
+                        tick={{ fill: "var(--text-secondary, #64748b)" }}
+                      />
+                      <Tooltip content={<ScatterTooltipContent />} />
+                      <Scatter
+                        data={scatterData}
+                        fill={aqiColor(avgAqi)}
+                        fillOpacity={0.7}
+                        stroke={aqiColor(avgAqi)}
+                        strokeWidth={1}
+                      />
+                    </ScatterChart>
+                  </ResponsiveContainer>
+                ) : (
+                  <div className={styles.emptyChartMessage}>
+                    ⚠️ Insufficient paired observations to render scatter plot (n = {scatterData.length}, required n ≥ 3).
+                  </div>
+                )
+              ) : dualData.length > 0 ? (
                 <ResponsiveContainer width="100%" height="100%">
-                  <ScatterChart margin={{ top: 10, right: 20, bottom: 10, left: 10 }}>
-                    <CartesianGrid strokeDasharray="3 3" opacity={0.15} />
-                    <XAxis
-                      type="number"
-                      dataKey="x"
-                      name={weatherVarDef?.label}
-                      unit={weatherVarDef?.unit ? ` ${weatherVarDef.unit}` : ""}
-                      fontSize={11}
-                      tick={{ fill: "var(--text-secondary, #64748b)" }}
-                    />
-                    <YAxis
-                      type="number"
-                      dataKey="y"
-                      name={aqiVarDef?.label}
-                      unit={aqiVarDef?.unit ? ` ${aqiVarDef.unit}` : ""}
-                      fontSize={11}
-                      tick={{ fill: "var(--text-secondary, #64748b)" }}
-                    />
-                    <Tooltip content={<ScatterTooltipContent />} />
-                    <Scatter
-                      data={scatterData}
-                      fill={aqiColor(avgAqi)}
-                      fillOpacity={0.7}
-                      stroke={aqiColor(avgAqi)}
-                      strokeWidth={1}
-                    />
-                  </ScatterChart>
-                </ResponsiveContainer>
-              ) : (
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={dualData} margin={{ top: 10, right: 40, bottom: 10, left: 10 }}>
+                  <LineChart data={dualData} margin={{ top: 10, right: 40, bottom: 15, left: 10 }}>
                     <CartesianGrid strokeDasharray="3 3" opacity={0.15} />
                     <XAxis
                       dataKey="timeLabel"
@@ -529,7 +572,7 @@ export default function WeatherHealthCorrelation({ lat, lon, trend, cityName }) 
                       fontSize={10}
                       tick={{ fill: "#0d9488" }}
                       label={{
-                        value: weatherVarDef?.label,
+                        value: `${weatherVarDef?.label} (${weatherVarDef?.unit || ""})`,
                         angle: -90,
                         position: "insideLeft",
                         fontSize: 10,
@@ -537,12 +580,12 @@ export default function WeatherHealthCorrelation({ lat, lon, trend, cityName }) 
                       }}
                     />
                     <YAxis
-                      yAxisId="aqi"
+                      yAxisId="pollutant"
                       orientation="right"
                       fontSize={10}
                       tick={{ fill: "#ef4444" }}
                       label={{
-                        value: aqiVarDef?.label,
+                        value: `${pollutantVarDef?.label} (${pollutantVarDef?.unit || ""})`,
                         angle: 90,
                         position: "insideRight",
                         fontSize: 10,
@@ -556,13 +599,11 @@ export default function WeatherHealthCorrelation({ lat, lon, trend, cityName }) 
                         <span style={{ color: "var(--text-secondary, #475569)" }}>{value}</span>
                       )}
                     />
-                    <ReferenceLine yAxisId="aqi" y={100} stroke="#f59e0b" strokeDasharray="5 5" strokeOpacity={0.5} />
-                    <ReferenceLine yAxisId="aqi" y={150} stroke="#ef4444" strokeDasharray="5 5" strokeOpacity={0.5} />
                     <Line
                       yAxisId="weather"
                       type="monotone"
                       dataKey="weather"
-                      name={weatherVarDef?.label}
+                      name={`${weatherVarDef?.label} (${weatherVarDef?.unit})`}
                       stroke="#0d9488"
                       strokeWidth={2}
                       dot={{ r: 3, fill: "#0d9488" }}
@@ -570,10 +611,10 @@ export default function WeatherHealthCorrelation({ lat, lon, trend, cityName }) 
                       connectNulls
                     />
                     <Line
-                      yAxisId="aqi"
+                      yAxisId="pollutant"
                       type="monotone"
-                      dataKey="aqi"
-                      name={aqiVarDef?.label}
+                      dataKey="pollutant"
+                      name={`${pollutantVarDef?.label} (${pollutantVarDef?.unit})`}
                       stroke="#ef4444"
                       strokeWidth={2}
                       dot={{ r: 3, fill: "#ef4444" }}
@@ -582,36 +623,40 @@ export default function WeatherHealthCorrelation({ lat, lon, trend, cityName }) 
                     />
                   </LineChart>
                 </ResponsiveContainer>
+              ) : (
+                <div className={styles.emptyChartMessage}>
+                  ⚠️ No trend data available for selected metrics.
+                </div>
               )}
             </div>
           </div>
 
-          {/* Distribution by AQI band */}
+          {/* AQI-Band Breakdown Chart */}
           <div className={styles.chartCard}>
             <h3 className={styles.chartTitle}>
-              🌡️ {weatherVarDef?.label}{" "}
-              {t("weatherCorrelation.byBand", "by AQI Band")}
+              🌡️ {weatherVarDef?.label} Distribution by Authoritative AQI Band
             </h3>
             <div className={styles.chartContainer}>
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChartByBand
-                  data={alignedData}
-                  weatherKey={weatherVar}
-                  weatherLabel={weatherVarDef?.label || ""}
-                  weatherUnit={weatherVarDef?.unit || ""}
-                />
-              </ResponsiveContainer>
+              <BarChartByBand
+                alignedData={alignedData}
+                weatherKey={weatherVar}
+                weatherLabel={weatherVarDef?.label || ""}
+                weatherUnit={weatherVarDef?.unit || ""}
+              />
             </div>
+            <p className={styles.causationDisclaimer}>
+              * Observational summary: Observed differences show associations across AQI bands, but do not prove direct environmental causation.
+            </p>
           </div>
         </div>
 
-        {/* Insights */}
+        {/* Severity-Rated Insights */}
         {insights.length > 0 && (
           <div className={styles.insightsSection} data-testid="insights-section">
             <h3 className={styles.sectionTitle}>
-              💡 {t("weatherCorrelation.insightsTitle", "Weather–Pollution Insights")}
+              💡 {t("weatherCorrelation.insightsTitle", "Severity-Rated Weather–Pollution Insights")}
             </h3>
-            <ul className={styles.insightsList} role="list">
+            <ul className={styles.insightsList}>
               {insights.map((insight, idx) => (
                 <InsightItem key={`${insight.title}-${idx}`} insight={insight} />
               ))}
@@ -624,42 +669,20 @@ export default function WeatherHealthCorrelation({ lat, lon, trend, cityName }) 
 }
 
 // ---------------------------------------------------------------------------
-// Bar chart showing average weather variable per AQI band
+// Bar chart component showing weather metric per AQI band
 // ---------------------------------------------------------------------------
 
-function BarChartByBand({ data, weatherKey, weatherLabel, weatherUnit }) {
+function BarChartByBand({ alignedData, weatherKey, weatherLabel, weatherUnit }) {
   const { t } = useTranslation();
-  const bandData = useMemo(() => {
-    const bands = [
-      { label: "Good\n(0–50)", min: 0, max: 50, color: "#22c55e", values: [] },
-      { label: "Moderate\n(51–100)", min: 51, max: 100, color: "#eab308", values: [] },
-      { label: "USG\n(101–150)", min: 101, max: 150, color: "#f97316", values: [] },
-      { label: "Unhealthy\n(151–200)", min: 151, max: 200, color: "#ef4444", values: [] },
-      { label: "Very Unhealthy\n(201+)", min: 201, max: 500, color: "#9333ea", values: [] },
-    ];
-
-    for (const d of data) {
-      const aqi = d.us_aqi;
-      const weather = d[weatherKey];
-      if (typeof aqi !== "number" || typeof weather !== "number") continue;
-      const band = bands.find((b) => aqi >= b.min && aqi <= b.max);
-      if (band) band.values.push(weather);
-    }
-
-    return bands
-      .filter((b) => b.values.length > 0)
-      .map((b) => ({
-        name: b.label,
-        value: mean(b.values),
-        count: b.values.length,
-        color: b.color,
-      }));
-  }, [data, weatherKey]);
+  const bandData = useMemo(
+    () => computeAqiBandBreakdown(alignedData, weatherKey),
+    [alignedData, weatherKey]
+  );
 
   if (bandData.length === 0) {
     return (
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100%", color: "var(--text-secondary, #94a3b8)", fontSize: "0.85rem" }}>
-        {t("weatherCorrelation.noBandData", { defaultValue: "No data available for band breakdown" })}
+      <div className={styles.emptyChartMessage}>
+        {t("weatherCorrelation.noBandData", { defaultValue: "No data available for AQI band breakdown" })}
       </div>
     );
   }
@@ -673,7 +696,6 @@ function BarChartByBand({ data, weatherKey, weatherLabel, weatherUnit }) {
           fontSize={9}
           tick={{ fill: "var(--text-secondary, #64748b)" }}
           interval={0}
-          angle={0}
         />
         <YAxis
           fontSize={10}
@@ -687,7 +709,10 @@ function BarChartByBand({ data, weatherKey, weatherLabel, weatherUnit }) {
           }}
         />
         <Tooltip
-          formatter={(value) => [`${value.toFixed(1)} ${weatherUnit}`, weatherLabel]}
+          formatter={(value, name, item) => [
+            `${Number(value).toFixed(1)} ${weatherUnit} (n=${item?.payload?.count || 0})`,
+            weatherLabel,
+          ]}
           contentStyle={{
             background: "var(--bg-card, #fff)",
             border: "1px solid var(--border-color, #e2e8f0)",
@@ -697,7 +722,7 @@ function BarChartByBand({ data, weatherKey, weatherLabel, weatherUnit }) {
         />
         <Bar dataKey="value" radius={[6, 6, 0, 0]}>
           {bandData.map((entry, idx) => (
-            <Cell key={idx} fill={entry.color} fillOpacity={0.8} />
+            <Cell key={idx} fill={entry.color} fillOpacity={0.85} />
           ))}
         </Bar>
       </BarChart>

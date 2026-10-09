@@ -70,6 +70,7 @@ import LightPollutionObservatory from "./components/LightPollutionObservatory";
 import HealthImpactDashboard from "./components/HealthImpactDashboard";
 import DataExportDashboard from "./components/DataExportDashboard";
 import CityComparisonReport from "./components/CityComparisonReport";
+import WeatherHealthCorrelation from "./components/WeatherHealthCorrelation";
 
 const AqiMissionGame = lazy(() => import("./components/AqiMissionGame"));
 const HotspotScoutGame = lazy(() => import("./components/HotspotScoutGame"));
@@ -1264,6 +1265,11 @@ function AppContent() {
             {activeSection === "history" && (
               <div className="content-grid history-layout">
                 <HistoricalAnalysis position={position} />
+              </div>
+            )}
+            {activeSection === "weather-correlation" && (
+              <div className="content-grid weather-correlation-layout" style={{ maxWidth: "1100px", margin: "2rem auto", width: "100%", display: "block" }}>
+                <WeatherHealthCorrelation lat={position.lat} lon={position.lon} trend={trend} cityName={position.cityName} />
               </div>
             )}
             {activeSection === "historical-data" && (

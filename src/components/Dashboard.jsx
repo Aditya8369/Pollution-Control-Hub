@@ -41,6 +41,7 @@ const PollenAllergenForecast = lazy(() => import("./PollenAllergenForecast"));
 const SunSafetyDashboard = lazy(() => import("./SunSafetyDashboard"));
 const SolutionsAwareness = lazy(() => import("./SolutionsAwareness"));
 const ScenarioSimulator = lazy(() => import("./ScenarioSimulator"));
+const WeatherHealthCorrelation = lazy(() => import("./WeatherHealthCorrelation"));
 
 /**
  * Lightweight skeleton loader for lazy-loaded widgets.
@@ -159,6 +160,7 @@ const DEFAULT_WIDGETS = [
   { id: 'challenges', title: 'Challenges & Activities', visible: true },
   { id: 'factoid', title: 'Did You Know?', visible: true },
   { id: 'analytics-insights', title: 'Analytics Insights', visible: true },
+  { id: 'weather-correlation', title: 'Weather–AQI Correlation Analytics', visible: true },
   { id: 'solutions-awareness', title: 'Solutions & Actions', visible: true },
   { id: 'scenario-simulator', title: 'Pollution Scenario Simulator', visible: true },
 ];
@@ -1075,6 +1077,16 @@ export default function Dashboard({
                   return <SolutionsAwareness key="solutions-awareness" />;
                 case 'scenario-simulator':
                   return <ScenarioSimulator key="scenario-simulator" current={current} />;
+                case 'weather-correlation':
+                  return (
+                    <WeatherHealthCorrelation
+                      key="weather-correlation"
+                      lat={lat}
+                      lon={lon}
+                      trend={trend}
+                      cityName={cityName}
+                    />
+                  );
                 default:
                   return null;
               }
