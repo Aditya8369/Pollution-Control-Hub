@@ -536,9 +536,9 @@ export function SectionNav({ activeSection, onSectionChange }) {
       >
         {/* Desktop Section Navigation */}
         <div className="nav-sections section-nav-desktop">
-          {sections.map((section) => (
+          {sections.map((section,idx) => (
             <button
-              key={section.id}
+              key={`desktop-${section.id}-${idx}`}
               type="button"
               className={activeSection === section.id ? "active" : ""}
               onClick={() => handleSectionClick(section.id)}
@@ -577,9 +577,9 @@ export function SectionNav({ activeSection, onSectionChange }) {
                 ref={mobileNavRef}
                 className="mobile-nav-dropdown"
               >
-                {sections.map((section) => (
+                {sections.map((section,idx) => (
                   <button
-                    key={section.id}
+                    key={`mobile-${section.id}-${idx}`}
                     type="button"
                     className={activeSection === section.id ? "active" : ""}
                     onClick={() => handleSectionClick(section.id)}
